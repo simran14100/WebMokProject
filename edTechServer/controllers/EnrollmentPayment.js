@@ -30,7 +30,7 @@ exports.createEnrollmentOrder = async (req, res) => {
         const options = {
             amount: enrollmentFee * 100, // Razorpay expects amount in paise
             currency: "INR",
-            receipt: `enrollment_${userId}_${Date.now()}`,
+            receipt: `enroll_${Date.now()}`, // Shortened receipt ID
             notes: {
                 userId: userId,
                 type: "enrollment_fee"

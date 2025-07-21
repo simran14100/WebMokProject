@@ -77,6 +77,6 @@ app.listen(PORT, () => {
 
 // Connecting to database
 database.connect();
- 
+console.log('Backend Razorpay Key:', process.env.RAZORPAY_KEY_ID);
 // End of code.
 //mongodb+srv://simmijha1410:3e1RpwhtiA9hfzB8@cluster0.1kc31.mongodb.net/studyNotation"//

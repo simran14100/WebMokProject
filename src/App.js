@@ -1,8 +1,10 @@
 import "./App.css";
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { Provider } from 'react-redux';
-import store from './store';
+import { PersistGate } from 'redux-persist/integration/react';
+import store, { persistor } from './store';
 import { Toaster } from 'react-hot-toast';
+import { debugLocalStorage } from './utils/localStorage';
 import Navbar from "./components/common/Navbar";
 import Home from "./pages/Home";
 import About from "./pages/About";
@@ -16,50 +18,65 @@ import AdminDashboard from "./pages/AdminDashboard";
 import InstructorDashboard from "./pages/InstructorDashboard";
 import AdmissionConfirmation from "./pages/AdmissionConfirmation";
 import PaymentInstallments from "./pages/PaymentInstallments";
+import AdminProfile from './pages/AdminProfile';
+import Settings from "./components/common/setting/Settings";
+
+// Debug Redux store on app start
+console.log("App starting - Redux store state:", store.getState());
+console.log("App starting - localStorage debug:");
+debugLocalStorage();
 
 function App() {
   return (
     <Provider store={store}>
-      <Router>
-        <div className="flex min-h-screen flex-col">
-          <Navbar />
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/about" element={<About />} />
-            <Route path="/contact" element={<Contact />} />
-            <Route path="/login" element={<Login />} />
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/catalog/:catalogName" element={<Catalog />} />
-            <Route path="/enrollment-payment" element={<EnrollmentPayment />} />
-            <Route path="/admin/dashboard" element={<AdminDashboard />} />
-            <Route path="/admin/admission-confirmation" element={<AdmissionConfirmation />} />
-            <Route path="/admin/installments" element={<PaymentInstallments />} />
-            <Route path="/installments" element={<PaymentInstallments />} />
-            <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
-          </Routes>
-          <Toaster 
-            position="top-right"
-            toastOptions={{
-              duration: 4000,
-              style: {
-                background: '#1f2937',
-                color: '#f9fafb',
-              },
-              success: {
+      <PersistGate loading={null} persistor={persistor}>
+        <Router>
+          <div className="flex min-h-screen flex-col">
+            <Navbar />
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/login" element={<Login />} />
+              <Route path="/signup" element={<Signup />} />
+              <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/dashboard/my-profile" element={<AdminProfile />} />
+              <Route path="/dashboard/settings" element={<Settings />} />
+              <Route path="/catalog/:catalogName" element={<Catalog />} />
+              <Route path="/enrollment-payment" element={<EnrollmentPayment />} />
+              <Route path="/admin/dashboard" element={<AdminDashboard />} />
+              <Route path="/admin/admission-confirmation" element={<AdmissionConfirmation />} />
+              <Route path="/admin/installments" element={<PaymentInstallments />} />
+              <Route path="/installments" element={<PaymentInstallments />} />
+              <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
+            </Routes>
+            <Toaster 
+              position="top-right"
+              toastOptions={{
+                duration: 4000,
                 style: {
-                  background: '#10b981',
+                  background: '#1f2937',
+                  color: '#f9fafb',
+                  marginLeft: 'auto',
+                  marginRight: 40,
+                  maxWidth: 400,
+                  marginTop: 80, // push below navbar/profile
                 },
-              },
-              error: {
-                style: {
-                  background: '#ef4444',
+                success: {
+                  style: {
+                    background: '#10b981',
+                  },
                 },
-              },
-            }}
-          />
-        </div>
-      </Router>
+                error: {
+                  style: {
+                    background: '#ef4444',
+                  },
+                },
+              }}
+            />
+          </div>
+        </Router>
+      </PersistGate>
     </Provider>
   );
 }

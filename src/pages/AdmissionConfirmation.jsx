@@ -3,6 +3,7 @@ import { useSelector } from 'react-redux';
 import { apiConnector } from '../services/apiConnector';
 import { admission } from '../services/apis';
 import { toast } from 'react-hot-toast';
+import Sidebar from '../components/common/Sidebar';
 
 const AdmissionConfirmation = () => {
   const { token } = useSelector((state) => state.auth);
@@ -165,204 +166,207 @@ const AdmissionConfirmation = () => {
   };
 
   return (
-    <div className="flex-1 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-richblack-25 mb-2">
-            Admission Confirmation
-          </h1>
-          <p className="text-richblack-100">
-            Manage student admission confirmations after course payments
-          </p>
-        </div>
+    <div style={{ minHeight: '100vh', display: 'flex', background: '#fff' }}>
+      <Sidebar />
+      <div style={{ flex: 1, padding: '2rem 0' }}>
+        <div className="max-w-7xl mx-auto">
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl font-bold text-richblack-25 mb-2">
+              Admission Confirmation
+            </h1>
+            <p className="text-richblack-100">
+              Manage student admission confirmations after course payments
+            </p>
+          </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
-          <div className="bg-richblack-800 p-4 rounded-lg">
-            <h3 className="text-richblack-100 text-sm font-medium">Total Pending</h3>
-            <p className="text-2xl font-bold text-yellow-400">{stats.totalPending || 0}</p>
-          </div>
-          <div className="bg-richblack-800 p-4 rounded-lg">
-            <h3 className="text-richblack-100 text-sm font-medium">Total Confirmed</h3>
-            <p className="text-2xl font-bold text-green-400">{stats.totalConfirmed || 0}</p>
-          </div>
-          <div className="bg-richblack-800 p-4 rounded-lg">
-            <h3 className="text-richblack-100 text-sm font-medium">Total Rejected</h3>
-            <p className="text-2xl font-bold text-red-400">{stats.totalRejected || 0}</p>
-          </div>
-          <div className="bg-richblack-800 p-4 rounded-lg">
-            <h3 className="text-richblack-100 text-sm font-medium">Total Confirmations</h3>
-            <p className="text-2xl font-bold text-blue-400">{stats.totalConfirmations || 0}</p>
-          </div>
-          <div className="bg-richblack-800 p-4 rounded-lg">
-            <h3 className="text-richblack-100 text-sm font-medium">Today's Confirmations</h3>
-            <p className="text-2xl font-bold text-purple-400">{stats.todayConfirmations || 0}</p>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-richblack-800 p-4 rounded-lg mb-6">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1">
-              <input
-                type="text"
-                placeholder="Search by order ID or payment ID..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full px-3 py-2 bg-richblack-700 text-richblack-25 rounded-md border border-richblack-600 focus:outline-none focus:border-yellow-400"
-              />
+          {/* Stats Cards */}
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4 mb-6">
+            <div className="bg-richblack-800 p-4 rounded-lg">
+              <h3 className="text-richblack-100 text-sm font-medium">Total Pending</h3>
+              <p className="text-2xl font-bold text-yellow-400">{stats.totalPending || 0}</p>
             </div>
-            <div>
-              <select
-                value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className="px-3 py-2 bg-richblack-700 text-richblack-25 rounded-md border border-richblack-600 focus:outline-none focus:border-yellow-400"
-              >
-                <option value="all">All Status</option>
-                <option value="Pending">Pending</option>
-                <option value="Confirmed">Confirmed</option>
-                <option value="Rejected">Rejected</option>
-              </select>
+            <div className="bg-richblack-800 p-4 rounded-lg">
+              <h3 className="text-richblack-100 text-sm font-medium">Total Confirmed</h3>
+              <p className="text-2xl font-bold text-green-400">{stats.totalConfirmed || 0}</p>
+            </div>
+            <div className="bg-richblack-800 p-4 rounded-lg">
+              <h3 className="text-richblack-100 text-sm font-medium">Total Rejected</h3>
+              <p className="text-2xl font-bold text-red-400">{stats.totalRejected || 0}</p>
+            </div>
+            <div className="bg-richblack-800 p-4 rounded-lg">
+              <h3 className="text-richblack-100 text-sm font-medium">Total Confirmations</h3>
+              <p className="text-2xl font-bold text-blue-400">{stats.totalConfirmations || 0}</p>
+            </div>
+            <div className="bg-richblack-800 p-4 rounded-lg">
+              <h3 className="text-richblack-100 text-sm font-medium">Today's Confirmations</h3>
+              <p className="text-2xl font-bold text-purple-400">{stats.todayConfirmations || 0}</p>
             </div>
           </div>
-        </div>
 
-        {/* Confirmations Table */}
-        <div className="bg-richblack-800 rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-richblack-700">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-richblack-100 uppercase tracking-wider">
-                    Student
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-richblack-100 uppercase tracking-wider">
-                    Course
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-richblack-100 uppercase tracking-wider">
-                    Payment Details
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-richblack-100 uppercase tracking-wider">
-                    Status
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-richblack-100 uppercase tracking-wider">
-                    Date
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-richblack-100 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-richblack-700">
-                {loading ? (
+          {/* Filters */}
+          <div className="bg-richblack-800 p-4 rounded-lg mb-6">
+            <div className="flex flex-col md:flex-row gap-4">
+              <div className="flex-1">
+                <input
+                  type="text"
+                  placeholder="Search by order ID or payment ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full px-3 py-2 bg-richblack-700 text-richblack-25 rounded-md border border-richblack-600 focus:outline-none focus:border-yellow-400"
+                />
+              </div>
+              <div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="px-3 py-2 bg-richblack-700 text-richblack-25 rounded-md border border-richblack-600 focus:outline-none focus:border-yellow-400"
+                >
+                  <option value="all">All Status</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Confirmed">Confirmed</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Confirmations Table */}
+          <div className="bg-richblack-800 rounded-lg overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead className="bg-richblack-700">
                   <tr>
-                    <td colSpan="6" className="px-6 py-4 text-center text-richblack-100">
-                      Loading...
-                    </td>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-richblack-100 uppercase tracking-wider">
+                      Student
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-richblack-100 uppercase tracking-wider">
+                      Course
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-richblack-100 uppercase tracking-wider">
+                      Payment Details
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-richblack-100 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-richblack-100 uppercase tracking-wider">
+                      Date
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-richblack-100 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
-                ) : confirmations.length === 0 ? (
-                  <tr>
-                    <td colSpan="6" className="px-6 py-4 text-center text-richblack-100">
-                      No admission confirmations found
-                    </td>
-                  </tr>
-                ) : (
-                  confirmations.map((confirmation) => (
-                    <tr key={confirmation._id} className="hover:bg-richblack-700">
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="text-sm font-medium text-richblack-25">
-                            {confirmation.student?.firstName} {confirmation.student?.lastName}
-                          </div>
-                          <div className="text-sm text-richblack-100">
-                            {confirmation.student?.email}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div>
-                          <div className="text-sm font-medium text-richblack-25">
-                            {confirmation.course?.courseName}
-                          </div>
-                          <div className="text-sm text-richblack-100">
-                            ₹{confirmation.course?.price}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="text-sm text-richblack-100">
-                          <div>Order: {confirmation.paymentDetails.orderId}</div>
-                          <div>Payment: {confirmation.paymentDetails.paymentId}</div>
-                          <div>Amount: ₹{confirmation.paymentDetails.amount}</div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        {getStatusBadge(confirmation.status)}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-richblack-100">
-                        {formatDate(confirmation.createdAt)}
-                      </td>
-                      <td className="px-6 py-4">
-                        {confirmation.status === 'Pending' && (
-                          <div className="flex space-x-2">
-                            <button
-                              onClick={() => openModal(confirmation, 'confirm')}
-                              className="px-3 py-1 text-xs font-medium text-green-600 hover:text-green-500"
-                            >
-                              Confirm
-                            </button>
-                            <button
-                              onClick={() => openModal(confirmation, 'reject')}
-                              className="px-3 py-1 text-xs font-medium text-red-600 hover:text-red-500"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        )}
-                        {confirmation.status !== 'Pending' && (
-                          <div className="text-sm text-richblack-100">
-                            {confirmation.confirmedBy && (
-                              <div>By: {confirmation.confirmedBy.firstName} {confirmation.confirmedBy.lastName}</div>
-                            )}
-                            {confirmation.confirmedAt && (
-                              <div>{formatDate(confirmation.confirmedAt)}</div>
-                            )}
-                          </div>
-                        )}
+                </thead>
+                <tbody className="divide-y divide-richblack-700">
+                  {loading ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-4 text-center text-richblack-100">
+                        Loading...
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : confirmations.length === 0 ? (
+                    <tr>
+                      <td colSpan="6" className="px-6 py-4 text-center text-richblack-100">
+                        No admission confirmations found
+                      </td>
+                    </tr>
+                  ) : (
+                    confirmations.map((confirmation) => (
+                      <tr key={confirmation._id} className="hover:bg-richblack-700">
+                        <td className="px-6 py-4">
+                          <div>
+                            <div className="text-sm font-medium text-richblack-25">
+                              {confirmation.student?.firstName} {confirmation.student?.lastName}
+                            </div>
+                            <div className="text-sm text-richblack-100">
+                              {confirmation.student?.email}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div>
+                            <div className="text-sm font-medium text-richblack-25">
+                              {confirmation.course?.courseName}
+                            </div>
+                            <div className="text-sm text-richblack-100">
+                              ₹{confirmation.course?.price}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          <div className="text-sm text-richblack-100">
+                            <div>Order: {confirmation.paymentDetails.orderId}</div>
+                            <div>Payment: {confirmation.paymentDetails.paymentId}</div>
+                            <div>Amount: ₹{confirmation.paymentDetails.amount}</div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {getStatusBadge(confirmation.status)}
+                        </td>
+                        <td className="px-6 py-4 text-sm text-richblack-100">
+                          {formatDate(confirmation.createdAt)}
+                        </td>
+                        <td className="px-6 py-4">
+                          {confirmation.status === 'Pending' && (
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => openModal(confirmation, 'confirm')}
+                                className="px-3 py-1 text-xs font-medium text-green-600 hover:text-green-500"
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                onClick={() => openModal(confirmation, 'reject')}
+                                className="px-3 py-1 text-xs font-medium text-red-600 hover:text-red-500"
+                              >
+                                Reject
+                              </button>
+                            </div>
+                          )}
+                          {confirmation.status !== 'Pending' && (
+                            <div className="text-sm text-richblack-100">
+                              {confirmation.confirmedBy && (
+                                <div>By: {confirmation.confirmedBy.firstName} {confirmation.confirmedBy.lastName}</div>
+                              )}
+                              {confirmation.confirmedAt && (
+                                <div>{formatDate(confirmation.confirmedAt)}</div>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
-        </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex justify-center mt-6">
-            <nav className="flex space-x-2">
-              <button
-                onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-                disabled={currentPage === 1}
-                className="px-3 py-2 text-sm font-medium text-richblack-100 bg-richblack-700 rounded-md hover:bg-richblack-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <span className="px-3 py-2 text-sm text-richblack-100">
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-                disabled={currentPage === totalPages}
-                className="px-3 py-2 text-sm font-medium text-richblack-100 bg-richblack-700 rounded-md hover:bg-richblack-600 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </nav>
-          </div>
-        )}
+          {/* Pagination */}
+          {totalPages > 1 && (
+            <div className="flex justify-center mt-6">
+              <nav className="flex space-x-2">
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
+                  className="px-3 py-2 text-sm font-medium text-richblack-100 bg-richblack-700 rounded-md hover:bg-richblack-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <span className="px-3 py-2 text-sm text-richblack-100">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-2 text-sm font-medium text-richblack-100 bg-richblack-700 rounded-md hover:bg-richblack-600 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </nav>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Modal */}

@@ -1,1 +1,105 @@
 /* write your css here */
+body {
+  background: #fff !important;
+  color: #222 !important;
+  font-family: 'Inter', 'Segoe UI', Arial, sans-serif;
+}
+
+:root {
+  --primary: #009e5c;
+  --background: #fff;
+  --text: #222;
+  --border: #e0e0e0;
+}
+
+a, .text-primary {
+  color: var(--primary);
+}
+
+a:hover, .text-primary:hover {
+  color: #007a44;
+}
+
+button, .btn-primary {
+  background: var(--primary);
+  color: #fff;
+  border-radius: 6px;
+  border: none;
+  padding: 0.5em 1.5em;
+  font-weight: 600;
+  transition: background 0.2s;
+}
+button:hover, .btn-primary:hover {
+  background: #007a44;
+}
+
+.card, .box, .panel {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  padding: 1.5em;
+}
+
+input, select, textarea {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 0.5em;
+  background: #f9fefb;
+  color: #222;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #fff;
+}
+.table th {
+  background: #e6fcf5;
+  color: var(--primary);
+  font-weight: 700;
+  border-bottom: 2px solid var(--primary);
+  padding: 12px 16px;
+  text-align: left;
+}
+.table td {
+  padding: 12px 16px;
+  color: #222;
+  border-bottom: 1px solid var(--border);
+}
+.table tr:nth-child(even) {
+  background: #f9fefb;
+}
+
+.navbar {
+  background: #fff;
+  border-bottom: 1px solid var(--border);
+  padding: 1em 0;
+}
+
+.navbar a {
+  color: #222;
+  font-weight: 500;
+  margin: 0 1em;
+}
+
+.navbar a.active, .navbar a:hover {
+  color: var(--primary);
+}
+
+.footer {
+  background: #f9fefb;
+  color: #222;
+  border-top: 1px solid var(--border);
+  padding: 1.5em 0;
+  text-align: center;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: #f9fefb;
+}
+::-webkit-scrollbar-thumb {
+  background: #e0e0e0;
+  border-radius: 4px;
+}
