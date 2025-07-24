@@ -2,7 +2,7 @@ import { useForm } from "react-hook-form";
 import { toast } from "react-hot-toast";
 import { useState } from "react";
 import { AiOutlineEye, AiOutlineEyeInvisible } from "react-icons/ai";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { changePassword } from "../../../services/operations/profileApi";
 
 const CARD_BG = '#fff';
@@ -14,6 +14,7 @@ const GREEN_DARK = '#007a44';
 
 export default function UpdatePassword() {
   const { token } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
   const {
     register,
     handleSubmit,
@@ -26,15 +27,15 @@ export default function UpdatePassword() {
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const onSubmit = (data) => {
+  const onSubmit = async (data) => {
     if (data.newPassword !== data.confirmPassword) {
       toast.error("Passwords do not match.");
       return;
     }
-    changePassword(token, {
+    await dispatch(changePassword(token, {
       oldPassword: data.currentPassword,
       newPassword: data.newPassword,
-    });
+    }));
     reset();
   };
 

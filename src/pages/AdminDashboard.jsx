@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import Sidebar from '../components/common/Sidebar';
 import { fetchEnrolledStudents } from "../services/operations/enrollmentApi";
+import { jwtDecode } from "jwt-decode";
 
 const TAWKTO_GREEN = "#009e5c";
 const TAWKTO_GREEN_DARK = "#007a44";
@@ -11,6 +12,16 @@ const TEXT_DARK = "#222";
 
 const AdminDashboard = () => {
   const { token } = useSelector((state) => state.auth);
+  // Debug log: show token and decoded user info
+  console.log("AdminDashboard token:", token);
+  if (token) {
+    try {
+      const decoded = jwtDecode(token);
+      console.log("Logged in user:", decoded.email, "| Role:", decoded.accountType);
+    } catch (e) {
+      console.log("Could not decode token");
+    }
+  }
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -21,7 +32,9 @@ const AdminDashboard = () => {
       setError(null);
       try {
         const data = await fetchEnrolledStudents(token);
-        setStudents(data.enrolledStudents || []);
+        console.log("Fetched enrolled students data:", data);
+        console.log("enrolledStudents array:", data.data?.enrolledStudents);
+        setStudents(data.data?.enrolledStudents || []);
       } catch (err) {
         setError("Failed to fetch enrolled students");
       }

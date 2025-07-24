@@ -50,6 +50,19 @@ exports.createEnrollmentOrder = async (req, res) => {
         });
     } catch (error) {
         console.error("Error creating enrollment order:", error);
+        // Extra debug info for connection issues
+        if (process.env.MONGODB_URI) {
+            console.error("MONGODB_URI:", process.env.MONGODB_URI);
+        }
+        if (process.env.RAZORPAY_KEY_ID) {
+            console.error("RAZORPAY_KEY_ID:", process.env.RAZORPAY_KEY_ID);
+        }
+        if (process.env.RAZORPAY_KEY_SECRET) {
+            console.error("RAZORPAY_KEY_SECRET is set");
+        }
+        if (error.stack) {
+            console.error("Stack trace:", error.stack);
+        }
         res.status(500).json({
             success: false,
             message: "Failed to create enrollment order",

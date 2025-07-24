@@ -17,6 +17,11 @@ const accountTypes = [
   { value: 'Staff', label: 'Staff' },
 ];
 
+const validateEmail = (email) => {
+  // Simple email regex
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+};
+
 const Signup = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -34,6 +39,7 @@ const Signup = () => {
   const [error, setError] = useState(null);
   const [otpSent, setOtpSent] = useState(false);
   const [otpLoading, setOtpLoading] = useState(false);
+  const [emailError, setEmailError] = useState("");
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
@@ -41,10 +47,15 @@ const Signup = () => {
 
   const handleSendOtp = async (e) => {
     e.preventDefault();
+    setEmailError("");
+    if (!form.email || !validateEmail(form.email)) {
+      setEmailError("Please enter a valid email address.");
+      return;
+    }
     setOtpLoading(true);
     setError(null);
     try {
-      await dispatch(sendOtp(form.email));
+      await dispatch(sendOtp(form.email, navigate));
       setOtpSent(true);
     } catch (err) {
       setError('Failed to send OTP. Please try again.');
@@ -56,8 +67,28 @@ const Signup = () => {
     e.preventDefault();
     setLoading(true);
     setError(null);
+    // Trim all values before submitting
+    const payload = {
+      accountType: form.accountType.trim(),
+      firstName: form.firstName.trim(),
+      lastName: form.lastName.trim(),
+      email: form.email.trim(),
+      password: form.password,
+      confirmPassword: form.confirmPassword,
+      otp: form.otp.trim(),
+    };
     try {
-      await dispatch(signUp(form, navigate));
+      console.log("Signup payload:", payload);
+      await dispatch(signUp(
+        payload.accountType,
+        payload.firstName,
+        payload.lastName,
+        payload.email,
+        payload.password,
+        payload.confirmPassword,
+        payload.otp,
+        navigate
+      ));
     } catch (err) {
       setError('Signup failed. Please try again.');
     }
@@ -119,31 +150,30 @@ const Signup = () => {
                 onFocus={e => e.target.style.border = `2px solid ${TAWKTO_GREEN}`}
                 onBlur={e => e.target.style.border = `1.5px solid ${BORDER}`}
               />
-              <button type="button" onClick={handleSendOtp} disabled={otpLoading || otpSent} style={{ background: TAWKTO_GREEN, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, fontSize: 15, cursor: otpLoading || otpSent ? 'not-allowed' : 'pointer', transition: 'background 0.2s', minWidth: 110 }}
+              <button type="button" onClick={handleSendOtp} disabled={otpLoading || !form.email || !validateEmail(form.email)} style={{ background: TAWKTO_GREEN, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 18px', fontWeight: 700, fontSize: 15, cursor: otpLoading ? 'not-allowed' : 'pointer', transition: 'background 0.2s', minWidth: 110 }}
                 onMouseOver={e => e.target.style.background = TAWKTO_GREEN_DARK}
                 onMouseOut={e => e.target.style.background = TAWKTO_GREEN}
               >
                 {otpLoading ? 'Sending OTP...' : otpSent ? 'OTP Sent' : 'Send OTP'}
               </button>
             </div>
+            {emailError && <div style={{ color: '#e53935', marginTop: 6, fontWeight: 500 }}>{emailError}</div>}
           </div>
-          {otpSent && (
-            <div style={{ marginBottom: 20 }}>
-              <label htmlFor="otp" style={{ color: TEXT_DARK, fontWeight: 600, display: 'block', marginBottom: 6 }}>Enter OTP</label>
-              <input
-                id="otp"
-                name="otp"
-                type="text"
-                value={form.otp}
-                onChange={handleChange}
-                required
-                placeholder="Enter OTP"
-                style={{ width: '100%', padding: '12px 14px', border: `1.5px solid ${BORDER}`, borderRadius: 8, background: '#f9fefb', color: TEXT_DARK, outline: 'none', fontSize: 17, fontWeight: 500, transition: 'border 0.2s' }}
-                onFocus={e => e.target.style.border = `2px solid ${TAWKTO_GREEN}`}
-                onBlur={e => e.target.style.border = `1.5px solid ${BORDER}`}
-              />
-            </div>
-          )}
+          <div style={{ marginBottom: 20 }}>
+            <label htmlFor="otp" style={{ color: TEXT_DARK, fontWeight: 600, display: 'block', marginBottom: 6 }}>Enter OTP</label>
+            <input
+              id="otp"
+              name="otp"
+              type="text"
+              value={form.otp}
+              onChange={handleChange}
+              required
+              placeholder="Enter OTP"
+              style={{ width: '100%', padding: '12px 14px', border: `1.5px solid ${BORDER}`, borderRadius: 8, background: '#f9fefb', color: TEXT_DARK, outline: 'none', fontSize: 17, fontWeight: 500, transition: 'border 0.2s' }}
+              onFocus={e => e.target.style.border = `2px solid ${TAWKTO_GREEN}`}
+              onBlur={e => e.target.style.border = `1.5px solid ${BORDER}`}
+            />
+          </div>
           <div style={{ marginBottom: 20 }}>
             <label htmlFor="phone" style={{ color: TEXT_DARK, fontWeight: 600, display: 'block', marginBottom: 6 }}>Mobile Phone Number</label>
             <input

@@ -1,20 +1,13 @@
 import React from 'react';
+import Sidebar from '../components/common/Sidebar';
+import { Outlet } from 'react-router-dom';
 
 const Dashboard = () => {
   return (
-    <div className="flex-1 flex items-center justify-center">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold text-richblack-25 mb-4">
-          Dashboard
-        </h1>
-        <p className="text-lg text-richblack-100 mb-8">
-          Welcome to your dashboard.
-        </p>
-        <div className="bg-richblack-800 p-8 rounded-lg max-w-md mx-auto">
-          <p className="text-richblack-100">
-            Dashboard content will be implemented here.
-          </p>
-        </div>
+    <div className="min-h-screen bg-white" style={{ marginLeft: 220 }}>
+      <Sidebar />
+      <div className="flex-1">
+        <Outlet />
       </div>
     </div>
   );

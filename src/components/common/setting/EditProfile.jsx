@@ -2,6 +2,7 @@ import { useForm } from "react-hook-form";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { updateProfile } from "../../../services/operations/profileApi";
+import React, { useState, useEffect } from "react";
 
 const CARD_BG = '#fff';
 const BORDER = '#e0e0e0';
@@ -18,6 +19,31 @@ export default function EditProfile() {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
+  // Controlled form state
+  const [form, setForm] = useState({
+    firstName: user?.firstName || "",
+    lastName: user?.lastName || "",
+    dateOfBirth: user?.additionalDetails?.dateOfBirth || "",
+    gender: user?.additionalDetails?.gender || "",
+    contactNumber: user?.additionalDetails?.contactNumber || "",
+    about: user?.additionalDetails?.about || "",
+  });
+
+  useEffect(() => {
+    setForm({
+      firstName: user?.firstName || "",
+      lastName: user?.lastName || "",
+      dateOfBirth: user?.additionalDetails?.dateOfBirth || "",
+      gender: user?.additionalDetails?.gender || "",
+      contactNumber: user?.additionalDetails?.contactNumber || "",
+      about: user?.additionalDetails?.about || "",
+    });
+  }, [user]);
+
+  const handleChange = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
   const {
     register,
     handleSubmit,
@@ -26,7 +52,7 @@ export default function EditProfile() {
 
   const submitProfileForm = async (data) => {
     try {
-      dispatch(updateProfile(data, token));
+      dispatch(updateProfile(form, token));
       navigate("/dashboard/my-profile");
     } catch (error) {
       console.log("ERROR MESSAGE - ", error.message);
@@ -46,8 +72,8 @@ export default function EditProfile() {
               id="firstName"
               placeholder="Enter first name"
               style={{ width: '100%', padding: '10px 12px', border: `1px solid ${BORDER}`, borderRadius: 6, background: '#f9fefb', color: TEXT_DARK, outline: 'none', fontSize: 16, marginBottom: 4 }}
-              {...register("firstName", { required: true })}
-              defaultValue={user?.firstName}
+              value={form.firstName}
+              onChange={handleChange}
             />
             {errors.firstName && (
               <span style={{ color: '#e53935', fontSize: 12 }}>Please enter your first name.</span>
@@ -61,8 +87,8 @@ export default function EditProfile() {
               id="lastName"
               placeholder="Enter last name"
               style={{ width: '100%', padding: '10px 12px', border: `1px solid ${BORDER}`, borderRadius: 6, background: '#f9fefb', color: TEXT_DARK, outline: 'none', fontSize: 16, marginBottom: 4 }}
-              {...register("lastName", { required: true })}
-              defaultValue={user?.lastName}
+              value={form.lastName}
+              onChange={handleChange}
             />
             {errors.lastName && (
               <span style={{ color: '#e53935', fontSize: 12 }}>Please enter your last name.</span>
@@ -77,11 +103,8 @@ export default function EditProfile() {
               name="dateOfBirth"
               id="dateOfBirth"
               style={{ width: '100%', padding: '10px 12px', border: `1px solid ${BORDER}`, borderRadius: 6, background: '#f9fefb', color: TEXT_DARK, outline: 'none', fontSize: 16, marginBottom: 4 }}
-              {...register("dateOfBirth", {
-                required: { value: true, message: "Please enter your Date of Birth." },
-                max: { value: new Date().toISOString().split("T")[0], message: "Date of Birth cannot be in the future." },
-              })}
-              defaultValue={user?.dateOfBirth}
+              value={form.dateOfBirth}
+              onChange={handleChange}
             />
             {errors.dateOfBirth && (
               <span style={{ color: '#e53935', fontSize: 12 }}>{errors.dateOfBirth.message}</span>
@@ -93,9 +116,10 @@ export default function EditProfile() {
               name="gender"
               id="gender"
               style={{ width: '100%', padding: '10px 12px', border: `1px solid ${BORDER}`, borderRadius: 6, background: '#f9fefb', color: TEXT_DARK, outline: 'none', fontSize: 16, marginBottom: 4 }}
-              {...register("gender", { required: true })}
-              defaultValue={user?.gender}
+              value={form.gender}
+              onChange={handleChange}
             >
+              <option value="">Select Gender</option>
               {genders.map((ele, i) => (
                 <option key={i} value={ele}>{ele}</option>
               ))}
@@ -114,12 +138,8 @@ export default function EditProfile() {
               id="contactNumber"
               placeholder="Enter Contact Number"
               style={{ width: '100%', padding: '10px 12px', border: `1px solid ${BORDER}`, borderRadius: 6, background: '#f9fefb', color: TEXT_DARK, outline: 'none', fontSize: 16, marginBottom: 4 }}
-              {...register("contactNumber", {
-                required: { value: true, message: "Please enter your Contact Number." },
-                maxLength: { value: 12, message: "Invalid Contact Number" },
-                minLength: { value: 10, message: "Invalid Contact Number" },
-              })}
-              defaultValue={user?.contactNumber}
+              value={form.contactNumber}
+              onChange={handleChange}
             />
             {errors.contactNumber && (
               <span style={{ color: '#e53935', fontSize: 12 }}>{errors.contactNumber.message}</span>
@@ -133,8 +153,8 @@ export default function EditProfile() {
               id="about"
               placeholder="Enter Bio Details"
               style={{ width: '100%', padding: '10px 12px', border: `1px solid ${BORDER}`, borderRadius: 6, background: '#f9fefb', color: TEXT_DARK, outline: 'none', fontSize: 16, marginBottom: 4 }}
-              {...register("about", { required: true })}
-              defaultValue={user?.about}
+              value={form.about}
+              onChange={handleChange}
             />
             {errors.about && (
               <span style={{ color: '#e53935', fontSize: 12 }}>Please enter your About.</span>

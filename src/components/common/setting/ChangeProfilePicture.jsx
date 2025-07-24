@@ -61,11 +61,11 @@ export default function ChangeProfilePicture() {
   }, [imageFile]);
 
   return (
-    <div style={{ background: CARD_BG, borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: `1px solid ${BORDER}`, padding: 32, marginBottom: 32, display: 'flex', alignItems: 'center', gap: 24 }}>
+    <div style={{ background: CARD_BG, borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: `1px solid ${BORDER}`, padding: 32, marginBottom: 32, display: 'flex', alignItems: 'center', gap: 24, width: '100%', maxWidth: '100%' }}>
       <img
         src={previewSource || user?.image}
         alt={`profile-${user?.firstName}`}
-        style={{ width: 78, height: 78, borderRadius: '50%', objectFit: 'cover', background: '#e6fcf5' }}
+        style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', background: '#e6fcf5' }}
       />
       <div style={{ flex: 1 }}>
         <div style={{ fontWeight: 600, color: TEXT_DARK, fontSize: 18, marginBottom: 8 }}>Change Profile Picture</div>

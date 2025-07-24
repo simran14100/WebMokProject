@@ -3,6 +3,30 @@ import { setLoading, setUser } from "../../store/slices/profileSlice";
 import { apiConnector } from "../apiConnector";
 import { profile } from "../apis";
 
+// Fetch the latest user profile
+export function fetchUserProfile(token) {
+  return async (dispatch) => {
+    dispatch(setLoading(true));
+    try {
+      const response = await apiConnector(
+        "GET",
+        "/api/v1/profile/getUserDetails",
+        null,
+        { Authorization: `Bearer ${token}` }
+      );
+      console.log("FETCH USER PROFILE RESPONSE............", response);
+      if (!response.data.success) {
+        throw new Error(response.data.message);
+      }
+      dispatch(setUser(response.data.data));
+    } catch (error) {
+      console.log("FETCH USER PROFILE ERROR............", error);
+      toast.error("Failed to fetch profile");
+    }
+    dispatch(setLoading(false));
+  };
+}
+
 // Update profile info
 export function updateProfile(profileData, token) {
   return async (dispatch) => {
@@ -20,7 +44,8 @@ export function updateProfile(profileData, token) {
         throw new Error(response.data.message);
       }
       toast.success("Profile updated successfully");
-      dispatch(setUser(response.data.updatedUserDetails));
+      // Fetch the latest profile after update
+      await dispatch(fetchUserProfile(token));
     } catch (error) {
       console.log("UPDATE PROFILE ERROR............", error);
       toast.error("Failed to update profile");

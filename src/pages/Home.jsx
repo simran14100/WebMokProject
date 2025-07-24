@@ -13,7 +13,7 @@ const Home = () => {
       <div style={{ padding: '5rem 0 3rem 0', textAlign: 'center', background: '#fff' }}>
         <div style={{ maxWidth: 700, margin: '0 auto', position: 'relative' }}>
           <h1 style={{ fontSize: 54, fontWeight: 900, color: TEXT_DARK, marginBottom: 18, letterSpacing: '-2px', lineHeight: 1.1 }}>
-            Welcome to StudyNotion
+            Welcome to WebMok
           </h1>
           {/* Green accent underline */}
           <div style={{ width: 120, height: 6, background: TAWKTO_GREEN, borderRadius: 4, margin: '0 auto 24px' }} />

@@ -1,6 +1,8 @@
 // Importing necessary modules and packages
 require('dotenv').config();
 console.log('RAZORPAY_KEY_ID:', process.env.RAZORPAY_KEY_ID);
+console.log('RAZORPAY_KEY_SECRET:', process.env.RAZORPAY_KEY_SECRET ? 'SET' : 'NOT SET');
+console.log('MONGODB_URL:', process.env.MONGODB_URL);
 const express = require("express");
 const app = express();
 const userRoutes = require("./routes/user");

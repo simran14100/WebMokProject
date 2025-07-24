@@ -38,15 +38,15 @@ const ProfileDropDown = ({ mobile = false }) => {
     const getDashboardLink = () => {
         switch (user?.accountType) {
             case ACCOUNT_TYPE.STUDENT:
-                return "/dashboard";
+                return "/dashboard/my-profile";
             case ACCOUNT_TYPE.INSTRUCTOR:
-                return "/instructor/dashboard";
+                return "/dashboard/my-profile";
             case ACCOUNT_TYPE.ADMIN:
             case ACCOUNT_TYPE.SUPER_ADMIN:
             case ACCOUNT_TYPE.STAFF:
                 return "/admin/dashboard";
             default:
-                return "/dashboard";
+                return "/dashboard/my-profile";
         }
     };
 

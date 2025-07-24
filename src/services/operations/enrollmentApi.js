@@ -9,7 +9,7 @@ const {
   GET_ENROLLMENT_STATUS_API,
 } = enrollment
 
-console.log('Frontend Razorpay Key:', process.env.REACT_APP_RAZORPAY_KEY);
+console.log('Frontend Razorpay Key (at import):', process.env.REACT_APP_RAZORPAY_KEY);
 
 // Load the Razorpay SDK from the CDN
 function loadScript(src) {
@@ -50,18 +50,25 @@ export async function buyEnrollment(token, user, navigate, dispatch) {
       }
     )
 
-    console.log("ENROLLMENT ORDER RESPONSE FROM BACKEND............", orderResponse)
+    console.log("ENROLLMENT ORDER RESPONSE FROM BACKEND............", orderResponse);
 
-    if (!orderResponse.success) {
-      throw new Error(orderResponse.message)
+    const backendData = orderResponse.data; // Axios wraps backend response in .data
+    if (!backendData.success) {
+      throw new Error(backendData.message);
+    }
+
+    const orderData = backendData.data;
+    if (!orderData || !orderData.orderId || !orderData.amount || !orderData.currency) {
+      throw new Error("Order data missing from backend response");
     }
 
     // Opening the Razorpay SDK
+    console.log('Frontend Razorpay Key (before opening Razorpay):', process.env.REACT_APP_RAZORPAY_KEY);
     const options = {
       key: process.env.REACT_APP_RAZORPAY_KEY || "rzp_test_XZrJHQ4hfoi9FU",
-      currency: orderResponse.data.currency,
-      amount: orderResponse.data.amount * 100, // Convert to paise and ensure it's a number
-      order_id: orderResponse.data.orderId,
+      currency: orderData.currency,
+      amount: orderData.amount * 100, // Convert to paise and ensure it's a number
+      order_id: orderData.orderId,
       name: "WebMok",
       description: "Thank you for paying the Enrollment Fee.",
       prefill: {
@@ -72,6 +79,7 @@ export async function buyEnrollment(token, user, navigate, dispatch) {
         verifyEnrollmentPayment(response, token, navigate, dispatch)
       },
     }
+    console.log('Razorpay options.key:', options.key);
 
     console.log("Razorpay Key used:", process.env.REACT_APP_RAZORPAY_KEY)
     console.log("Razorpay backend order options:", options);
@@ -105,12 +113,13 @@ async function verifyEnrollmentPayment(bodyData, token, navigate, dispatch) {
 
     console.log("VERIFY ENROLLMENT PAYMENT RESPONSE FROM BACKEND............", response)
 
-    if (!response.success) {
-      throw new Error(response.message)
+    const backendData = response.data; // Axios wraps backend response in .data
+    if (!backendData.success) {
+      throw new Error(backendData.message)
     }
 
     toast.success("Enrollment Payment Successful! You can now access all courses.")
-    dispatch(setUser(response.data))
+    dispatch(setUser(backendData.data))
     navigate("/dashboard")
   } catch (error) {
     console.log("ENROLLMENT PAYMENT VERIFY ERROR............", error)

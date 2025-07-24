@@ -1,5 +1,5 @@
 import "./App.css";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Outlet } from "react-router-dom";
 import { Provider } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import store, { persistor } from './store';
@@ -39,9 +39,12 @@ function App() {
               <Route path="/contact" element={<Contact />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/dashboard/my-profile" element={<AdminProfile />} />
-              <Route path="/dashboard/settings" element={<Settings />} />
+              <Route path="/dashboard" element={<Dashboard />}>
+                <Route path="my-profile" element={<AdminProfile />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="instructor" element={<InstructorDashboard />} />
+                {/* Add more nested dashboard routes here */}
+              </Route>
               <Route path="/catalog/:catalogName" element={<Catalog />} />
               <Route path="/enrollment-payment" element={<EnrollmentPayment />} />
               <Route path="/admin/dashboard" element={<AdminDashboard />} />

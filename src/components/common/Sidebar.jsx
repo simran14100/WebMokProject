@@ -14,8 +14,30 @@ const adminSidebarLinks = [
   { name: "My Profile", path: "/dashboard/my-profile", icon: <VscAccount style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
   { name: "Dashboard", path: "/admin/dashboard", icon: <VscDashboard style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
   { name: "Admission Confirm", path: "/admin/admission-confirmation", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+  { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
   { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
 ];
+
+const studentSidebarLinks = [
+  { name: "My Profile", path: "/dashboard/my-profile", icon: <VscAccount style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+  { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+  { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+  { name: "Enrolled Courses", path: "/dashboard/enrolled-courses", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+];
+
+const instructorSidebarLinks = [
+  { name: "My Profile", path: "/dashboard/my-profile", icon: <VscAccount style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+  { name: "Dashboard", path: "/dashboard/instructor", icon: <VscDashboard style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+  { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+  { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+  { name: "Enrolled Courses", path: "/dashboard/enrolled-courses", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+];
+
+const getSidebarLinks = (user) => {
+  if (user?.accountType === "Instructor") return instructorSidebarLinks;
+  if (user?.accountType === "Admin" || user?.accountType === "SuperAdmin" || user?.accountType === "Staff") return adminSidebarLinks;
+  return studentSidebarLinks;
+};
 
 export default function Sidebar() {
   const { user, loading: profileLoading } = useSelector((state) => state.profile);
@@ -23,6 +45,10 @@ export default function Sidebar() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const [confirmationModal, setConfirmationModal] = useState(null);
+
+  // Debug log for user and accountType
+  console.log('Sidebar user:', user);
+  console.log('Sidebar user.accountType:', user?.accountType);
 
   if (profileLoading || authLoading) {
     return (
@@ -42,17 +68,21 @@ export default function Sidebar() {
   return (
     <>
       <div style={{
-        height: "calc(100vh - 3.5rem)",
-        minWidth: 220,
-        display: "flex",
-        flexDirection: "column",
+        position: 'fixed',
+        left: 0,
+        top: 0,
+        height: '100vh',
+        width: 220,
+        display: 'flex',
+        flexDirection: 'column',
         borderRight: `1px solid ${BORDER}`,
-        background: "#fff",
-        padding: "2.5rem 0"
+        background: '#fff',
+        padding: '2.5rem 0',
+        zIndex: 20
       }}>
         {/* No brand/company name at the top */}
-        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: 8 }}>
-          {adminSidebarLinks.map((link) => (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 14 }}>
+          {getSidebarLinks(user).map((link) => (
             <button
               key={link.name}
               onClick={() => navigate(link.path)}
@@ -80,7 +110,7 @@ export default function Sidebar() {
           ))}
         </div>
         <div style={{ margin: "24px 0", height: 1, width: "85%", background: BORDER, alignSelf: "center" }} />
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: 24, paddingRight: 24, marginBottom: 24 }}>
           <button
             onClick={() =>
               setConfirmationModal({
@@ -103,7 +133,6 @@ export default function Sidebar() {
               display: "flex",
               alignItems: "center",
               gap: 8,
-              marginLeft: 24
             }}
           >
             <VscSignOut style={{ fontSize: 20, color: TAWKTO_GREEN }} />
