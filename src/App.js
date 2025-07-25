@@ -20,6 +20,14 @@ import AdmissionConfirmation from "./pages/AdmissionConfirmation";
 import PaymentInstallments from "./pages/PaymentInstallments";
 import AdminProfile from './pages/AdminProfile';
 import Settings from "./components/common/setting/Settings";
+import AdminLayout from './components/common/AdminLayout';
+import EnrolledStudents from './pages/EnrolledStudents';
+import InstructorLayout from './components/common/InstructorLayout';
+import Cart from './pages/Cart';
+import ActiveCourses from './pages/ActiveCourses';
+import MyCourses from './pages/MyCourses';
+import AddCourse from './pages/AddCourse';
+
 
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
@@ -42,16 +50,29 @@ function App() {
               <Route path="/dashboard" element={<Dashboard />}>
                 <Route path="my-profile" element={<AdminProfile />} />
                 <Route path="settings" element={<Settings />} />
-                <Route path="instructor" element={<InstructorDashboard />} />
+                <Route path="cart" element={<Cart />} />
+                <Route path="active-courses" element={<ActiveCourses />} />
+                <Route path="enrolled-students" element={<EnrolledStudents />} />
+                {/* <Route path="instructor" element={<InstructorDashboard />} /> */}
                 {/* Add more nested dashboard routes here */}
               </Route>
               <Route path="/catalog/:catalogName" element={<Catalog />} />
               <Route path="/enrollment-payment" element={<EnrollmentPayment />} />
-              <Route path="/admin/dashboard" element={<AdminDashboard />} />
-              <Route path="/admin/admission-confirmation" element={<AdmissionConfirmation />} />
-              <Route path="/admin/installments" element={<PaymentInstallments />} />
+              <Route path="/admin" element={<AdminLayout />}>
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="my-profile" element={<AdminProfile />} />
+                <Route path="admission-confirmation" element={<AdmissionConfirmation />} />
+                <Route path="enrolled-students" element={<EnrolledStudents />} />
+                <Route path="installments" element={<PaymentInstallments />} />
+                {/* Add more admin routes here */}
+              </Route>
               <Route path="/installments" element={<PaymentInstallments />} />
-              <Route path="/instructor/dashboard" element={<InstructorDashboard />} />
+              <Route path="/instructor" element={<InstructorLayout />}>
+                <Route path="dashboard" element={<InstructorDashboard />} />
+                <Route path="my-courses" element={<MyCourses />} />
+                <Route path="add-course" element={<AddCourse />} />
+                {/* Add more instructor routes here as needed */}
+              </Route>
             </Routes>
             <Toaster 
               position="top-right"

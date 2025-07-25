@@ -144,6 +144,7 @@ exports.getAllCourses = async(req , res)=>{
             studentsEnrolled:true,
             ratingAndReviews:true})
             .populate("instructor")
+            .populate("studentsEnrolled") // Populate student details
             .exec();
 
         return res.status(200).json({

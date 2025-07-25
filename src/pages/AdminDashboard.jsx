@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import Sidebar from '../components/common/Sidebar';
 import { fetchEnrolledStudents } from "../services/operations/enrollmentApi";
 import { jwtDecode } from "jwt-decode";
+import EnrolledStudents from './EnrolledStudents'; // Add this import at the top
 
 const TAWKTO_GREEN = "#009e5c";
 const TAWKTO_GREEN_DARK = "#007a44";

@@ -4,6 +4,7 @@ import storage from 'redux-persist/lib/storage';
 import authReducer from './slices/authSlice';
 import profileReducer from './slices/profileSlice';
 import cartReducer from './slices/cartSlice';
+import courseReducer from './slices/courseSlice';
 
 // Configure persist for auth
 const authPersistConfig = {
@@ -36,6 +37,7 @@ export const store = configureStore({
     auth: persistedAuthReducer,
     profile: persistedProfileReducer,
     cart: persistedCartReducer,
+    course: courseReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

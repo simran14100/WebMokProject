@@ -166,12 +166,12 @@ exports.isInstructor = async (req, res, next) => {
 			.json({ success: false, message: `User Role Can't be Verified` });
 	}
 };
-// Middleware for admin-level access (Admin, SuperAdmin, Staff)
+// Middleware for admin-level access (Admin, SuperAdmin, Instructor)
 exports.isAdminLevel = async (req, res, next) => {
 	try {
 		const userDetails = await User.findOne({ email: req.user.email });
 
-		if (!["Admin", "SuperAdmin", "Staff"].includes(userDetails.accountType)) {
+		if (!["Admin", "SuperAdmin", "Instructor"].includes(userDetails.accountType)) {
 			return res.status(401).json({
 				success: false,
 				message: "This is a Protected Route for Admin Level Users",
