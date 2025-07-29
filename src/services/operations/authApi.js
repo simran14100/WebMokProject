@@ -33,7 +33,15 @@ export function sendOtp(email, navigate) {
       // navigate("/verify-email")
     } catch (error) {
       console.log("SENDOTP API ERROR............", error)
-      toast.error("Could Not Send OTP")
+      
+      // Show specific error message from backend if available
+      if (error.response && error.response.data && error.response.data.message) {
+        toast.error(error.response.data.message)
+      } else if (error.message) {
+        toast.error(error.message)
+      } else {
+        toast.error("Could Not Send OTP")
+      }
     }
     dispatch(setLoading(false))
     toast.dismiss(toastId)
@@ -73,7 +81,15 @@ export function signUp(
       navigate("/login")
     } catch (error) {
       console.log("SIGNUP API ERROR............", error)
-      toast.error("Signup Failed")
+      
+      // Show specific error message from backend if available
+      if (error.response && error.response.data && error.response.data.message) {
+        toast.error(error.response.data.message)
+      } else if (error.message) {
+        toast.error(error.message)
+      } else {
+        toast.error("Signup Failed")
+      }
       navigate("/signup")
     }
     dispatch(setLoading(false))
@@ -111,7 +127,15 @@ export function login(email, password, navigate) {
       navigate("/dashboard/my-profile")
     } catch (error) {
       console.log("LOGIN API ERROR............", error);
-      toast.error("Login Failed");
+      
+      // Show specific error message from backend if available
+      if (error.response && error.response.data && error.response.data.message) {
+        toast.error(error.response.data.message)
+      } else if (error.message) {
+        toast.error(error.message)
+      } else {
+        toast.error("Login Failed");
+      }
     }
     dispatch(setLoading(false))
     toast.dismiss(toastId)

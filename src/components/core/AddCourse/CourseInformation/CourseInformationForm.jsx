@@ -4,9 +4,10 @@ import { toast } from "react-hot-toast"
 import { HiOutlineCurrencyRupee } from "react-icons/hi"
 import { MdNavigateNext } from "react-icons/md"
 import { useDispatch, useSelector } from "react-redux"
+import { useNavigate } from "react-router-dom"
 
 import { addCourseDetails, editCourseDetails, fetchCourseCategories } from "../../../../services/operations/courseDetailsAPI";
-import { setCourse, setStep } from "../../../../store/slices/courseSlice";
+import { setCourse, setStep, resetCourseState } from "../../../../store/slices/courseSlice";
 import { COURSE_STATUS } from "../../../../utils/constants";
 import IconBtn from "../../../common/IconBtn";
 import Upload from "../Upload";
@@ -23,6 +24,7 @@ export default function CourseInformationForm() {
   } = useForm()
 
   const dispatch = useDispatch()
+  const navigate = useNavigate()
   const { token } = useSelector((state) => state.auth)
   const { course, editCourse } = useSelector((state) => state.course)
   const [loading, setLoading] = useState(false)
@@ -39,14 +41,17 @@ export default function CourseInformationForm() {
     }
     // if form is in edit mode
     if (editCourse) {
-      setValue("courseTitle", course.courseName)
-      setValue("courseShortDesc", course.courseDescription)
-      setValue("coursePrice", course.price)
-      setValue("courseTags", course.tag)
-      setValue("courseBenefits", course.whatYouWillLearn)
-      setValue("courseCategory", course.category)
-      setValue("courseRequirements", course.instructions)
-      setValue("courseImage", course.thumbnail)
+      console.log("Edit mode - Course data:", course)
+      console.log("Course tag:", course?.tag)
+      console.log("Course instructions:", course?.instructions)
+      setValue("courseTitle", course?.courseName || "")
+      setValue("courseShortDesc", course?.courseDescription || "")
+      setValue("coursePrice", course?.price || "")
+      setValue("courseTags", course?.tag || [])
+      setValue("courseBenefits", course?.whatYouWillLearn || "")
+      setValue("courseCategory", course?.category || "")
+      setValue("courseRequirements", course?.instructions || [])
+      setValue("courseImage", course?.thumbnail || "")
     }
     getCategories()
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -280,13 +285,27 @@ export default function CourseInformationForm() {
       {/* Next Button */}
       <div className="flex justify-end gap-x-2">
         {editCourse && (
-          <button
-            onClick={() => dispatch(setStep(2))}
-            disabled={loading}
-            className="flex cursor-pointer items-center gap-x-2 rounded-md bg-gray-200 py-[8px] px-[20px] font-semibold text-gray-700"
-          >
-            Continue Without Saving
-          </button>
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                dispatch(resetCourseState())
+                navigate("/instructor/my-courses")
+              }}
+              disabled={loading}
+              className="flex cursor-pointer items-center gap-x-2 rounded-md bg-gray-200 py-[8px] px-[20px] font-semibold text-gray-700"
+            >
+              Back to My Courses
+            </button>
+            <button
+              type="button"
+              onClick={() => dispatch(setStep(2))}
+              disabled={loading}
+              className="flex cursor-pointer items-center gap-x-2 rounded-md bg-gray-200 py-[8px] px-[20px] font-semibold text-gray-700"
+            >
+              Continue Without Saving
+            </button>
+          </>
         )}
         <IconBtn
           disabled={loading}

@@ -22,11 +22,13 @@ import AdminProfile from './pages/AdminProfile';
 import Settings from "./components/common/setting/Settings";
 import AdminLayout from './components/common/AdminLayout';
 import EnrolledStudents from './pages/EnrolledStudents';
+import RegisteredStudents from './pages/RegisteredStudents';
 import InstructorLayout from './components/common/InstructorLayout';
 import Cart from './pages/Cart';
 import ActiveCourses from './pages/ActiveCourses';
 import MyCourses from './pages/MyCourses';
 import AddCourse from './pages/AddCourse';
+import EditCourse from './components/core/EditCourse';
 
 
 // Debug Redux store on app start
@@ -62,6 +64,7 @@ function App() {
                 <Route path="dashboard" element={<AdminDashboard />} />
                 <Route path="my-profile" element={<AdminProfile />} />
                 <Route path="admission-confirmation" element={<AdmissionConfirmation />} />
+                <Route path="registered-students" element={<RegisteredStudents />} />
                 <Route path="enrolled-students" element={<EnrolledStudents />} />
                 <Route path="installments" element={<PaymentInstallments />} />
                 {/* Add more admin routes here */}
@@ -71,6 +74,7 @@ function App() {
                 <Route path="dashboard" element={<InstructorDashboard />} />
                 <Route path="my-courses" element={<MyCourses />} />
                 <Route path="add-course" element={<AddCourse />} />
+                <Route path="edit-course/:id" element={<EditCourse />} />
                 {/* Add more instructor routes here as needed */}
               </Route>
             </Routes>

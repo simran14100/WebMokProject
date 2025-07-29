@@ -13,10 +13,15 @@ require('dotenv').config();
 exports.sendotp = async (req, res) => {
     try {
       const { email } = req.body
+      
+      console.log("=== SEND OTP REQUEST ===");
+      console.log("Email:", email);
+      console.log("Request body:", req.body);
   
       // Check if user is already present
       // Find user with provided email
       const checkUserPresent = await User.findOne({ email })
+      console.log("Existing user check:", checkUserPresent ? "User exists" : "User not found");
       // to be used in case of signup
   
       // If user found with provided email
@@ -33,6 +38,8 @@ exports.sendotp = async (req, res) => {
         lowerCaseAlphabets: false,
         specialChars: false,
       })
+      console.log("Generated OTP:", otp);
+      
       const result = await OTP.findOne({ otp: otp })
       console.log("Result is Generate OTP Func")
       console.log("OTP", otp)
@@ -41,17 +48,29 @@ exports.sendotp = async (req, res) => {
         otp = otpGenerator.generate(6, {
           upperCaseAlphabets: false,
         })
+        console.log("Regenerated OTP due to collision:", otp);
       }
+      
       const otpPayload = { email, otp }
+      console.log("OTP Payload to save:", otpPayload);
+      
       const otpBody = await OTP.create(otpPayload)
-      console.log("OTP Body", otpBody)
+      console.log("OTP Body after save:", otpBody);
+      console.log("OTP saved successfully with ID:", otpBody._id);
+      
+      // Verify the OTP was saved correctly
+      const savedOtp = await OTP.findById(otpBody._id);
+      console.log("Verification - Saved OTP from DB:", savedOtp);
+      
       res.status(200).json({
         success: true,
         message: `OTP Sent Successfully`,
         otp,
       })
     } catch (error) {
-      console.log(error.message)
+      console.log("=== SEND OTP ERROR ===");
+      console.log("Error message:", error.message);
+      console.log("Full error:", error);
       return res.status(500).json({ success: false, error: error.message })
     }
   }

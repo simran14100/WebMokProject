@@ -9,8 +9,8 @@ const OTPSchema = new mongoose.Schema({
     },
     createdAt:{
         type:Date,
-        default:Date.now(),
-        expires:5*60,
+        default: Date.now, // Fixed: removed the function call
+        expires: 5*60, // 5 minutes
     },
     otp:{
         type:String,
@@ -34,13 +34,25 @@ async function sendVerificationEmail(email , otp){
         throw err;
     }
 }
+
 // Define a post-save hook to send email after the document has been saved
 OTPSchema.pre("save", async function (next) {
+	console.log("=== OTP SAVE HOOK ===");
 	console.log("New document saved to database");
+	console.log("Email:", this.email);
+	console.log("OTP:", this.otp);
+	console.log("Is new document:", this.isNew);
+	console.log("=====================");
 
 	// Only send an email when a new document is created
 	if (this.isNew) {
-		await sendVerificationEmail(this.email, this.otp);
+		try {
+			await sendVerificationEmail(this.email, this.otp);
+			console.log("Verification email sent successfully");
+		} catch (error) {
+			console.error("Error sending verification email:", error);
+			// Don't throw error here to prevent OTP save failure
+		}
 	}
 	next();
 });

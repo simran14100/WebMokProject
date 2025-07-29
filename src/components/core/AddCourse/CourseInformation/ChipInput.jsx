@@ -23,7 +23,7 @@ export default function ChipInput({
   useEffect(() => {
     if (editCourse) {
       // console.log(course)
-      setChips(course?.tag)
+      setChips(course?.tag || [])
     }
     register(name, { required: true, validate: (value) => value.length > 0 })
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -63,8 +63,8 @@ export default function ChipInput({
   return (
     <div className="flex flex-col space-y-2">
       {/* Render the label for the input */}
-      <label className="text-sm text-richblack-5" htmlFor={name}>
-        {label} <sup className="text-pink-200">*</sup>
+      <label className="text-sm font-semibold text-green-700" htmlFor={name}>
+        {label} <sup className="text-red-500">*</sup>
       </label>
       {/* Render the chips and input */}
       <div className="flex w-full flex-wrap gap-y-2">
@@ -72,14 +72,14 @@ export default function ChipInput({
         {chips.map((chip, index) => (
           <div
             key={index}
-            className="m-1 flex items-center rounded-full bg-yellow-400 px-2 py-1 text-sm text-richblack-5"
+            className="m-1 flex items-center rounded-full bg-green-100 px-2 py-1 text-sm text-green-800 border border-green-300"
           >
             {/* Render the chip value */}
             {chip}
             {/* Render the button to delete the chip */}
             <button
               type="button"
-              className="ml-2 focus:outline-none"
+              className="ml-2 focus:outline-none text-green-600 hover:text-green-800"
               onClick={() => handleDeleteChip(index)}
             >
               <MdClose className="text-sm" />
@@ -93,12 +93,12 @@ export default function ChipInput({
           type="text"
           placeholder={placeholder}
           onKeyDown={handleKeyDown}
-          className="form-style w-full bg-richblack-700 rounded-md p-2  text-richblack-25"
+          className="w-full rounded-md border border-gray-300 bg-white p-3 text-gray-900 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-green-500"
         />
       </div>
       {/* Render an error message if the input is required and not filled */}
       {errors[name] && (
-        <span className="ml-2 text-xs tracking-wide text-pink-200">
+        <span className="ml-2 text-xs tracking-wide text-red-500">
           {label} is required
         </span>
       )}

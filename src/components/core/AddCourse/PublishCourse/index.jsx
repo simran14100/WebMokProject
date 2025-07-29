@@ -30,7 +30,7 @@ export default function PublishCourse() {
 
   const goToCourses = () => {
     dispatch(resetCourseState())
-    navigate("/dashboard/my-courses")
+    navigate("/instructor/my-courses")
   }
 
   const handleCoursePublish = async () => {
@@ -65,8 +65,8 @@ export default function PublishCourse() {
   }
 
   return (
-    <div className="rounded-md border-[1px] border-richblack-700 bg-richblack-800 p-6">
-      <p className="text-2xl font-semibold text-richblack-5">
+    <div className="rounded-md border border-gray-300 bg-white p-6 shadow-sm">
+      <p className="text-2xl font-semibold text-gray-900">
         Publish Settings
       </p>
       <form onSubmit={handleSubmit(onSubmit)}>
@@ -77,9 +77,9 @@ export default function PublishCourse() {
               type="checkbox"
               id="public"
               {...register("public")}
-              className="border-gray-300 h-4 w-4 rounded bg-richblack-500 text-richblack-400 focus:ring-2 focus:ring-richblack-5"
+              className="border-gray-300 h-4 w-4 rounded bg-white text-green-600 focus:ring-2 focus:ring-green-500"
             />
-            <span className="ml-2 text-richblack-400">
+            <span className="ml-2 text-gray-700">
               Make this course as public
             </span>
           </label>
@@ -91,7 +91,7 @@ export default function PublishCourse() {
             disabled={loading}
             type="button"
             onClick={goBack}
-            className="flex cursor-pointer items-center gap-x-2 rounded-md bg-richblack-300 py-[8px] px-[20px] font-semibold text-richblack-900"
+            className="flex cursor-pointer items-center gap-x-2 rounded-md bg-gray-200 py-[8px] px-[20px] font-semibold text-gray-700 hover:bg-gray-300 transition-colors"
           >
             Back
           </button>

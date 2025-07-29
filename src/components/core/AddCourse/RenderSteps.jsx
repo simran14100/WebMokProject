@@ -6,7 +6,7 @@ import CourseInformationForm from "./CourseInformation/CourseInformationForm"
 import PublishCourse from "./PublishCourse"
 
 export default function RenderSteps() {
-  const { step } = useSelector((state) => state.course)
+  const { step, editCourse } = useSelector((state) => state.course)
 
   const steps = [
     { id: 1, title: "Course Information" },
@@ -16,8 +16,10 @@ export default function RenderSteps() {
 
   return (
     <>
-      {/* Add Course Heading */}
-      <h1 className="mb-8 text-3xl font-extrabold text-center text-green-700">Add Course</h1>
+      {/* Dynamic Heading based on edit mode */}
+      <h1 className="mb-8 text-3xl font-extrabold text-center text-green-700">
+        {editCourse ? "Edit Course" : "Add Course"}
+      </h1>
       {/* Stepper UI */}
       <div className="relative mb-8 flex w-full max-w-5xl mx-auto justify-center items-center -mr-7 ">
         {steps.map((item, idx) => (

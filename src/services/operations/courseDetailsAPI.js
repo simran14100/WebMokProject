@@ -7,7 +7,7 @@ import { course } from "../apis";
 
 const {
   COURSE_DETAILS_API,
-  COURSE_CATEGORIES_API,
+  SHOW_ALL_CATEGORIES_API,
   GET_ALL_COURSE_API,
   CREATE_COURSE_API,
   EDIT_COURSE_API,
@@ -73,14 +73,14 @@ export const fetchCourseDetails = async (courseId) => {
 export const fetchCourseCategories = async () => {
   let result = []
   try {
-    const response = await apiConnector("GET", COURSE_CATEGORIES_API)
-    console.log("COURSE_CATEGORIES_API API RESPONSE............", response)
+    const response = await apiConnector("GET", SHOW_ALL_CATEGORIES_API)
+    console.log("SHOW_ALL_CATEGORIES_API API RESPONSE............", response)
     if (!response?.data?.success) {
       throw new Error("Could Not Fetch Course Categories")
     }
     result = response?.data?.data
   } catch (error) {
-    console.log("COURSE_CATEGORY_API API ERROR............", error)
+    console.log("SHOW_ALL_CATEGORIES_API API ERROR............", error)
     toast.error(error.message)
   }
   return result
@@ -436,4 +436,19 @@ export const createRating = async (data, token) => {
   }
   toast.dismiss(toastId)
   return success
+}
+
+export const getCatalogPageData = async (categoryId) => {
+  let result = null;
+  try {
+    const response = await apiConnector("POST", course.CATEGORY_PAGE_DETAILS_API, { categoryId });
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Could not fetch catalog page data");
+    }
+    result = response.data;
+  } catch (error) {
+    console.log("CATEGORY_PAGE_DETAILS_API ERROR............", error);
+    result = { success: false, message: error.message };
+  }
+  return result;
 }

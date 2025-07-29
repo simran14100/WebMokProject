@@ -25,12 +25,26 @@ export const course = {
     GET_ALL_COURSES_API: "/api/v1/course/getAllCourses",
     GET_COURSE_DETAILS_API: "/api/v1/course/getCourseDetails",
     GET_FULL_COURSE_DETAILS_API: "/api/v1/course/getFullCourseDetails",
+    GET_FULL_COURSE_DETAILS_AUTHENTICATED: "/api/v1/course/getFullCourseDetails",
     EDIT_COURSE_API: "/api/v1/course/editCourse",
     GET_INSTRUCTOR_COURSES_API: "/api/v1/course/getInstructorCourses",
     DELETE_COURSE_API: "/api/v1/course/deleteCourse",
     CREATE_CATEGORY_API: "/api/v1/course/createCategory",
     SHOW_ALL_CATEGORIES_API: "/api/v1/course/showAllCategories",
     CATEGORY_PAGE_DETAILS_API: "/api/v1/course/categoryPageDetails",
+    // Section and Subsection APIs
+    CREATE_SECTION_API: "/api/v1/course/addSection",
+    UPDATE_SECTION_API: "/api/v1/course/updateSection",
+    DELETE_SECTION_API: "/api/v1/course/deleteSection",
+    CREATE_SUBSECTION_API: "/api/v1/course/addSubSection",
+    UPDATE_SUBSECTION_API: "/api/v1/course/updateSubSection",
+    DELETE_SUBSECTION_API: "/api/v1/course/deleteSubSection",
+    // Rating and Review APIs
+    CREATE_RATING_API: "/api/v1/course/createRating",
+    GET_AVERAGE_RATING_API: "/api/v1/course/getAverageRating",
+    GET_REVIEWS_API: "/api/v1/course/getReviews",
+    // Course Progress API
+    LECTURE_COMPLETION_API: "/api/v1/course/updateCourseProgress",
 };
 
 export const payment = {

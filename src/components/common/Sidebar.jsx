@@ -14,7 +14,8 @@ const adminSidebarLinks = [
   { name: "My Profile", path: "/admin/my-profile", icon: <VscAccount style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
   { name: "Dashboard", path: "/admin/dashboard", icon: <VscDashboard style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
   { name: "Admission Confirm", path: "/admin/admission-confirmation", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-  { name: "Enrollred Students", path: "/admin/enrolled-students", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+  { name: "Registered Students", path: "/admin/registered-students", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+  { name: "Enrolled Students", path: "/admin/enrolled-students", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
   { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
   { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
 ];
@@ -46,7 +47,8 @@ const getSidebarLinks = (user) => {
     { name: "My Profile", path: "/admin/my-profile", icon: <VscAccount style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
     { name: "Dashboard", path: "/admin/dashboard", icon: <VscDashboard style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
     { name: "Admission Confirm", path: "/admin/admission-confirmation", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-    { name: "Enrollred Students", path: "/admin/enrolled-students", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+    { name: "Registered Students", path: "/admin/registered-students", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+    { name: "Enrolled Students", path: "/admin/enrolled-students", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
     { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
     { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
   ];
