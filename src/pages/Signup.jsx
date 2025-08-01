@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { signUp, sendOtp } from '../services/operations/authApi';
-import Logo from '../assets/Logo/Logo-Full-Light.png';
+import Logo from '../assets/img/logo/logo-1.png';
 
 const TAWKTO_GREEN = '#009e5c'; // two shades darker
 const TAWKTO_GREEN_DARK = '#007a44'; // two shades darker

@@ -82,15 +82,12 @@ const Navbar = () => {
                 <li><i className="fa-regular fa-clock"></i><span>Mon - Sat: 8:00 - 15:00</span></li>
               </ul>
             </div>
-            <div className="top-bar-right">
-              <div className="register-box">
-                <div className="icon"><i className="fa-regular fa-user"></i></div>
-                {user ? (
-                  <Link to="/dashboard">Dashboard</Link>
-                ) : (
-                  <Link to="/login">Login / Register</Link>
-                )}
-              </div>
+                         <div className="top-bar-right" style={{ justifyContent: 'flex-start', gap: '30px' }}>
+               <div className="register-box">
+                 {user ? (
+                   <Link to="/dashboard">Dashboard</Link>
+                 ) : null}
+               </div>
               <div className="top-social-wrap">
                 <span>Follow Us</span>
                 <ul className="social-list">
@@ -273,18 +270,15 @@ const Navbar = () => {
                   </div>
                 </div>
                 {/* /.header-menu-wrap */}
-                <div className="header-right">
-                  {user && (
-                    <div className="header-right-icon shop-btn">
-                      <Link to="/cart">
-                        <i className="fa-regular fa-cart-shopping"></i>
-                      </Link>
-                      <span className="number">{cart?.length || 0}</span>
-                    </div>
-                  )}
-                  <Link to="/contact" className="ed-primary-btn header-btn">
-                    Get a quote <i className="fa-sharp fa-regular fa-arrow-right"></i>
-                  </Link>
+                                 <div className="header-right">
+                   {user && (
+                     <div className="header-right-icon shop-btn">
+                       <Link to="/cart">
+                         <i className="fa-regular fa-cart-shopping"></i>
+                       </Link>
+                       <span className="number">{cart?.length || 0}</span>
+                     </div>
+                   )}
                   <div className="header-logo d-none d-lg-none">
                     <Link to="/">
                       <img src="/assets/img/logo/logo-1.png" alt="Logo" />
@@ -337,17 +331,12 @@ const Navbar = () => {
               <li><Link to="/about" onClick={() => setIsMobileMenuOpen(false)}>About</Link></li>
               <li><Link to="/blog" onClick={() => setIsMobileMenuOpen(false)}>Blog</Link></li>
               <li><Link to="/contact" onClick={() => setIsMobileMenuOpen(false)}>Contact</Link></li>
-              {user ? (
-                <>
-                  <li><Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link></li>
-                  <li><button onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}>Logout</button></li>
-                </>
-              ) : (
-                <>
-                  <li><Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>Login</Link></li>
-                  <li><Link to="/signup" onClick={() => setIsMobileMenuOpen(false)}>Signup</Link></li>
-                </>
-              )}
+                             {user ? (
+                 <>
+                   <li><Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link></li>
+                   <li><button onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}>Logout</button></li>
+                 </>
+               ) : null}
             </ul>
           </div>
           <ul className="side-menu-list">

@@ -154,6 +154,10 @@ const Home = () => {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.8 }}
+        style={{
+          background: 'linear-gradient(180deg, rgba(7, 166, 152, 0.15) 0%, rgba(255, 255, 255, 1) 100%)',
+          position: 'relative'
+        }}
       >
         {/* Background Elements */}
         <div className="hero-bg-wrap">
@@ -191,7 +195,12 @@ const Home = () => {
             initial={{ opacity: 0, x: 50 }}
             animate={{ opacity: 1, x: 0 }}
             transition={{ duration: 0.8, delay: 0.5 }}
-          >
+            style={{
+              position: 'absolute',
+              right: '74%',
+              zIndex: 10
+            }}
+          > 
             <div className="icon"><i className="fa-solid fa-user"></i></div>
             <div className="content">
               <h5 className="text-title">150K</h5>
@@ -201,21 +210,223 @@ const Home = () => {
         </div>
         
         {/* Background Shapes */}
-        <div className="shapes">
-          <motion.div 
-            className="shape shape-1"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-          >
-            <img src="/assets/img/shapes/hero-shape-11.png" alt="shape" />
-          </motion.div>
-          <motion.div 
-            className="shape shape-2"
-            animate={{ rotate: -360 }}
-            transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-          >
-            <img src="/assets/img/shapes/hero-shape-12.png" alt="shape" />
-          </motion.div>
+        <div className="shapes" style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          pointerEvents: 'none',
+          zIndex: 1
+        }}>
+          {/* Abstract curved lines - Sound wave patterns */}
+          <div style={{
+            position: 'absolute',
+            top: '15%',
+            left: '8%',
+            width: '120px',
+            height: '40px',
+            border: '1px solid rgba(255, 255, 255, 0.15)',
+            borderRadius: '50px',
+            transform: 'rotate(-15deg)'
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            top: '25%',
+            left: '15%',
+            width: '80px',
+            height: '25px',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            borderRadius: '50px',
+            transform: 'rotate(10deg)'
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            top: '35%',
+            left: '12%',
+            width: '100px',
+            height: '30px',
+            border: '1px solid rgba(255, 255, 255, 0.13)',
+            borderRadius: '50px',
+            transform: 'rotate(-8deg)'
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            top: '45%',
+            left: '10%',
+            width: '90px',
+            height: '35px',
+            border: '1px solid rgba(255, 255, 255, 0.11)',
+            borderRadius: '50px',
+            transform: 'rotate(5deg)'
+          }}></div>
+          
+          {/* Network connection lines */}
+          <div style={{
+            position: 'absolute',
+            top: '20%',
+            left: '25%',
+            width: '60px',
+            height: '1px',
+            backgroundColor: 'rgba(255, 255, 255, 0.14)',
+            transform: 'rotate(25deg)'
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            top: '30%',
+            left: '20%',
+            width: '45px',
+            height: '1px',
+            backgroundColor: 'rgba(255, 255, 255, 0.12)',
+            transform: 'rotate(-20deg)'
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            top: '40%',
+            left: '18%',
+            width: '70px',
+            height: '1px',
+            backgroundColor: 'rgba(255, 255, 255, 0.13)',
+            transform: 'rotate(12deg)'
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '22%',
+            width: '55px',
+            height: '1px',
+            backgroundColor: 'rgba(255, 255, 255, 0.11)',
+            transform: 'rotate(-15deg)'
+          }}></div>
+          
+          {/* Subtle curved shapes */}
+          <div style={{
+            position: 'absolute',
+            bottom: '15%',
+            left: '8%',
+            width: '200px',
+            height: '200px',
+            border: '2px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '50%',
+            transform: 'translate(-30%, 30%)'
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            bottom: '25%',
+            left: '20%',
+            width: '150px',
+            height: '150px',
+            border: '1px solid rgba(255, 255, 255, 0.2)',
+            borderRadius: '50%',
+            transform: 'translate(-20%, 20%)'
+          }}></div>
+          
+          {/* Subtle patterns under the heading area */}
+          <div style={{
+            position: 'absolute',
+            top: '30%',
+            left: '10%',
+            width: '15px',
+            height: '15px',
+            border: '1px solid rgba(255, 255, 255, 0.4)',
+            borderRadius: '50%'
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            top: '35%',
+            left: '25%',
+            width: '12px',
+            height: '12px',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '50%'
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            top: '28%',
+            left: '40%',
+            width: '18px',
+            height: '18px',
+            border: '1px solid rgba(255, 255, 255, 0.5)',
+            borderRadius: '50%'
+          }}></div>
+          
+          {/* Small subtle dots */}
+          <div style={{
+            position: 'absolute',
+            top: '45%',
+            left: '15%',
+            width: '3px',
+            height: '3px',
+            backgroundColor: 'rgba(255, 255, 255, 0.6)',
+            borderRadius: '50%'
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            top: '50%',
+            left: '30%',
+            width: '2px',
+            height: '2px',
+            backgroundColor: 'rgba(255, 255, 255, 0.5)',
+            borderRadius: '50%'
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            top: '48%',
+            left: '45%',
+            width: '4px',
+            height: '4px',
+            backgroundColor: 'rgba(255, 255, 255, 0.7)',
+            borderRadius: '50%'
+          }}></div>
+          
+          {/* Thin subtle lines */}
+          <div style={{
+            position: 'absolute',
+            top: '60%',
+            left: '8%',
+            width: '25px',
+            height: '1px',
+            backgroundColor: 'rgba(255, 255, 255, 0.3)',
+            transform: 'rotate(10deg)'
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            top: '65%',
+            left: '25%',
+            width: '20px',
+            height: '1px',
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            transform: 'rotate(-5deg)'
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            top: '62%',
+            left: '38%',
+            width: '22px',
+            height: '1px',
+            backgroundColor: 'rgba(255, 255, 255, 0.4)',
+            transform: 'rotate(8deg)'
+          }}></div>
+          
+          {/* Right side subtle shapes */}
+          <div style={{
+            position: 'absolute',
+            top: '20%',
+            right: '25%',
+            width: '30px',
+            height: '30px',
+            border: '1px solid rgba(255, 255, 255, 0.3)',
+            borderRadius: '50%'
+          }}></div>
+          <div style={{
+            position: 'absolute',
+            top: '40%',
+            right: '15%',
+            width: '15px',
+            height: '15px',
+            backgroundColor: 'rgba(255, 255, 255, 0.2)',
+            borderRadius: '50%'
+          }}></div>
         </div>
         
         {/* Main Content */}
@@ -229,8 +440,8 @@ const Home = () => {
                 transition={{ duration: 0.8, delay: 0.2 }}
               >
                 <div className="section-heading mb-20">
-                  <motion.h4 
-                    className="sub-heading"
+                <motion.h4 
+                    className="sub-heading text-black"
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ duration: 0.6, delay: 0.4 }}
@@ -240,6 +451,9 @@ const Home = () => {
                     </span>
                     Welcome to WebMok Education
                   </motion.h4>
+
+
+
                   <motion.h2 
                     className="section-title"
                     initial={{ opacity: 0, y: 20 }}
@@ -247,7 +461,7 @@ const Home = () => {
                     transition={{ duration: 0.6, delay: 0.6 }}
                   >
                     Start learning from the <br />
-                    world's <span>best platform</span>
+                    world's <span>best sites</span>
                   </motion.h2>
                 </div>
                 
@@ -257,7 +471,7 @@ const Home = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 0.8 }}
                 >
-                  Your gateway to quality education with a comprehensive 5-role system designed for students, instructors, and administrators.
+                  Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut elit tellus, luctus <br/> nec ullamcorper mattis
                 </motion.p>
                 
                 {/* Hero Form - Exact Template Structure */}

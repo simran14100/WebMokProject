@@ -4,7 +4,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../../services/operations/authApi";
 import ConfirmationModal from "./ConfirmationModal";
-import Logo from "../../assets/Logo/Logo-Full-Light.png";
+import Logo from "../../assets/img/logo/logo-1.png";
 
 const TAWKTO_GREEN = "#009e5c"; // dark green for sidebar
 const BORDER = "#e0e0e0";
