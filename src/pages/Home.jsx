@@ -657,12 +657,46 @@ const Home = () => {
                             {course.courseName}
                           </Link>
                         </h3>
-                        <ul className="course-list">
-                          <li><i className="fa-light fa-file"></i>Lesson {course.courseContent?.length || 0}</li>
-                          <li><i className="fa-light fa-user"></i>Students {course.studentsEnrolled?.length || 0}</li>
-                          <li><i className="fa-light fa-eye"></i>View: 12K</li>
+                        <ul className="course-list" style={{ 
+                          display: 'flex', 
+                          flexWrap: 'nowrap', 
+                          gap: '10px', 
+                          alignItems: 'center',
+                          margin: '4px 0',
+                          padding: 0,
+                          listStyle: 'none',
+                          width: '100%',
+                          overflow: 'hidden'
+                        }}>
+                          <li style={{ 
+                            whiteSpace: 'nowrap',
+                            fontSize: '14px',
+                            color: '#666',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                            minWidth: 'fit-content'
+                          }}><i className="fa-light fa-file"></i><span style={{ whiteSpace: 'nowrap' }}>Lesson {course.courseContent?.length || 0}</span></li>
+                          <li style={{ 
+                            whiteSpace: 'nowrap',
+                            fontSize: '14px',
+                            color: '#666',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                            minWidth: 'fit-content'
+                          }}><i className="fa-light fa-user"></i><span style={{ whiteSpace: 'nowrap' }}>Students {course.studentsEnrolled?.length || 0}</span></li>
+                          <li style={{ 
+                            whiteSpace: 'nowrap',
+                            fontSize: '14px',
+                            color: '#666',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '2px',
+                            minWidth: 'fit-content'
+                          }}><i className="fa-light fa-eye"></i><span style={{ whiteSpace: 'nowrap' }}>View: 12K</span></li>
                         </ul>
-                        <div className="course-author-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' }}>
+                        <div className="course-author-box" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '10px' , marginTop:'12px' }}>
                           <div className="course-author" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                             <div className="author-img">
                               <img src="/assets/img/images/course-author-1.png" alt="course" />
@@ -965,7 +999,7 @@ const Home = () => {
               </div>
             ) : topClassCourses.length > 0 ? (
               topClassCourses.map((course, index) => (
-                <div key={course._id || index} className="col-xl-6 col-lg-12">
+                <div key={course._id || index} className="col-xl-4 col-lg-6 col-md-6">
                   <motion.div 
                     className="course-item course-item-2"
                     initial={{ opacity: 0, y: 30 }}
@@ -975,30 +1009,30 @@ const Home = () => {
                     whileHover={{ y: -5 }}
                     style={{
                       padding: 0,
-                      display: 'grid',
-                      alignItems: 'center',
-                      gridTemplateColumns: '236px 1fr',
+                      display: 'flex',
+                      flexDirection: 'column',
                       overflow: 'hidden',
                       backgroundColor: '#ffffff',
-                      borderRadius: '12px',
-                      boxShadow: '0 5px 20px rgba(0, 0, 0, 0.1)',
+                      borderRadius: '16px',
+                      border: '1px solid #E8ECF0',
+                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)',
                       transition: 'all 0.3s ease',
                       height: '100%'
                     }}
                   >
                     {/* Course Thumbnail */}
-                    <div className="course-thumb-wrap" style={{ padding: 0, height: '100%' }}>
-                      <div className="course-thumb" style={{ height: '100%', borderRadius: 0 }}>
+                    <div className="course-thumb-wrap" style={{ padding: '20px', height: '300px', width: '100%' }}>
+                      <div className="course-thumb" style={{ height: '100%', width: '100%', borderRadius: '12px 12px 12px 12px' }}>
                         <img 
                           src={getCourseThumbnail(course)} 
                           alt={course.courseName}
-                          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px 12px 0 0' }}
                         />
                       </div>
                     </div>
 
                     {/* Course Content */}
-                    <div className="course-content-wrap">
+                    <div className="course-content-wrap" style={{ padding: '20px', flex: 1  , marginTop:'2px'}}>
                       <div className="course-content">
                         {/* Free Badge */}
                         <span className="offer" style={{ 
@@ -1086,28 +1120,36 @@ const Home = () => {
                           </ul>
                         </div>
                       </div>
-                      <div className="bottom-content" style={{ 
+                                            <div className="bottom-content" style={{ 
                         display: 'flex', 
-                        justifyContent: 'space-between', 
                         alignItems: 'center',
-                        marginTop: '15px'
+                        justifyContent: 'space-between',
+                        padding: '0 20px 15px 20px',
+                        marginTop: 'auto'
                       }}>
                         <span className="price" style={{ 
-                          fontSize: '20px', 
-                          fontWeight: '700', 
-                          color: '#07A698' 
+                          color: '#191A1F',
+                          fontSize: '20px',
+                          fontWeight: '700'
                         }}>
                           ₹{course.price || 'Free'}
                         </span>
                         <Link to={`/course/${course._id}`} className="course-btn" style={{
-                          backgroundColor: '#07A698',
-                          color: '#ffffff',
-                          padding: '8px 16px',
-                          borderRadius: '6px',
-                          textDecoration: 'none',
-                          fontSize: '13px',
+                          color: '#191A1F',
+                          fontSize: '16px',
                           fontWeight: '600',
-                          transition: 'all 0.3s ease'
+                          padding: '5px 20px',
+                          border: '1px solid #E0E5EB',
+                          borderRadius: '100px',
+                          textDecoration: 'none',
+                          transition: 'all 0.3s ease',
+                          cursor: 'pointer'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.border = '1px solid #07A698';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.border = '1px solid #E0E5EB';
                         }}>
                           View Details
                         </Link>
@@ -1124,35 +1166,223 @@ const Home = () => {
               </div>
             )}
           </div>
+        </div>
+      </motion.section>
 
-          {/* View All Courses Button */}
-          <motion.div 
-            className="text-center mt-60"
-            initial={{ opacity: 0, y: 30 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.3 }}
-            viewport={{ once: true }}
-          >
-            <Link 
-              to="/catalog/all" 
-              className="ed-primary-btn"
-              style={{
-                backgroundColor: '#07A698',
-                color: '#ffffff',
-                padding: '15px 40px',
-                borderRadius: '8px',
-                textDecoration: 'none',
-                fontSize: '16px',
-                fontWeight: '600',
-                transition: 'all 0.3s ease',
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '10px'
-              }}
-            >
-              View All Courses <i className="fa-solid fa-arrow-right"></i>
-                </Link>
-          </motion.div>
+      {/* 50% Offer Section - UI Template Design */}
+      <motion.section 
+        className="offer-section overflow-hidden"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+        viewport={{ once: true }}
+        style={{
+          background: 'linear-gradient(135deg, #1A2226 0%, #2C3E50 50%, #34495E 100%)',
+          position: 'relative',
+          padding: '50px 0',
+          overflow: 'hidden'
+        }}
+      >
+        {/* Background Grid Pattern */}
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundImage: `
+            linear-gradient(rgba(255, 255, 255, 0.05) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255, 255, 255, 0.05) 1px, transparent 1px)
+          `,
+          backgroundSize: '20px 20px',
+          pointerEvents: 'none',
+          zIndex: 1
+        }}></div>
+        
+        {/* Teal Dot */}
+        <div style={{
+          position: 'absolute',
+          top: '15%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '8px',
+          height: '8px',
+          backgroundColor: '#07A698',
+          borderRadius: '50%',
+          zIndex: 2
+        }}></div>
+        
+        {/* Large Teal Circle - Bottom Right */}
+        <div style={{
+          position: 'absolute',
+          bottom: '-20%',
+          right: '-10%',
+          width: '400px',
+          height: '400px',
+          backgroundColor: '#07A698',
+          borderRadius: '50%',
+          opacity: '0.3',
+          zIndex: 1
+        }}></div>
+        
+        <div className="container" style={{ position: 'relative', zIndex: 3 }}>
+          <div className="row align-items-center">
+            <div className="col-lg-7 col-md-6 col-sm-12">
+              <motion.div 
+                className="offer-content"
+                initial={{ opacity: 0, x: -50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.2 }}
+                viewport={{ once: true }}
+              >
+                <motion.h2 
+                  className="offer-title"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.4 }}
+                  viewport={{ once: true }}
+                  style={{
+                    fontSize: '48px',
+                    fontWeight: '700',
+                    color: '#ffffff',
+                    lineHeight: '1.2',
+                    marginBottom: '20px'
+                  }}
+                >
+                  50% Offer For Very First <br />
+                  50 Student's & Mentors
+                </motion.h2>
+                
+                <motion.p 
+                  className="offer-description"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.6 }}
+                  viewport={{ once: true }}
+                  style={{
+                    fontSize: '18px',
+                    color: '#ffffff',
+                    lineHeight: '1.6',
+                    marginBottom: '40px',
+                    opacity: '0.9'
+                  }}
+                >
+                  The ability to learn at my own pace was a game-changer for me. The flexible schedule allowed me <br/> to balance my studies with work and personal life, making it possible to complete the <br/> course without feeling overwhelmed.
+                </motion.p>
+                
+                <motion.div 
+                  className="offer-buttons"
+                  initial={{ opacity: 0, y: 20 }}
+                  whileInView={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.8 }}
+                  viewport={{ once: true }}
+                  style={{
+                    display: 'flex',
+                    gap: '20px',
+                    flexWrap: 'wrap'
+                  }}
+                >
+                  <Link to="/catalog/all">
+                    <motion.button 
+                      className="ed-primary-btn"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      style={{
+                        backgroundColor: '#07A698',
+                        color: '#ffffff',
+                        padding: '15px 30px',
+                        borderRadius: '8px',
+                        border: 'none',
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        textDecoration: 'none'
+                      }}
+                    >
+                      Become A Student <i className="fa-solid fa-arrow-right"></i>
+                    </motion.button>
+                  </Link>
+                  
+                  <Link to="/instructor">
+                    <motion.button 
+                      className="ed-secondary-btn"
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      style={{
+                        backgroundColor: 'transparent',
+                        color: '#ffffff',
+                        padding: '10px 20px',
+                        borderRadius: '8px',
+                        border: '2px solid #ffffff',
+                        fontSize: '16px',
+                        fontWeight: '600',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '10px',
+                        textDecoration: 'none'
+                      }}
+                    >
+                      Become A Teacher <i className="fa-solid fa-arrow-right"></i>
+                    </motion.button>
+                  </Link>
+                </motion.div>
+              </motion.div>
+            </div>
+            
+            <div className="col-lg-5 col-md-6 col-sm-12">
+              <motion.div 
+                className="offer-image"
+                initial={{ opacity: 0, x: 50 }}
+                whileInView={{ opacity: 1, x: 0 }}
+                transition={{ duration: 0.8, delay: 0.4 }}
+                viewport={{ once: true }}
+                                  style={{
+                    textAlign: 'center',
+                    position: 'relative',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: '300px'
+                  }}
+              >
+                <div style={{
+                  width: '250px',
+                  height: '250px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.1)',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '2px dashed rgba(255, 255, 255, 0.3)',
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}>
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)',
+                    width: '180px',
+                    height: '180px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}>
+                    <i className="fa-solid fa-user-graduate" style={{
+                      fontSize: '60px',
+                      color: 'rgba(255, 255, 255, 0.4)'
+                    }}></i>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
         </div>
       </motion.section>
     </div>
