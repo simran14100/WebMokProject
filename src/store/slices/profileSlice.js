@@ -17,6 +17,7 @@ const profileSlice = createSlice({
     },
     clearUser: (state) => {
       state.user = null;
+      state.loading = false;
     },
   },
 });

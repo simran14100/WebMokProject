@@ -231,7 +231,7 @@ exports.login = async(req,res)=>{
             accountType:user.accountType,
         }
         const token = jwt.sign(payload , process.env.JWT_SECRET,{
-           expiresIn:"2h",
+           expiresIn:"24h",
         });
 
        user.token = token;
@@ -350,3 +350,62 @@ exports.changePassword = async (req, res) => {
       })
     }
   }
+
+// Refresh token endpoint
+exports.refreshToken = async (req, res) => {
+  try {
+    // Get user from the request (set by auth middleware)
+    const user = await User.findById(req.user.id).populate("additionalDetails");
+    
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // Generate new token
+    const payload = {
+      email: user.email,
+      id: user._id,
+      accountType: user.accountType,
+    };
+    
+    const newToken = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "24h",
+    });
+
+    // Update user's token in database
+    user.token = newToken;
+    await user.save();
+
+    // Create cookie options
+    const options = {
+      expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      httpOnly: true,
+    };
+
+    res.cookie("token", newToken, options).status(200).json({
+      success: true,
+      message: "Token refreshed successfully",
+      token: newToken,
+      user: {
+        _id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        accountType: user.accountType,
+        image: user.image,
+        enrollmentFeePaid: user.enrollmentFeePaid,
+        approved: user.approved,
+        additionalDetails: user.additionalDetails,
+      },
+    });
+  } catch (error) {
+    console.log("Refresh token error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Failed to refresh token",
+    });
+  }
+};

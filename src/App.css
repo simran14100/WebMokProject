@@ -1,4 +1,16 @@
 /* write your css here */
+
+/* Global override for Bootstrap dropdown arrows */
+.dropdown-toggle::after,
+[data-bs-toggle="dropdown"]::after,
+.dropdown-toggle:empty::after {
+  display: none !important;
+  content: none !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
 body {
   background: #fff !important;
   color: #222 !important;
@@ -102,4 +114,939 @@ input, select, textarea {
 ::-webkit-scrollbar-thumb {
   background: #e0e0e0;
   border-radius: 4px;
+}
+
+/* Custom Navbar Styles for EdCare Template */
+.header {
+  position: relative;
+  z-index: 999;
+}
+
+.header.sticky-active {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: #fff;
+  box-shadow: 0 2px 20px rgba(0, 0, 0, 0.1);
+  animation: slideDown 0.5s ease-in-out;
+}
+
+/* Top Bar Styles */
+.top-bar {
+  background: #1F2C30;
+  color: #fff;
+  padding: 8px 0;
+  font-size: 14px;
+}
+
+.top-bar-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.top-bar-list {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 20px;
+}
+
+.top-bar-list li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.top-bar-list a {
+  color: #fff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.top-bar-list a:hover {
+  color: #07A698;
+}
+
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.register-box {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.register-box a {
+  color: #fff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.register-box a:hover {
+  color: #07A698;
+}
+
+.top-social-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.social-list {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 10px;
+}
+
+.social-list a {
+  color: #fff;
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+.social-list a:hover {
+  color: #07A698;
+}
+
+/* Primary Header Styles */
+.primary-header {
+  background: #fff;
+  padding: 15px 0;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.primary-header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.header-logo img {
+  height: 50px;
+  width: auto;
+}
+
+.header-right-wrap {
+  display: flex;
+  align-items: center;
+  gap: 30px;
+}
+
+.header-menu-wrap {
+  display: flex;
+  align-items: center;
+}
+
+.sub-menu {
+  display: flex;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  gap: 30px;
+  align-items: center;
+}
+
+.sub-menu li {
+  position: relative;
+}
+
+.sub-menu li a {
+  color: #333;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 16px;
+  transition: color 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 25px 0 !important; /* Reduced from 44.5px to 25px to decrease header height */
+}
+
+/* Custom dropdown styles - completely avoiding Bootstrap */
+.category-dropdown {
+  position: relative;
+  z-index: 9999;
+}
+
+.category-dropdown > a {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.category-dropdown .fa-chevron-down {
+  display: inline-block !important;
+  margin-left: 5px;
+  transition: transform 0.3s ease;
+  font-size: 12px;
+}
+
+.category-dropdown .fa-chevron-down.rotate-180 {
+  transform: rotate(180deg);
+}
+
+.category-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+  z-index: 9999;
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(0) !important;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  pointer-events: auto !important;
+  margin-top: 10px;
+  display: block !important;
+}
+
+.category-menu.show {
+  opacity: 1 !important;
+  visibility: visible !important;
+  transform: translateY(0) !important;
+  pointer-events: auto !important;
+  display: block !important;
+}
+
+.category-menu li {
+  list-style: none;
+}
+
+.category-menu li a,
+.category-menu li span {
+  display: block;
+  padding: 10px 15px;
+  color: #333;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.category-menu li:last-child a,
+.category-menu li:last-child span {
+  border-bottom: none;
+}
+
+.category-menu li a:hover {
+  background: #f8f9fa;
+  color: #07A698;
+  padding-left: 20px;
+}
+
+/* Dashboard dropdown styles */
+.dashboard-dropdown {
+  position: relative;
+}
+
+.dashboard-dropdown > a {
+  cursor: pointer;
+}
+
+/* Ensure no chevron shows for Dashboard */
+.dashboard-dropdown > a::after,
+.dashboard-dropdown > a::before {
+  display: none !important;
+  content: none !important;
+}
+
+
+
+/* Feature Section Styles - 100% EdCare Template Match */
+.feature-section {
+  background-color: transparent;
+}
+
+.feature-wrap {
+  background-color: #191A1F;
+  max-width: 1680px;
+  margin: 0 auto;
+  width: 100%;
+  border-radius: 20px;
+}
+
+.feature-item {
+  background-color: #1F2026;
+  padding: 30px 20px;
+  border: 1px solid #24252B;
+  border-radius: 10px;
+  transition: all 0.3s ease-in-out;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.feature-item .icon {
+  background-color: #191A1F;
+  height: 91px;
+  width: 91px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 1px solid #2E2F36;
+  margin-bottom: 25px;
+}
+
+.feature-item .icon img {
+  max-width: 50px;
+  max-height: 50px;
+  object-fit: contain;
+}
+
+.feature-item .title {
+  font-size: 20px;
+  color: #ffffff;
+  margin: 0 0 25px 0;
+  text-align: center;
+  line-height: 1.3;
+  font-weight: 600;
+}
+
+.feature-item .feature-btn {
+  color: #ffffff;
+  height: 45px;
+  width: 45px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #ffffff;
+  border-radius: 50%;
+  margin: 0 auto;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.feature-item .feature-btn:hover {
+  background-color: #07A698;
+  border: 1px solid #07A698;
+  color: #ffffff;
+  text-decoration: none;
+}
+
+.feature-item:hover {
+  transform: translateY(-10px);
+}
+
+/* Section heading styles for feature section */
+.feature-section .section-heading .sub-heading {
+  color: #07A698;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.feature-section .section-heading .sub-heading .heading-icon {
+  margin-right: 10px;
+}
+
+.feature-section .section-heading .section-title {
+  color: #ffffff;
+  font-size: 48px;
+  font-weight: 700;
+  margin-bottom: 20px;
+}
+
+.feature-section .course-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 60px;
+}
+
+.feature-section .course-top-right .ed-primary-btn {
+  background-color: #07A698;
+  color: #ffffff;
+  padding: 15px 30px;
+  border-radius: 5px;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.feature-section .course-top-right .ed-primary-btn:hover {
+  background-color: #059a8c;
+  color: #ffffff;
+  text-decoration: none;
+  transform: translateY(-2px);
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .feature-section .course-top {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 20px;
+  }
+  
+  .feature-section .section-heading .section-title {
+    font-size: 36px;
+  }
+  
+  .feature-item .title {
+    font-size: 18px;
+  }
+}
+
+/* Fix for missing shape images - hide them to prevent errors */
+.shapes {
+  display: none;
+}
+
+/* Ensure page has light background for proper contrast */
+body {
+  background-color: #ffffff !important;
+}
+
+.min-h-screen {
+  background-color: #ffffff !important;
+}
+
+/* Ensure only Category dropdown shows chevron, all others hide it */
+.sub-menu li > a::after,
+.sub-menu li > a::before,
+.sub-menu li::after,
+.sub-menu li::before,
+.sub-menu a::after,
+.sub-menu a::before,
+.sub-menu > li > a::after,
+.sub-menu > li > a::before {
+  display: none !important;
+  content: none !important;
+  border: none !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Only allow chevron for Category dropdown */
+.category-dropdown > a .fa-chevron-down {
+  display: inline-block !important;
+}
+
+/* Hide any chevrons from EdCare template or other sources */
+.header-menu-wrap *::after,
+.header-menu-wrap *::before,
+.mobile-menu-items *::after,
+.mobile-menu-items *::before {
+  display: none !important;
+  content: none !important;
+}
+
+/* Exception: Only show chevron for Category */
+.category-dropdown > a .fa-chevron-down {
+  display: inline-block !important;
+}
+
+/* Override any EdCare template chevrons */
+.header .sub-menu li > a::after,
+.header .sub-menu li > a::before,
+.header .sub-menu li::after,
+.header .sub-menu li::before,
+.header .mobile-menu-items li > a::after,
+.header .mobile-menu-items li > a::before {
+  display: none !important;
+  content: none !important;
+  border: none !important;
+}
+
+/* Ensure no chevrons anywhere except Category */
+.header *::after:not(.category-dropdown > a .fa-chevron-down),
+.header *::before:not(.category-dropdown > a .fa-chevron-down) {
+  display: none !important;
+  content: none !important;
+}
+
+/* Ensure Category chevron is visible */
+.category-dropdown > a .fa-chevron-down,
+.category-dropdown > a .fa-solid.fa-chevron-down {
+  display: inline-block !important;
+  margin-left: 5px;
+  transition: transform 0.3s ease;
+  font-size: 12px;
+  color: #333 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+.category-dropdown > a .fa-chevron-down.rotate-180,
+.category-dropdown > a .fa-solid.fa-chevron-down.rotate-180 {
+  transform: rotate(180deg);
+}
+
+/* Debug: Make sure any chevron icon shows */
+.category-dropdown > a i {
+  display: inline-block !important;
+  margin-left: 5px;
+  font-size: 12px;
+  color: #333 !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+}
+
+/* Force show any icon in category dropdown */
+.category-dropdown > a * {
+  display: inline-block !important;
+}
+
+/* Chevron icon styles */
+.chevron-icon {
+  display: inline-block !important;
+  font-size: 12px;
+  color: #333 !important;
+  transition: all 0.3s ease;
+  cursor: pointer !important;
+  user-select: none;
+  transform: rotate(0deg);
+  pointer-events: auto !important;
+  z-index: 10;
+  position: relative;
+  background: none !important;
+  border: none !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.chevron-icon:hover {
+  color: #007bff !important;
+  transform: scale(1.1);
+}
+
+.chevron-icon.rotate-180 {
+  transform: rotate(180deg) !important;
+}
+
+.chevron-icon.rotate-180:hover {
+  transform: rotate(180deg) scale(1.1) !important;
+}
+
+.dashboard-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.dashboard-dropdown:hover .dashboard-menu {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dashboard-menu li {
+  list-style: none;
+}
+
+.dashboard-menu li a {
+  display: block;
+  padding: 10px 15px;
+  color: #333;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dashboard-menu li:last-child a {
+  border-bottom: none;
+}
+
+.dashboard-menu li a:hover {
+  background: #f8f9fa;
+  color: #07A698;
+  padding-left: 20px;
+}
+
+.sub-menu li a:hover {
+  color: #07A698;
+}
+
+.sub-menu li.active a {
+  color: #07A698;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.header-right-icon {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.header-right-icon a {
+  color: #333;
+  text-decoration: none;
+  font-size: 18px;
+  transition: color 0.3s ease;
+}
+
+.header-right-icon a:hover {
+  color: #07A698;
+}
+
+.header-right-icon .number {
+  position: absolute;
+  top: -8px;
+  right: -8px;
+  background: #07A698;
+  color: #fff;
+  font-size: 12px;
+  font-weight: bold;
+  border-radius: 50%;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ed-primary-btn {
+  background: linear-gradient(135deg, #07A698 0%, #059a8c 100%);
+  color: #fff;
+  text-decoration: none;
+  padding: 12px 25px;
+  border-radius: 25px;
+  font-weight: 600;
+  font-size: 14px;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 15px rgba(7, 166, 152, 0.3);
+}
+
+.ed-primary-btn:hover {
+  background: linear-gradient(135deg, #059a8c 0%, #048a7c 100%);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(7, 166, 152, 0.4);
+}
+
+/* Container and Layout */
+.container {
+  max-width: 1310px;
+  margin: 0 auto;
+  padding: 0 15px;
+}
+
+/* Utility Classes */
+.d-lg-block {
+  display: block;
+}
+
+.d-lg-none {
+  display: none;
+}
+
+.d-xl-block {
+  display: block;
+}
+
+.d-md-block {
+  display: block;
+}
+
+@media (max-width: 991px) {
+  .d-lg-block {
+    display: none;
+  }
+  
+  .d-lg-none {
+    display: block;
+  }
+}
+
+@media (max-width: 1199px) {
+  .d-xl-block {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .d-md-block {
+    display: block;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* Dropdown Menu Styles */
+.menu-item-has-children {
+  position: relative;
+}
+
+.menu-item-has-children > a {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.menu-item-has-children .fa-chevron-down {
+  transition: transform 0.3s ease;
+}
+
+.menu-item-has-children .fa-chevron-down.rotate-180 {
+  transform: rotate(180deg);
+}
+
+.dropdown-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  background: #fff;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  min-width: 200px;
+  z-index: 1000;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+}
+
+.menu-item-has-children:hover .dropdown-menu,
+.dropdown-menu.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+.dropdown-menu li {
+  list-style: none;
+}
+
+.dropdown-menu li a,
+.dropdown-menu li span {
+  display: block;
+  padding: 10px 15px;
+  color: #333;
+  text-decoration: none;
+  transition: all 0.3s ease;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.dropdown-menu li:last-child a,
+.dropdown-menu li:last-child span {
+  border-bottom: none;
+}
+
+.dropdown-menu li a:hover {
+  background: #f8f9fa;
+  color: #07A698;
+  padding-left: 20px;
+}
+
+/* Mobile Menu Styles */
+.mobile-side-menu {
+  position: fixed;
+  top: 0;
+  right: -320px;
+  width: 320px;
+  height: 100vh;
+  background: #fff;
+  z-index: 9999;
+  transition: right 0.3s ease;
+  overflow-y: auto;
+}
+
+.mobile-side-menu.show {
+  right: 0;
+}
+
+.mobile-side-menu-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9998;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+}
+
+.mobile-side-menu-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.side-menu-content {
+  padding: 20px;
+}
+
+.side-menu-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: 20px;
+}
+
+.side-menu-head img {
+  height: 40px;
+}
+
+.mobile-side-menu-close {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #333;
+  cursor: pointer;
+  padding: 5px;
+}
+
+.side-menu-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.side-menu-list li {
+  margin-bottom: 10px;
+}
+
+.side-menu-list li a,
+.side-menu-list li button {
+  display: block;
+  padding: 12px 0;
+  color: #333;
+  text-decoration: none;
+  border: none;
+  background: none;
+  width: 100%;
+  text-align: left;
+  font-size: 16px;
+  transition: color 0.3s ease;
+}
+
+.side-menu-list li a:hover,
+.side-menu-list li button:hover {
+  color: #07A698;
+}
+
+.side-menu-list li i {
+  margin-right: 10px;
+  color: #07A698;
+}
+
+/* Search Popup Styles */
+#popup-search-box {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
+  z-index: 9999;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+#popup-search-box.show {
+  display: flex;
+}
+
+.box-inner-wrap {
+  width: 100%;
+  max-width: 600px;
+  padding: 20px;
+}
+
+.box-inner-wrap form {
+  width: 100%;
+  position: relative;
+}
+
+#popup-search {
+  width: 100%;
+  padding: 20px 60px 20px 20px;
+  font-size: 18px;
+  border: none;
+  border-radius: 50px;
+  background: #fff;
+  outline: none;
+}
+
+.search-close {
+  position: absolute;
+  top: 50%;
+  right: 20px;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #fff;
+  font-size: 24px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 991px) {
+  .header-menu-wrap {
+    display: none;
+  }
+  
+  .header-right-icon.d-xl-block {
+    display: none !important;
+  }
+}
+
+@media (max-width: 767px) {
+  .top-bar-left,
+  .top-bar-right {
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  .top-bar-list {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  
+  .top-social-wrap {
+    margin-top: 10px;
+  }
 }

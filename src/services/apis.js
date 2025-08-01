@@ -10,6 +10,7 @@ export const auth = {
     LOGIN_API: "/api/v1/auth/login",
     RESETPASSTOKEN_API: "/api/v1/auth/reset-password-token",
     RESETPASSWORD_API: "/api/v1/auth/reset-password",
+    REFRESH_TOKEN_API: "/api/v1/auth/refresh-token",
 };
 
 export const profile = {
@@ -89,4 +90,11 @@ export const installments = {
 
 export const contact = {
     CONTACT_US_API: "/api/v1/reach/contact",
+};
+
+export const videoProtection = {
+    GET_PROTECTED_VIDEO_STREAM: "/api/v1/video/stream",
+    GET_VIDEO_SERVE: "/api/v1/video/serve",
+    TRACK_VIDEO_PROGRESS: "/api/v1/video/progress",
+    GET_VIDEO_ANALYTICS: "/api/v1/video/analytics",
 }; 

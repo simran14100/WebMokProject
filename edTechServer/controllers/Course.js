@@ -142,8 +142,18 @@ exports.getAllCourses = async(req , res)=>{
             thumbnail:true,
             instructor:true,
             studentsEnrolled:true,
-            ratingAndReviews:true})
-            .populate("instructor")
+            ratingAndReviews:true,
+            status:true,
+            courseContent:true,
+            duration:true,
+            tag:true,
+            category:true,
+            whatYouWillLearn:true,
+            instructions:true})
+            .populate({
+              path: "instructor",
+              select: "firstName lastName image email"
+            })
             .populate("studentsEnrolled") // Populate student details
             .exec();
 

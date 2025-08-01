@@ -6,9 +6,9 @@ import { apiConnector } from "../apiConnector"
 import { course } from "../apis";
 
 const {
-  COURSE_DETAILS_API,
+  GET_COURSE_DETAILS_API,
   SHOW_ALL_CATEGORIES_API,
-  GET_ALL_COURSE_API,
+  GET_ALL_COURSES_API,
   CREATE_COURSE_API,
   EDIT_COURSE_API,
   CREATE_SECTION_API,
@@ -24,6 +24,9 @@ const {
   LECTURE_COMPLETION_API,
 } = course
 
+console.log('GET_COURSE_DETAILS_API:', GET_COURSE_DETAILS_API);
+console.log('Available course APIs:', Object.keys(course));
+
 
 let toastId = null; // Module-level variable to track the toast ID
 let isLoading = false; // Flag to track loading state
@@ -32,13 +35,13 @@ export const getAllCourses = async () => {
   const toastId = toast.loading("Loading...")
   let result = []
   try {
-    const response = await apiConnector("GET", GET_ALL_COURSE_API)
+    const response = await apiConnector("GET", GET_ALL_COURSES_API)
     if (!response?.data?.success) {
-      throw new Error("Could Not Fetch Course Categories")
+      throw new Error("Could Not Fetch Courses")
     }
     result = response?.data?.data
   } catch (error) {
-    console.log("GET_ALL_COURSE_API API ERROR............", error)
+    console.log("GET_ALL_COURSES_API API ERROR............", error)
     toast.error(error.message)
   }
   toast.dismiss(toastId)
@@ -50,18 +53,24 @@ export const fetchCourseDetails = async (courseId) => {
   //   dispatch(setLoading(true));
   let result = null
   try {
-    const response = await apiConnector("POST", COURSE_DETAILS_API, {
+    console.log('Making API call to:', GET_COURSE_DETAILS_API);
+    console.log('With courseId:', courseId);
+    console.log('Request body:', { courseId });
+    
+    const response = await apiConnector("POST", GET_COURSE_DETAILS_API, {
       courseId,
     })
-    console.log("COURSE_DETAILS_API API RESPONSE............", response)
+    console.log("GET_COURSE_DETAILS_API API RESPONSE............", response)
 
     if (!response.data.success) {
       throw new Error(response.data.message)
     }
     result = response.data
   } catch (error) {
-    console.log("COURSE_DETAILS_API API ERROR............", error)
-    result = error.response.data
+    console.log("GET_COURSE_DETAILS_API API ERROR............", error)
+    console.log("Error response:", error.response);
+    console.log("Error message:", error.message);
+    result = error.response?.data || { success: false, message: error.message }
     // toast.error(error.response.data.message);
   }
   toast.dismiss(toastId)
@@ -85,6 +94,8 @@ export const fetchCourseCategories = async () => {
   }
   return result
 }
+
+
 
 // add the course details
 export const addCourseDetails = async (data, token) => {

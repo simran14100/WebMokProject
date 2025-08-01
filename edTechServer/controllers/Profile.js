@@ -169,20 +169,26 @@ exports.getAllUserDetails = async (req, res) => {
           SubsectionLength +=
             userDetails.courses[i].courseContent[j].subSection.length
         }
-        let courseProgressCount = await CourseProgress.findOne({
+        // Get course progress for this specific course and user
+        const courseProgress = await CourseProgress.findOne({
           courseID: userDetails.courses[i]._id,
           userId: userId,
         })
-        courseProgressCount = courseProgressCount?.completedVideos.length
+        
+        // Get the number of completed videos (default to 0 if no progress found)
+        const completedVideosCount = courseProgress?.completedVideos?.length || 0
+        
+        // Calculate progress percentage
         if (SubsectionLength === 0) {
-          userDetails.courses[i].progressPercentage = 100
+          // If course has no content, progress is 0%
+          userDetails.courses[i].progressPercentage = 0
         } else {
-          // To make it up to 2 decimal point
+          // Calculate percentage: (completed videos / total videos) * 100
+          const progressPercentage = (completedVideosCount / SubsectionLength) * 100
+          
+          // Round to 2 decimal places
           const multiplier = Math.pow(10, 2)
-          userDetails.courses[i].progressPercentage =
-            Math.round(
-              (courseProgressCount / SubsectionLength) * 100 * multiplier
-            ) / multiplier
+          userDetails.courses[i].progressPercentage = Math.round(progressPercentage * multiplier) / multiplier
         }
       }
   

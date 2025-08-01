@@ -34,19 +34,8 @@ export default function ConfirmationModal({ modalData }) {
         <div style={{ display: "flex", gap: 18, justifyContent: "center" }}>
           <button
             onClick={modalData.btn1Handler}
-            style={{
-              background: TAWKTO_GREEN,
-              color: "#fff",
-              border: "none",
-              borderRadius: 8,
-              padding: "10px 28px",
-              fontWeight: 700,
-              fontSize: 16,
-              cursor: "pointer",
-              transition: "background 0.2s"
-            }}
-            onMouseOver={e => e.target.style.background = TAWKTO_GREEN_DARK}
-            onMouseOut={e => e.target.style.background = TAWKTO_GREEN}
+            className="bg-green-600 hover:bg-green-700 text-white rounded-md px-7 py-2 font-bold text-base transition-colors"
+            style={{ minWidth: 100 }}
           >
             {modalData.btn1Text || "Confirm"}
           </button>

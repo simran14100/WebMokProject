@@ -6,6 +6,8 @@ import store, { persistor } from './store';
 import { Toaster } from 'react-hot-toast';
 import { debugLocalStorage } from './utils/localStorage';
 import Navbar from "./components/common/Navbar";
+import Footer from "./components/common/Footer";
+import TokenManager from "./components/common/TokenManager";
 import Home from "./pages/Home";
 import About from "./pages/About";
 import Contact from "./pages/Contact";
@@ -29,6 +31,8 @@ import ActiveCourses from './pages/ActiveCourses';
 import MyCourses from './pages/MyCourses';
 import AddCourse from './pages/AddCourse';
 import EditCourse from './components/core/EditCourse';
+import CourseViewer from './pages/CourseViewer';
+import CourseDetails from './pages/CourseDetails';
 
 
 // Debug Redux store on app start
@@ -42,42 +46,48 @@ function App() {
       <PersistGate loading={null} persistor={persistor}>
         <Router>
           <div className="flex min-h-screen flex-col">
+            <TokenManager />
             <Navbar />
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/dashboard" element={<Dashboard />}>
-                <Route path="my-profile" element={<AdminProfile />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="cart" element={<Cart />} />
-                <Route path="active-courses" element={<ActiveCourses />} />
-                <Route path="enrolled-students" element={<EnrolledStudents />} />
-                {/* <Route path="instructor" element={<InstructorDashboard />} /> */}
-                {/* Add more nested dashboard routes here */}
-              </Route>
-              <Route path="/catalog/:catalogName" element={<Catalog />} />
-              <Route path="/enrollment-payment" element={<EnrollmentPayment />} />
-              <Route path="/admin" element={<AdminLayout />}>
-                <Route path="dashboard" element={<AdminDashboard />} />
-                <Route path="my-profile" element={<AdminProfile />} />
-                <Route path="admission-confirmation" element={<AdmissionConfirmation />} />
-                <Route path="registered-students" element={<RegisteredStudents />} />
-                <Route path="enrolled-students" element={<EnrolledStudents />} />
-                <Route path="installments" element={<PaymentInstallments />} />
-                {/* Add more admin routes here */}
-              </Route>
-              <Route path="/installments" element={<PaymentInstallments />} />
-              <Route path="/instructor" element={<InstructorLayout />}>
-                <Route path="dashboard" element={<InstructorDashboard />} />
-                <Route path="my-courses" element={<MyCourses />} />
-                <Route path="add-course" element={<AddCourse />} />
-                <Route path="edit-course/:id" element={<EditCourse />} />
-                {/* Add more instructor routes here as needed */}
-              </Route>
-            </Routes>
+            <main className="flex-1">
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/about" element={<About />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/dashboard" element={<Dashboard />}>
+                  <Route path="my-profile" element={<AdminProfile />} />
+                  <Route path="settings" element={<Settings />} />
+                  <Route path="cart" element={<Cart />} />
+                  <Route path="active-courses" element={<ActiveCourses />} />
+                  <Route path="enrolled-students" element={<EnrolledStudents />} />
+                  {/* <Route path="instructor" element={<InstructorDashboard />} /> */}
+                  {/* Add more nested dashboard routes here */}
+                </Route>
+                <Route path="/catalog/:catalogName" element={<Catalog />} />
+                <Route path="/courses/:courseId" element={<CourseDetails />} />
+                <Route path="/enrollment-payment" element={<EnrollmentPayment />} />
+                <Route path="/admin" element={<AdminLayout />}>
+                  <Route path="dashboard" element={<AdminDashboard />} />
+                  <Route path="my-profile" element={<AdminProfile />} />
+                  <Route path="admission-confirmation" element={<AdmissionConfirmation />} />
+                  <Route path="registered-students" element={<RegisteredStudents />} />
+                  <Route path="enrolled-students" element={<EnrolledStudents />} />
+                  <Route path="installments" element={<PaymentInstallments />} />
+                  {/* Add more admin routes here */}
+                </Route>
+                <Route path="/installments" element={<PaymentInstallments />} />
+                <Route path="/instructor" element={<InstructorLayout />}>
+                  <Route path="dashboard" element={<InstructorDashboard />} />
+                  <Route path="my-courses" element={<MyCourses />} />
+                  <Route path="add-course" element={<AddCourse />} />
+                  <Route path="edit-course/:id" element={<EditCourse />} />
+                  {/* Add more instructor routes here as needed */}
+                </Route>
+                <Route path="/course/:courseId/:sectionId/:subsectionId" element={<CourseViewer />} />
+              </Routes>
+            </main>
+            <Footer />
             <Toaster 
               position="top-right"
               toastOptions={{

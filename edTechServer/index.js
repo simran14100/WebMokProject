@@ -14,6 +14,7 @@ const adminRoutes = require("./routes/admin");
 const enrollmentRoutes = require("./routes/enrollment");
 const admissionRoutes = require("./routes/admission");
 const installmentRoutes = require("./routes/installments");
+const videoRoutes = require("./routes/Video");
 
 
 const database = require("./config/database");
@@ -63,6 +64,7 @@ app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/enrollment", enrollmentRoutes);
 app.use("/api/v1/admission", admissionRoutes);
 app.use("/api/v1/installments", installmentRoutes);
+app.use("/api/v1/video", videoRoutes);
 
 // Testing the server
 app.get("/", (req, res) => {

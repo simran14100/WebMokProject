@@ -81,6 +81,9 @@ const ProfileDropDown = ({ mobile = false }) => {
                     <div className="flex flex-col">
                         <span className="text-lg font-semibold text-richblack-25">
                             {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'User'}
+                            {user?.accountType === ACCOUNT_TYPE.STUDENT && user?.enrollmentFeePaid && (
+                                <span className="ml-2 bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full align-middle">Paid</span>
+                            )}
                         </span>
                         <span className="text-sm text-yellow-25 font-medium">
                             {getRoleDisplayName(user?.accountType)}
@@ -125,6 +128,9 @@ const ProfileDropDown = ({ mobile = false }) => {
                 />
                 <span className="text-gray-900 text-sm font-medium group-hover:text-[#009e5c] transition-colors duration-300">
                     {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'User'}
+                    {user?.accountType === ACCOUNT_TYPE.STUDENT && user?.enrollmentFeePaid && (
+                        <span className="ml-2 bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full align-middle">Paid</span>
+                    )}
                 </span>
                 <AiOutlineCaretDown className={`text-base text-[#009e5c] group-hover:text-[#007a44] transition-all duration-300 ${isOpen ? 'rotate-180' : ''}`} />
             </button>
@@ -141,6 +147,9 @@ const ProfileDropDown = ({ mobile = false }) => {
                             <div>
                                 <div className="text-sm font-semibold text-gray-900">
                                     {user?.firstName && user?.lastName ? `${user.firstName} ${user.lastName}` : 'User'}
+                                    {user?.accountType === ACCOUNT_TYPE.STUDENT && user?.enrollmentFeePaid && (
+                                        <span className="ml-2 bg-green-100 text-green-700 text-xs font-bold px-2 py-1 rounded-full align-middle">Paid</span>
+                                    )}
                                 </div>
                                 <div className="text-xs text-[#009e5c] font-medium">
                                     {getRoleDisplayName(user?.accountType)}

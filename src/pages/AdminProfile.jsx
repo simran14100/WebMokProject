@@ -1,6 +1,7 @@
-import React from 'react';
-import { useSelector } from 'react-redux';
+import React, { useEffect } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from "react-router-dom";
+import { fetchUserProfile } from '../services/operations/profileApi';
 
 const BG = '#fff';
 const CARD_BG = '#fff';
@@ -14,11 +15,34 @@ const labelStyle = { color: TEXT_GRAY, fontWeight: 500, fontSize: 15, marginBott
 const valueStyle = { color: TEXT_DARK, fontWeight: 600, fontSize: 16 };
 
 const AdminProfile = () => {
-  const { user } = useSelector((state) => state.profile);
+  const { user, loading } = useSelector((state) => state.profile);
+  const { token } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
   const navigate = useNavigate();
 
-  if (!user) {
-    return <div style={{ textAlign: 'center', color: GREEN, fontWeight: 600, fontSize: 20, marginTop: 40 }}>Loading profile...</div>;
+  // Fetch user profile when component mounts
+  useEffect(() => {
+    if (token && !user) {
+      dispatch(fetchUserProfile(token));
+    }
+  }, [token, user, dispatch]);
+
+  // Show loading spinner while fetching data
+  if (loading || !user) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        minHeight: '100vh',
+        background: BG 
+      }}>
+        <div style={{ textAlign: 'center', color: GREEN, fontWeight: 600, fontSize: 20 }}>
+          <div className="spinner" style={{ margin: '0 auto 20px' }}></div>
+          Loading profile...
+        </div>
+      </div>
+    );
   }
 
   // Avatar initials

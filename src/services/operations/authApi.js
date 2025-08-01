@@ -12,6 +12,7 @@ const {
   LOGIN_API,
   RESETPASSTOKEN_API,
   RESETPASSWORD_API,
+  REFRESH_TOKEN_API,
 } = auth
 
 export function sendOtp(email, navigate) {
@@ -257,5 +258,35 @@ export function updateDisplayPicture(token, formData) {
     }
     dispatch(setLoading(false));
     toast.dismiss(toastId);
+  };
+} 
+
+export function refreshToken(token) {
+  return async (dispatch) => {
+    try {
+      const response = await apiConnector("POST", REFRESH_TOKEN_API, null, {
+        Authorization: `Bearer ${token}`,
+      });
+      
+      console.log("REFRESH TOKEN API RESPONSE............", response);
+      
+      if (!response.data.success) {
+        throw new Error(response.data.message);
+      }
+      
+      // Update token in Redux store
+      dispatch(setToken(response.data.token));
+      
+      // Update user in profile slice if needed
+      if (response.data.user) {
+        dispatch(setUser(response.data.user));
+      }
+      
+      console.log("Token refreshed successfully");
+      return response.data;
+    } catch (error) {
+      console.log("REFRESH TOKEN API ERROR............", error);
+      throw error;
+    }
   };
 } 

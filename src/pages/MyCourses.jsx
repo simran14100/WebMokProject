@@ -3,9 +3,11 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { apiConnector } from '../services/apiConnector';
 import { course as courseApi } from '../services/apis';
+import { deleteCourse } from '../services/operations/courseDetailsAPI';
 import { VscEdit, VscTrash, VscEye, VscSearch, VscFilter } from 'react-icons/vsc';
 import { toast } from 'react-hot-toast';
 import { setCourse, setEditCourse } from '../store/slices/courseSlice';
+import ConfirmationModal from '../components/common/ConfirmationModal';
 
 const TAWKTO_GREEN = '#009e5c';
 
@@ -19,6 +21,7 @@ export default function MyCourses() {
   const [error, setError] = useState(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [confirmationModal, setConfirmationModal] = useState(null);
 
   // Debug: Log current state
   console.log('=== COMPONENT RENDER ===');
@@ -130,13 +133,29 @@ export default function MyCourses() {
   };
 
   const handleDeleteCourse = (courseId) => {
-    toast.success(`Delete course ${courseId}`);
-    // Implement delete functionality
+    setConfirmationModal({
+      text1: 'Delete Course',
+      text2: 'Are you sure you want to delete this course? This action cannot be undone.',
+      btn1Text: 'Delete',
+      btn2Text: 'Cancel',
+      btn1Handler: async () => {
+        setConfirmationModal(null);
+        try {
+          await deleteCourse({ courseId }, token);
+          setCourses((prev) => prev.filter((c) => c._id !== courseId));
+          toast.success('Course deleted successfully');
+        } catch (error) {
+          toast.error('Failed to delete course');
+        }
+      },
+      btn2Handler: () => setConfirmationModal(null),
+    });
   };
 
   const handleViewCourse = (courseId) => {
-    toast.success(`View course ${courseId}`);
-    // Navigate to course details page
+    // Navigate to course viewer with screenshot protection
+    navigate(`/course/${courseId}/view`);
+    toast.success('Opening course viewer with protection enabled');
   };
 
   return (
@@ -361,6 +380,13 @@ export default function MyCourses() {
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex space-x-3">
                           <button
+                            onClick={() => navigate(`/courses/${course._id}`)}
+                            className="text-green-600 hover:text-green-900 p-1 rounded"
+                            title="View Details"
+                          >
+                            <VscEye className="w-5 h-5" />
+                          </button>
+                          <button
                             onClick={() => handleEditCourse(course._id)}
                             className="text-blue-600 hover:text-blue-900 p-1 rounded"
                             title="Edit Course"
@@ -391,6 +417,7 @@ export default function MyCourses() {
         </div>
       )}
       </div>
+      <ConfirmationModal modalData={confirmationModal} />
     </div>
   );
 } 

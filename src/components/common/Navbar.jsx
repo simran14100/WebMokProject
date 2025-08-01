@@ -1,143 +1,366 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Link, matchPath } from 'react-router-dom';
-import { NavbarLinks } from "../../data/navbar-links";
-import { useLocation } from 'react-router-dom';
-import { useSelector } from 'react-redux';
-import ProfileDropDown from "../core/Auth/ProfileDropDown";
-import { AiOutlineShoppingCart, AiOutlineMenu } from "react-icons/ai";
-import { apiConnector } from '../../services/apiConnector';
-import { categories } from '../../services/apis';
-import { BsChevronDown } from "react-icons/bs";
-import { ACCOUNT_TYPE } from "../../utils/constants";
-import { debugLocalStorage } from "../../utils/localStorage";
-
-const LIGHT_GREEN = "#009e5c";
-const TEXT_DARK = "#222";
-const BORDER = "#e0e0e0";
+import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
+import { useSelector, useDispatch } from 'react-redux';
+import { logout } from '../../store/slices/authSlice';
+import { clearCart } from '../../store/slices/cartSlice';
+import { fetchCourseCategories } from '../../services/operations/courseDetailsAPI';
+import { motion, AnimatePresence } from 'framer-motion';
 
 const Navbar = () => {
-    const { token } = useSelector((state) => state.auth);
-    const { user } = useSelector((state) => state.profile);
-    const { totalItems } = useSelector((state) => state.cart)
-    const location = useLocation();
-    const [loading, setLoading] = useState(false)
-    const [subLinks, setSubLinks] = useState([]);
-    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-    const [isCatalogOpen, setIsCatalogOpen] = useState(false);
-    const categoryDropdownRef = useRef(null);
-    const needsEnrollmentPayment = user?.accountType === ACCOUNT_TYPE.STUDENT && !user?.enrollmentFeePaid;
+  const { user } = useSelector((state) => state.auth);
+  const { cart } = useSelector((state) => state.cart);
+  const dispatch = useDispatch();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [categories, setCategories] = useState([]);
+  const [isLoadingCategories, setIsLoadingCategories] = useState(false);
+  const [isSticky, setIsSticky] = useState(false);
+  const categoryDropdownRef = useRef(null);
 
-    // Close dropdown when clicking outside
-    useEffect(() => {
-        function handleClickOutside(event) {
-            if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target)) {
-                setIsCatalogOpen(false);
-            }
-        }
-        if (isCatalogOpen) {
-            document.addEventListener('mousedown', handleClickOutside);
-        } else {
-            document.removeEventListener('mousedown', handleClickOutside);
-        }
-        return () => {
-            document.removeEventListener('mousedown', handleClickOutside);
-        };
-    }, [isCatalogOpen]);
+  // Fetch categories on component mount
+  useEffect(() => {
+    const getCategories = async () => {
+      setIsLoadingCategories(true);
+      try {
+        console.log("Fetching categories...");
+        const categoriesData = await fetchCourseCategories();
+        console.log("Categories fetched:", categoriesData);
+        setCategories(categoriesData);
+      } catch (error) {
+        console.error("Error fetching categories:", error);
+      } finally {
+        setIsLoadingCategories(false);
+      }
+    };
 
-    const fetchSublinks = async () => {
-        try {
-            setLoading(true);
-            const result = await apiConnector("GET", categories.CATEGORIES_API);
-            if (result && Array.isArray(result.data?.data)) {
-                setSubLinks(result.data.data);
-            } else {
-                setSubLinks([]);
-            }
-        } catch (error) {
-            setSubLinks([]);
-        } finally {
-            setLoading(false);
-        }
+    getCategories();
+  }, []);
+
+  // Handle scroll for sticky header
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsSticky(window.scrollY >= 110);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  // Handle click outside dropdown
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (categoryDropdownRef.current && !categoryDropdownRef.current.contains(event.target)) {
+        setIsCategoryDropdownOpen(false);
+      }
+    };
+
+    if (isCategoryDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
     }
 
-    useEffect(() => {
-        fetchSublinks();
-    }, [])
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isCategoryDropdownOpen]);
 
-    const matchRoute = (route) => {
-        return matchPath({ path: route }, location.pathname);
-    }
+  const handleLogout = () => {
+    dispatch(logout());
+    dispatch(clearCart());
+  };
 
-    return (
-        <div style={{ background: '#fff', borderBottom: `1px solid ${BORDER}`, padding: '1em 0', position: 'sticky', top: 0, zIndex: 50 }}>
-            <nav style={{ maxWidth: 1200, margin: '0 auto', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <div style={{ fontWeight: 700, color: LIGHT_GREEN, fontSize: 24 }}>WebMok</div>
-                <ul className="flex gap-6 items-center m-0 p-0 list-none">
-                    {NavbarLinks.map((link, i) => (
-                        <li key={i}>
-                            <Link to={link.path} className={`${matchRoute(link.path) ? 'text-green-600' : 'text-gray-900'} font-medium text-base no-underline px-2 py-1 rounded transition-colors duration-200`}>{link.title}</Link>
-                        </li>
-                    ))}
-                    {/* Category Dropdown */}
-                    <li
-                        className="relative"
-                        ref={categoryDropdownRef}
-                        // Removed onMouseEnter and onMouseLeave for click-only behavior
-                    >
-                        <button
-                            className={`flex items-center font-medium text-base px-2 py-1 rounded transition-colors duration-200 focus:outline-none border border-transparent hover:border-green-500 hover:bg-green-50 ${isCatalogOpen ? 'text-green-700 bg-green-100 border-green-500' : 'text-gray-900'}`}
-                            type="button"
-                            onClick={() => setIsCatalogOpen((open) => !open)}
-                        >
-                            Category <BsChevronDown className={`ml-1 transition-transform duration-200 ${isCatalogOpen ? 'rotate-180' : ''}`} />
-                        </button>
-                        {isCatalogOpen && (
-                            <ul className="absolute left-0 top-full bg-white border border-gray-200 shadow-xl rounded-lg min-w-[200px] z-50 py-2 mt-2 animate-fade-in">
-                                {loading && <li className="px-4 py-2 text-gray-500">Loading...</li>}
-                                {!loading && subLinks.length === 0 && <li className="px-4 py-2 text-gray-500">No categories</li>}
-                                {!loading && subLinks.map((cat) => (
-                                    <li key={cat._id}>
-                                        <Link
-                                            to={`/catalog/${encodeURIComponent(cat.name)}`}
-                                            className="block px-4 py-2 text-gray-900 hover:bg-green-100 hover:text-green-700 transition-colors duration-150 no-underline border-b border-gray-100 last:border-b-0"
-                                            onClick={() => setIsCatalogOpen(false)}
-                                        >
-                                            {cat.name}
-                                        </Link>
-                                    </li>
-                                ))}
-                            </ul>
-                        )}
-                    </li>
+  return (
+    <>
+      {/* Top Bar - Exact EdCare Template */}
+      <div className="top-bar">
+        <div className="container">
+          <div className="top-bar-inner">
+            <div className="top-bar-left">
+              <ul className="top-bar-list">
+                <li><i className="fa-regular fa-phone"></i><a href="tel:256214203215">256 214 203 215</a></li>
+                <li><i className="fa-regular fa-location-dot"></i><span>258 Helano Street, New York</span></li>
+                <li><i className="fa-regular fa-clock"></i><span>Mon - Sat: 8:00 - 15:00</span></li>
+              </ul>
+            </div>
+            <div className="top-bar-right">
+              <div className="register-box">
+                <div className="icon"><i className="fa-regular fa-user"></i></div>
+                {user ? (
+                  <Link to="/dashboard">Dashboard</Link>
+                ) : (
+                  <Link to="/login">Login / Register</Link>
+                )}
+              </div>
+              <div className="top-social-wrap">
+                <span>Follow Us</span>
+                <ul className="social-list">
+                  <li><a href="#"><i className="fab fa-facebook-f"></i></a></li>
+                  <li><a href="#"><i className="fab fa-instagram"></i></a></li>
+                  <li><a href="#"><i className="fab fa-behance"></i></a></li>
+                  <li><a href="#"><i className="fab fa-skype"></i></a></li>
+                  <li><a href="#"><i className="fab fa-youtube"></i></a></li>
                 </ul>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-                    {needsEnrollmentPayment && (
-                        <Link to="/enrollment-payment" style={{
-                            display: 'flex', alignItems: 'center', background: LIGHT_GREEN, color: '#fff', borderRadius: 6, padding: '0.5em 1em', fontWeight: 600, textDecoration: 'none', boxShadow: '0 2px 8px rgba(0,158,92,0.08)', marginRight: 16
-                        }}>
-                            <span role="img" aria-label="money">💰</span>
-                            <span style={{ marginLeft: 8 }}>Pay Enrollment Fee (₹1000)</span>
-                        </Link>
-                    )}
-                    {user && user?.accountType !== ACCOUNT_TYPE.INSTRUCTOR && (
-                        <Link to="/dashboard/cart" style={{ position: 'relative', display: 'flex', alignItems: 'center', color: TEXT_DARK, textDecoration: 'none' }}>
-                            <AiOutlineShoppingCart style={{ fontSize: 24 }} />
-                            {totalItems > 0 && (
-                                <span style={{ position: 'absolute', top: -8, right: -8, background: LIGHT_GREEN, color: '#fff', borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700 }}>{totalItems}</span>
-                            )}
-                        </Link>
-                    )}
-                    {token === null && (
-                        <Link to="/login" style={{ background: LIGHT_GREEN, color: '#fff', borderRadius: 6, padding: '0.5em 1em', fontWeight: 600, textDecoration: 'none', marginRight: 8 }}>Log in</Link>
-                    )}
-                    {token === null && (
-                        <Link to="/signup" style={{ background: '#e6fcf5', color: LIGHT_GREEN, borderRadius: 6, padding: '0.5em 1em', fontWeight: 600, textDecoration: 'none', border: `1px solid ${LIGHT_GREEN}` }}>Sign up</Link>
-                    )}
-                    {token !== null && <ProfileDropDown />}
-                </div>
-            </nav>
+              </div>
+            </div>
+          </div>
         </div>
-    );
+      </div>
+
+      {/* Primary Header - Exact EdCare Template */}
+      <header className={`header header-2 ${isSticky ? 'sticky-active' : ''}`}>
+        <div className="primary-header">
+          <div className="container">
+            <div className="primary-header-inner">
+              <div className="header-logo d-lg-block">
+                <Link to="/">
+                  <img src="/assets/img/logo/logo-1.png" alt="Logo" />
+                </Link>
+              </div>
+              <div className="header-right-wrap">
+                <div className="header-menu-wrap">
+                  <div className="mobile-menu-items">
+                    <ul className="sub-menu">
+                      <li className="nav-item active">
+                        <Link to="/">Home</Link>
+                      </li>
+                                                                                                                 <li className="category-dropdown" ref={categoryDropdownRef} style={{position: 'relative'}}>
+                          <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                            <a href="javascript:void(0)" onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
+                                                               style={{
+                                  color: '#333',
+                                  textDecoration: 'none',
+                                  transition: 'all 0.3s ease',
+                                  padding: '10px 0',
+                                  display: 'block',
+                                  marginRight: '2px'
+                                }}
+                               onMouseEnter={(e) => {
+                                 e.target.style.color = '#07A698';
+                               }}
+                               onMouseLeave={(e) => {
+                                 e.target.style.color = '#333';
+                               }}>
+                              Category
+                            </a>
+                            <button 
+                              className={`chevron-icon ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} 
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                fontSize: '12px',
+                                color: '#333',
+                                cursor: 'pointer',
+                                padding: '0',
+                                margin: '0',
+                                display: 'inline-block',
+                                transition: 'transform 0.3s ease'
+                              }}
+                              onClick={() => {
+                                console.log('Chevron clicked! Current state:', isCategoryDropdownOpen);
+                                setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
+                              }}
+                            >
+                              ▼
+                            </button>
+                          </div>
+                          
+                                                     {isCategoryDropdownOpen && (
+                             <div style={{
+                               position: 'absolute',
+                               top: '100%',
+                               left: '0',
+                               background: '#fff',
+                               border: '1px solid #e0e0e0',
+                               borderRadius: '8px',
+                               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                               minWidth: '220px',
+                               zIndex: 9999,
+                               marginTop: '10px',
+                             
+                               padding: '8px 0',
+                               listStyle: 'none'
+                             }}>
+                               {isLoadingCategories ? (
+                                 <div style={{
+                                   padding: '12px 20px',
+                                   color: '#666',
+                                   fontSize: '14px',
+                                   fontStyle: 'italic'
+                                 }}>
+                                   Loading categories...
+                                 </div>
+                               ) : categories.length > 0 ? (
+                                 categories.map((category) => (
+                                   <div key={category._id} style={{
+                                     borderBottom: '1px solid #f5f5f5',
+                                     transition: 'all 0.3s ease'
+                                   }}>
+                                     <Link 
+                                       to={`/catalog/${category._id}`}
+                                       onClick={() => setIsCategoryDropdownOpen(false)}
+                                       style={{
+                                         color: '#333',
+                                         textDecoration: 'none',
+                                         display: 'block',
+                                         padding: '12px 20px',
+                                         fontSize: '14px',
+                                         fontWeight: '500',
+                                         marginLeft:'10px',
+                                         transition: 'all 0.3s ease',
+                                         ':hover': {
+                                           backgroundColor: '#f8f9fa',
+                                           color: '#007bff'
+                                         }
+                                       }}
+                                                                               onMouseEnter={(e) => {
+                                          e.target.style.backgroundColor = '#f8f9fa';
+                                          e.target.style.color = '#07A698';
+                                        }}
+                                        onMouseLeave={(e) => {
+                                          e.target.style.backgroundColor = 'transparent';
+                                          e.target.style.color = '#333';
+                                        }}
+                                     >
+                                       {category.name}
+                                     </Link>
+                                   </div>
+                                 ))
+                               ) : (
+                                 <div style={{
+                                   padding: '12px 20px',
+                                   color: '#666',
+                                   fontSize: '14px',
+                                   fontStyle: 'italic'
+                                 }}>
+                                   No categories available
+                                 </div>
+                               )}
+                             </div>
+                           )}
+                        </li>
+                      
+                     
+                      <li><Link to="/about">About</Link></li>
+                      <li><Link to="/contact">Contact</Link></li>
+                      {user && (
+                        <li className="dashboard-dropdown">
+                          <a href="#">Dashboard</a>
+                          <ul className="dashboard-menu">
+                            {user.accountType === 'Student' && (
+                              <>
+                                <li><Link to="/dashboard/my-courses">My Courses</Link></li>
+                                <li><Link to="/enrollment-payment">Enrollment Payment</Link></li>
+                              </>
+                            )}
+                            {user.accountType === 'Instructor' && (
+                              <>
+                                <li><Link to="/instructor/dashboard">Instructor Dashboard</Link></li>
+                                <li><Link to="/instructor/my-courses">My Courses</Link></li>
+                                <li><Link to="/instructor/add-course">Create Course</Link></li>
+                              </>
+                            )}
+                            {(user.accountType === 'Admin' || user.accountType === 'Super Admin' || user.accountType === 'Staff') && (
+                              <>
+                                <li><Link to="/admin/dashboard">Admin Dashboard</Link></li>
+                                <li><Link to="/admin/users">Manage Users</Link></li>
+                                <li><Link to="/admin/categories">Manage Categories</Link></li>
+                              </>
+                            )}
+                          </ul>
+                        </li>
+                      )}
+                    </ul>
+                  </div>
+                </div>
+                {/* /.header-menu-wrap */}
+                <div className="header-right">
+                  {user && (
+                    <div className="header-right-icon shop-btn">
+                      <Link to="/cart">
+                        <i className="fa-regular fa-cart-shopping"></i>
+                      </Link>
+                      <span className="number">{cart?.length || 0}</span>
+                    </div>
+                  )}
+                  <Link to="/contact" className="ed-primary-btn header-btn">
+                    Get a quote <i className="fa-sharp fa-regular fa-arrow-right"></i>
+                  </Link>
+                  <div className="header-logo d-none d-lg-none">
+                    <Link to="/">
+                      <img src="/assets/img/logo/logo-1.png" alt="Logo" />
+                    </Link>
+                  </div>
+                  <div className="header-right-item d-lg-none d-md-block">
+                    <a href="javascript:void(0)" className="mobile-side-menu-toggle" onClick={() => setIsMobileMenuOpen(true)}>
+                      <i className="fa-sharp fa-solid fa-bars"></i>
+                    </a>
+                  </div>
+                </div>
+                {/* /.header-right */}
+              </div>
+            </div>
+            {/* /.primary-header-inner */}
+          </div>
+        </div>
+      </header>
+      {/* /.Main Header */}
+
+      {/* Search Popup Box - Exact EdCare Template */}
+      <div id="popup-search-box" className={isSearchOpen ? 'show' : ''}>
+        <div className="box-inner-wrap d-flex align-items-center">
+          <form id="form" action="#" method="get" role="search">
+            <input id="popup-search" type="text" name="s" placeholder="Type keywords here..." />
+          </form>
+          <div className="search-close" onClick={() => setIsSearchOpen(false)}>
+            <i className="fa-sharp fa-regular fa-xmark"></i>
+          </div>
+        </div>
+      </div>
+      {/* /#popup-search-box */}
+
+      {/* Mobile Side Menu - Exact EdCare Template */}
+      <div className={`mobile-side-menu ${isMobileMenuOpen ? 'show' : ''}`}>
+        <div className="side-menu-content">
+          <div className="side-menu-head">
+            <Link to="/">
+              <img src="/assets/img/logo/logo-1.png" alt="logo" />
+            </Link>
+            <button className="mobile-side-menu-close" onClick={() => setIsMobileMenuOpen(false)}>
+              <i className="fa-regular fa-xmark"></i>
+            </button>
+          </div>
+          <div className="side-menu-wrap">
+            <ul className="side-menu-list">
+              <li><Link to="/" onClick={() => setIsMobileMenuOpen(false)}>Home</Link></li>
+              <li><Link to="/catalog/all" onClick={() => setIsMobileMenuOpen(false)}>Courses</Link></li>
+              <li><Link to="/shop" onClick={() => setIsMobileMenuOpen(false)}>Shop</Link></li>
+              <li><Link to="/about" onClick={() => setIsMobileMenuOpen(false)}>About</Link></li>
+              <li><Link to="/blog" onClick={() => setIsMobileMenuOpen(false)}>Blog</Link></li>
+              <li><Link to="/contact" onClick={() => setIsMobileMenuOpen(false)}>Contact</Link></li>
+              {user ? (
+                <>
+                  <li><Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link></li>
+                  <li><button onClick={() => { handleLogout(); setIsMobileMenuOpen(false); }}>Logout</button></li>
+                </>
+              ) : (
+                <>
+                  <li><Link to="/login" onClick={() => setIsMobileMenuOpen(false)}>Login</Link></li>
+                  <li><Link to="/signup" onClick={() => setIsMobileMenuOpen(false)}>Signup</Link></li>
+                </>
+              )}
+            </ul>
+          </div>
+          <ul className="side-menu-list">
+            <li><i className="fa-light fa-location-dot"></i>Address : <span>Amsterdam, 109-74</span></li>
+            <li><i className="fa-light fa-phone"></i>Phone : <a href="tel:+01569896654">+01 569 896 654</a></li>
+            <li><i className="fa-light fa-envelope"></i>Email : <a href="mailto:info@example.com">info@example.com</a></li>
+          </ul>
+        </div>
+      </div>
+      <div className={`mobile-side-menu-overlay ${isMobileMenuOpen ? 'show' : ''}`} onClick={() => setIsMobileMenuOpen(false)}></div>
+      {/* /.mobile-side-menu */}
+    </>
+  );
 };
 
 export default Navbar;

@@ -4,7 +4,7 @@ import { Outlet } from 'react-router-dom';
 
 const Dashboard = () => {
   return (
-    <div className="min-h-screen bg-white" style={{ marginLeft: 220 }}>
+    <div className="bg-white" style={{ marginLeft: 220 }}>
       <Sidebar />
       <div className="flex-1">
         <Outlet />
