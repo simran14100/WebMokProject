@@ -25,6 +25,8 @@ import Settings from "./components/common/setting/Settings";
 import AdminLayout from './components/common/AdminLayout';
 import EnrolledStudents from './pages/EnrolledStudents';
 import RegisteredStudents from './pages/RegisteredStudents';
+import ManageUsers from './pages/ManageUsers';
+import Categories from './pages/Categories';
 import InstructorLayout from './components/common/InstructorLayout';
 import Cart from './pages/Cart';
 import ActiveCourses from './pages/ActiveCourses';
@@ -70,12 +72,15 @@ function App() {
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route path="dashboard" element={<AdminDashboard />} />
                   <Route path="my-profile" element={<AdminProfile />} />
-                  <Route path="admission-confirmation" element={<AdmissionConfirmation />} />
                   <Route path="registered-students" element={<RegisteredStudents />} />
-                  <Route path="enrolled-students" element={<EnrolledStudents />} />
                   <Route path="installments" element={<PaymentInstallments />} />
                   {/* Add more admin routes here */}
                 </Route>
+                {/* Standalone admin routes without AdminLayout */}
+                <Route path="/admin/admission-confirmation" element={<AdmissionConfirmation />} />
+                <Route path="/admin/enrolled-students" element={<EnrolledStudents />} />
+                <Route path="/admin/users" element={<ManageUsers />} />
+                <Route path="/admin/categories" element={<Categories />} />
                 <Route path="/installments" element={<PaymentInstallments />} />
                 <Route path="/instructor" element={<InstructorLayout />}>
                   <Route path="dashboard" element={<InstructorDashboard />} />

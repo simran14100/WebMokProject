@@ -73,8 +73,8 @@ export default function Sidebar() {
        <div style={{
          position: 'fixed',
          left: 0,
-         top: 80,
-         height: 'calc(100vh - 80px)',
+         top: 120,
+         height: 'calc(100vh - 120px)',
          width: 220,
          display: "grid",
          alignItems: "center",
@@ -92,8 +92,8 @@ export default function Sidebar() {
              <div style={{
          position: 'fixed',
          left: 0,
-         top: 80, // navbar height in px - increased to prevent overlap
-         height: 'calc(100vh - 80px)',
+         top: 120, // navbar height in px - increased to prevent overlap
+         height: 'calc(100vh - 120px)',
          width: 220,
          display: 'flex',
          flexDirection: 'column',

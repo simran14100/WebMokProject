@@ -6,7 +6,7 @@ export default function AdminLayout() {
   return (
     <div className="bg-white flex">
       <Sidebar />
-      <div className="flex-1 ml-[220px] p-8">
+      <div className="flex-1 ml-[220px] pt-[120px] p-8">
         <Outlet />
       </div>
     </div>
