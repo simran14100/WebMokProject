@@ -5,6 +5,7 @@ import { toast } from 'react-hot-toast';
 import { apiConnector } from '../services/apiConnector';
 import { profile } from '../services/apis';
 import { VscPlay, VscBook, VscCalendar, VscPerson } from 'react-icons/vsc';
+import DashboardLayout from '../components/common/DashboardLayout';
 
 const { GET_ENROLLED_COURSES_API } = profile;
 
@@ -61,57 +62,85 @@ export default function ActiveCourses() {
 
   if (!token) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <VscBook className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Active Courses</h1>
-          <p className="text-lg text-gray-600 mb-6">Please login to view your enrolled courses.</p>
-          <button
-            onClick={() => navigate('/login')}
-            className="bg-[#009e5c] hover:bg-[#008a4f] text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
-          >
-            Login
-          </button>
+      <DashboardLayout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 80px)' }}>
+          <div style={{ textAlign: 'center' }}>
+            <VscBook style={{ width: '64px', height: '64px', color: '#666', margin: '0 auto 1rem' }} />
+            <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#191A1F', marginBottom: '1rem' }}>Active Courses</h1>
+            <p style={{ fontSize: '1.125rem', color: '#666', marginBottom: '1.5rem' }}>Please login to view your enrolled courses.</p>
+            <button
+              onClick={() => navigate('/login')}
+              style={{
+                background: '#07A698',
+                color: 'white',
+                fontWeight: '600',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background 0.2s'
+              }}
+              onMouseOver={(e) => e.target.style.background = '#059a8c'}
+              onMouseOut={(e) => e.target.style.background = '#07A698'}
+            >
+              Login
+            </button>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#009e5c] mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your courses...</p>
+      <DashboardLayout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 80px)' }}>
+          <div style={{ textAlign: 'center' }}>
+            <div className="spinner" style={{ margin: '0 auto 1rem' }}></div>
+            <p style={{ color: '#666' }}>Loading your courses...</p>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   if (enrolledCourses.length === 0) {
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <VscBook className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-          <h1 className="text-3xl font-bold text-gray-900 mb-4">Active Courses</h1>
-          <p className="text-lg text-gray-600 mb-6">You have no active courses at the moment.</p>
-          <button
-            onClick={() => navigate('/catalog/all')}
-            className="bg-[#009e5c] hover:bg-[#008a4f] text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
-          >
-            Browse Courses
-          </button>
+      <DashboardLayout>
+        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 'calc(100vh - 80px)' }}>
+          <div style={{ textAlign: 'center' }}>
+            <VscBook style={{ width: '64px', height: '64px', color: '#666', margin: '0 auto 1rem' }} />
+            <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#191A1F', marginBottom: '1rem' }}>Active Courses</h1>
+            <p style={{ fontSize: '1.125rem', color: '#666', marginBottom: '1.5rem' }}>You have no active courses at the moment.</p>
+            <button
+              onClick={() => navigate('/catalog/all')}
+              style={{
+                background: '#07A698',
+                color: 'white',
+                fontWeight: '600',
+                padding: '12px 24px',
+                borderRadius: '8px',
+                border: 'none',
+                cursor: 'pointer',
+                transition: 'background 0.2s'
+              }}
+              onMouseOver={(e) => e.target.style.background = '#059a8c'}
+              onMouseOut={(e) => e.target.style.background = '#07A698'}
+            >
+              Browse Courses
+            </button>
+          </div>
         </div>
-      </div>
+      </DashboardLayout>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Active Courses</h1>
-          <p className="text-gray-600">Continue learning from where you left off</p>
+    <DashboardLayout>
+      <div style={{ maxWidth: '1200px', margin: '0 auto', padding: '2rem' }}>
+        <div style={{ marginBottom: '2rem' }}>
+          <h1 style={{ fontSize: '2rem', fontWeight: 'bold', color: '#191A1F', marginBottom: '0.5rem' }}>Active Courses</h1>
+          <p style={{ color: '#666' }}>Continue learning from where you left off</p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -162,14 +191,24 @@ export default function ActiveCourses() {
                   </div>
                   <div className="w-full bg-gray-200 rounded-full h-2">
                     <div
-                      className="bg-[#009e5c] h-2 rounded-full transition-all duration-300"
-                      style={{ width: `${course.progressPercentage || 0}%` }}
+                      className="h-2 rounded-full transition-all duration-300"
+                      style={{ 
+                        width: `${course.progressPercentage || 0}%`,
+                        backgroundColor: '#07A698'
+                      }}
                     ></div>
                   </div>
                 </div>
 
                 {/* Continue Button */}
-                <button className="w-full bg-[#009e5c] hover:bg-[#008a4f] text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center">
+                <button 
+                  className="w-full text-white font-semibold py-2 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center"
+                  style={{
+                    backgroundColor: '#07A698'
+                  }}
+                  onMouseOver={(e) => e.target.style.backgroundColor = '#059a8c'}
+                  onMouseOut={(e) => e.target.style.backgroundColor = '#07A698'}
+                >
                   <VscPlay className="w-4 h-4 mr-2" />
                   Continue Learning
                 </button>
@@ -178,6 +217,6 @@ export default function ActiveCourses() {
           ))}
         </div>
       </div>
-    </div>
+    </DashboardLayout>
   );
 } 

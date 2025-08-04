@@ -809,6 +809,12 @@ p {
   padding: 0 15px;
 }
 
+.col-lg-5 {
+  flex: 0 0 41.666667%;
+  max-width: 41.666667%;
+  padding: 0 15px;
+}
+
 .col-lg-12 {
   flex: 0 0 100%;
   max-width: 100%;
@@ -836,6 +842,11 @@ p {
 
 @media (max-width: 992px) {
   .col-lg-7 {
+    flex: 0 0 100%;
+    max-width: 100%;
+  }
+  
+  .col-lg-5 {
     flex: 0 0 100%;
     max-width: 100%;
   }

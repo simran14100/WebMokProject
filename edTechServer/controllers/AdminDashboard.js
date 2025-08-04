@@ -100,6 +100,31 @@ exports.getEnrolledStudents = async (req, res) => {
     }
 };
 
+// Get all approved instructors
+exports.getAllInstructors = async (req, res) => {
+    try {
+        const instructors = await User.find({
+            accountType: 'Instructor',
+            approved: true
+        })
+        .populate('additionalDetails')
+        .select('-password -token -resetPasswordExpires')
+        .sort({ createdAt: -1 });
+
+        res.status(200).json({
+            success: true,
+            data: instructors
+        });
+    } catch (error) {
+        console.error('Error fetching all instructors:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch instructors',
+            error: error.message
+        });
+    }
+};
+
 // Get pending instructor approvals
 exports.getPendingInstructors = async (req, res) => {
     try {

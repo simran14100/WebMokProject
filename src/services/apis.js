@@ -65,6 +65,7 @@ export const admin = {
     GET_ENROLLED_STUDENTS_API: "/api/v1/admin/enrolled-students",
     GET_PENDING_INSTRUCTORS_API: "/api/v1/admin/pending-instructors",
     APPROVE_INSTRUCTOR_API: "/api/v1/admin/approve-instructor",
+    GET_ALL_INSTRUCTORS_API: "/api/v1/admin/all-instructors",
     GET_DASHBOARD_STATS_API: "/api/v1/admin/dashboard-stats",
     UPDATE_USER_STATUS_API: "/api/v1/admin/update-user-status",
 };

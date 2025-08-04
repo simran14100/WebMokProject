@@ -5,6 +5,7 @@ const router = express.Router();
 const {
     getRegisteredUsers,
     getEnrolledStudents,
+    getAllInstructors,
     getPendingInstructors,
     approveInstructor,
     getDashboardStats,
@@ -23,6 +24,9 @@ router.get("/registered-users", auth, isAdminLevel, getRegisteredUsers);
 
 // Get enrolled students (students who have paid enrollment fee)
 router.get("/enrolled-students", auth, isAdminLevel, getEnrolledStudents);
+
+// Get all approved instructors (public route)
+router.get("/all-instructors", getAllInstructors);
 
 // Get pending instructor approvals
 router.get("/pending-instructors", auth, isAdminLevel, getPendingInstructors);

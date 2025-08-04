@@ -7,6 +7,7 @@ const {
   GET_ENROLLED_STUDENTS_API,
   GET_PENDING_INSTRUCTORS_API,
   APPROVE_INSTRUCTOR_API,
+  GET_ALL_INSTRUCTORS_API,
   GET_DASHBOARD_STATS_API,
   UPDATE_USER_STATUS_API,
 } = admin
@@ -85,6 +86,30 @@ export async function getPendingInstructors(token) {
   } catch (error) {
     console.log("GET PENDING INSTRUCTORS ERROR............", error)
     toast.error("Failed to fetch pending instructors")
+    throw error
+  }
+}
+
+// Get all approved instructors
+export async function getAllInstructors() {
+  try {
+    const response = await apiConnector(
+      "GET",
+      GET_ALL_INSTRUCTORS_API,
+      {},
+      {}
+    )
+
+    console.log("GET ALL INSTRUCTORS RESPONSE............", response)
+
+    if (!response.data.success) {
+      throw new Error(response.data.message)
+    }
+
+    return response.data.data
+  } catch (error) {
+    console.log("GET ALL INSTRUCTORS ERROR............", error)
+    toast.error("Failed to fetch instructors")
     throw error
   }
 }

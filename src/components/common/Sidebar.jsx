@@ -6,57 +6,54 @@ import { logout } from "../../services/operations/authApi";
 import ConfirmationModal from "./ConfirmationModal";
 import Logo from "../../assets/img/logo/logo-1.png";
 
-const TAWKTO_GREEN = "#009e5c"; // dark green for sidebar
+const ED_TEAL = "#07A698"; // EdCare teal for sidebar
+const ED_TEAL_DARK = "#059a8c";
 const BORDER = "#e0e0e0";
-const TEXT_DARK = "#222";
+const TEXT_DARK = "#191A1F";
 
 const adminSidebarLinks = [
-  { name: "My Profile", path: "/admin/my-profile", icon: <VscAccount style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-  { name: "Dashboard", path: "/admin/dashboard", icon: <VscDashboard style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-  { name: "Admission Confirm", path: "/admin/admission-confirmation", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-  { name: "Registered Students", path: "/admin/registered-students", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-  { name: "Enrolled Students", path: "/admin/enrolled-students", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-  { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-  { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+  { name: "Dashboard", path: "/admin/dashboard", icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
+  { name: "Admission Confirm", path: "/admin/admission-confirmation", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
+  { name: "Enrolled Students", path: "/admin/enrolled-students", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
+  { name: "Manage Users", path: "/admin/users", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+  { name: "Manage Categories", path: "/admin/categories", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
 ];
 
 const studentSidebarLinks = [
-  { name: "My Profile", path: "/dashboard/my-profile", icon: <VscAccount style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-  { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-  { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-  { name: "Active Courses", path: "/dashboard/active-courses", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+  { name: "My Profile", path: "/dashboard/my-profile", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+  { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
+  { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
+  { name: "Active Courses", path: "/dashboard/active-courses", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
 ];
 
 const instructorSidebarLinks = [
-  { name: "My Profile", path: "/dashboard/my-profile", icon: <VscAccount style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-  { name: "Dashboard", path: "/instructor/dashboard", icon: <VscDashboard style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-  { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-  { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+  { name: "My Profile", path: "/dashboard/my-profile", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+  { name: "Dashboard", path: "/instructor/dashboard", icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
+  { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
+  { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
 ];
 
 const getSidebarLinks = (user) => {
   if (user?.accountType === "Instructor") return [
-    { name: "My Profile", path: "/dashboard/my-profile", icon: <VscAccount style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-    { name: "Enrolled Students", path: "/dashboard/enrolled-students", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-    { name: "My Courses", path: "/instructor/my-courses", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-    { name: "Add a Course", path: "/instructor/add-course", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-    { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-    { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+    { name: "My Profile", path: "/dashboard/my-profile", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+    { name: "Enrolled Students", path: "/dashboard/enrolled-students", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
+    { name: "My Courses", path: "/instructor/my-courses", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
+    { name: "Add a Course", path: "/instructor/add-course", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
+    { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
+    { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
   ];
   if (user?.accountType === "Admin" || user?.accountType === "SuperAdmin") return [
-    { name: "My Profile", path: "/admin/my-profile", icon: <VscAccount style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-    { name: "Dashboard", path: "/admin/dashboard", icon: <VscDashboard style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-    { name: "Registered Students", path: "/admin/registered-students", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-    { name: "Admission Confirm", path: "/admin/admission-confirmation", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-    { name: "Enrolled Students", path: "/admin/enrolled-students", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-    { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-    { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+    { name: "Dashboard", path: "/admin/dashboard", icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
+    { name: "Admission Confirm", path: "/admin/admission-confirmation", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
+    { name: "Enrolled Students", path: "/admin/enrolled-students", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
+    { name: "Manage Users", path: "/admin/users", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+    { name: "Manage Categories", path: "/admin/categories", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
   ];
   return [
-    { name: "My Profile", path: "/dashboard/my-profile", icon: <VscAccount style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-    { name: "Active Courses", path: "/dashboard/active-courses", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-    { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
-    { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: TAWKTO_GREEN }} /> },
+    { name: "My Profile", path: "/dashboard/my-profile", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+    { name: "Active Courses", path: "/dashboard/active-courses", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
+    { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
+    { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
   ];
 };
 
@@ -71,37 +68,42 @@ export default function Sidebar() {
   console.log('Sidebar user:', user);
   console.log('Sidebar user.accountType:', user?.accountType);
 
-  if (profileLoading || authLoading) {
-    return (
-      <div style={{
-        height: "calc(100vh - 3.5rem)",
-        minWidth: 220,
-        display: "grid",
-        alignItems: "center",
-        borderRight: `1px solid ${BORDER}`,
-        background: "#fff"
-      }}>
-        <div className="spinner"></div>
-      </div>
-    );
-  }
+     if (profileLoading || authLoading) {
+     return (
+       <div style={{
+         position: 'fixed',
+         left: 0,
+         top: 80,
+         height: 'calc(100vh - 80px)',
+         width: 220,
+         display: "grid",
+         alignItems: "center",
+         borderRight: `1px solid ${BORDER}`,
+         background: "#fff",
+         zIndex: 100
+       }}>
+         <div className="spinner"></div>
+       </div>
+     );
+   }
 
   return (
     <>
-      <div style={{
-        position: 'fixed',
-        left: 0,
-        top: 56, // navbar height in px
-        height: 'calc(100vh - 56px)',
-        width: 220,
-        display: 'flex',
-        flexDirection: 'column',
-        borderRight: `1px solid ${BORDER}`,
-        background: '#fff',
-        padding: '2.5rem 0',
-        zIndex: 20,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-      }}>
+             <div style={{
+         position: 'fixed',
+         left: 0,
+         top: 80, // navbar height in px - increased to prevent overlap
+         height: 'calc(100vh - 80px)',
+         width: 220,
+         display: 'flex',
+         flexDirection: 'column',
+         borderRight: `1px solid ${BORDER}`,
+         background: '#fff',
+         padding: '2rem 0',
+         zIndex: 100,
+         boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
+         overflowY: 'auto', // Allow sidebar to scroll if needed
+       }}>
         {/* No brand/company name at the top */}
         <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 14 }}>
           {getSidebarLinks(user).map((link) => (
@@ -123,8 +125,14 @@ export default function Sidebar() {
                 transition: "background 0.2s, color 0.2s",
                 textAlign: "left",
               }}
-              onMouseOver={e => e.currentTarget.style.background = "#f9fefb"}
-              onMouseOut={e => e.currentTarget.style.background = "none"}
+              onMouseOver={e => {
+                e.currentTarget.style.background = "#f0f9f8";
+                e.currentTarget.style.color = ED_TEAL;
+              }}
+              onMouseOut={e => {
+                e.currentTarget.style.background = "none";
+                e.currentTarget.style.color = TEXT_DARK;
+              }}
             >
               {link.icon}
               <span>{link.name}</span>
@@ -157,7 +165,7 @@ export default function Sidebar() {
               gap: 8,
             }}
           >
-            <VscSignOut style={{ fontSize: 20, color: TAWKTO_GREEN }} />
+            <VscSignOut style={{ fontSize: 20, color: ED_TEAL }} />
             <span>Logout</span>
           </button>
         </div>

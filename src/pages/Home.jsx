@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { getAllCourses, fetchCourseCategories } from '../services/operations/courseDetailsAPI';
+import { getAllInstructors } from '../services/operations/adminApi';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
 
@@ -8,9 +9,11 @@ const Home = () => {
   const [trendingCourses, setTrendingCourses] = useState([]);
   const [topClassCourses, setTopClassCourses] = useState([]);
   const [categories, setCategories] = useState([]);
+  const [instructors, setInstructors] = useState([]);
   const [isLoadingTrending, setIsLoadingTrending] = useState(true);
   const [isLoadingTopClass, setIsLoadingTopClass] = useState(true);
   const [isLoadingCategories, setIsLoadingCategories] = useState(true);
+  const [isLoadingInstructors, setIsLoadingInstructors] = useState(true);
   const [ref, inView] = useInView({
     triggerOnce: true,
     threshold: 0.1
@@ -42,7 +45,7 @@ const Home = () => {
                 : 0;
               return ratingB - ratingA;
             })
-            .slice(0, 6);
+            .slice(0, 3);
           setTopClassCourses(topClassData);
         } else {
           setTrendingCourses([]);
@@ -78,6 +81,25 @@ const Home = () => {
     };
 
     fetchCategories();
+  }, []);
+
+  // Fetch instructors on component mount
+  useEffect(() => {
+    const fetchInstructors = async () => {
+      try {
+        console.log("Fetching instructors...");
+        const instructorsData = await getAllInstructors();
+        console.log("Instructors fetched:", instructorsData);
+        setInstructors(instructorsData || []);
+      } catch (error) {
+        console.error("Error fetching instructors:", error);
+        setInstructors([]);
+      } finally {
+        setIsLoadingInstructors(false);
+      }
+    };
+
+    fetchInstructors();
   }, []);
 
   // Helper function to format duration
@@ -481,27 +503,39 @@ const Home = () => {
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.6, delay: 1.0 }}
                 >
-                  <form action="#">
-                    <input 
-                      type="text" 
-                      id="text" 
-                      name="text" 
-                      className="form-control" 
-                      placeholder="What do you want to learn today?"
-                    />
+                  <form action="#" style={{ position: 'relative', display: 'flex', gap: '15px', alignItems: 'center' }}>
+                    <Link to="/catalog/all">
+                      <motion.button 
+                        className="ed-primary-btn"
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.95 }}
+                        type="button"
+                      >
+                        Search Now <i className="fa-solid fa-arrow-right"></i>
+                      </motion.button>
+                    </Link>
+                    <div style={{ position: 'relative', flex: '1' }}>
+                      <input 
+                        type="text" 
+                        id="text" 
+                        name="text" 
+                        className="form-control" 
+                        placeholder="What do you want to learn today?"
+                        style={{ paddingLeft: '50px' }}
+                      />
+                      <div className="icon" style={{ 
+                        position: 'absolute', 
+                        top: '50%', 
+                        left: '25px', 
+                        transform: 'translateY(-50%)', 
+                        fontSize: '14px', 
+                        color: '#162726',
+                        pointerEvents: 'none'
+                      }}>
+                        <i className="fa-solid fa-magnifying-glass"></i>
+                      </div>
+                    </div>
                   </form>
-                  <Link to="/catalog/all">
-                    <motion.button 
-                      className="ed-primary-btn"
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                    >
-                      Search Now <i className="fa-regular fa-arrow-right"></i>
-                    </motion.button>
-                  </Link>
-                  <div className="icon">
-                    <i className="fa-regular fa-magnifying-glass"></i>
-                  </div>
                 </motion.div>
                 
                 {/* About Counter Items */}
@@ -1314,7 +1348,7 @@ const Home = () => {
                       style={{
                         backgroundColor: 'transparent',
                         color: '#ffffff',
-                        padding: '10px 20px',
+                        padding: '8px 18px',
                         borderRadius: '8px',
                         border: '2px solid #ffffff',
                         fontSize: '16px',
@@ -1385,6 +1419,830 @@ const Home = () => {
           </div>
         </div>
       </motion.section>
+
+      
+
+      {/* FAQ Section - Powerful Dashboard */}
+      <section 
+        className="faq-section pt-120 pb-120 overflow-hidden"
+        style={{ backgroundColor: '#ffffff', minHeight: '600px' }}
+      >
+        <div className="container">
+          <div className="row align-items-center" style={{ display: 'flex', flexWrap: 'wrap', margin: '0 -15px' }}>
+            <div className="col-lg-6 col-md-12" style={{ flex: '0 0 50%', maxWidth: '50%', padding: '0 15px' }}>
+              <div className="faq-img-wrap-2">
+                <div className="faq-img-1">
+                  <img src="/assets/img/images/faq-img-2.png" alt="faq" />
+                </div>
+                <div className="faq-img-2">
+                  <img src="/assets/img/images/faq-img-3.png" alt="faq" />
+                </div>
+                <div className="faq-img-3">
+                  <img src="/assets/img/images/faq-img-4.png" alt="faq" />
+                </div>
+                <div className="faq-text-box">
+                  <h4 className="student">Instructor</h4>
+                  <div className="faq-thumb-list-wrap">
+                    <ul className="faq-thumb-list">
+                      <li><img src="/assets/img/images/faq-thumb-1.png" alt="faq" /></li>
+                      <li><img src="/assets/img/images/faq-thumb-2.png" alt="faq" /></li>
+                      <li><img src="/assets/img/images/faq-thumb-3.png" alt="faq" /></li>
+                      <li><img src="/assets/img/images/faq-thumb-4.png" alt="faq" /></li>
+                      <li className="number">25+</li>
+                    </ul>
+                    <p><span>200+</span> <br />Instuctor</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="col-lg-6 col-md-12" style={{ flex: '0 0 50%', maxWidth: '50%', padding: '0 15px' }}>
+              <div className="faq-content" style={{ padding: '30px' }}>
+                <div className="section-heading mb-30">
+                  <h4 style={{ 
+                    color: '#000000', 
+                    backgroundColor: '#f8f9fa',
+                    padding: '8px 16px',
+                    borderRadius: '30px',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '12px',
+                    marginBottom: '25px',
+                    fontSize: '16px',
+                    fontWeight: '500',
+                    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+                  }}>
+                    <span style={{
+                      backgroundColor: '#07A698',
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '50%',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      <i className="fa-sharp fa-solid fa-bolt" style={{ color: '#ffffff', fontSize: '14px' }}></i>
+                    </span>
+                    Our Course Categories
+                  </h4>
+                  <h2 style={{ 
+                    color: '#191A1F', 
+                    fontSize: '36px', 
+                    fontWeight: '700', 
+                    marginBottom: '35px',
+                    lineHeight: '1.3'
+                  }}>
+                    Powerful Dashboard And High Performance Framework
+                  </h2>
+                </div>
+                
+                <div className="faq-accordion">
+                  <div className="accordion" id="accordionExample">
+                    <div className="accordion-item" style={{ 
+                      border: '1px solid #E8ECF0', 
+                      borderRadius: '10px', 
+                      marginBottom: '15px', 
+                      overflow: 'hidden' 
+                    }}>
+                      <h2 className="accordion-header" id="headingOne">
+                        <button className="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne" style={{
+                          backgroundColor: '#ffffff',
+                          border: 'none',
+                          padding: '20px',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          color: '#191A1F',
+                          cursor: 'pointer',
+                          width: '100%',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '15px'
+                        }}>
+                          <span style={{
+                            backgroundColor: '#07A698',
+                            color: '#ffffff',
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '14px',
+                            fontWeight: '600'
+                          }}>01</span>
+                          What courses do you offer?
+                        </button>
+                      </h2>
+                      <div id="collapseOne" className="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#accordionExample">
+                        <div className="accordion-body" style={{
+                          padding: '20px',
+                          backgroundColor: '#f8f9fa',
+                          fontSize: '14px',
+                          lineHeight: '1.6',
+                          color: '#666'
+                        }}>
+                          We offer a wide range of courses in various subjects, including science, technology, engineering, mathematics, humanities, and social sciences. Our courses are designed for different education levels, from primary school to university.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="accordion-item" style={{ 
+                      border: '1px solid #E8ECF0', 
+                      borderRadius: '10px', 
+                      marginBottom: '15px', 
+                      overflow: 'hidden' 
+                    }}>
+                      <h2 className="accordion-header" id="headingTwo">
+                        <button className="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo" style={{
+                          backgroundColor: '#ffffff',
+                          border: 'none',
+                          padding: '20px',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          color: '#191A1F',
+                          cursor: 'pointer',
+                          width: '100%',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '15px'
+                        }}>
+                          <span style={{
+                            backgroundColor: '#07A698',
+                            color: '#ffffff',
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '14px',
+                            fontWeight: '600'
+                          }}>02</span>
+                          How Can Teachers Effectively Manage a Diverse Classroom?
+                        </button>
+                      </h2>
+                      <div id="collapseTwo" className="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#accordionExample">
+                        <div className="accordion-body" style={{
+                          padding: '20px',
+                          backgroundColor: '#f8f9fa',
+                          fontSize: '14px',
+                          lineHeight: '1.6',
+                          color: '#666'
+                        }}>
+                          We offer a wide range of courses in various subjects, including science, technology, engineering, mathematics, humanities, and social sciences. Our courses are designed for different education levels, from primary school to university.
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="accordion-item" style={{ 
+                      border: '1px solid #E8ECF0', 
+                      borderRadius: '10px', 
+                      marginBottom: '15px', 
+                      overflow: 'hidden' 
+                    }}>
+                      <h2 className="accordion-header" id="headingThree">
+                        <button className="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree" style={{
+                          backgroundColor: '#ffffff',
+                          border: 'none',
+                          padding: '20px',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          color: '#191A1F',
+                          cursor: 'pointer',
+                          width: '100%',
+                          textAlign: 'left',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '15px'
+                        }}>
+                          <span style={{
+                            backgroundColor: '#07A698',
+                            color: '#ffffff',
+                            width: '30px',
+                            height: '30px',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '14px',
+                            fontWeight: '600'
+                          }}>03</span>
+                          How Is Special Education Delivered in Inclusive Classrooms?
+                        </button>
+                      </h2>
+                      <div id="collapseThree" className="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#accordionExample">
+                        <div className="accordion-body" style={{
+                          padding: '20px',
+                          backgroundColor: '#f8f9fa',
+                          fontSize: '14px',
+                          lineHeight: '1.6',
+                          color: '#666'
+                        }}>
+                          We offer a wide range of courses in various subjects, including science, technology, engineering, mathematics, humanities, and social sciences. Our courses are designed for different education levels, from primary school to university.
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Instructor Section */}
+      <section className="team-section pb-120" style={{ backgroundColor: '#ffffff' }}>
+        <div className="container">
+          <div className="team-top heading-space">
+            <div className="section-heading mb-0">
+              <h4 className="sub-heading wow fade-in-bottom" style={{ 
+                color: '#000000', 
+                backgroundColor: '#f8f9fa',
+                padding: '8px 16px',
+                borderRadius: '30px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '12px',
+                marginBottom: '25px',
+                fontSize: '16px',
+                fontWeight: '500',
+                boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)'
+              }}>
+                <span style={{
+                  backgroundColor: '#07A698',
+                  width: '28px',
+                  height: '28px',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexShrink: 0
+                }}>
+                  <i className="fa-sharp fa-solid fa-bolt" style={{ color: '#ffffff', fontSize: '14px' }}></i>
+                </span>
+                Our Instructors
+              </h4>
+              <h2 className="section-title wow fade-in-bottom" style={{ 
+                color: '#191A1F', 
+                fontSize: '36px', 
+                fontWeight: '700', 
+                marginBottom: '35px',
+                lineHeight: '1.3'
+              }}>
+                Meet Our Expert Instructors
+              </h2>
+            </div>
+            <div className="team-top-btn">
+              <Link to="/contact" className="ed-primary-btn" style={{
+                backgroundColor: '#07A698',
+                color: '#ffffff',
+                padding: '12px 30px',
+                borderRadius: '30px',
+                textDecoration: 'none',
+                display: 'inline-block',
+                fontWeight: '600',
+                transition: 'all 0.3s ease'
+              }}>
+                Contact Us
+              </Link>
+            </div>
+          </div>
+        </div>
+        <div className="team-container">
+          <div className="row gy-xl-0 gy-4 justify-content-center">
+            {isLoadingInstructors ? (
+              <div className="col-12 text-center">
+                <div style={{ padding: '50px', fontSize: '18px', color: '#666' }}>Loading instructors...</div>
+              </div>
+            ) : instructors.length > 0 ? (
+              instructors.slice(0, 4).map((instructor, index) => (
+                <div key={instructor._id || index} className="col-xl-3 col-lg-4 col-md-6">
+                  <div className="team-item-2 wow fade-in-bottom" data-wow-delay={`${(index + 1) * 200}ms`}>
+                    <div className="team-thumb">
+                      <img 
+                        src={`${instructor.image || `/assets/img/team/team-${5 + index}.png`}?t=${Date.now()}`} 
+                        alt={instructor.firstName + ' ' + instructor.lastName}
+                      />
+                      <div className="team-content">
+                        <div className="instructor-info">
+                          <h3 className="title">
+                            <Link to={`/instructor/${instructor._id}`} style={{ color: '#ffffff', textDecoration: 'none' }}>
+                              {instructor.firstName}
+                            </Link>
+                          </h3>
+                          <span>Instructor</span>
+                        </div>
+                        <div className="team-social">
+                          <div className="expand">
+                            <i className="fa-solid fa-share-nodes"></i>
+                          </div>
+                          <ul className="social-list">
+                            <li><a href="#" className="facebook"><i className="fab fa-facebook-f"></i></a></li>
+                            <li><a href="#" className="google"><i className="fab fa-twitter"></i></a></li>
+                            <li><a href="#" className="twitter"><i className="fab fa-behance"></i></a></li>
+                            <li><a href="#" className="pinterest"><i className="fab fa-pinterest-p"></i></a></li>
+                          </ul>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="col-12 text-center">
+                <div style={{ padding: '50px', fontSize: '18px', color: '#666' }}>No instructors available at the moment.</div>
+              </div>
+            )}
+          </div>
+        </div>
+      </section>
+
+    
+
+<section
+  className="testimonial-section pt-120 pb-120"
+  style={{
+    backgroundColor: '#07A698',
+    position: 'relative',
+    overflow: 'hidden',
+  }}
+>
+  <div
+    className="shapes"
+    style={{
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      pointerEvents: 'none',
+    }}
+  >
+    <div
+      className="shape-1"
+      style={{ position: 'absolute', top: '10%', left: '5%' }}
+    >
+      <img
+        src="/assets/img/shapes/testi-shape-1.png"
+        alt="testi"
+        style={{ opacity: 0.1 }}
+      />
+    </div>
+    <div
+      className="shape-2"
+      style={{ position: 'absolute', bottom: '10%', right: '5%' }}
+    >
+      <img
+        src="/assets/img/shapes/testi-shape-2.png"
+        alt="testi"
+        style={{ opacity: 0.1 }}
+      />
+    </div>
+  </div>
+  <div className="container">
+    <div className="section-heading white-content text-center">
+      <h4
+        className="sub-heading"
+        style={{
+          color: '#ffffff',
+          backgroundColor: 'rgba(255, 255, 255, 0.1)',
+          padding: '8px 16px',
+          borderRadius: '30px',
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: '12px',
+          marginBottom: '25px',
+          fontSize: '16px',
+          fontWeight: '500',
+          backdropFilter: 'blur(10px)',
+        }}
+      >
+        <span
+          style={{
+            backgroundColor: '#ffffff',
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}
+        >
+          <i
+            className="fa-sharp fa-solid fa-bolt"
+            style={{ color: '#07A698', fontSize: '14px' }}
+          ></i>
+        </span>
+        Our Testimonials
+      </h4>
+      <h2
+        className="section-title"
+        style={{
+          color: '#ffffff',
+          fontSize: '36px',
+          fontWeight: '700',
+          marginBottom: '50px',
+          lineHeight: '1.3',
+        }}
+      >
+        What Students Think and Say About EdCare
+      </h2>
+    </div>
+
+    {/* FIXED Carousel Loop Style */}
+    <style>{`
+      .testimonial-track {
+        display: flex;
+        width: fit-content;
+        animation: marquee 40s linear infinite;
+      }
+      @keyframes marquee {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+      .swiper-slide {
+        flex: 0 0 auto;
+        width: 300px;
+        margin: 0 15px;
+      }
+    `}</style>
+
+    <div style={{ overflow: 'hidden', width: '100%' }}>
+      <div className="testimonial-track">
+        {[...Array(2)].flatMap(() => [
+          {
+            name: 'Markus Adina',
+            role: 'Writer',
+            text:
+              "I've been thoroughly impressed with how engaging and interactive the courses are on this platform. The use of multimedia, quizzes, and live sessions makes learning enjoyable and keeps me motivated.",
+            img: '/assets/img/images/testi-author-1.png',
+          },
+          {
+            name: 'Sarah Johnson',
+            role: 'Student',
+            text:
+              'The instructors here are incredibly supportive and knowledgeable. They always respond quickly to questions and provide detailed explanations that make complex topics easy to understand.',
+            img: '/assets/img/images/testi-author-2.png',
+          },
+          {
+            name: 'David Chen',
+            role: 'Developer',
+            text:
+              'The personalized learning approach has been amazing. The platform adapts to my learning style and pace, making it much easier to grasp difficult concepts and stay motivated.',
+            img: '/assets/img/images/testi-author-4.png',
+          },
+          {
+            name: 'Emily Rodriguez',
+            role: 'Designer',
+            text:
+              'The course quality is outstanding. Each lesson is well-structured, comprehensive, and practical. I\'ve learned so much and can immediately apply the knowledge in real-world projects.',
+            img: '/assets/img/images/testi-author-3.png',
+          },
+        ]).map((testimonial, index) => (
+          <div key={index} className="swiper-slide">
+            <div
+              className="testi-item"
+              style={{
+                backgroundColor: '#ffffff',
+                borderRadius: '15px',
+                padding: '30px',
+                textAlign: 'center',
+                boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)',
+                width: '300px',
+                height: '450px', // Fixed height for all cards
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+              }}
+            >
+              <h3
+                className="title"
+                style={{
+                  fontSize: '20px',
+                  fontWeight: '600',
+                  color: '#191A1F',
+                  marginBottom: '20px',
+                }}
+              >
+                {testimonial.name === 'David Chen'
+                  ? 'Personalized Learning Path'
+                  : testimonial.name === 'Sarah Johnson'
+                  ? 'Exceptional Instructor Support'
+                  : testimonial.name === 'Emily Rodriguez'
+                  ? 'Excellent Course Quality'
+                  : 'Interactive Learning Experience'}
+              </h3>
+              <p
+                style={{
+                  fontSize: '16px',
+                  lineHeight: '1.6',
+                  color: '#666',
+                  marginBottom: '25px',
+                }}
+              >
+                "{testimonial.text}"
+              </p>
+              <div className="testi-author">
+                <div className="author-img" style={{ marginBottom: '15px' }}>
+                  <img
+                    src={testimonial.img}
+                    alt="testi"
+                    style={{
+                      width: '60px',
+                      height: '60px',
+                      borderRadius: '50%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                </div>
+                <h4
+                  className="name"
+                  style={{
+                    fontSize: '18px',
+                    fontWeight: '600',
+                    color: '#191A1F',
+                    marginBottom: '5px',
+                  }}
+                >
+                  {testimonial.name}{' '}
+                  <span
+                    style={{
+                      fontSize: '14px',
+                      color: '#07A698',
+                      fontWeight: '500',
+                    }}
+                  >
+                    {testimonial.role}
+                  </span>
+                </h4>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  </div>
+</section>
+
+      {/* News & Blog Section */}
+      <section className="blog-section pt-120 pb-120">
+        <div className="container">
+          <div className="section-heading text-center">
+            <h4 className="sub-heading wow fade-in-bottom" data-wow-delay="200ms">
+              <span className="heading-icon">
+                <i className="fa-sharp fa-solid fa-bolt"></i>
+              </span>
+              News & Blogs
+            </h4>
+            <h2 className="section-title wow fade-in-bottom" data-wow-delay="400ms">
+              Latest News Updates
+            </h2>
+          </div>
+          <div className="row gy-lg-0 gy-4 justify-content-center post-card-2-wrap">
+            <div className="col-lg-12 col-md-6">
+              <div className="post-card-2 wow fade-in-bottom" data-wow-delay="200ms">
+                <div className="post-thumb">
+                  <img src="/assets/img/blog/post-4.png" alt="post" />
+                </div>
+                <div className="post-content-wrap">
+                  <div className="post-content">
+                    <ul className="post-meta">
+                      <li>
+                        <i className="fa-sharp fa-regular fa-clock"></i>August 15, 2025
+                      </li>
+                      <li>
+                        <i className="fa-sharp fa-regular fa-folder"></i>Marketing
+                      </li>
+                    </ul>
+                    <h3 className="title">
+                      <a href="/blog-details" style={{
+                        color: '#191A1F',
+                        textDecoration: 'none',
+                        fontSize: '24px',
+                        fontWeight: '600',
+                        lineHeight: '1.3',
+                        transition: 'all 0.3s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.color = '#07A698';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.color = '#191A1F';
+                      }}>
+                        Repurpose mission critical action life items rather total
+                      </a>
+                    </h3>
+                    <p>
+                      we understand the importance of preparing students for the real world curriculum is <br /> designed strong emphasis on practical skills and real-world applications. By integrating <br /> project-based learning, internships, and industry partnerships,
+                    </p>
+                    <a href="/blog-details" style={{
+                      backgroundColor: '#ffffff',
+                      color: '#07A698',
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      padding: '14px 32px',
+                      borderRadius: '50px',
+                      textDecoration: 'none',
+                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      zIndex: 1,
+                      border: '2px solid #f0f0f0',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                      letterSpacing: '0.3px',
+                      textTransform: 'uppercase',
+                      fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = '#07A698';
+                      e.target.style.color = '#ffffff';
+                      e.target.style.transform = 'translateY(-3px) scale(1.02)';
+                      e.target.style.boxShadow = '0 8px 25px rgba(7, 166, 152, 0.25)';
+                      e.target.style.borderColor = '#07A698';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = '#ffffff';
+                      e.target.style.color = '#07A698';
+                      e.target.style.transform = 'translateY(0) scale(1)';
+                      e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
+                      e.target.style.borderColor = '#f0f0f0';
+                    }}>
+                      Read More <i className="fa-solid fa-arrow-right" style={{ fontSize: '12px', transition: 'transform 0.3s ease' }}></i>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="col-lg-12 col-md-6">
+              <div className="post-card-2 wow fade-in-bottom" data-wow-delay="400ms">
+                <div className="post-thumb">
+                  <img src="/assets/img/blog/post-5.png" alt="post" />
+                </div>
+                <div className="post-content-wrap">
+                  <div className="post-content">
+                    <ul className="post-meta">
+                      <li>
+                        <i className="fa-sharp fa-regular fa-clock"></i>August 15, 2025
+                      </li>
+                      <li>
+                        <i className="fa-sharp fa-regular fa-folder"></i>Marketing
+                      </li>
+                    </ul>
+                    <h3 className="title">
+                      <a href="/blog-details" style={{
+                        color: '#191A1F',
+                        textDecoration: 'none',
+                        fontSize: '24px',
+                        fontWeight: '600',
+                        lineHeight: '1.3',
+                        transition: 'all 0.3s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.color = '#07A698';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.color = '#191A1F';
+                      }}>
+                        Transforming Traditional Classrooms for 21st-Century Learners
+                      </a>
+                    </h3>
+                    <p>
+                      we understand the importance of preparing students for the real world curriculum is <br /> designed strong emphasis on practical skills and real-world applications. By integrating <br /> project-based learning, internships, and industry partnerships,
+                    </p>
+                    <a href="/blog-details" style={{
+                      backgroundColor: '#ffffff',
+                      color: '#07A698',
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      padding: '14px 32px',
+                      borderRadius: '50px',
+                      textDecoration: 'none',
+                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      zIndex: 1,
+                      border: '2px solid #f0f0f0',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                      letterSpacing: '0.3px',
+                      textTransform: 'uppercase',
+                      fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = '#07A698';
+                      e.target.style.color = '#ffffff';
+                      e.target.style.transform = 'translateY(-3px) scale(1.02)';
+                      e.target.style.boxShadow = '0 8px 25px rgba(7, 166, 152, 0.25)';
+                      e.target.style.borderColor = '#07A698';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = '#ffffff';
+                      e.target.style.color = '#07A698';
+                      e.target.style.transform = 'translateY(0) scale(1)';
+                      e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
+                      e.target.style.borderColor = '#f0f0f0';
+                    }}>
+                      Read More <i className="fa-solid fa-arrow-right" style={{ fontSize: '12px', transition: 'transform 0.3s ease' }}></i>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div className="col-lg-12 col-md-6">
+              <div className="post-card-2 wow fade-in-bottom" data-wow-delay="500ms">
+                <div className="post-thumb">
+                  <img src="/assets/img/blog/post-6.png" alt="post" />
+                </div>
+                <div className="post-content-wrap">
+                  <div className="post-content">
+                    <ul className="post-meta">
+                      <li>
+                        <i className="fa-sharp fa-regular fa-clock"></i>August 15, 2025
+                      </li>
+                      <li>
+                        <i className="fa-sharp fa-regular fa-folder"></i>Marketing
+                      </li>
+                    </ul>
+                    <h3 className="title">
+                      <a href="/blog-details" style={{
+                        color: '#191A1F',
+                        textDecoration: 'none',
+                        fontSize: '24px',
+                        fontWeight: '600',
+                        lineHeight: '1.3',
+                        transition: 'all 0.3s ease'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.color = '#07A698';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.color = '#191A1F';
+                      }}>
+                        The Role of Social-Emotional Learning in Building Resilient
+                      </a>
+                    </h3>
+                    <p>
+                      we understand the importance of preparing students for the real world curriculum is <br /> designed strong emphasis on practical skills and real-world applications. By integrating <br /> project-based learning, internships, and industry partnerships,
+                    </p>
+                    <a href="/blog-details" style={{
+                      backgroundColor: '#ffffff',
+                      color: '#07A698',
+                      fontSize: '15px',
+                      fontWeight: '600',
+                      padding: '14px 32px',
+                      borderRadius: '50px',
+                      textDecoration: 'none',
+                      transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      position: 'relative',
+                      overflow: 'hidden',
+                      zIndex: 1,
+                      border: '2px solid #f0f0f0',
+                      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
+                      letterSpacing: '0.3px',
+                      textTransform: 'uppercase',
+                      fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+                    }}
+                    onMouseEnter={(e) => {
+                      e.target.style.backgroundColor = '#07A698';
+                      e.target.style.color = '#ffffff';
+                      e.target.style.transform = 'translateY(-3px) scale(1.02)';
+                      e.target.style.boxShadow = '0 8px 25px rgba(7, 166, 152, 0.25)';
+                      e.target.style.borderColor = '#07A698';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.target.style.backgroundColor = '#ffffff';
+                      e.target.style.color = '#07A698';
+                      e.target.style.transform = 'translateY(0) scale(1)';
+                      e.target.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.08)';
+                      e.target.style.borderColor = '#f0f0f0';
+                    }}>
+                      Read More <i className="fa-solid fa-arrow-right" style={{ fontSize: '12px', transition: 'transform 0.3s ease' }}></i>
+                    </a>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+
+
     </div>
   );
 };
