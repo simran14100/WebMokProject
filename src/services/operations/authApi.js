@@ -1,6 +1,6 @@
-import { toast } from "react-hot-toast"
+import { showSuccess, showError, showLoading, dismissToast, dismissAllToasts } from "../../utils/toast"
 import { setLoading, setToken } from "../../store/slices/authSlice"
-import { setUser } from "../../store/slices/profileSlice"
+import { setUser, setLoading as setProfileLoading } from "../../store/slices/profileSlice"
 import { apiConnector } from "../apiConnector"
 import { auth } from "../apis"
 import { profile } from "../apis"
@@ -17,7 +17,7 @@ const {
 
 export function sendOtp(email, navigate) {
   return async (dispatch) => {
-    const toastId = toast.loading("Loading...")
+    const toastId = showLoading("Loading...")
     dispatch(setLoading(true))
     try {
       const response = await apiConnector("POST", SENDOTP_API, {
@@ -30,22 +30,22 @@ export function sendOtp(email, navigate) {
         throw new Error(response.data.message)
       }
 
-      toast.success("OTP Sent Successfully")
+      showSuccess("OTP Sent Successfully")
       // navigate("/verify-email")
     } catch (error) {
       console.log("SENDOTP API ERROR............", error)
       
       // Show specific error message from backend if available
       if (error.response && error.response.data && error.response.data.message) {
-        toast.error(error.response.data.message)
+        showError(error.response.data.message)
       } else if (error.message) {
-        toast.error(error.message)
+        showError(error.message)
       } else {
-        toast.error("Could Not Send OTP")
+        showError("Could Not Send OTP")
       }
     }
     dispatch(setLoading(false))
-    toast.dismiss(toastId)
+    dismissToast(toastId)
   }
 }
 
@@ -60,7 +60,7 @@ export function signUp(
   navigate
 ) {
   return async (dispatch) => {
-    const toastId = toast.loading("Loading...")
+    const toastId = showLoading("Loading...")
     dispatch(setLoading(true))
     try {
       const response = await apiConnector("POST", SIGNUP_API, {
@@ -78,29 +78,29 @@ export function signUp(
       if (!response.data.success) {
         throw new Error(response.data.message)
       }
-      toast.success("Signup Successful")
+      showSuccess("Signup Successful")
       navigate("/login")
     } catch (error) {
       console.log("SIGNUP API ERROR............", error)
       
       // Show specific error message from backend if available
       if (error.response && error.response.data && error.response.data.message) {
-        toast.error(error.response.data.message)
+        showError(error.response.data.message)
       } else if (error.message) {
-        toast.error(error.message)
+        showError(error.message)
       } else {
-        toast.error("Signup Failed")
+        showError("Signup Failed")
       }
       navigate("/signup")
     }
     dispatch(setLoading(false))
-    toast.dismiss(toastId)
+    dismissToast(toastId)
   }
 }
 
 export function login(email, password, navigate) {
   return async (dispatch) => {
-    const toastId = toast.loading("Loading...")
+    const toastId = showLoading("Loading...")
     dispatch(setLoading(true))
     try {
       const response = await apiConnector("POST", LOGIN_API, {
@@ -112,7 +112,7 @@ export function login(email, password, navigate) {
         throw new Error(response.data.message);
       }
      
-      toast.success("Login Successful")
+      showSuccess("Login Successful")
       
       dispatch(setToken(response.data.token))
       console.log("SETTING USER PROPERTY............", response.data.user);
@@ -131,21 +131,21 @@ export function login(email, password, navigate) {
       
       // Show specific error message from backend if available
       if (error.response && error.response.data && error.response.data.message) {
-        toast.error(error.response.data.message)
+        showError(error.response.data.message)
       } else if (error.message) {
-        toast.error(error.message)
+        showError(error.message)
       } else {
-        toast.error("Login Failed");
+        showError("Login Failed");
       }
     }
     dispatch(setLoading(false))
-    toast.dismiss(toastId)
+    dismissToast(toastId)
   };
 }
 
 export function getPasswordResetToken(email, setEmailSent) {
   return async (dispatch) => {
-    const toastId = toast.loading("Loading...")
+    const toastId = showLoading("Loading...")
     dispatch(setLoading(true))
     try {
       const response = await apiConnector("POST", RESETPASSTOKEN_API, {
@@ -158,20 +158,20 @@ export function getPasswordResetToken(email, setEmailSent) {
         throw new Error(response.data.message)
       }
 
-      toast.success("Reset Email Sent")
+      showSuccess("Reset Email Sent")
       setEmailSent(true)
     } catch (error) {
       console.log("RESETPASSTOKEN ERROR............", error)
-      toast.error("Failed To Send Reset Email")
+      showError("Failed To Send Reset Email")
     }
-    toast.dismiss(toastId)
+    dismissToast(toastId)
     dispatch(setLoading(false))
   }
 }
 
 export function resetPassword(password, confirmPassword, token, navigate) {
   return async (dispatch) => {
-    const toastId = toast.loading("Loading...")
+    const toastId = showLoading("Loading...")
     dispatch(setLoading(true))
     try {
       const response = await apiConnector("POST", RESETPASSWORD_API, {
@@ -186,30 +186,71 @@ export function resetPassword(password, confirmPassword, token, navigate) {
         throw new Error(response.data.message)
       }
 
-      toast.success("Password Reset Successfully")
+      showSuccess("Password Reset Successfully")
       navigate("/login")
     } catch (error) {
       console.log("RESETPASSWORD ERROR............", error)
-      toast.error("Failed To Reset Password")
+      showError("Failed To Reset Password")
     }
-    toast.dismiss(toastId)
+    dismissToast(toastId)
     dispatch(setLoading(false))
   }
 }
 
+// Track if logout is already in progress to prevent duplicate toasts
+let isLoggingOut = false;
+let logoutToastShown = false;
+
 export function logout(navigate) {
   return (dispatch) => {
+    // Prevent duplicate logout calls
+    if (isLoggingOut) {
+      console.log("Logout already in progress, skipping...");
+      return;
+    }
+    
+    console.log("Starting logout process...");
+    isLoggingOut = true;
+    
+    // Clear all existing toasts first
+    dismissAllToasts();
+    
+    // Clear all auth-related state
     dispatch(setToken(null))
     dispatch(setUser(null))
+    dispatch(setLoading(false))
+    dispatch(setProfileLoading(false))
+    
+    // Clear localStorage if needed
+    localStorage.removeItem('token')
+    localStorage.removeItem('user')
+    
     console.log("Logout - Redux state cleared");
-    toast.success("Logged Out")
+    
+    // Only show toast if not already shown
+    if (!logoutToastShown) {
+      console.log("Showing logout success toast...");
+      showSuccess("Logged Out Successfully")
+      logoutToastShown = true;
+    } else {
+      console.log("Logout toast already shown, skipping...");
+    }
+    
+    // Navigate to home page
     navigate("/")
+    
+    // Reset the flags after a short delay
+    setTimeout(() => {
+      isLoggingOut = false;
+      logoutToastShown = false;
+      console.log("Logout flags reset");
+    }, 2000);
   }
 } 
 
 export function updateProfile(profileData, token) {
   return async (dispatch) => {
-    const toastId = toast.loading("Updating profile...");
+    const toastId = showLoading("Updating profile...");
     dispatch(setLoading(true));
     try {
       const response = await apiConnector(
@@ -222,21 +263,21 @@ export function updateProfile(profileData, token) {
       if (!response.data.success) {
         throw new Error(response.data.message);
       }
-      toast.success("Profile updated successfully");
+      showSuccess("Profile updated successfully");
       // Update user in Redux
       dispatch(setUser(response.data.updatedUserDetails));
     } catch (error) {
       console.log("UPDATE PROFILE ERROR............", error);
-      toast.error("Failed to update profile");
+      showError("Failed to update profile");
     }
     dispatch(setLoading(false));
-    toast.dismiss(toastId);
+    dismissToast(toastId);
   };
 } 
 
 export function updateDisplayPicture(token, formData) {
   return async (dispatch) => {
-    const toastId = toast.loading("Uploading image...");
+    const toastId = showLoading("Uploading image...");
     dispatch(setLoading(true));
     try {
       const response = await apiConnector(
@@ -249,15 +290,15 @@ export function updateDisplayPicture(token, formData) {
       if (!response.data.success) {
         throw new Error(response.data.message);
       }
-      toast.success("Profile picture updated successfully");
+      showSuccess("Profile picture updated successfully");
       // Update user in Redux
       dispatch(setUser(response.data));
     } catch (error) {
       console.log("UPDATE DISPLAY PICTURE ERROR............", error);
-      toast.error("Failed to update profile picture");
-    }
+      showError("Failed to update profile picture");
+      }
     dispatch(setLoading(false));
-    toast.dismiss(toastId);
+    dismissToast(toastId);
   };
 } 
 

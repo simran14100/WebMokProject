@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
-import { logout } from '../../store/slices/authSlice';
+import { logout as logoutAction } from '../../store/slices/authSlice';
 import { clearUser } from '../../store/slices/profileSlice';
 import { clearCart } from '../../store/slices/cartSlice';
+import { logout } from '../../services/operations/authApi';
 import { fetchCourseCategories } from '../../services/operations/courseDetailsAPI';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -11,6 +12,7 @@ const Navbar = () => {
   const { user } = useSelector((state) => state.profile);
   const { cart } = useSelector((state) => state.cart);
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
@@ -69,9 +71,7 @@ const Navbar = () => {
   }, [isCategoryDropdownOpen, isProfileDropdownOpen]);
 
   const handleLogout = () => {
-    dispatch(logout());
-    dispatch(clearUser());
-    dispatch(clearCart());
+    dispatch(logout(navigate));
   };
 
   return (

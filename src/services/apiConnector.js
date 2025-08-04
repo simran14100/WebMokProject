@@ -1,9 +1,9 @@
 import axios from "axios";
 import { store } from "../store";
-import { logout } from "../store/slices/authSlice";
+import { logout as logoutAction } from "../store/slices/authSlice";
 import { clearUser } from "../store/slices/profileSlice";
 import { refreshToken } from "./operations/authApi";
-import { toast } from "react-hot-toast";
+import { showError } from "../utils/toast";
 
 export const axiosInstance = axios.create({
   baseURL: process.env.REACT_APP_BASE_URL || "http://localhost:4000",
@@ -54,9 +54,9 @@ axiosInstance.interceptors.response.use(
       if (!currentToken) {
         // No token to refresh, logout immediately
         console.log("No token found. Logging out user...");
-        store.dispatch(logout());
+        store.dispatch(logoutAction());
         store.dispatch(clearUser());
-        toast.error("Session expired. Please login again.");
+        showError("Session expired. Please login again.");
         window.location.href = "/login";
         return Promise.reject(error);
       }
@@ -83,11 +83,11 @@ axiosInstance.interceptors.response.use(
         isRefreshing = false;
         
         // Clear the token from Redux store
-        store.dispatch(logout());
+        store.dispatch(logoutAction());
         store.dispatch(clearUser());
         
         // Show notification to user
-        toast.error("Session expired. Please login again.");
+        showError("Session expired. Please login again.");
         
         // Redirect to login page
         window.location.href = "/login";

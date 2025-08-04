@@ -72,6 +72,7 @@ function App() {
                 <Route path="/admin" element={<AdminLayout />}>
                   <Route path="dashboard" element={<AdminDashboard />} />
                   <Route path="my-profile" element={<AdminProfile />} />
+                  <Route path="settings" element={<Settings />} />
                   <Route path="registered-students" element={<RegisteredStudents />} />
                   <Route path="installments" element={<PaymentInstallments />} />
                   {/* Add more admin routes here */}
@@ -98,21 +99,55 @@ function App() {
               toastOptions={{
                 duration: 4000,
                 style: {
-                  background: '#1f2937',
-                  color: '#f9fafb',
+                  background: '#ffffff',
+                  color: '#191A1F',
                   marginLeft: 'auto',
                   marginRight: 40,
-                  maxWidth: 400,
-                  marginTop: 80, // push below navbar/profile
+                  maxWidth: 450,
+                  marginTop: 80,
+                  borderRadius: '16px',
+                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+                  border: '1px solid #e0e0e0',
+                  fontFamily: 'Poppins, sans-serif',
+                  fontSize: '14px',
+                  fontWeight: '500',
+                  padding: '16px 20px',
+                  lineHeight: '1.5',
                 },
                 success: {
                   style: {
-                    background: '#10b981',
+                    background: 'linear-gradient(135deg, #07A698 0%, #059a8c 100%)',
+                    color: '#ffffff',
+                    border: '1px solid #07A698',
+                    boxShadow: '0 20px 25px -5px rgba(7, 166, 152, 0.2), 0 10px 10px -5px rgba(7, 166, 152, 0.1)',
+                  },
+                  iconTheme: {
+                    primary: '#ffffff',
+                    secondary: '#07A698',
                   },
                 },
                 error: {
                   style: {
-                    background: '#ef4444',
+                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
+                    color: '#ffffff',
+                    border: '1px solid #ef4444',
+                    boxShadow: '0 20px 25px -5px rgba(239, 68, 68, 0.2), 0 10px 10px -5px rgba(239, 68, 68, 0.1)',
+                  },
+                  iconTheme: {
+                    primary: '#ffffff',
+                    secondary: '#ef4444',
+                  },
+                },
+                loading: {
+                  style: {
+                    background: 'linear-gradient(135deg, #07A698 0%, #059a8c 100%)',
+                    color: '#ffffff',
+                    border: '1px solid #07A698',
+                    boxShadow: '0 20px 25px -5px rgba(7, 166, 152, 0.2), 0 10px 10px -5px rgba(7, 166, 152, 0.1)',
+                  },
+                  iconTheme: {
+                    primary: '#ffffff',
+                    secondary: '#07A698',
                   },
                 },
               }}

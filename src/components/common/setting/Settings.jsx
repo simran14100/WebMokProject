@@ -10,13 +10,24 @@ const TEXT_DARK = '#191A1F';
 export default function Settings() {
   return (
     <DashboardLayout>
-      <div style={{ width: '100%', maxWidth: 1000, margin: '0 auto', padding: '32px 0' }}>
+      <div style={{ 
+        width: '100%', 
+        maxWidth: 1000, 
+        margin: '0 auto', 
+        marginLeft: '250px',
+        padding: '32px 20px',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center'
+      }}>
         <h1 style={{ color: TEXT_DARK, fontWeight: 700, fontSize: 28, marginBottom: 32, textAlign: 'center' }}>Account Settings</h1>
-        <ChangeProfilePicture />
-        <div style={{ marginBottom: 32 }} />
-        <EditProfile />
-        <UpdatePassword />
-        <DeleteAccount />
+        <div style={{ width: '100%', maxWidth: 800 }}>
+          <ChangeProfilePicture />
+          <div style={{ marginBottom: 32 }} />
+          <EditProfile />
+          <UpdatePassword />
+          <DeleteAccount />
+        </div>
       </div>
     </DashboardLayout>
   );

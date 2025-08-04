@@ -48,6 +48,7 @@ const getSidebarLinks = (user) => {
     { name: "Enrolled Students", path: "/admin/enrolled-students", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
     { name: "Manage Users", path: "/admin/users", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
     { name: "Manage Categories", path: "/admin/categories", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
+    { name: "Settings", path: "/admin/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
   ];
   return [
     { name: "My Profile", path: "/dashboard/my-profile", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
