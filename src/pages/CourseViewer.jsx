@@ -215,19 +215,35 @@
 
 
 
-import React from 'react';
-import { FaPhone, FaMapMarkerAlt, FaClock, FaUser, FaShoppingCart, FaHeart, FaBars, FaTimes, FaStar, FaLock, FaUnlock, FaShareAlt, FaEnvelope, FaFacebookF, FaInstagram, FaBehance, FaPinterest, FaYoutube } from 'react-icons/fa';
+// import React from 'react';
+// import { FaPhone, FaMapMarkerAlt, FaClock, FaUser, FaShoppingCart, FaHeart, FaBars, FaTimes, FaStar, FaLock, FaUnlock, FaShareAlt, FaEnvelope, FaFacebookF, FaInstagram, FaBehance, FaPinterest, FaYoutube } from 'react-icons/fa';
+
+import React, { useState } from 'react';
+import { FaPhone, FaMapMarkerAlt, FaClock, FaUser, FaShoppingCart, FaHeart, FaBars, FaTimes, FaStar, FaLock, FaUnlock, FaShareNodes, FaEnvelope, FaFacebookF, FaInstagram, FaBehance, FaPinterest, FaYoutube, FaBookmark, FaBook, FaUser as FaUserIcon, FaStar as FaStarIcon, FaShareAlt } from 'react-icons/fa';
 import pageHeaderShape1 from '../assets/img/shapes/page-header-shape-1.png';
 import pageHeaderShape2 from '../assets/img/shapes/page-header-shape-2.png';
 import pageHeaderShape3 from '../assets/img/shapes/page-header-shape-3.png';
 import pageHeaderBg from '../assets/img/bg-img/page-header-bg.png';
+import courseDetailsImg from '../assets/img/service/course-details-img.png';
+import '../../src/index.css'
+
+
 import { Link } from 'react-router-dom';
+import Footer from '../components/common/Footer';
 
 const EdCareReact = () => {
-  return (
-    <div className="edcare-react">
-     
 
+    const [activeTab, setActiveTab] = useState('overview');
+  const [expandedAccordion, setExpandedAccordion] = useState('foundations');
+  const [isHovered, setIsHovered] = useState(false);
+
+  const toggleAccordion = (section) => {
+    setExpandedAccordion(expandedAccordion === section ? null : section);
+  };
+
+  return (
+    <div className="edcare-react " >
+     
       <section style={{ 
         position: 'relative', 
         padding: '120px 0', 
@@ -366,13 +382,12 @@ const EdCareReact = () => {
         </div>
       </section>
 
-      {/* Course Details Section */}
       <section className="course-details pt-120 pb-120" style={{
         padding: '120px 0',
         backgroundColor: '#ffffff'
       }}>
         <div className="container" style={{
-          maxWidth: '1200px',
+          maxWidth: '1400px',  // Increased from 1200px to 1400px
           margin: '0 auto',
           padding: '0 15px'
         }}>
@@ -387,12 +402,13 @@ const EdCareReact = () => {
               padding: '0 15px'
             }}>
               <div className="course-details-content">
+                {/* Course Image and Basic Info - Same as before */}
                 <div className="course-details-img" style={{
                   marginBottom: '30px',
                   borderRadius: '10px',
                   overflow: 'hidden'
                 }}>
-                  <img src="assets/img/service/course-details-img.png" alt="course" style={{
+                  <img src={courseDetailsImg }alt="course" style={{
                     width: '100%',
                     height: 'auto',
                     display: 'block'
@@ -473,7 +489,9 @@ const EdCareReact = () => {
                     </li>
                   </ul>
                 </div>
-                
+                {/* ... */}
+
+
                 {/* Course Tabs */}
                 <div className="course-details-tab" style={{
                   border: '1px solid #e0e0e0',
@@ -489,78 +507,94 @@ const EdCareReact = () => {
                     borderBottom: '1px solid #e0e0e0'
                   }}>
                     <li className="nav-item" style={{ flex: 1 }}>
-                      <button className="nav-link active" style={{
-                        width: '100%',
-                        padding: '15px',
-                        border: 'none',
-                        backgroundColor: 'transparent',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '5px',
-                        fontWeight: '600',
-                        color: '#07A698',
-                        borderBottom: '2px solid #07A698'
-                      }}>
-                        <i className="fa-sharp fa-regular fa-bookmark"></i>Overview
+                      <button 
+                        onClick={() => setActiveTab('overview')}
+                        style={{
+                          width: '100%',
+                          padding: '15px',
+                          border: 'none',
+                          backgroundColor: activeTab === 'overview' ? '#ffffff' : 'transparent',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '5px',
+                          fontWeight: '600',
+                          color: activeTab === 'overview' ? '#07A698' : '#666666',
+                          borderBottom: activeTab === 'overview' ? '2px solid #07A698' : 'none'
+                        }}
+                      >
+                        <FaBookmark /> Overview
                       </button>
                     </li>
                     <li className="nav-item" style={{ flex: 1 }}>
-                      <button className="nav-link" style={{
-                        width: '100%',
-                        padding: '15px',
-                        border: 'none',
-                        backgroundColor: 'transparent',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '5px',
-                        fontWeight: '600',
-                        color: '#666666'
-                      }}>
-                        <i className="fa-regular fa-book"></i>Curriculum
+                      <button 
+                        onClick={() => setActiveTab('curriculum')}
+                        style={{
+                          width: '100%',
+                          padding: '15px',
+                          border: 'none',
+                          backgroundColor: activeTab === 'curriculum' ? '#ffffff' : 'transparent',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '5px',
+                          fontWeight: '600',
+                          color: activeTab === 'curriculum' ? '#07A698' : '#666666',
+                          borderBottom: activeTab === 'curriculum' ? '2px solid #07A698' : 'none'
+                        }}
+                      >
+                        <FaBook /> Curriculum
                       </button>
                     </li>
                     <li className="nav-item" style={{ flex: 1 }}>
-                      <button className="nav-link" style={{
-                        width: '100%',
-                        padding: '15px',
-                        border: 'none',
-                        backgroundColor: 'transparent',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '5px',
-                        fontWeight: '600',
-                        color: '#666666'
-                      }}>
-                        <i className="fa-regular fa-user"></i>Instructor
+                      <button 
+                        onClick={() => setActiveTab('instructor')}
+                        style={{
+                          width: '100%',
+                          padding: '15px',
+                          border: 'none',
+                          backgroundColor: activeTab === 'instructor' ? '#ffffff' : 'transparent',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '5px',
+                          fontWeight: '600',
+                          color: activeTab === 'instructor' ? '#07A698' : '#666666',
+                          borderBottom: activeTab === 'instructor' ? '2px solid #07A698' : 'none'
+                        }}
+                      >
+                        <FaUserIcon /> Instructor
                       </button>
                     </li>
                     <li className="nav-item" style={{ flex: 1 }}>
-                      <button className="nav-link" style={{
-                        width: '100%',
-                        padding: '15px',
-                        border: 'none',
-                        backgroundColor: 'transparent',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '5px',
-                        fontWeight: '600',
-                        color: '#666666'
-                      }}>
-                        <i className="fa-regular fa-star"></i>Reviews
+                      <button 
+                        onClick={() => setActiveTab('reviews')}
+                        style={{
+                          width: '100%',
+                          padding: '15px',
+                          border: 'none',
+                          backgroundColor: activeTab === 'reviews' ? '#ffffff' : 'transparent',
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '5px',
+                          fontWeight: '600',
+                          color: activeTab === 'reviews' ? '#07A698' : '#666666',
+                          borderBottom: activeTab === 'reviews' ? '2px solid #07A698' : 'none'
+                        }}
+                      >
+                        <FaStarIcon /> Reviews
                       </button>
                     </li>
                   </ul>
                   
                   <div className="tab-content" style={{ padding: '30px' }}>
-                    <div className="tab-pane fade show active">
+                    {/* Overview Tab */}
+                    {activeTab === 'overview' && (
                       <div className="tab-overview">
                         <h3 className="title" style={{
                           fontSize: '24px',
@@ -582,12 +616,503 @@ const EdCareReact = () => {
                           Quickly synergize cutting-edge scenarios and professional results. Assertively deliver cross-media results before client-centric results. Uniquely initiate intuitive communities through process-centric internal or "organic" sources. Energistically reinvent distinctive value via parallel services extensive paradigms cross-unit manufactured products.
                         </p>
                       </div>
-                    </div>
+                    )}
+
+                    {/* Curriculum Tab */}
+                    {activeTab === 'curriculum' && (
+                      <div className="curriculam-area">
+                        <div className="accordion">
+                          {/* Foundations Accordion */}
+                          <div className="accordion-item" style={{
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '5px',
+                            marginBottom: '15px',
+                            overflow: 'hidden'
+                          }}>
+                            <h2 className="accordion-header">
+                              <button 
+  onClick={() => toggleAccordion('foundations')}
+  style={{
+    width: '100%',
+    padding: '10px 15px',
+    border: '1px solid #e0e0e0',  // Added border for visibility
+    backgroundColor: expandedAccordion === 'foundations' ? '#f8f9fa' : '#ffffff',
+    color: '#333',  // Explicit text color
+    textAlign: 'left',
+    cursor: 'pointer',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    fontWeight: '600',
+    fontSize: '20px',  // Increased font size for better readability
+    borderRadius: '4px',  // Added rounded corners
+    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',  // Subtle shadow
+    transition: 'all 0.3s ease',  // Smooth transitions
+    ':hover': {
+      backgroundColor: '#f0f0f0'  // Hover state
+    }
+  }}
+>
+  Foundations of Fluent English Speaking
+  <span style={{
+    transform: expandedAccordion === 'foundations' ? 'rotate(180deg)' : 'rotate(0deg)',
+    transition: 'transform 0.3s ease',
+    color: '#07A698',  // Chevron color
+    fontSize: '14px'  // Chevron size
+  }}>
+    ▼
+  </span>
+</button>
+                            </h2>
+                            {expandedAccordion === 'foundations' && (
+                              <div className="accordion-body" style={{
+                                padding: '0 20px 20px',
+                                backgroundColor: 'white',
+                                 marginTop: '15px'
+                              }}>
+                                <ul className="curri-list" style={{
+                                  listStyle: 'none',
+                                  margin: 0,
+                                  padding: 0
+                                }}>
+                                  <li style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    padding: '10px 0',
+                                    borderBottom: '1px solid #e0e0e0'
+                                  }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                      <span style={{ color: '#07A698' }}>▶</span> Mastering Pronunciation and Intonation
+                                    </span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                      54.23 <FaUnlock style={{ color: '#07A698' }} />
+                                    </span>
+                                  </li>
+                                  <li style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    padding: '10px 0',
+                                    borderBottom: '1px solid #e0e0e0'
+                                  }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                      <span style={{ color: '#07A698' }}>▶</span> Building a Strong Vocabulary for Everyday Communication
+                                    </span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                      45.05 <FaUnlock style={{ color: '#07A698' }} />
+                                    </span>
+                                  </li>
+                                  <li style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    padding: '10px 0'
+                                  }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                      <span style={{ color: '#666666' }}>📄</span> Understanding Basic Sentence Structure and Grammar
+                                    </span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                      1.6hr <FaLock style={{ color: '#666666' }} />
+                                    </span>
+                                  </li>
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* User Research Accordion */}
+                          <div className="accordion-item" style={{
+                            border: '1px solid #e0e0e0',
+                            borderRadius: '5px',
+                            marginBottom: '15px',
+                            overflow: 'hidden'
+                          }}>
+                            <h2 className="accordion-header">
+                              <button 
+  onClick={() => toggleAccordion('research')}
+  style={{
+    width: '100%',
+    padding: '10px 15px',
+    border: '1px solid #e0e0e0',  // Added border for visibility
+    backgroundColor: expandedAccordion === 'research' ? '#f8f9fa' : '#ffffff',
+    color: '#333',  // Explicit text color
+    textAlign: 'left',
+    cursor: 'pointer',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    fontWeight: '600',
+    fontSize: '20px',  // Increased font size for better readability
+    borderRadius: '4px',  // Added rounded corners
+    boxShadow: '0 2px 4px rgba(0,0,0,0.05)',  // Subtle shadow
+    transition: 'all 0.3s ease',  // Smooth transitions
+    ':hover': {
+      backgroundColor: '#f0f0f0'  // Hover state
+    }
+  }}
+>
+  User Research Technique
+  <span style={{
+    transform: expandedAccordion === 'research'  ? 'rotate(180deg)' : 'rotate(0deg)',
+    transition: 'transform 0.3s ease',
+    color: '#07A698',  // Chevron color
+    fontSize: '14px'  // Chevron size
+  }}>
+    ▼
+  </span>
+</button>
+                            </h2>
+                            {expandedAccordion === 'research' && (
+                              <div className="accordion-body" style={{
+                                padding: '0 20px 20px',
+                                backgroundColor: 'white',
+                                marginTop: '15px'
+                              }}>
+                                <ul className="curri-list" style={{
+                                  listStyle: 'none',
+                                  margin: 0,
+                                  padding: 0
+                                }}>
+                                  <li style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    padding: '10px 0',
+                                    borderBottom: '1px solid #e0e0e0'
+                                  }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                      <span style={{ color: '#07A698' }}>▶</span> Mastering Pronunciation and Intonation
+                                    </span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                      54.23 <FaUnlock style={{ color: '#07A698' }} />
+                                    </span>
+                                  </li>
+                                  <li style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    padding: '10px 0',
+                                    borderBottom: '1px solid #e0e0e0'
+                                  }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                      <span style={{ color: '#07A698' }}>▶</span> Building a Strong Vocabulary for Everyday Communication
+                                    </span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                      45.05 <FaUnlock style={{ color: '#07A698' }} />
+                                    </span>
+                                  </li>
+                                  <li style={{
+                                    display: 'flex',
+                                    justifyContent: 'space-between',
+                                    padding: '10px 0'
+                                  }}>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                      <span style={{ color: '#666666' }}>📄</span> Understanding Basic Sentence Structure and Grammar
+                                    </span>
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                      1.6hr <FaLock style={{ color: '#666666' }} />
+                                    </span>
+                                  </li>
+                                </ul>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Instructor Tab */}
+                    {activeTab === 'instructor' && (
+                      <div className="instructor-tab">
+                        <div className="row team-wrap-2 gy-lg-0 gy-4 justify-content-center" style={{
+                          display: 'flex',
+                          flexWrap: 'wrap',
+                          margin: '0 -15px'
+                        }}>
+                          {/* Instructor 1 */}
+                          <div className="col-lg-4 col-md-6" style={{
+                            flex: '0 0 33.333%',
+                            maxWidth: '33.333%',
+                            padding: '0 15px',
+                            marginBottom: '30px'
+                          }}>
+                            <div className="team-item-3 team-item-5" style={{
+                              backgroundColor: '#ffffff',
+                              borderRadius: '10px',
+                              overflow: 'hidden',
+                              boxShadow: '0 5px 15px rgba(0,0,0,0.05)',
+                              textAlign: 'center'
+                            }}>
+                              <div className="team-thumb" style={{
+                                position: 'relative',
+                                padding: '20px'
+                              }}>
+                                <div className="team-men">
+                                  <img src="assets/img/team/team-men-1.png" alt="team" style={{
+                                    width: '150px',
+                                    height: '150px',
+                                    borderRadius: '50%',
+                                    objectFit: 'cover',
+                                    border: '5px solid #f8f9fa'
+                                  }} />
+                                </div>
+                              </div>
+                              <div className="team-content" style={{ padding: '20px' }}>
+                                <h3 className="title" style={{
+                                  fontSize: '20px',
+                                  fontWeight: '700',
+                                  marginBottom: '5px'
+                                }}>Mason D. Logan</h3>
+                                <span style={{
+                                  display: 'block',
+                                  color: '#07A698',
+                                  marginBottom: '15px'
+                                }}>IT Trainer</span>
+                                <ul className="social-list" style={{
+                                  display: 'flex',
+                                  listStyle: 'none',
+                                  margin: 0,
+                                  padding: 0,
+                                  justifyContent: 'center',
+                                  gap: '10px'
+                                }}>
+                                  <li><a href="#" style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '35px',
+                                    height: '35px',
+                                    backgroundColor: '#f8f9fa',
+                                    borderRadius: '50%',
+                                    color: '#07A698',
+                                    transition: 'all 0.3s ease'
+                                  }}><FaFacebookF /></a></li>
+                                  <li><a href="#" style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '35px',
+                                    height: '35px',
+                                    backgroundColor: '#f8f9fa',
+                                    borderRadius: '50%',
+                                    color: '#07A698',
+                                    transition: 'all 0.3s ease'
+                                  }}><FaInstagram /></a></li>
+                                  <li><a href="#" style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '35px',
+                                    height: '35px',
+                                    backgroundColor: '#f8f9fa',
+                                    borderRadius: '50%',
+                                    color: '#07A698',
+                                    transition: 'all 0.3s ease'
+                                  }}><FaBehance /></a></li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Instructor 2 */}
+                          <div className="col-lg-4 col-md-6" style={{
+                            flex: '0 0 33.333%',
+                            maxWidth: '33.333%',
+                            padding: '0 15px',
+                            marginBottom: '30px'
+                          }}>
+                            <div className="team-item-3 team-item-5" style={{
+                              backgroundColor: '#ffffff',
+                              borderRadius: '10px',
+                              overflow: 'hidden',
+                              boxShadow: '0 5px 15px rgba(0,0,0,0.05)',
+                              textAlign: 'center'
+                            }}>
+                              <div className="team-thumb" style={{
+                                position: 'relative',
+                                padding: '20px'
+                              }}>
+                                <div className="team-men">
+                                  <img src="assets/img/team/team-men-2.png" alt="team" style={{
+                                    width: '150px',
+                                    height: '150px',
+                                    borderRadius: '50%',
+                                    objectFit: 'cover',
+                                    border: '5px solid #f8f9fa'
+                                  }} />
+                                </div>
+                              </div>
+                              <div className="team-content" style={{ padding: '20px' }}>
+                                <h3 className="title" style={{
+                                  fontSize: '20px',
+                                  fontWeight: '700',
+                                  marginBottom: '5px'
+                                }}>Scarlett Hannah</h3>
+                                <span style={{
+                                  display: 'block',
+                                  color: '#07A698',
+                                  marginBottom: '15px'
+                                }}>IT Trainer</span>
+                                <ul className="social-list" style={{
+                                  display: 'flex',
+                                  listStyle: 'none',
+                                  margin: 0,
+                                  padding: 0,
+                                  justifyContent: 'center',
+                                  gap: '10px'
+                                }}>
+                                  <li><a href="#" style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '35px',
+                                    height: '35px',
+                                    backgroundColor: '#f8f9fa',
+                                    borderRadius: '50%',
+                                    color: '#07A698',
+                                    transition: 'all 0.3s ease'
+                                  }}><FaFacebookF /></a></li>
+                                  <li><a href="#" style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '35px',
+                                    height: '35px',
+                                    backgroundColor: '#f8f9fa',
+                                    borderRadius: '50%',
+                                    color: '#07A698',
+                                    transition: 'all 0.3s ease'
+                                  }}><FaInstagram /></a></li>
+                                  <li><a href="#" style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '35px',
+                                    height: '35px',
+                                    backgroundColor: '#f8f9fa',
+                                    borderRadius: '50%',
+                                    color: '#07A698',
+                                    transition: 'all 0.3s ease'
+                                  }}><FaBehance /></a></li>
+                                </ul>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Reviews Tab */}
+                    {activeTab === 'reviews' && (
+                      <div className="reviewr-wrap">
+                        <div className="review-list">
+                          {/* Review 1 */}
+                          <div className="review-item" style={{
+                            display: 'flex',
+                            gap: '20px',
+                            marginBottom: '30px',
+                            paddingBottom: '30px',
+                            borderBottom: '1px solid #e0e0e0'
+                          }}>
+                            <div className="review-thumb">
+                              <img src="assets/img/shop/review-list-1.jpg" alt="img" style={{
+                                width: '70px',
+                                height: '70px',
+                                borderRadius: '50%',
+                                objectFit: 'cover'
+                              }} />
+                            </div>
+                            <div className="content" style={{ flex: 1 }}>
+                              <div className="content-top" style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: '10px'
+                              }}>
+                                <h4 className="name" style={{
+                                  margin: 0,
+                                  fontSize: '18px',
+                                  fontWeight: '600'
+                                }}>
+                                  Eleanor Fant <span style={{
+                                    display: 'block',
+                                    fontSize: '14px',
+                                    color: '#666666',
+                                    fontWeight: 'normal'
+                                  }}>06 March, 2023</span>
+                                </h4>
+                                <ul className="review" style={{
+                                  display: 'flex',
+                                  listStyle: 'none',
+                                  margin: 0,
+                                  padding: 0,
+                                  gap: '5px'
+                                }}>
+                                  {[...Array(5)].map((_, i) => (
+                                    <li key={i}><FaStar style={{ color: '#FFD700' }} /></li>
+                                  ))}
+                                </ul>
+                              </div>
+                              <p style={{ margin: 0, lineHeight: '1.6' }}>
+                                Mauris non dignissim purus, ac commodo diam. Donec sit amet lacinia nulla. Aliquam quis purus in justo pulvinar tempor.
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Review 2 */}
+                          <div className="review-item" style={{
+                            display: 'flex',
+                            gap: '20px'
+                          }}>
+                            <div className="review-thumb">
+                              <img src="assets/img/shop/review-list-2.jpg" alt="img" style={{
+                                width: '70px',
+                                height: '70px',
+                                borderRadius: '50%',
+                                objectFit: 'cover'
+                              }} />
+                            </div>
+                            <div className="content" style={{ flex: 1 }}>
+                              <div className="content-top" style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                marginBottom: '10px'
+                              }}>
+                                <h4 className="name" style={{
+                                  margin: 0,
+                                  fontSize: '18px',
+                                  fontWeight: '600'
+                                }}>
+                                  Haliey White <span style={{
+                                    display: 'block',
+                                    fontSize: '14px',
+                                    color: '#666666',
+                                    fontWeight: 'normal'
+                                  }}>06 March, 2023</span>
+                                </h4>
+                                <ul className="review" style={{
+                                  display: 'flex',
+                                  listStyle: 'none',
+                                  margin: 0,
+                                  padding: 0,
+                                  gap: '5px'
+                                }}>
+                                  {[...Array(5)].map((_, i) => (
+                                    <li key={i}><FaStar style={{ color: '#FFD700' }} /></li>
+                                  ))}
+                                </ul>
+                              </div>
+                              <p style={{ margin: 0, lineHeight: '1.6' }}>
+                                Designed very similarly to the nearly double priced Galaxy tab S6, with the only removal being.Mauris non dignissim purus, ac commodo diam. Donec sit amet lacinia nulla. Aliquam quis purus in justo pulvinar tempor.
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
             </div>
-            
+
+            {/* Sidebar - Same as before */}
             <div className="col-xl-3 col-lg-12" style={{
               flex: '0 0 25%',
               maxWidth: '25%',
@@ -633,22 +1158,22 @@ const EdCareReact = () => {
                     backgroundColor: '#059a8c'
                   }
                 }}>Add to Cart</a>
-                <a href="cart.html" className="ed-primary-btn buy-btn" style={{
+                <a href="cart.html" className=" buy-btn custom-buy-btn " style={{
                   display: 'block',
                   textAlign: 'center',
-                  backgroundColor: '#ffffff',
-                  color: '#07A698',
+                 backgroundColor: isHovered ? '#07A698' : 'white',
+                 color: isHovered ? '#ffffff' : '#07A698',
                   padding: '12px',
                   borderRadius: '5px',
                   textDecoration: 'none',
                   fontWeight: '600',
                   border: '1px solid #07A698',
                   transition: 'all 0.3s ease',
-                  ':hover': {
-                    backgroundColor: '#07A698',
-                    color: '#ffffff'
-                  }
-                }}>Buy Now</a>
+                  
+                }}
+                onMouseEnter={() => setIsHovered(true)}
+                onMouseLeave={() => setIsHovered(false)}
+                >Buy Now</a>
               </div>
               
               <div className="course-sidebar sticky-widget" style={{
@@ -678,7 +1203,7 @@ const EdCareReact = () => {
                     borderBottom: '1px solid #f0f0f0'
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#666666' }}>
-                      <i className="fa-regular fa-house-chimney"></i>Instructor:
+                      <i className="fa-solid fa-house-chimney"></i>Instructor:
                     </span>
                     <span style={{ fontWeight: '600' }}>Kevin Perry</span>
                   </li>
@@ -689,7 +1214,7 @@ const EdCareReact = () => {
                     borderBottom: '1px solid #f0f0f0'
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#666666' }}>
-                      <i className="fa-regular fa-book"></i>Lessons:
+                      <i className="fa-solid fa-book"></i>Lessons:
                     </span>
                     <span style={{ fontWeight: '600' }}>8</span>
                   </li>
@@ -700,7 +1225,7 @@ const EdCareReact = () => {
                     borderBottom: '1px solid #f0f0f0'
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#666666' }}>
-                      <i className="fa-regular fa-clock"></i>Duration:
+                      <i className="fa-solid fa-clock"></i>Duration:
                     </span>
                     <span style={{ fontWeight: '600' }}>15h 30m 36s</span>
                   </li>
@@ -711,7 +1236,7 @@ const EdCareReact = () => {
                     borderBottom: '1px solid #f0f0f0'
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#666666' }}>
-                      <i className="fa-regular fa-tag"></i>Course level:
+                      <i className="fa-solid fa-tag"></i>Course level:
                     </span>
                     <span style={{ fontWeight: '600' }}>Beginners</span>
                   </li>
@@ -722,7 +1247,7 @@ const EdCareReact = () => {
                     borderBottom: '1px solid #f0f0f0'
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#666666' }}>
-                      <i className="fa-regular fa-globe"></i>Language:
+                      <i className="fa-solid fa-globe"></i>Language:
                     </span>
                     <span style={{ fontWeight: '600' }}>English</span>
                   </li>
@@ -732,7 +1257,7 @@ const EdCareReact = () => {
                     padding: '10px 0'
                   }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '10px', color: '#666666' }}>
-                      <i className="fa-regular fa-puzzle-piece"></i>Quizzes:
+                      <i className="fa-solid fa-puzzle-piece"></i>Quizzes:
                     </span>
                     <span style={{ fontWeight: '600' }}>04</span>
                   </li>
@@ -763,251 +1288,14 @@ const EdCareReact = () => {
                 </div>
               </div>
             </div>
+            {/* ... */}
           </div>
         </div>
       </section>
 
-      {/* Footer Section */}
-      <footer className="footer-section pt-120" style={{
-        padding: '120px 0 0',
-        backgroundColor: '#191A1F',
-        color: '#ffffff',
-        position: 'relative',
-        backgroundImage: 'url(assets/img/bg-img/footer-bg.png)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center'
-      }}>
-        <div className="footer-top-wrap" style={{
-          paddingBottom: '80px'
-        }}>
-          <div className="container" style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            padding: '0 15px'
-          }}>
-            <div className="footer-top text-center" style={{
-              marginBottom: '80px'
-            }}>
-              <h2 className="title" style={{
-                fontSize: '36px',
-                fontWeight: '700',
-                marginBottom: '20px',
-                lineHeight: '1.3'
-              }}>Subscribe Our Newsletter For <br />Latest Updates</h2>
-              
-              <div className="footer-form-wrap" style={{
-                maxWidth: '600px',
-                margin: '0 auto'
-              }}>
-                <form className="footer-form" style={{
-                  display: 'flex',
-                  gap: '10px'
-                }}>
-                  <div className="form-item" style={{
-                    flex: 1,
-                    position: 'relative'
-                  }}>
-                    <input type="text" id="email-2" name="email" className="form-control" placeholder="Enter Your E-mail" style={{
-                      width: '100%',
-                      padding: '15px 20px',
-                      borderRadius: '5px',
-                      border: 'none',
-                      outline: 'none'
-                    }} />
-                    <div className="icon" style={{
-                      position: 'absolute',
-                      right: '20px',
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      color: '#666666'
-                    }}>
-                      <FaEnvelope />
-                    </div>
-                  </div>
-                  <button className="ed-primary-btn" style={{
-                    backgroundColor: '#07A698',
-                    color: '#ffffff',
-                    padding: '0 30px',
-                    borderRadius: '5px',
-                    border: 'none',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    transition: 'all 0.3s ease',
-                    ':hover': {
-                      backgroundColor: '#059a8c'
-                    }
-                  }}>Subscribe Now</button>
-                </form>
-              </div>
-            </div>
-            
-            <div className="row footer-wrap" style={{
-              display: 'flex',
-              flexWrap: 'wrap',
-              margin: 0
-            }}>
-              <div className="col-lg-3 col-md-6" style={{
-                flex: '0 0 25%',
-                maxWidth: '25%',
-                padding: '0 15px'
-              }}>
-                <div className="footer-widget">
-                  <h3 className="widget-header" style={{
-                    fontSize: '20px',
-                    fontWeight: '700',
-                    marginBottom: '25px',
-                    position: 'relative',
-                    paddingBottom: '15px'
-                  }}>
-                    Get in touch!
-                    <span style={{
-                      position: 'absolute',
-                      bottom: 0,
-                      left: 0,
-                      width: '50px',
-                      height: '2px',
-                      backgroundColor: '#07A698'
-                    }}></span>
-                  </h3>
-                  
-                  <p style={{
-                    marginBottom: '30px',
-                    lineHeight: '1.6'
-                  }}>Fusce varius, dolor tempor interdum tristiquei bibendum.</p>
-                  
-                  <div className="footer-contact" style={{
-                    marginBottom: '30px'
-                  }}>
-                    <span className="number" style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      marginBottom: '10px'
-                    }}>
-                      <FaPhone />
-                      <a href="tel:702123-1478" style={{
-                        color: '#ffffff',
-                        textDecoration: 'none'
-                      }}>(702) 123-1478</a>
-                    </span>
-                    <a href="mailto:info@company.com" className="mail" style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '10px',
-                      color: '#ffffff',
-                      textDecoration: 'none'
-                    }}>
-                      <FaEnvelope /> info@company.com
-                    </a>
-                  </div>
-                  
-                  <ul className="footer-social" style={{
-                    display: 'flex',
-                    listStyle: 'none',
-                    margin: 0,
-                    padding: 0,
-                    gap: '15px'
-                  }}>
-                    <li><a href="#" style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '35px',
-                      height: '35px',
-                      backgroundColor: 'rgba(255,255,255,0.1)',
-                      borderRadius: '50%',
-                      color: '#ffffff',
-                      transition: 'all 0.3s ease',
-                      ':hover': {
-                        backgroundColor: '#07A698'
-                      }
-                    }}><FaFacebookF /></a></li>
-                    <li><a href="#" style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '35px',
-                      height: '35px',
-                      backgroundColor: 'rgba(255,255,255,0.1)',
-                      borderRadius: '50%',
-                      color: '#ffffff',
-                      transition: 'all 0.3s ease',
-                      ':hover': {
-                        backgroundColor: '#07A698'
-                      }
-                    }}><FaInstagram /></a></li>
-                    <li><a href="#" style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '35px',
-                      height: '35px',
-                      backgroundColor: 'rgba(255,255,255,0.1)',
-                      borderRadius: '50%',
-                      color: '#ffffff',
-                      transition: 'all 0.3s ease',
-                      ':hover': {
-                        backgroundColor: '#07A698'
-                      }
-                    }}><FaBehance /></a></li>
-                    <li><a href="#" style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '35px',
-                      height: '35px',
-                      backgroundColor: 'rgba(255,255,255,0.1)',
-                      borderRadius: '50%',
-                      color: '#ffffff',
-                      transition: 'all 0.3s ease',
-                      ':hover': {
-                        backgroundColor: '#07A698'
-                      }
-                    }}><FaPinterest /></a></li>
-                    <li><a href="#" style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '35px',
-                      height: '35px',
-                      backgroundColor: 'rgba(255,255,255,0.1)',
-                      borderRadius: '50%',
-                      color: '#ffffff',
-                      transition: 'all 0.3s ease',
-                      ':hover': {
-                        backgroundColor: '#07A698'
-                      }
-                    }}><FaYoutube /></a></li>
-                  </ul>
-                </div>
-              </div>
-              
-              {/* Other footer columns would go here */}
-              {/* ... */}
-              
-            </div>
-          </div>
-        </div>
-        
-        <div className="copyright-area" style={{
-          backgroundColor: '#000000',
-          padding: '20px 0'
-        }}>
-          <div className="container" style={{
-            maxWidth: '1200px',
-            margin: '0 auto',
-            padding: '0 15px'
-          }}>
-            <div className="copyright-content" style={{
-              textAlign: 'center',
-              color: '#ffffff',
-              fontSize: '14px'
-            }}>
-              <p>Copyright © 2025 EdCare. All Rights Reserved.</p>
-            </div>
-          </div>
-        </div>
-      </footer>
+      <Footer/>
+
+      
     </div>
   );
 };
