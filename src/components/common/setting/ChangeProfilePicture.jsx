@@ -3,8 +3,9 @@ import { FiUpload } from "react-icons/fi";
 import { useDispatch, useSelector } from "react-redux";
 import { updateDisplayPicture } from "../../../services/operations/profileApi";
 
-const GREEN = '#009e5c';
-const GREEN_DARK = '#007a44';
+const ED_TEAL = '#07A698';
+const ED_TEAL_DARK = '#059a8c';
+
 const BORDER = '#e0e0e0';
 const CARD_BG = '#fff';
 const TEXT_DARK = '#222';
@@ -77,7 +78,7 @@ export default function ChangeProfilePicture() {
             style={{ display: 'none' }}
             accept="image/png, image/gif, image/jpeg"
           />
-          <button
+          {/* <button
             onClick={handleClick}
             disabled={loading}
             style={{ background: '#e6fcf5', color: GREEN, border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer' }}
@@ -92,7 +93,52 @@ export default function ChangeProfilePicture() {
             onMouseOut={e => e.target.style.background = GREEN}
           >
             {loading ? 'Uploading...' : 'Upload'} <FiUpload style={{ fontSize: 18, color: loading ? '#fff' : '#fff' }} />
-          </button>
+          </button> */}
+
+          <button
+  onClick={handleClick}
+  disabled={loading}
+  style={{
+    background: '#e6fcf5',
+    color: ED_TEAL,
+    border: 'none',
+    borderRadius: 8,
+    padding: '10px 24px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+  }}
+>
+  Select
+</button>
+
+<button
+  onClick={handleFileUpload}
+  disabled={loading || !imageFile}
+  style={{
+    background: ED_TEAL,
+    color: '#fff',
+    border: 'none',
+    borderRadius: 8,
+    padding: '10px 24px',
+    fontWeight: 700,
+    cursor: loading ? 'not-allowed' : 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: 8,
+    transition: 'all 0.2s ease',
+  }}
+  onMouseOver={(e) => {
+    if (!loading) e.target.style.background = ED_TEAL_DARK;
+  }}
+  onMouseOut={(e) => {
+    if (!loading) e.target.style.background = ED_TEAL;
+  }}
+>
+  {loading ? 'Uploading...' : 'Upload'}{' '}
+  <FiUpload style={{ fontSize: 18, color: '#fff' }} />
+</button>
+
         </div>
       </div>
     </div>

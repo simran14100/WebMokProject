@@ -20,7 +20,7 @@ const adminSidebarLinks = [
 ];
 
 const studentSidebarLinks = [
-  { name: "My Profile", path: "/dashboard/my-profile", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+  { name: "Dashboard", path: "/dashboard", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
   { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
   { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
   { name: "Active Courses", path: "/dashboard/active-courses", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
@@ -50,11 +50,12 @@ const getSidebarLinks = (user) => {
     { name: "Manage Categories", path: "/admin/categories", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
     { name: "Settings", path: "/admin/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
   ];
+  // STUDENT LINKS (update here)
   return [
-    { name: "My Profile", path: "/dashboard/my-profile", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
-    { name: "Active Courses", path: "/dashboard/active-courses", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
+    { name: "Dashboard", path: "/dashboard", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
     { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
     { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
+    { name: "Active Courses", path: "/dashboard/active-courses", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
   ];
 };
 
@@ -174,4 +175,4 @@ export default function Sidebar() {
       {confirmationModal && <ConfirmationModal modalData={confirmationModal} />}
     </>
   );
-} 
+}

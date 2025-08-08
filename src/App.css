@@ -138,6 +138,8 @@ input, select, textarea {
   color: #fff;
   padding: 8px 0;
   font-size: 14px;
+  position: relative;
+  z-index: 1001;
 }
 
 .top-bar-inner {

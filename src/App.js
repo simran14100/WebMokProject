@@ -37,6 +37,8 @@ import CourseViewer from './pages/CourseViewer';
 import CourseDetails from './pages/CourseDetails';
 
 
+
+
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
 console.log("App starting - localStorage debug:");
@@ -93,7 +95,7 @@ function App() {
                 <Route path="/course/:courseId/:sectionId/:subsectionId" element={<CourseViewer />} />
               </Routes>
             </main>
-            <Footer />
+            {/* <Footer /> */}
             <Toaster 
               position="top-right"
               toastOptions={{

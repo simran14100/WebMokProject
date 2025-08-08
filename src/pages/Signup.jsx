@@ -102,6 +102,7 @@ const Signup = () => {
       justifyContent: 'center', 
       padding: '2rem',
       paddingTop: '4rem',
+      marginTop:'8rem',
       alignItems: 'center', 
       justifyContent: 'center', 
       padding: '2rem',

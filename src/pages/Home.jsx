@@ -4,6 +4,7 @@ import { getAllCourses, fetchCourseCategories } from '../services/operations/cou
 import { getAllInstructors } from '../services/operations/adminApi';
 import { motion } from 'framer-motion';
 import { useInView } from 'react-intersection-observer';
+import Footer from '../components/common/Footer';
 
 const Home = () => {
   const [trendingCourses, setTrendingCourses] = useState([]);
@@ -169,7 +170,7 @@ const Home = () => {
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen" style={{ marginTop: '120px' }}>
       {/* Hero Section - Exact EdCare Template */}
       <motion.section 
         className="hero-section-2 overflow-hidden"
@@ -1718,7 +1719,7 @@ const Home = () => {
                 <div style={{ padding: '50px', fontSize: '18px', color: '#666' }}>Loading instructors...</div>
               </div>
             ) : instructors.length > 0 ? (
-              instructors.slice(0, 4).map((instructor, index) => (
+              instructors.slice(1, 4).map((instructor, index) => (
                 <div key={instructor._id || index} className="col-xl-3 col-lg-4 col-md-6">
                   <div className="team-item-2 wow fade-in-bottom" data-wow-delay={`${(index + 1) * 200}ms`}>
                     <div className="team-thumb">
@@ -2241,7 +2242,7 @@ const Home = () => {
         </div>
       </section>
 
-
+     <Footer/>
 
     </div>
   );

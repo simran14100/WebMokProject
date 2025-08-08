@@ -37,7 +37,8 @@ const Login = () => {
       alignItems: 'center', 
       justifyContent: 'center', 
       padding: '2rem',
-      paddingTop: '4rem',
+      paddingTop: '8rem',
+      marginTop:'4rem',
       fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
     }}>
       <div style={{ 

@@ -7,6 +7,12 @@ import CourseSlider from "../components/core/Catalog/Course_Slider";
 import { apiConnector } from "../services/apiConnector";
 import { categories } from "../services/apis";
 import { getCatalogPageData } from "../services/operations/courseDetailsAPI";
+import pageHeaderShape1 from '../assets/img/shapes/page-header-shape-1.png';
+import pageHeaderShape2 from '../assets/img/shapes/page-header-shape-2.png';
+import pageHeaderShape3 from '../assets/img/shapes/page-header-shape-3.png';
+import { Link } from "react-router-dom";
+import pageHeaderBg from '../assets/img/bg-img/page-header-bg.png';
+
 // import Error from "../components/common/Error";
 
 function Catalog() {
@@ -24,7 +30,7 @@ function Catalog() {
         console.log("Fetched categories:", res?.data?.data);
         const slugify = str => str.split(" ").join("-").toLowerCase();
         const category = res?.data?.data?.find(
-          (ct) => slugify(ct.name) === slugify(catalogName)
+          (ct) => slugify(ct.name) === slugify(catalogName) || ct._id === catalogName
         );
         console.log("Matched category:", category);
         setCategoryId(category?._id || "");
@@ -104,7 +110,7 @@ function Catalog() {
   return (
     <>    
       {/* Hero Section */}
-      <div className="bg-white px-4 py-16 border-b border-gray-200">
+      {/* <div className="bg-white px-4 py-16 border-b border-gray-200 ">
         <div className="mx-auto flex min-h-[220px] max-w-6xl flex-col justify-center gap-4">
           <p className="text-xs uppercase tracking-wider text-gray-400 mb-2">
             Home <span className="mx-2">/</span> Catalog <span className="mx-2">/</span>
@@ -120,7 +126,149 @@ function Catalog() {
             {catalogPageData?.data?.selectedCategory?.description}
           </p>
         </div>
+      </div> */}
+      {/* Page Header */}
+<section style={{ 
+  position: 'relative', 
+  padding: '120px 0', 
+  overflow: 'hidden',
+  borderBottom: '1px solid #e5e7eb',
+  marginTop:'4rem'
+}}>
+  {/* Background Image */}
+  <div style={{ 
+    position: 'absolute', 
+    inset: 0, 
+    backgroundImage: `url(${pageHeaderBg})`,
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    backgroundRepeat: 'no-repeat',
+    marginTop:'4rem'
+  }}></div>
+  
+  {/* Dark Overlay */}
+  <div style={{ 
+    position: 'absolute', 
+    inset: 0, 
+    backgroundColor: 'black', 
+    opacity: 0.4 
+  }}></div>
+  
+  {/* Background Shapes */}
+  <div style={{ position: 'absolute', inset: 0 }}>
+    <div style={{ 
+      position: 'absolute', 
+      top: '40px', 
+      left: '40px', 
+      opacity: 0.1 
+    }}>
+      <img src={pageHeaderShape1} alt="shape" style={{ width: '80px', height: '80px' }} />
+    </div>
+    <div style={{ 
+      position: 'absolute', 
+      top: '80px', 
+      right: '80px', 
+      opacity: 0.1 
+    }}>
+      <img src={pageHeaderShape2} alt="shape" style={{ width: '64px', height: '64px' }} />
+    </div>
+    <div style={{ 
+      position: 'absolute', 
+      bottom: '40px', 
+      left: '25%', 
+      opacity: 0.1 
+    }}>
+      <img src={pageHeaderShape3} alt="shape" style={{ width: '48px', height: '48px' }} />
+    </div>
+  </div>
+  
+  {/* Content Container */}
+  <div style={{ 
+    position: 'relative', 
+    maxWidth: '1280px', 
+    margin: '0 auto', 
+    padding: '0 16px' 
+  }}>
+    <div style={{ 
+      display: 'flex',
+      flexDirection: 'column',
+      justifyContent: 'center',
+      minHeight: '220px',
+      gap: '16px'
+    }}>
+      {/* Breadcrumb Navigation */}
+      <div style={{ 
+        display: 'flex', 
+        alignItems: 'center', 
+        gap: '8px', 
+        color: 'rgba(255,255,255,0.8)',
+        fontSize: '14px',
+        textTransform: 'uppercase',
+        letterSpacing: '1px'
+      }}>
+        <Link to="/" style={{ 
+          color: 'rgba(255,255,255,0.8)', 
+          textDecoration: 'none',
+          transition: 'color 0.3s',
+          ':hover': {
+            color: 'white'
+          }
+        }}>
+          Home
+        </Link>
+        <span>/</span>
+        <Link to="/catalog" style={{ 
+          color: 'rgba(255,255,255,0.8)', 
+          textDecoration: 'none',
+          transition: 'color 0.3s',
+          ':hover': {
+            color: 'white'
+          }
+        }}>
+          Catalog
+        </Link>
+        <span>/</span>
+        <span style={{ 
+          color: '#07A698',
+          fontWeight: '600'
+        }}>
+          {catalogPageData?.data?.selectedCategory?.name}
+        </span>
       </div>
+      
+      {/* Main Title */}
+      <h1 style={{ 
+        fontSize: '48px', 
+        fontWeight: '800', 
+        color: 'white', 
+        margin: 0,
+        display: 'flex',
+        alignItems: 'center',
+        gap: '16px'
+      }}>
+        <span style={{ 
+          display: 'inline-block',
+          width: '4px',
+          height: '40px',
+          backgroundColor: '#07A698',
+          borderRadius: '2px'
+        }}></span>
+        {catalogPageData?.data?.selectedCategory?.name}
+      </h1>
+      
+      {/* Description */}
+      <p style={{ 
+        maxWidth: '600px',
+        color: 'rgba(255,255,255,0.9)',
+        fontSize: '18px',
+        lineHeight: '1.6',
+        margin: 0
+      }}>
+        {catalogPageData?.data?.selectedCategory?.description}
+      </p>
+    </div>
+  </div>
+</section>
 
       {/* Section 1: Courses to get you started */}
       <section className="mx-auto w-full max-w-6xl px-4 py-16 bg-white border-b border-gray-100">
@@ -200,4 +348,4 @@ function Catalog() {
   );
 }
 
-export default Catalog; 
+export default Catalog;

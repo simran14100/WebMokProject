@@ -12,6 +12,10 @@ const TEXT_GRAY = '#888';
 const GREEN = '#009e5c';
 const GREEN_DARK = '#007a44';
 
+
+const ED_TEAL = '#07A698';
+const ED_TEAL_DARK = '#059a8c';
+
 export default function UpdatePassword() {
   const { token } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
@@ -42,7 +46,7 @@ export default function UpdatePassword() {
   return (
     <form onSubmit={handleSubmit(onSubmit)}>
       <div style={{ background: CARD_BG, borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: `1px solid ${BORDER}`, padding: 32, marginBottom: 32 }}>
-        <div style={{ fontWeight: 700, color: GREEN, fontSize: 20, marginBottom: 18 }}>Update Password</div>
+        <div style={{ fontWeight: 700, color: ED_TEAL, fontSize: 20, marginBottom: 18 }}>Update Password</div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div style={{ position: 'relative' }}>
             <label htmlFor="currentPassword" style={{ color: TEXT_GRAY, fontWeight: 500, marginBottom: 4, display: 'block' }}>Current Password</label>
@@ -121,15 +125,15 @@ export default function UpdatePassword() {
           <button
             type="button"
             onClick={() => reset()}
-            style={{ background: '#e6fcf5', color: GREEN, border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer' }}
+            style={{ background: '#e6fcf5', color: ED_TEAL, border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer' }}
           >
             Cancel
           </button>
           <button
             type="submit"
-            style={{ background: GREEN, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' }}
-            onMouseOver={e => e.target.style.background = GREEN_DARK}
-            onMouseOut={e => e.target.style.background = GREEN}
+            style={{ background:ED_TEAL , color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' }}
+            onMouseOver={e => e.target.style.background = ED_TEAL_DARK}
+            onMouseOut={e => e.target.style.background = ED_TEAL}
           >
             Save
           </button>

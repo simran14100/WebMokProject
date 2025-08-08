@@ -325,8 +325,8 @@ export default function EnrolledStudents() {
             </select>
           )}
         </div>
-      </div>
-      
+        </div>
+        
       {/* Table Section */}
       {(() => {
         if (loadingCourses) {
@@ -375,10 +375,10 @@ export default function EnrolledStudents() {
                 <svg style={{ width: '32px', height: '32px', color: '#ef4444' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
-              </div>
+          </div>
               <p style={{ fontSize: '18px', color: '#ef4444', fontWeight: '600', margin: '0 0 8px 0' }}>{coursesError}</p>
               <p style={{ color: '#6b7280', margin: '0' }}>Please try refreshing the page</p>
-            </div>
+          </div>
           );
         } else {
           return (
@@ -391,17 +391,17 @@ export default function EnrolledStudents() {
             }}>
               <div style={{ overflowX: 'auto' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                  <thead>
+              <thead>
                                          <tr style={{ background: 'linear-gradient(135deg, #07A698 0%, #059a8c 100%)' }}>
                       <th style={{ padding: '16px 24px', textAlign: 'left', color: 'white', fontWeight: 'bold', fontSize: '18px' }}>Student Name</th>
                       <th style={{ padding: '16px 24px', textAlign: 'left', color: 'white', fontWeight: 'bold', fontSize: '18px' }}>Email Address</th>
                       <th style={{ padding: '16px 24px', textAlign: 'left', color: 'white', fontWeight: 'bold', fontSize: '18px' }}>Courses Enrolled</th>
                       <th style={{ padding: '16px 24px', textAlign: 'left', color: 'white', fontWeight: 'bold', fontSize: '18px' }}>Total Courses</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredStudents.length === 0 ? (
-                      <tr>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredStudents.length === 0 ? (
+                  <tr>
                         <td colSpan={4} style={{ padding: '48px', textAlign: 'center' }}>
                           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                             <div style={{
@@ -422,8 +422,8 @@ export default function EnrolledStudents() {
                             <p style={{ color: '#6b7280', margin: '0' }}>There are currently no students enrolled in the selected course.</p>
                           </div>
                         </td>
-                      </tr>
-                    ) : (
+                  </tr>
+                ) : (
                       filteredStudents.map((student, index) => (
                         <tr key={student._id} style={{ 
                           borderBottom: '1px solid #f3f4f6',
@@ -485,7 +485,7 @@ export default function EnrolledStudents() {
                                 </span>
                               ))}
                             </div>
-                          </td>
+                      </td>
                           <td style={{ padding: '16px 24px' }}>
                             <div style={{ display: 'flex', alignItems: 'center' }}>
                               <div style={{
@@ -513,14 +513,14 @@ export default function EnrolledStudents() {
                               </div>
                               <span style={{ color: '#374151', fontWeight: '500' }}>courses</span>
                             </div>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+      </div>
+    </div>
           );
         }
       })()}
@@ -535,5 +535,5 @@ export default function EnrolledStudents() {
        </style>
        </div>
      </DashboardLayout>
-   );
- }  
+  );
+} 

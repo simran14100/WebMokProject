@@ -250,10 +250,10 @@ const AdmissionConfirmation = () => {
           fontSize: '36px',
           letterSpacing: '-0.5px'
         }}>
-          Admission Confirmation
-        </div>
+              Admission Confirmation
+          </div>
 
-      {/* Stats Cards */}
+          {/* Stats Cards */}
       <div style={{ 
         display: 'grid', 
         gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
@@ -336,7 +336,7 @@ const AdmissionConfirmation = () => {
           <div style={{ color: ERROR_RED, fontSize: '32px', fontWeight: '700' }}>
             {stats.totalRejected || 0}
           </div>
-        </div>
+            </div>
 
         <div style={{ 
           background: CARD_BG, 
@@ -358,11 +358,11 @@ const AdmissionConfirmation = () => {
           }}></div>
           <div style={{ color: TEXT_GRAY, fontSize: '14px', fontWeight: '600', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
             Total Confirmations
-          </div>
+            </div>
           <div style={{ color: INFO_BLUE, fontSize: '32px', fontWeight: '700' }}>
             {stats.totalConfirmations || 0}
-          </div>
-        </div>
+            </div>
+            </div>
 
         <div style={{ 
           background: CARD_BG, 
@@ -388,10 +388,10 @@ const AdmissionConfirmation = () => {
           <div style={{ color: ED_TEAL, fontSize: '32px', fontWeight: '700' }}>
             {stats.todayConfirmations || 0}
           </div>
-        </div>
-      </div>
+            </div>
+          </div>
 
-      {/* Filters */}
+          {/* Filters */}
       <div style={{ 
         background: CARD_BG, 
         borderRadius: '16px', 
@@ -407,11 +407,11 @@ const AdmissionConfirmation = () => {
           alignItems: 'stretch'
         }}>
           <div style={{ flex: 1 }}>
-            <input
-              type="text"
-              placeholder="Search by order ID or payment ID..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+                <input
+                  type="text"
+                  placeholder="Search by order ID or payment ID..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
               style={{
                 width: '100%',
                 padding: '12px 16px',
@@ -431,12 +431,12 @@ const AdmissionConfirmation = () => {
                 e.target.style.borderColor = BORDER;
                 e.target.style.boxShadow = 'none';
               }}
-            />
-          </div>
-          <div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+                />
+              </div>
+              <div>
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
               style={{
                 width: '100%',
                 padding: '12px 16px',
@@ -457,17 +457,17 @@ const AdmissionConfirmation = () => {
                 e.target.style.borderColor = BORDER;
                 e.target.style.boxShadow = 'none';
               }}
-            >
-              <option value="all">All Status</option>
-              <option value="Pending">Pending</option>
-              <option value="Confirmed">Confirmed</option>
-              <option value="Rejected">Rejected</option>
-            </select>
+                >
+                  <option value="all">All Status</option>
+                  <option value="Pending">Pending</option>
+                  <option value="Confirmed">Confirmed</option>
+                  <option value="Rejected">Rejected</option>
+                </select>
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
 
-      {/* Confirmations Table */}
+          {/* Confirmations Table */}
       <div style={{ 
         background: CARD_BG, 
         borderRadius: '16px', 
@@ -489,8 +489,8 @@ const AdmissionConfirmation = () => {
                   letterSpacing: '0.5px',
                   borderBottom: `1px solid ${BORDER}`
                 }}>
-                  Student
-                </th>
+                      Student
+                    </th>
                 <th style={{ 
                   padding: '16px 24px', 
                   textAlign: 'left', 
@@ -501,8 +501,8 @@ const AdmissionConfirmation = () => {
                   letterSpacing: '0.5px',
                   borderBottom: `1px solid ${BORDER}`
                 }}>
-                  Course
-                </th>
+                      Course
+                    </th>
                 <th style={{ 
                   padding: '16px 24px', 
                   textAlign: 'left', 
@@ -513,8 +513,8 @@ const AdmissionConfirmation = () => {
                   letterSpacing: '0.5px',
                   borderBottom: `1px solid ${BORDER}`
                 }}>
-                  Payment Details
-                </th>
+                      Payment Details
+                    </th>
                 <th style={{ 
                   padding: '16px 24px', 
                   textAlign: 'left', 
@@ -525,8 +525,8 @@ const AdmissionConfirmation = () => {
                   letterSpacing: '0.5px',
                   borderBottom: `1px solid ${BORDER}`
                 }}>
-                  Status
-                </th>
+                      Status
+                    </th>
                 <th style={{ 
                   padding: '16px 24px', 
                   textAlign: 'left', 
@@ -537,8 +537,8 @@ const AdmissionConfirmation = () => {
                   letterSpacing: '0.5px',
                   borderBottom: `1px solid ${BORDER}`
                 }}>
-                  Date
-                </th>
+                      Date
+                    </th>
                 <th style={{ 
                   padding: '16px 24px', 
                   textAlign: 'left', 
@@ -549,13 +549,13 @@ const AdmissionConfirmation = () => {
                   letterSpacing: '0.5px',
                   borderBottom: `1px solid ${BORDER}`
                 }}>
-                  Actions
-                </th>
-              </tr>
-            </thead>
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
             <tbody>
-              {loading ? (
-                <tr>
+                  {loading ? (
+                    <tr>
                   <td colSpan="6" style={{ 
                     padding: '40px 24px', 
                     textAlign: 'center', 
@@ -564,20 +564,20 @@ const AdmissionConfirmation = () => {
                   }}>
                     <div className="spinner" style={{ margin: '0 auto 16px' }}></div>
                     Loading confirmations...
-                  </td>
-                </tr>
-              ) : confirmations.length === 0 ? (
-                <tr>
+                      </td>
+                    </tr>
+                  ) : confirmations.length === 0 ? (
+                    <tr>
                   <td colSpan="6" style={{ 
                     padding: '40px 24px', 
                     textAlign: 'center', 
                     color: TEXT_GRAY,
                     fontSize: '16px'
                   }}>
-                    No admission confirmations found
-                  </td>
-                </tr>
-              ) : (
+                        No admission confirmations found
+                      </td>
+                    </tr>
+                  ) : (
                 confirmations.map((confirmation, index) => (
                   <tr key={confirmation._id} style={{ 
                     borderBottom: index < confirmations.length - 1 ? `1px solid ${BORDER}` : 'none',
@@ -590,63 +590,63 @@ const AdmissionConfirmation = () => {
                     e.currentTarget.style.background = 'transparent';
                   }}>
                     <td style={{ padding: '20px 24px' }}>
-                      <div>
+                          <div>
                         <div style={{ 
                           fontSize: '14px', 
                           fontWeight: '600', 
                           color: TEXT_DARK,
                           marginBottom: '4px'
                         }}>
-                          {confirmation.student?.firstName} {confirmation.student?.lastName}
-                        </div>
+                              {confirmation.student?.firstName} {confirmation.student?.lastName}
+                            </div>
                         <div style={{ 
                           fontSize: '13px', 
                           color: TEXT_GRAY 
                         }}>
-                          {confirmation.student?.email}
-                        </div>
-                      </div>
-                    </td>
+                              {confirmation.student?.email}
+                            </div>
+                          </div>
+                        </td>
                     <td style={{ padding: '20px 24px' }}>
-                      <div>
+                          <div>
                         <div style={{ 
                           fontSize: '14px', 
                           fontWeight: '600', 
                           color: TEXT_DARK,
                           marginBottom: '4px'
                         }}>
-                          {confirmation.course?.courseName}
-                        </div>
+                              {confirmation.course?.courseName}
+                            </div>
                         <div style={{ 
                           fontSize: '13px', 
                           color: TEXT_GRAY 
                         }}>
-                          ₹{confirmation.course?.price}
-                        </div>
-                      </div>
-                    </td>
+                              ₹{confirmation.course?.price}
+                            </div>
+                          </div>
+                        </td>
                     <td style={{ padding: '20px 24px' }}>
                       <div style={{ fontSize: '13px', color: TEXT_GRAY }}>
                         <div style={{ marginBottom: '2px' }}>Order: {confirmation.paymentDetails.orderId}</div>
                         <div style={{ marginBottom: '2px' }}>Payment: {confirmation.paymentDetails.paymentId}</div>
                         <div style={{ fontWeight: '600', color: TEXT_DARK }}>Amount: ₹{confirmation.paymentDetails.amount}</div>
-                      </div>
-                    </td>
+                          </div>
+                        </td>
                     <td style={{ padding: '20px 24px' }}>
-                      {getStatusBadge(confirmation.status)}
-                    </td>
+                          {getStatusBadge(confirmation.status)}
+                        </td>
                     <td style={{ 
                       padding: '20px 24px', 
                       fontSize: '13px', 
                       color: TEXT_GRAY 
                     }}>
-                      {formatDate(confirmation.createdAt)}
-                    </td>
+                          {formatDate(confirmation.createdAt)}
+                        </td>
                     <td style={{ padding: '20px 24px' }}>
                       {confirmation.status === 'Pending' ? (
                         <div style={{ display: 'flex', gap: '8px' }}>
-                          <button
-                            onClick={() => openModal(confirmation, 'confirm')}
+                              <button
+                                onClick={() => openModal(confirmation, 'confirm')}
                             style={{
                               padding: '8px 16px',
                               fontSize: '12px',
@@ -666,11 +666,11 @@ const AdmissionConfirmation = () => {
                               e.target.style.background = 'rgba(16, 185, 129, 0.1)';
                               e.target.style.color = SUCCESS_GREEN;
                             }}
-                          >
-                            Confirm
-                          </button>
-                          <button
-                            onClick={() => openModal(confirmation, 'reject')}
+                              >
+                                Confirm
+                              </button>
+                              <button
+                                onClick={() => openModal(confirmation, 'reject')}
                             style={{
                               padding: '8px 16px',
                               fontSize: '12px',
@@ -690,9 +690,9 @@ const AdmissionConfirmation = () => {
                               e.target.style.background = 'rgba(239, 68, 68, 0.1)';
                               e.target.style.color = ERROR_RED;
                             }}
-                          >
-                            Reject
-                          </button>
+                              >
+                                Reject
+                              </button>
                         </div>
                       ) : (
                         <div style={{ fontSize: '13px', color: TEXT_GRAY }}>
@@ -700,23 +700,23 @@ const AdmissionConfirmation = () => {
                             <div style={{ marginBottom: '4px' }}>
                               By: {confirmation.confirmedBy.firstName} {confirmation.confirmedBy.lastName}
                             </div>
+                              )}
+                              {confirmation.confirmedAt && (
+                                <div>{formatDate(confirmation.confirmedAt)}</div>
+                              )}
+                            </div>
                           )}
-                          {confirmation.confirmedAt && (
-                            <div>{formatDate(confirmation.confirmedAt)}</div>
-                          )}
-                        </div>
-                      )}
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
 
-      {/* Pagination */}
-      {totalPages > 1 && (
+          {/* Pagination */}
+          {totalPages > 1 && (
         <div style={{ 
           display: 'flex', 
           justifyContent: 'center', 
@@ -732,9 +732,9 @@ const AdmissionConfirmation = () => {
             boxShadow: '0 4px 20px rgba(0,0,0,0.08)', 
             border: `1px solid ${BORDER}`
           }}>
-            <button
-              onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
-              disabled={currentPage === 1}
+                <button
+                  onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                  disabled={currentPage === 1}
               style={{
                 padding: '8px 16px',
                 fontSize: '14px',
@@ -759,20 +759,20 @@ const AdmissionConfirmation = () => {
                   e.target.style.color = TEXT_DARK;
                 }
               }}
-            >
-              Previous
-            </button>
+                >
+                  Previous
+                </button>
             <span style={{ 
               padding: '8px 16px', 
               fontSize: '14px', 
               color: TEXT_DARK,
               fontWeight: '600'
             }}>
-              Page {currentPage} of {totalPages}
-            </span>
-            <button
-              onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
-              disabled={currentPage === totalPages}
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                  disabled={currentPage === totalPages}
               style={{
                 padding: '8px 16px',
                 fontSize: '14px',
@@ -797,10 +797,10 @@ const AdmissionConfirmation = () => {
                   e.target.style.color = TEXT_DARK;
                 }
               }}
-            >
-              Next
-            </button>
-          </div>
+                >
+                  Next
+                </button>
+            </div>
         </div>
       )}
 
@@ -973,7 +973,7 @@ const AdmissionConfirmation = () => {
           </div>
         </div>
       )}
-      </div>
+    </div>
     </DashboardLayout>
   );
 };

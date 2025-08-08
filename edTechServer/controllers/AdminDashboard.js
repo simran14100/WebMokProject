@@ -125,6 +125,40 @@ exports.getAllInstructors = async (req, res) => {
     }
 };
 
+// Get individual instructor by ID
+exports.getInstructorById = async (req, res) => {
+    try {
+        const { instructorId } = req.params;
+
+        const instructor = await User.findOne({
+            _id: instructorId,
+            accountType: 'Instructor',
+            approved: true
+        })
+        .populate('additionalDetails')
+        .select('-password -token -resetPasswordExpires');
+
+        if (!instructor) {
+            return res.status(404).json({
+                success: false,
+                message: 'Instructor not found'
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            data: instructor
+        });
+    } catch (error) {
+        console.error('Error fetching instructor by ID:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch instructor',
+            error: error.message
+        });
+    }
+};
+
 // Get pending instructor approvals
 exports.getPendingInstructors = async (req, res) => {
     try {

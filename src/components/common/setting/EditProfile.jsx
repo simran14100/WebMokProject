@@ -8,8 +8,11 @@ const CARD_BG = '#fff';
 const BORDER = '#e0e0e0';
 const TEXT_DARK = '#222';
 const TEXT_GRAY = '#888';
-const GREEN = '#009e5c';
-const GREEN_DARK = '#007a44';
+ const GREEN = '#009e5c';
+// const GREEN_DARK = '#007a44';
+
+const ED_TEAL = '#07A698';
+const ED_TEAL_DARK = '#059a8c';
 
 const genders = ["Male", "Female", "Non-Binary", "Prefer not to say", "Other"];
 
@@ -62,7 +65,7 @@ export default function EditProfile() {
   return (
     <form onSubmit={handleSubmit(submitProfileForm)}>
       <div style={{ background: CARD_BG, borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.04)', border: `1px solid ${BORDER}`, padding: 32, marginBottom: 32 }}>
-        <div style={{ fontWeight: 700, color: GREEN, fontSize: 20, marginBottom: 18 }}>Profile Information</div>
+        <div style={{ fontWeight: 700, color: ED_TEAL, fontSize: 20, marginBottom: 18 }}>Profile Information</div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
           <div style={{ flex: 1, minWidth: 220 }}>
             <label htmlFor="firstName" style={{ color: TEXT_GRAY, fontWeight: 500, marginBottom: 4, display: 'block' }}>First Name</label>
@@ -165,15 +168,15 @@ export default function EditProfile() {
           <button
             type="button"
             onClick={() => navigate("/dashboard/my-profile")}
-            style={{ background: '#e6fcf5', color: GREEN, border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer' }}
+            style={{ background: '#e6fcf5', color: ED_TEAL, border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 600, cursor: 'pointer' }}
           >
             Cancel
           </button>
           <button
             type="submit"
-            style={{ background: GREEN, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' }}
-            onMouseOver={e => e.target.style.background = GREEN_DARK}
-            onMouseOut={e => e.target.style.background = GREEN}
+            style={{ background:  ED_TEAL, color: '#fff', border: 'none', borderRadius: 8, padding: '10px 24px', fontWeight: 700, cursor: 'pointer', transition: 'background 0.2s' }}
+            onMouseOver={e => e.target.style.background = ED_TEAL_DARK }
+            onMouseOut={e => e.target.style.background = ED_TEAL}
           >
             Save
           </button>

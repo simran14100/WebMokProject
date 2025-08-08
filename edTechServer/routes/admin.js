@@ -6,6 +6,7 @@ const {
     getRegisteredUsers,
     getEnrolledStudents,
     getAllInstructors,
+    getInstructorById,
     getPendingInstructors,
     approveInstructor,
     getDashboardStats,
@@ -27,6 +28,9 @@ router.get("/enrolled-students", auth, isAdminLevel, getEnrolledStudents);
 
 // Get all approved instructors (public route)
 router.get("/all-instructors", getAllInstructors);
+
+// Get individual instructor by ID (public route)
+router.get("/all-instructors/:instructorId", getInstructorById);
 
 // Get pending instructor approvals
 router.get("/pending-instructors", auth, isAdminLevel, getPendingInstructors);

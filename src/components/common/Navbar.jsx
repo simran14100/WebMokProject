@@ -77,7 +77,7 @@ const Navbar = () => {
   return (
     <>
       {/* Top Bar - Exact EdCare Template */}
-      <div className="top-bar">
+      <div className="top-bar" style={{ position: 'fixed', top: '0', left: 0, right: 0, zIndex: 1001, display: isSticky ? 'none' : 'block', transition: 'opacity 0.3s ease' }}>
         <div className="container">
           <div className="top-bar-inner">
             <div className="top-bar-left">
@@ -104,7 +104,7 @@ const Navbar = () => {
       </div>
 
       {/* Primary Header - Modified for centered navigation and right-side auth buttons */}
-      <header className={`header header-2 ${isSticky ? 'sticky-active' : ''}`} style={{ position: 'fixed', top: 0, left: 0, right: 0, zIndex: 1000, background: '#fff', boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
+      <header className={`header header-2 ${isSticky ? 'sticky-active' : ''}`} style={{ position: 'fixed', top: isSticky ? '0' : '40px', left: 0, right: 0, zIndex: 1000, background: '#fff', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', transition: 'top 0.3s ease' }}>
         <div className="primary-header">
           <div className="container">
             <div className="primary-header-inner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -117,14 +117,14 @@ const Navbar = () => {
 
               {/* Centered Navigation Menu */}
               <div className="header-menu-wrap" style={{ flex: '1', display: 'flex', justifyContent: 'center' }}>
-                <div className="mobile-menu-items">
+                  <div className="mobile-menu-items">
                   <ul className="sub-menu" style={{ display: 'flex', gap: '2rem', margin: 0, padding: 0, listStyle: 'none' }}>
-                    <li className="nav-item active">
+                      <li className="nav-item active">
                                              <Link to="/" style={{ 
                          textDecoration: 'none', 
                          color: '#191A1F', 
                          fontWeight: '600',
-                         fontSize: '16px',
+                         fontSize: '18px',
                          fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important',
                          letterSpacing: '0.5px',
                          transition: 'all 0.3s ease',
@@ -142,16 +142,16 @@ const Navbar = () => {
                       }}>
                         Home
                       </Link>
-                    </li>
-                    <li className="category-dropdown" ref={categoryDropdownRef} style={{position: 'relative'}}>
-                      <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
+                      </li>
+                                                                                                                 <li className="category-dropdown" ref={categoryDropdownRef} style={{position: 'relative'}}>
+                          <div style={{display: 'flex', alignItems: 'center', gap: '5px'}}>
                         <a href="javascript:void(0)" 
                            onClick={() => setIsCategoryDropdownOpen(!isCategoryDropdownOpen)}
                            style={{ 
                              textDecoration: 'none', 
                              color: '#191A1F', 
                              fontWeight: '600',
-                             fontSize: '16px',
+                             fontSize: '18px',
                              fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important',
                              letterSpacing: '0.5px',
                              transition: 'all 0.3s ease',
@@ -167,110 +167,110 @@ const Navbar = () => {
                              e.target.style.color = '#191A1F';
                              e.target.style.transform = 'translateY(0)';
                            }}>
-                          Category
-                        </a>
-                        <button 
-                          className={`chevron-icon ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} 
-                          style={{
-                            background: 'none',
-                            border: 'none',
-                            fontSize: '12px',
-                            color: '#333',
-                            cursor: 'pointer',
-                            padding: '0',
-                            margin: '0',
-                            display: 'inline-block',
-                            transition: 'transform 0.3s ease'
-                          }}
-                          onClick={() => {
-                            console.log('Chevron clicked! Current state:', isCategoryDropdownOpen);
-                            setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
-                          }}
-                        >
-                          ▼
-                        </button>
-                      </div>
-                      
-                      {isCategoryDropdownOpen && (
-                        <div style={{
-                          position: 'absolute',
-                          top: '100%',
-                          left: '0',
-                          background: '#fff',
-                          border: '1px solid #e0e0e0',
-                          borderRadius: '8px',
-                          boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
-                          minWidth: '220px',
-                          zIndex: 9999,
-                          marginTop: '10px',
-                          padding: '8px 0',
-                          listStyle: 'none'
-                        }}>
-                          {isLoadingCategories ? (
-                            <div style={{
-                              padding: '12px 20px',
-                              color: '#666',
-                              fontSize: '14px',
-                              fontStyle: 'italic'
-                            }}>
-                              Loading categories...
-                            </div>
-                          ) : categories.length > 0 ? (
-                            categories.map((category) => (
-                              <div key={category._id} style={{
-                                borderBottom: '1px solid #f5f5f5',
-                                transition: 'all 0.3s ease'
-                              }}>
-                                <Link 
-                                  to={`/catalog/${category._id}`}
-                                  onClick={() => setIsCategoryDropdownOpen(false)}
-                                  style={{
-                                    color: '#333',
-                                    textDecoration: 'none',
-                                    display: 'block',
-                                    padding: '12px 20px',
-                                    fontSize: '14px',
-                                    fontWeight: '500',
-                                    transition: 'all 0.3s ease',
-                                    ':hover': {
-                                      backgroundColor: '#f8f9fa',
+                              Category
+                            </a>
+                            <button 
+                              className={`chevron-icon ${isCategoryDropdownOpen ? 'rotate-180' : ''}`} 
+                              style={{
+                                background: 'none',
+                                border: 'none',
+                                fontSize: '12px',
+                                color: '#333',
+                                cursor: 'pointer',
+                                padding: '0',
+                                margin: '0',
+                                display: 'inline-block',
+                                transition: 'transform 0.3s ease'
+                              }}
+                              onClick={() => {
+                                console.log('Chevron clicked! Current state:', isCategoryDropdownOpen);
+                                setIsCategoryDropdownOpen(!isCategoryDropdownOpen);
+                              }}
+                            >
+                              ▼
+                            </button>
+                          </div>
+                          
+                                                     {isCategoryDropdownOpen && (
+                             <div style={{
+                               position: 'absolute',
+                               top: '100%',
+                               left: '0',
+                               background: '#fff',
+                               border: '1px solid #e0e0e0',
+                               borderRadius: '8px',
+                               boxShadow: '0 4px 20px rgba(0, 0, 0, 0.1)',
+                               minWidth: '220px',
+                               zIndex: 9999,
+                               marginTop: '10px',
+                               padding: '8px 0',
+                               listStyle: 'none'
+                             }}>
+                               {isLoadingCategories ? (
+                                 <div style={{
+                                   padding: '12px 20px',
+                                   color: '#666',
+                                   fontSize: '14px',
+                                   fontStyle: 'italic'
+                                 }}>
+                                   Loading categories...
+                                 </div>
+                               ) : categories.length > 0 ? (
+                                 categories.map((category) => (
+                                   <div key={category._id} style={{
+                                     borderBottom: '1px solid #f5f5f5',
+                                     transition: 'all 0.3s ease'
+                                   }}>
+                                     <Link 
+                                       to={`/catalog/${category._id}`}
+                                       onClick={() => setIsCategoryDropdownOpen(false)}
+                                       style={{
+                                         color: '#333',
+                                         textDecoration: 'none',
+                                         display: 'block',
+                                         padding: '12px 20px',
+                                         fontSize: '14px',
+                                         fontWeight: '500',
+                                         transition: 'all 0.3s ease',
+                                         ':hover': {
+                                           backgroundColor: '#f8f9fa',
                                       color: '#07A698'
                                     },
                                      textTransform:'none',
                                      marginLeft:'10px'
-                                  }}
-                                  onMouseEnter={(e) => {
-                                    e.target.style.backgroundColor = '#f8f9fa';
+                                       }}
+                                       onMouseEnter={(e) => {
+                                         e.target.style.backgroundColor = '#f8f9fa';
                                     e.target.style.color = '#07A698';
-                                  }}
-                                  onMouseLeave={(e) => {
-                                    e.target.style.backgroundColor = 'transparent';
-                                    e.target.style.color = '#333';
-                                  }}
-                                >
-                                  {category.name}
-                                </Link>
-                              </div>
-                            ))
-                          ) : (
-                            <div style={{
-                              padding: '12px 20px',
-                              color: '#666',
-                              fontSize: '14px',
-                              fontStyle: 'italic'
-                            }}>
-                              No categories available
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </li>
+                                       }}
+                                       onMouseLeave={(e) => {
+                                         e.target.style.backgroundColor = 'transparent';
+                                         e.target.style.color = '#333';
+                                       }}
+                                     >
+                                       {category.name}
+                                     </Link>
+                                   </div>
+                                 ))
+                               ) : (
+                                 <div style={{
+                                   padding: '12px 20px',
+                                   color: '#666',
+                                   fontSize: '14px',
+                                   fontStyle: 'italic'
+                                 }}>
+                                   No categories available
+                                 </div>
+                               )}
+                             </div>
+                           )}
+                        </li>
                     <li>
                       <Link to="/about" style={{ 
                         textDecoration: 'none', 
                         color: '#191A1F', 
                         fontWeight: '600',
-                        fontSize: '16px',
+                        fontSize: '18px',
                         fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important',
                         letterSpacing: '0.5px',
                         transition: 'all 0.3s ease',
@@ -294,7 +294,7 @@ const Navbar = () => {
                         textDecoration: 'none', 
                         color: '#191A1F', 
                         fontWeight: '600',
-                        fontSize: '16px',
+                        fontSize: '18px',
                         fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important',
                         letterSpacing: '0.5px',
                         transition: 'all 0.3s ease',
@@ -314,9 +314,36 @@ const Navbar = () => {
                       </Link>
                     </li>
                    
-                  </ul>
+                     {/* <li>
+                      <Link
+                        to="/enrollment-payment"
+                        style={{
+                          textDecoration: 'none',
+                          color: '#191A1F',
+                          fontWeight: '600',
+                          fontSize: '18px',
+                          fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important',
+                          letterSpacing: '0.5px',
+                          transition: 'all 0.3s ease',
+                          position: 'relative',
+                          padding: '8px 0',
+                          textTransform: 'none'
+                        }}
+                        onMouseEnter={e => {
+                          e.target.style.color = '#07A698';
+                          e.target.style.transform = 'translateY(-1px)';
+                        }}
+                        onMouseLeave={e => {
+                          e.target.style.color = '#191A1F';
+                          e.target.style.transform = 'translateY(0)';
+                        }}
+                      >
+                        {user?.enrollmentFeePaid ? 'Enrollment Fee Paid' : 'Enrollment fee'}
+                      </Link>
+                    </li> */}
+                    </ul>
+                  </div>
                 </div>
-              </div>
 
               {/* Right side - Auth buttons and other elements */}
               <div className="header-right" style={{ flex: '0 0 auto', display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -481,11 +508,11 @@ const Navbar = () => {
                                   fontSize: '14px',
                                   transition: 'all 0.3s ease'
                                 }}
-                                onMouseEnter={(e) => {
+                                onMouseEnter={e => {
                                   e.target.style.backgroundColor = '#f8f9fa';
                                   e.target.style.color = '#07A698';
                                 }}
-                                onMouseLeave={(e) => {
+                                onMouseLeave={e => {
                                   e.target.style.backgroundColor = 'transparent';
                                   e.target.style.color = '#191A1F';
                                 }}
@@ -654,8 +681,8 @@ const Navbar = () => {
                             <i className="fa-solid fa-sign-out-alt" style={{ marginRight: '8px', width: '16px' }}></i>
                             Sign Out
                           </button>
-                        </div>
-                      )}
+                    </div>
+                  )}
                     </div>
                   </>
                                  ) : (
@@ -724,21 +751,21 @@ const Navbar = () => {
                        }}
                                            >
                         Sign Up <i className="fa-solid fa-arrow-right"></i>
-                      </Link>
+                  </Link>
                    </div>
                                  )}
                  
-                 <div className="header-logo d-none d-lg-none">
-                  <Link to="/">
-                    <img src="/assets/img/logo/logo-1.png" alt="Logo" />
-                  </Link>
-                </div>
+                  <div className="header-logo d-none d-lg-none">
+                    <Link to="/">
+                      <img src="/assets/img/logo/logo-1.png" alt="Logo" />
+                    </Link>
+                  </div>
                 
-                <div className="header-right-item d-lg-none d-md-block">
-                  <a href="javascript:void(0)" className="mobile-side-menu-toggle" onClick={() => setIsMobileMenuOpen(true)}>
-                    <i className="fa-sharp fa-solid fa-bars"></i>
-                  </a>
-                </div>
+                  <div className="header-right-item d-lg-none d-md-block">
+                    <a href="javascript:void(0)" className="mobile-side-menu-toggle" onClick={() => setIsMobileMenuOpen(true)}>
+                      <i className="fa-sharp fa-solid fa-bars"></i>
+                    </a>
+                  </div>
               </div>
             </div>
           </div>
