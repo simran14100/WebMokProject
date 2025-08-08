@@ -265,7 +265,7 @@ const About = () => {
       {/* Inject custom CSS for Swiper */}
       <style dangerouslySetInnerHTML={{ __html: swiperStyles }} />
       
-      {/* Page Header */}
+     
       {/* Page Header */}
                  <section style={{ 
                    position: 'relative', 
@@ -348,7 +348,7 @@ const About = () => {
                            About
                          </Link>
                          <span style={{ color: '#e6fcf5' }}>/</span>
-                         <span style={{ color: '#e6fcf5' }}>Contact Us</span>
+                         <span style={{ color: '#e6fcf5' }}>About  Us</span>
                        </div>
                      </div>
                    </div>

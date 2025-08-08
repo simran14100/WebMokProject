@@ -10,8 +10,10 @@ import { getCatalogPageData } from "../services/operations/courseDetailsAPI";
 import pageHeaderShape1 from '../assets/img/shapes/page-header-shape-1.png';
 import pageHeaderShape2 from '../assets/img/shapes/page-header-shape-2.png';
 import pageHeaderShape3 from '../assets/img/shapes/page-header-shape-3.png';
+import { getAllCourses, fetchCourseCategories } from '../services/operations/courseDetailsAPI';
 import { Link } from "react-router-dom";
 import pageHeaderBg from '../assets/img/bg-img/page-header-bg.png';
+import { motion } from 'framer-motion';
 
 // import Error from "../components/common/Error";
 
@@ -21,7 +23,69 @@ function Catalog() {
   const [active, setActive] = useState(1);
   const [catalogPageData, setCatalogPageData] = useState(null);
   const [categoryId, setCategoryId] = useState("");
+   const [topClassCourses, setTopClassCourses] = useState([]);
+   const [isLoadingTopClass, setIsLoadingTopClass] = useState(true);
+   const [isLoadingTrending, setIsLoadingTrending] = useState(true);
+   const [trendingCourses, setTrendingCourses] = useState([]);
 
+
+   
+   // Fetch all courses and filter them for different sections
+     useEffect(() => {
+       const fetchAllCourses = async () => {
+         try {
+           console.log("Fetching all courses...");
+           const allCoursesData = await getAllCourses();
+           console.log("All courses fetched:", allCoursesData);
+           
+           if (allCoursesData && Array.isArray(allCoursesData)) {
+             // Filter for trending courses (most selling - based on studentsEnrolled)
+             const trendingData = allCoursesData
+               .sort((a, b) => (b.studentsEnrolled?.length || 0) - (a.studentsEnrolled?.length || 0))
+               .slice(0, 4);
+             setTrendingCourses(trendingData);
+             
+             // Filter for top class courses (based on rating, allow some overlap if needed)
+             const topClassData = allCoursesData
+               .sort((a, b) => {
+                 const ratingA = a.ratingAndReviews?.length > 0 
+                   ? a.ratingAndReviews.reduce((sum, review) => sum + review.rating, 0) / a.ratingAndReviews.length 
+                   : 0;
+                 const ratingB = b.ratingAndReviews?.length > 0 
+                   ? b.ratingAndReviews.reduce((sum, review) => sum + review.rating, 0) / b.ratingAndReviews.length 
+                   : 0;
+                 return ratingB - ratingA;
+               })
+               .slice(0, 3);
+             setTopClassCourses(topClassData);
+           } else {
+             setTrendingCourses([]);
+             setTopClassCourses([]);
+           }
+         } catch (error) {
+           console.error("Error fetching courses:", error);
+           setTrendingCourses([]);
+           setTopClassCourses([]);
+         } finally {
+           setIsLoadingTrending(false);
+           setIsLoadingTopClass(false);
+         }
+       };
+   
+       fetchAllCourses();
+     }, []);
+   
+     // Helper function to format duration
+     const formatDuration = (seconds) => {
+       if (!seconds) return "0 Hours";
+       const hours = Math.floor(seconds / 3600);
+       const minutes = Math.floor((seconds % 3600) / 60);
+       if (hours > 0) {
+         return `${hours}.${Math.round(minutes / 60 * 10)} Hours`;
+       }
+       return `${minutes} Minutes`;
+     };
+   
   // Fetch All Categories and get categoryId
   useEffect(() => {
     (async () => {
@@ -40,6 +104,20 @@ function Catalog() {
     })();
   }, [catalogName]);
 
+
+    const getCourseThumbnail = (course) => {
+    if (course.thumbnail) {
+      return course.thumbnail;
+    }
+    // Fallback to default course images based on index
+    const defaultImages = [
+      "/assets/img/service/course-img-4.png",
+      "/assets/img/service/course-img-5.png",
+      "/assets/img/service/course-img-6.png",
+      "/assets/img/service/course-img-7.png"
+    ];
+    return defaultImages[Math.floor(Math.random() * defaultImages.length)];
+  };
   // Fetch Catalog Page Data
   useEffect(() => {
     if (categoryId) {
@@ -110,24 +188,8 @@ function Catalog() {
   return (
     <>    
       {/* Hero Section */}
-      {/* <div className="bg-white px-4 py-16 border-b border-gray-200 ">
-        <div className="mx-auto flex min-h-[220px] max-w-6xl flex-col justify-center gap-4">
-          <p className="text-xs uppercase tracking-wider text-gray-400 mb-2">
-            Home <span className="mx-2">/</span> Catalog <span className="mx-2">/</span>
-            <span className="text-[#009e5c] font-semibold">
-              {catalogPageData?.data?.selectedCategory?.name}
-            </span>
-          </p>
-          <h1 className="text-5xl font-extrabold mb-2 flex items-center gap-3" style={{ color: '#009e5c' }}>
-            <span className="h-10 w-2 rounded bg-[#009e5c] inline-block"></span>
-            {catalogPageData?.data?.selectedCategory?.name}
-          </h1>
-          <p className="max-w-2xl text-gray-700 text-lg">
-            {catalogPageData?.data?.selectedCategory?.description}
-          </p>
-        </div>
-      </div> */}
-      {/* Page Header */}
+      <div className="bg-white  border-gray-200  ">
+           {/* Page Header */}
 <section style={{ 
   position: 'relative', 
   padding: '120px 0', 
@@ -229,7 +291,7 @@ function Catalog() {
         </Link>
         <span>/</span>
         <span style={{ 
-          color: '#07A698',
+          color: 'white',
           fontWeight: '600'
         }}>
           {catalogPageData?.data?.selectedCategory?.name}
@@ -270,78 +332,489 @@ function Catalog() {
   </div>
 </section>
 
-      {/* Section 1: Courses to get you started */}
-      <section className="mx-auto w-full max-w-6xl px-4 py-16 bg-white border-b border-gray-100">
-        <div className="flex items-center gap-3 mb-8">
-          <span className="h-8 w-1 rounded bg-[#009e5c]"></span>
-          <h2 className="text-3xl font-extrabold" style={{ color: '#009e5c' }}>Courses to get you started</h2>
-        </div>
-        <div className="flex gap-4 mb-8">
-          <button
-            className={`px-6 py-2 rounded-full font-semibold transition-colors duration-200 shadow-sm border ${
-              active === 1
-                ? "bg-[#009e5c] text-white border-[#009e5c]"
-                : "bg-white text-[#009e5c] border-[#009e5c] hover:bg-green-50"
-            }`}
-            onClick={() => setActive(1)}
+    {/* Top Class Courses Section */}
+      <motion.section 
+        className="course-section pt-120 pb-120"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+        viewport={{ once: true }}
+        style={{ backgroundColor: '#f8f9fa' }}
+      >
+        <div className="container">
+          <motion.div 
+            className="section-heading text-center mb-60"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
           >
-            Most Popular
-          </button>
-          <button
-            className={`px-6 py-2 rounded-full font-semibold transition-colors duration-200 shadow-sm border ${
-              active === 2
-                ? "bg-[#009e5c] text-white border-[#009e5c]"
-                : "bg-white text-[#009e5c] border-[#009e5c] hover:bg-green-50"
-            }`}
-            onClick={() => setActive(2)}
-          >
-            New
-          </button>
-        </div>
-        <div className="container mx-auto bg-white rounded-2xl p-8 shadow-lg border border-gray-100 transition-all duration-200">
-          {startedCourses.length ? (
-            <CourseSlider Courses={startedCourses} />
-          ) : (
-            <div className="text-center py-12 text-gray-400 text-lg">No courses found in this category.</div>
-          )}
-        </div>
-      </section>
+            <h4 style={{ 
+              color: '#000000', 
+              textTransform: 'none', 
+              fontWeight: 'normal',
+              backgroundColor: '#ffffff',
+              padding: '6px 14px',
+              borderRadius: '30px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '16px',
+              boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+              border: '1px solid #c0c0c0',
+              marginBottom: '10px'
+            }}>
+              <span style={{
+                backgroundColor: '#07A698',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                marginRight:'2px'
+              }}>
+                <i className="fa-sharp fa-solid fa-bolt" style={{ color: '#ffffff', fontSize: '16px' , marginRight:'-2px' }}></i>
+              </span>
+              Top Class Courses
+            </h4>
+                        <h2 style={{ 
+              color: '#191A1F', 
+              fontSize: '48px', 
+              fontWeight: '700', 
+              marginBottom: '20px',
+              lineHeight: '1.2'
+            }}>
+              Explore  Featured Courses
+            </h2>
+            
+          </motion.div>
 
-      {/* Section 2: Top courses in different category */}
-      <section className="mx-auto w-full max-w-6xl px-4 py-16 bg-white border-b border-gray-100">
-        <div className="flex items-center gap-3 mb-8">
-          <span className="h-8 w-1 rounded bg-[#009e5c]"></span>
-          <h2 className="text-3xl font-extrabold" style={{ color: '#009e5c' }}>
-            Top courses in {catalogPageData?.data?.differentCategory?.name}
-          </h2>
-        </div>
-        <div className="container mx-auto bg-white rounded-2xl p-8 shadow-lg border border-gray-100 transition-all duration-200">
-          <div className="overflow-visible px-4 pb-4">
-            {topCourses.length ? (
-              <CourseSlider Courses={topCourses} />
+          <div className="row gy-4">
+            {isLoadingTopClass ? (
+              <div className="col-12 text-center">
+                <div style={{ color: '#666', fontSize: '18px', padding: '40px 0' }}>
+                  Loading top class courses...
+                </div>
+              </div>
+            ) : topClassCourses.length > 0 ? (
+              topClassCourses.map((course, index) => (
+                <div key={course._id || index} className="col-xl-4 col-lg-6 col-md-6">
+                  <motion.div 
+                    className="course-item course-item-2"
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                    whileHover={{ y: -5 }}
+                    style={{
+                      padding: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      overflow: 'hidden',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '16px',
+                      border: '1px solid #E8ECF0',
+                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)',
+                      transition: 'all 0.3s ease',
+                      height: '100%'
+                    }}
+                  >
+                    {/* Course Thumbnail */}
+                    <div className="course-thumb-wrap" style={{ padding: '20px', height: '300px', width: '100%' }}>
+                      <div className="course-thumb" style={{ height: '100%', width: '100%', borderRadius: '12px 12px 12px 12px' }}>
+                        <img 
+                          src={getCourseThumbnail(course)} 
+                          alt={course.courseName}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px 12px 0 0' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Course Content */}
+                    <div className="course-content-wrap" style={{ padding: '20px', flex: 1  , marginTop:'2px'}}>
+                      <div className="course-content">
+                        {/* Free Badge */}
+                        <span className="offer" style={{ 
+                          backgroundColor: '#07A698', 
+                          color: '#ffffff',
+                          padding: '4px 12px',
+                          borderRadius: '15px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          display: 'inline-block',
+                          marginBottom: '10px'
+                        }}>
+                          {course.price === 0 ? 'Free' : `₹${course.price}`}
+                        </span>
+                        
+                        <h3 className="title" style={{
+                          fontSize: '18px',
+                          fontWeight: '700',
+                          color: '#191A1F',
+                          marginBottom: '10px',
+                          lineHeight: '1.3'
+                        }}>
+                          <Link to={`/course/${course._id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                            {course.courseName}
+                          </Link>
+                        </h3>
+                        
+                        <ul className="course-list" style={{ 
+                          listStyle: 'none', 
+                          padding: 0, 
+                          margin: '0 0 15px 0',
+                          display: 'flex',
+                          gap: '15px'
+                        }}>
+                          <li style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#666', fontSize: '14px' }}>
+                            <i className="fa-light fa-file" style={{ color: '#07A698' }}></i>
+                            Lesson {course.courseContent?.length || 0}
+                          </li>
+                          <li style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#666', fontSize: '14px' }}>
+                            <i className="fa-light fa-user" style={{ color: '#07A698' }}></i>
+                            Students {course.studentsEnrolled?.length || 0}
+                          </li>
+                          <li style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#666', fontSize: '14px' }}>
+                            <i className="fa-light fa-eye" style={{ color: '#07A698' }}></i>
+                            View: 12K
+                          </li>
+                        </ul>
+                        
+                        <div className="course-author-box" style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between', 
+                          gap: '10px' 
+                        }}>
+                          <div className="course-author" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div className="author-img">
+                              <img src="/assets/img/images/course-author-1.png" alt="course" style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+                            </div>
+                            <div className="author-info">
+                              <h4 className="name" style={{ 
+                                fontSize: '14px', 
+                                fontWeight: '600', 
+                                color: '#191A1F', 
+                                margin: '0 0 2px 0' 
+                              }}>
+                                {course.instructor?.firstName} {course.instructor?.lastName || "Instructor"}
+                              </h4>
+                              <span style={{ fontSize: '12px', color: '#666' }}>Instructor</span>
+                            </div>
+                          </div>
+                          <ul className="course-review" style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '2px', 
+                            margin: 0, 
+                            padding: 0, 
+                            listStyle: 'none' 
+                          }}>
+                            <li><i className="fa-sharp fa-solid fa-star" style={{ color: '#FFD700' }}></i></li>
+                            <li><i className="fa-sharp fa-solid fa-star" style={{ color: '#FFD700' }}></i></li>
+                            <li><i className="fa-sharp fa-solid fa-star" style={{ color: '#FFD700' }}></i></li>
+                            <li><i className="fa-sharp fa-solid fa-star" style={{ color: '#FFD700' }}></i></li>
+                            <li><i className="fa-sharp fa-solid fa-star" style={{ color: '#FFD700' }}></i></li>
+                            <li className="point" style={{ marginLeft: '5px', color: '#666', fontSize: '14px' }}>(4.7)</li>
+                          </ul>
+                        </div>
+                      </div>
+                                            <div className="bottom-content" style={{ 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0 20px 15px 20px',
+                        marginTop: 'auto'
+                      }}>
+                        <span className="price" style={{ 
+                          color: '#191A1F',
+                          fontSize: '20px',
+                          fontWeight: '700'
+                        }}>
+                          ₹{course.price || 'Free'}
+                        </span>
+                        <Link to={`/course/${course._id}`} className="course-btn" style={{
+                          color: '#191A1F',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          padding: '5px 20px',
+                          border: '1px solid #E0E5EB',
+                          borderRadius: '100px',
+                          textDecoration: 'none',
+                          transition: 'all 0.3s ease',
+                          cursor: 'pointer'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.border = '1px solid #07A698';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.border = '1px solid #E0E5EB';
+                        }}>
+                          View Details
+                        </Link>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              ))
             ) : (
-              <div className="text-center py-12 text-gray-400 text-lg">No top courses found in this category.</div>
+              <div className="col-12 text-center">
+                <div style={{ color: '#666', fontSize: '18px', padding: '40px 0' }}>
+                  No courses available
+                </div>
+              </div>
             )}
           </div>
         </div>
-      </section>
+      </motion.section>
 
-      {/* Section 3: Frequently Bought */}
-      <section className="mx-auto w-full max-w-6xl px-4 py-16 bg-white">
-        <div className="flex items-center gap-3 mb-8">
-          <span className="h-8 w-1 rounded bg-[#009e5c]"></span>
-          <h2 className="text-3xl font-extrabold" style={{ color: '#009e5c' }}>Frequently Bought</h2>
+
+
+
+
+    <motion.section 
+        className="course-section pt-120 pb-120"
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        transition={{ duration: 0.8 }}
+        viewport={{ once: true }}
+        style={{ backgroundColor: '#f8f9fa' }}
+      >
+        <div className="container">
+          <motion.div 
+            className="section-heading text-center mb-60"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+            viewport={{ once: true }}
+          >
+            <h4 style={{ 
+              color: '#000000', 
+              textTransform: 'none', 
+              fontWeight: 'normal',
+              backgroundColor: '#ffffff',
+              padding: '6px 14px',
+              borderRadius: '30px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '16px',
+              boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+              border: '1px solid #c0c0c0',
+              marginBottom: '10px'
+            }}>
+              <span style={{
+                backgroundColor: '#07A698',
+                width: '32px',
+                height: '32px',
+                borderRadius: '50%',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                flexShrink: 0,
+                marginRight:'2px'
+              }}>
+                <i className="fa-sharp fa-solid fa-bolt" style={{ color: '#ffffff', fontSize: '16px' , marginRight:'-2px' }}></i>
+              </span>
+              Top Class Courses
+            </h4>
+                        <h2 style={{ 
+              color: '#191A1F', 
+              fontSize: '48px', 
+              fontWeight: '700', 
+              marginBottom: '20px',
+              lineHeight: '1.2'
+            }}>
+              Explore  Featured Courses
+            </h2>
+            
+          </motion.div>
+
+          <div className="row gy-4">
+             {catalogPageData?.data?.mostSellingCourses?.slice(0, 5).length ? (
+        catalogPageData.data.mostSellingCourses.slice(0, 6).map((course, index) => (
+                <div key={course._id || index} className="col-xl-4 col-lg-6 col-md-6">
+                  <motion.div 
+                    className="course-item course-item-2"
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.6, delay: index * 0.1 }}
+                    viewport={{ once: true }}
+                    whileHover={{ y: -5 }}
+                    style={{
+                      padding: 0,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      overflow: 'hidden',
+                      backgroundColor: '#ffffff',
+                      borderRadius: '16px',
+                      border: '1px solid #E8ECF0',
+                      boxShadow: '0 4px 20px rgba(0, 0, 0, 0.06)',
+                      transition: 'all 0.3s ease',
+                      height: '100%'
+                    }}
+                  >
+                    {/* Course Thumbnail */}
+                    <div className="course-thumb-wrap" style={{ padding: '20px', height: '300px', width: '100%' }}>
+                      <div className="course-thumb" style={{ height: '100%', width: '100%', borderRadius: '12px 12px 12px 12px' }}>
+                        <img 
+                          src={getCourseThumbnail(course)} 
+                          alt={course.courseName}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px 12px 0 0' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Course Content */}
+                    <div className="course-content-wrap" style={{ padding: '20px', flex: 1  , marginTop:'2px'}}>
+                      <div className="course-content">
+                        {/* Free Badge */}
+                        <span className="offer" style={{ 
+                          backgroundColor: '#07A698', 
+                          color: '#ffffff',
+                          padding: '4px 12px',
+                          borderRadius: '15px',
+                          fontSize: '12px',
+                          fontWeight: '600',
+                          display: 'inline-block',
+                          marginBottom: '10px'
+                        }}>
+                          {course.price === 0 ? 'Free' : `₹${course.price}`}
+                        </span>
+                        
+                        <h3 className="title" style={{
+                          fontSize: '18px',
+                          fontWeight: '700',
+                          color: '#191A1F',
+                          marginBottom: '10px',
+                          lineHeight: '1.3'
+                        }}>
+                          <Link to={`/course/${course._id}`} style={{ color: 'inherit', textDecoration: 'none' }}>
+                            {course.courseName}
+                          </Link>
+                        </h3>
+                        
+                        <ul className="course-list" style={{ 
+                          listStyle: 'none', 
+                          padding: 0, 
+                          margin: '0 0 15px 0',
+                          display: 'flex',
+                          gap: '15px'
+                        }}>
+                          <li style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#666', fontSize: '14px' }}>
+                            <i className="fa-light fa-file" style={{ color: '#07A698' }}></i>
+                            Lesson {course.courseContent?.length || 0}
+                          </li>
+                          <li style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#666', fontSize: '14px' }}>
+                            <i className="fa-light fa-user" style={{ color: '#07A698' }}></i>
+                            Students {course.studentsEnrolled?.length || 0}
+                          </li>
+                          <li style={{ display: 'flex', alignItems: 'center', gap: '5px', color: '#666', fontSize: '14px' }}>
+                            <i className="fa-light fa-eye" style={{ color: '#07A698' }}></i>
+                            View: 12K
+                          </li>
+                        </ul>
+                        
+                        <div className="course-author-box" style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          justifyContent: 'space-between', 
+                          gap: '10px' 
+                        }}>
+                          <div className="course-author" style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                            <div className="author-img">
+                              <img src="/assets/img/images/course-author-1.png" alt="course" style={{ width: '40px', height: '40px', borderRadius: '50%' }} />
+                            </div>
+                            <div className="author-info">
+                              <h4 className="name" style={{ 
+                                fontSize: '14px', 
+                                fontWeight: '600', 
+                                color: '#191A1F', 
+                                margin: '0 0 2px 0' 
+                              }}>
+                                {course.instructor?.firstName} {course.instructor?.lastName || "Instructor"}
+                              </h4>
+                              <span style={{ fontSize: '12px', color: '#666' }}>Instructor</span>
+                            </div>
+                          </div>
+                          <ul className="course-review" style={{ 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            gap: '2px', 
+                            margin: 0, 
+                            padding: 0, 
+                            listStyle: 'none' 
+                          }}>
+                            <li><i className="fa-sharp fa-solid fa-star" style={{ color: '#FFD700' }}></i></li>
+                            <li><i className="fa-sharp fa-solid fa-star" style={{ color: '#FFD700' }}></i></li>
+                            <li><i className="fa-sharp fa-solid fa-star" style={{ color: '#FFD700' }}></i></li>
+                            <li><i className="fa-sharp fa-solid fa-star" style={{ color: '#FFD700' }}></i></li>
+                            <li><i className="fa-sharp fa-solid fa-star" style={{ color: '#FFD700' }}></i></li>
+                            <li className="point" style={{ marginLeft: '5px', color: '#666', fontSize: '14px' }}>(4.7)</li>
+                          </ul>
+                        </div>
+                      </div>
+                                            <div className="bottom-content" style={{ 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '0 20px 15px 20px',
+                        marginTop: 'auto'
+                      }}>
+                        <span className="price" style={{ 
+                          color: '#191A1F',
+                          fontSize: '20px',
+                          fontWeight: '700'
+                        }}>
+                          ₹{course.price || 'Free'}
+                        </span>
+                        <Link to={`/course/${course._id}`} className="course-btn" style={{
+                          color: '#191A1F',
+                          fontSize: '16px',
+                          fontWeight: '600',
+                          padding: '5px 20px',
+                          border: '1px solid #E0E5EB',
+                          borderRadius: '100px',
+                          textDecoration: 'none',
+                          transition: 'all 0.3s ease',
+                          cursor: 'pointer'
+                        }}
+                        onMouseEnter={(e) => {
+                          e.target.style.border = '1px solid #07A698';
+                        }}
+                        onMouseLeave={(e) => {
+                          e.target.style.border = '1px solid #E0E5EB';
+                        }}>
+                          View Details
+                        </Link>
+                      </div>
+                    </div>
+                  </motion.div>
+                </div>
+              ))
+            ) : (
+              <div className="col-12 text-center">
+                <div style={{ color: '#666', fontSize: '18px', padding: '40px 0' }}>
+                  No courses available
+                </div>
+              </div>
+            )}
+          </div>
         </div>
-        <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-          {catalogPageData?.data?.mostSellingCourses?.slice(0, 6).length ? (
-            catalogPageData?.data?.mostSellingCourses?.slice(0, 6).map((course, i) => (
-              <CourseCard course={course} key={i} height={"h-[320px]"} />
-            ))
-          ) : (
-            <div className="col-span-full text-center py-12 text-gray-400 text-lg">No frequently bought courses found.</div>
-          )}
-        </div>
-      </section>
+      </motion.section>
+
+
+
+
+
+
+      </div>
+     
+
+     
+
+     
+      
 
       <Footer />
     </>

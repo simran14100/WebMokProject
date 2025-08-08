@@ -92,7 +92,11 @@ function App() {
                   <Route path="edit-course/:id" element={<EditCourse />} />
                   {/* Add more instructor routes here as needed */}
                 </Route>
-                <Route path="/course/:courseId/:sectionId/:subsectionId" element={<CourseViewer />} />
+
+                
+                {/* <Route path="/course/:courseId/:sectionId/:subsectionId" element={<CourseViewer />} /> */}
+                <Route path="/course/:courseId" element={<CourseViewer />} />
+
               </Routes>
             </main>
             {/* <Footer /> */}
