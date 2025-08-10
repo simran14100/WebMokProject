@@ -302,6 +302,38 @@ export function updateDisplayPicture(token, formData) {
   };
 } 
 
+// Updated refreshToken function (example)
+// export const refreshToken = async () => {
+//   try {
+//     const refreshToken = localStorage.getItem('refreshToken');
+//     if (!refreshToken) throw new Error("No refresh token available");
+    
+//     const response = await apiConnector(
+//       "POST", 
+//       REFRESH_TOKEN_API,
+//       { refreshToken }
+//     );
+
+//     if (!response.data?.accessToken) {
+//       throw new Error("Invalid token response structure");
+//     }
+
+//     // Store the new tokens
+//     localStorage.setItem('token', response.data.accessToken);
+//     if (response.data.refreshToken) {
+//       localStorage.setItem('refreshToken', response.data.refreshToken);
+//     }
+
+//     return response;
+//   } catch (error) {
+//     console.error("Refresh token failed:", error);
+//     // Clear invalid tokens
+//     localStorage.removeItem('token');
+//     localStorage.removeItem('refreshToken');
+//     throw error;
+//   }
+// };
+
 export function refreshToken(token) {
   return async (dispatch) => {
     try {

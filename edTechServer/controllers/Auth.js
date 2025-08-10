@@ -198,90 +198,157 @@ exports.signup = async (req, res) => {
   }
 
 //login
-exports.login = async(req,res)=>{
+// exports.login = async(req,res)=>{
   
-    try{
+//     try{
   
-        //fetch data
-    const {email , password}=req.body;
+//         //fetch data
+//     const {email , password}=req.body;
 
-    //validate
-    if(!email || !password){
-      return res.status(403).json({
-          success:false,
-          message:"Please fill all the details",
-      });
-    }
+//     //validate
+//     if(!email || !password){
+//       return res.status(403).json({
+//           success:false,
+//           message:"Please fill all the details",
+//       });
+//     }
   
-    const user= await User.findOne({email}).populate("additionalDetails");
+//     const user= await User.findOne({email}).populate("additionalDetails");
   
-    if(!user){
-      return res.status(401).json({
-          success:false,
-          message:"User is not registered",
-      });
-    }
+//     if(!user){
+//       return res.status(401).json({
+//           success:false,
+//           message:"User is not registered",
+//       });
+//     }
 
-    //generate jwt , after password matching
+//     //generate jwt , after password matching
 
-    if(await bcrypt.compare(password , user.password)){
-        const payload={
-            email:user.email,
-            id:user._id,
-            accountType:user.accountType,
-        }
-        const token = jwt.sign(payload , process.env.JWT_SECRET,{
-           expiresIn:"24h",
-        });
+//     if(await bcrypt.compare(password , user.password)){
+//         const payload={
+//             email:user.email,
+//             id:user._id,
+//             accountType:user.accountType,
+//         }
+//         const token = jwt.sign(payload , process.env.JWT_SECRET,{
+//            expiresIn:"24h",
+//         });
 
-       user.token = token;
-       user.password= undefined;
+//        user.token = token;
+//        user.password= undefined;
 
-       //create cookies
+//        //create cookies
 
-       const options={
-         expires:new Date(Date.now() + 3*24*60*60*1000),
-         httpOnly:true,
-       }
+//        const options={
+//          expires:new Date(Date.now() + 3*24*60*60*1000),
+//          httpOnly:true,
+//        }
 
-       // Check if user is a student and hasn't paid enrollment fee
-       if(user.accountType === "Student" && !user.enrollmentFeePaid) {
-         return res.cookie("token" , token , options).status(200).json({
-           success: true,
-           message: "Login successful. Please complete enrollment fee payment.",
-           token,
-           user,
-           requiresPayment: true,
-           paymentAmount: 1000 // 1000 rupees enrollment fee
-         });
-       }
+//        // Check if user is a student and hasn't paid enrollment fee
+//        if(user.accountType === "Student" && !user.enrollmentFeePaid) {
+//          return res.cookie("token" , token , options).status(200).json({
+//            success: true,
+//            message: "Login successful. Please complete enrollment fee payment.",
+//            token,
+//            user,
+//            requiresPayment: true,
+//            paymentAmount: 1000 // 1000 rupees enrollment fee
+//          });
+//        }
 
-       res.cookie("token" , token , options).status(200).json({
+//        res.cookie("token" , token , options).status(200).json({
   
-        success:true,
-        message:"Logged in successfully",
-        token,
-        user,
-        message: `User Login Success`,
-       })
+//         success:true,
+//         message:"Logged in successfully",
+//         token,
+//         user,
+//         message: `User Login Success`,
+//        })
 
-    }else{
-        return res.status(401).json({
-            success:false,
-            message:"Password is incorrect",
-        });
-    }
+//     }else{
+//         return res.status(401).json({
+//             success:false,
+//             message:"Password is incorrect",
+//         });
+//     }
 
- }
-    catch(err){
-    console.log(err);
-       return res.status(500).json({
-        success:false,
-        message:"Login failure , please try again",
-       })
-    }
+//  }
+//     catch(err){
+//     console.log(err);
+//        return res.status(500).json({
+//         success:false,
+//         message:"Login failure , please try again",
+//        })
+//     }
     
 
+// };
+
+exports.login = async (req, res) => {
+  try {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return res.status(400).json({
+        success: false,
+        message: "All fields are required",
+      });
+    }
+
+    const user = await User.findOne({ email }).populate("additionalDetails");
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not registered",
+      });
+    }
+
+    if (await bcrypt.compare(password, user.password)) {
+      const payload = {
+        email: user.email,
+        id: user._id,
+        accountType: user.accountType,
+      };
+
+      const token = jwt.sign(payload, process.env.JWT_SECRET, {
+        expiresIn: "24h",
+      });
+
+      // Secure cookie settings
+      const cookieOptions = {
+        expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "strict",
+        domain: "localhost", // Add for local development
+        path: "/",
+      };
+
+      // Return both cookie and token in response
+      return res.cookie("token", token, cookieOptions).status(200).json({
+        success: true,
+        message: "Login successful",
+        user: {
+          ...user._doc,
+          password: undefined,
+        },
+        // Still return token for mobile clients
+        token,
+      });
+    }
+
+    return res.status(401).json({
+      success: false,
+      message: "Incorrect password",
+    });
+
+  } catch (error) {
+    console.error("Login error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Login failed. Please try again.",
+    });
+  }
 };
 
 

@@ -5,6 +5,7 @@ import { clearUser } from "../store/slices/profileSlice";
 import { refreshToken } from "./operations/authApi";
 import { showError } from "../utils/toast";
 
+
 export const axiosInstance = axios.create({
   baseURL: process.env.REACT_APP_BASE_URL || "http://localhost:4000",
 });
@@ -12,7 +13,7 @@ export const axiosInstance = axios.create({
 // Track if we're currently refreshing the token
 let isRefreshing = false;
 let failedQueue = [];
-
+// const BASE_URL = process.env.REACT_APP_BASE_URL || "http://localhost:4000";
 const processQueue = (error, token = null) => {
   failedQueue.forEach(prom => {
     if (error) {
@@ -24,6 +25,18 @@ const processQueue = (error, token = null) => {
   
   failedQueue = [];
 };
+
+// Add request interceptor to include Authorization header
+axiosInstance.interceptors.request.use(
+  (config) => {
+    const token = store.getState().auth.token || localStorage.getItem("accessToken");
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 // Add response interceptor to handle 401 errors
 axiosInstance.interceptors.response.use(
@@ -97,7 +110,32 @@ axiosInstance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+// utils/apiConnector.js
+// export const apiConnector = async (method, url, bodyData = null, customHeaders = {}) => {
+//   const options = {
+//     method: method.toUpperCase(),
+//     credentials: 'include', // Crucial for cookies
+//     headers: {
+//       'Content-Type': 'application/json',
+//       ...customHeaders,
+//     },
+//     body: bodyData ? JSON.stringify(bodyData) : undefined,
+//   };
 
+//   try {
+//     const response = await fetch(`${BASE_URL}${url}`, options);
+    
+//     if (!response.ok) {
+//       const errorData = await response.json();
+//       throw new Error(errorData.message || "Request failed");
+//     }
+
+//     return await response.json();
+//   } catch (error) {
+//     console.error("API call error:", error);
+//     throw error;
+//   }
+// };
 export const apiConnector = (method, url, bodyData, headers, params) => {
   return axiosInstance({
     method: `${method}`,

@@ -4,6 +4,8 @@ import { setCourseSectionData, setEntireCourseData, setTotalNoOfLectures, setCom
 // import { setLoading } from "../../slices/profileSlice";
 import { apiConnector } from "../apiConnector"
 import { course } from "../apis";
+import { refreshToken } from "../operations/authApi"; // Import your refresh token function
+
 
 const {
   GET_COURSE_DETAILS_API,
@@ -346,59 +348,283 @@ export const deleteCourse = async (data, token) => {
   toast.dismiss(toastId)
 }
 
-
-
-export const getFullDetailsOfCourse = async (courseId, token) => {
-  // Check if a loading toast is already displayed
-  if (!isLoading) {
-    isLoading = true; // Set loading state to true
-    toastId = toast.loading("Loading..."); // Show loading toast
-  }
-
-  let result = null;
+export const getFullDetailsOfCourse = async (courseId) => {
+  let toastId;
   try {
+    toastId = toast.loading("Loading course details...");
+
     const response = await apiConnector(
       "POST",
-      GET_FULL_COURSE_DETAILS_AUTHENTICATED,
-      {
-        courseId,
-      },
-      {
-        Authorization: `Bearer ${token}`,
-      }
+      "/api/v1/course/getFullCourseDetails",
+      { courseId } // ✅ pass the real courseId
     );
 
-    console.log("COURSE_FULL_DETAILS_API API RESPONSE............", response);
-
     if (!response.data.success) {
-      throw new Error(response.data.message);
+      throw new Error(response.data.message || "Failed to load course details");
     }
-    result = response?.data?.data;
-  } catch (error) {
-    console.log("COURSE_FULL_DETAILS_API API ERROR............", error);
-    result = error.response.data;
-    // Optionally show an error toast
-    if (toastId) {
-      toast.update(toastId, {
-        render: "Error fetching course details",
-        type: "error",
-        isLoading: false,
-        autoClose: 3000,
-      });
-    }
-  } finally {
-    // Dismiss the loading toast and reset state
-    if (toastId) {
-      toast.dismiss(toastId);
-      toastId = null; // Reset toastId after dismissal
-    }
-    isLoading = false; // Reset loading state
-  }
 
-  return result;
-}
+    toast.dismiss(toastId);
+    return {
+      success: true,
+      data: response.data.data,
+    };
+  } catch (error) {
+    if (toastId) toast.dismiss(toastId);
+
+    if (error.response?.status === 401) {
+      toast.error("Please login to view this course");
+      return { success: false, requiresLogin: true };
+    }
+
+    toast.error(error.message || "Failed to load course details");
+    return {
+      success: false,
+      message: error.message,
+    };
+  }
+};
+
+
+// export const getFullDetailsOfCourse = async (courseId) => {
+//   // Initialize loading state
+//   let toastId;
+//   try {
+//     toastId = toast.loading("Loading course details...");
+    
+//     // Try to get valid token
+//     let token = localStorage.getItem('token');
+//     let refreshAttempted = false;
+    
+//     // First attempt
+//     const response = await apiConnector(
+//       "POST",
+//       "/api/v1/course/getFullCourseDetails",
+//       { courseId }
+//     );
+    
+//     if (!response.data?.success) {
+//       throw new Error(response.data?.message || "Failed to load course details");
+//     }
+
+//     toast.dismiss(toastId);
+//     return {
+//       success: true,
+//       data: response.data.data
+//     };
+    
+//   } catch (error) {
+//     console.error("Course details error:", error);
+//     if (toastId) {
+//       toast.dismiss(toastId);
+//       toast.error(error.message);
+//     }
+    
+//     // Special handling for auth failures
+//     if (error.response?.status === 401) {
+//       toast.error("Please login to view this course");
+//       return { 
+//         success: false, 
+//         requiresLogin: true,
+//         message: "Please login to view this course"
+//       };
+//     }
+//      toast.error(error.message || "Failed to load course details");
+//     return {
+//       success: false,
+//       message: error.message
+//     };
+//   }
+// };
+
+// Helper function for authenticated requests
+
+// export const getFullDetailsOfCourse = async (courseId, token) => {
+//   // Check if a loading toast is already displayed
+//   if (!isLoading) {
+//     isLoading = true; // Set loading state to true
+//     toastId = toast.loading("Loading..."); // Show loading toast
+//   }
+
+//   let result = null;
+//   try {
+    
+//     if(!token){
+//       console.error("No token available - redirecting to login");
+//     }
+  
+//     console.log("Sending request with token:", token); // Add this
+//     const response = await apiConnector(
+//       "POST",
+//       GET_FULL_COURSE_DETAILS_AUTHENTICATED,
+//       { courseId },
+//       { Authorization: `Bearer ${token}` }
+//     );
+
+//     console.log("COURSE_FULL_DETAILS_API API RESPONSE............", response);
+
+//     if (!response.data.success) {
+//       throw new Error(response.data.message);
+//     }
+//     result = response.data; // <-- Return the whole response.data object
+//   } catch (error) {
+//     console.log("COURSE_FULL_DETAILS_API API ERROR............", error);
+//     result = error.response?.data || { success: false, message: error.message };
+//     // Optionally show an error toast
+//     if (toastId) {
+//       toast.update(toastId, {
+//         render: "Error fetching course details",
+//         type: "error",
+//         isLoading: false,
+//         autoClose: 3000,
+//       });
+//     }
+//   } finally {
+//     // Dismiss the loading toast and reset state
+//     if (toastId) {
+//       toast.dismiss(toastId);
+//       toastId = null; // Reset toastId after dismissal
+//     }
+//     isLoading = false; // Reset loading state
+//   }
+
+//   return result;
+// }
 
 // mark a lecture as complete
+
+
+// export const getFullDetailsOfCourse = async (courseId, token) => {
+//   // Initialize loading state
+//   if (!isLoading) {
+//     isLoading = true;
+//     try {
+//       toastId = toast.loading("Loading...");
+//     } catch (toastError) {
+//       console.warn("Toast initialization error:", toastError);
+//     }
+//   }
+
+//   let result = null;
+//   let shouldRetry = false;
+//   let newToken = token;
+
+//   try {
+//     // Validate token presence
+//     if (!newToken) {
+//       console.warn("Initial token not provided - attempting refresh");
+//       shouldRetry = true;
+//       throw new Error("No initial token provided");
+//     }
+
+//     // First API attempt
+//     console.log("Initial request with token:", newToken ? "*****" + newToken.slice(-5) : "null");
+//     let response = await apiConnector(
+//       "POST",
+//       GET_FULL_COURSE_DETAILS_AUTHENTICATED,
+//       { courseId },
+//       { Authorization: `Bearer ${newToken}` }
+//     );
+
+//     // Handle authorization failures
+//     if (response.status === 401 || response.data?.message?.toLowerCase().includes("unauthorized")) {
+//       console.warn("Authorization failed - attempting token refresh");
+//       shouldRetry = true;
+//       throw new Error("Authorization failed");
+//     }
+
+//     // Validate response structure
+//     if (!response.data?.success) {
+//       throw new Error(response.data?.message || "Invalid API response structure");
+//     }
+
+//     console.log("API RESPONSE:", response.data);
+//     result = response.data;
+
+//   } catch (error) {
+//     console.error("API Error Phase:", error.message);
+
+//     // Token refresh logic
+//     if (shouldRetry) {
+//       try {
+//         console.log("Attempting token refresh...");
+//         const refreshResponse = await refreshToken();
+        
+//         if (!refreshResponse?.data?.accessToken) {
+//           throw new Error("Refresh token missing in response");
+//         }
+
+//         newToken = refreshResponse.data.accessToken;
+//         console.log("Token refresh successful, retrying with new token");
+        
+//         // Retry with new token
+//         const retryResponse = await apiConnector(
+//           "POST",
+//           GET_FULL_COURSE_DETAILS_AUTHENTICATED,
+//           { courseId },
+//           { Authorization: `Bearer ${newToken}` }
+//         );
+
+//         if (!retryResponse.data?.success) {
+//           throw new Error(retryResponse.data?.message || "Retry request failed");
+//         }
+
+//         result = retryResponse.data;
+//       } catch (refreshError) {
+//         console.error("Token refresh failed:", refreshError);
+        
+//         // Safe toast update
+//         if (typeof toast.update === 'function' && toastId) {
+//           toast.update(toastId, {
+//             render: "Session expired - Please login again",
+//             type: "error",
+//             isLoading: false,
+//             autoClose: 3000,
+//           });
+//         } else {
+//           toast.error("Session expired - Please login again", { autoClose: 3000 });
+//         }
+        
+//         // Return error without redirecting (let component handle it)
+//         result = { 
+//           success: false, 
+//           message: "Authentication required",
+//           requiresLogin: true
+//         };
+//       }
+//     } else {
+//       // Non-token related error
+//       console.error("API Request Failed:", error);
+//       result = {
+//         success: false,
+//         message: error.response?.data?.message || error.message || "Failed to fetch course details",
+//         error: error
+//       };
+      
+//       // Safe error toast
+//       if (typeof toast.update === 'function' && toastId) {
+//         toast.update(toastId, {
+//           render: result.message,
+//           type: "error",
+//           isLoading: false,
+//           autoClose: 3000,
+//         });
+//       } else {
+//         toast.error(result.message, { autoClose: 3000 });
+//       }
+//     }
+//   } finally {
+//     // Cleanup
+//     if (toastId && typeof toast.dismiss === 'function') {
+//       toast.dismiss(toastId);
+//     }
+//     isLoading = false;
+//     toastId = null;
+//   }
+
+//   return result;
+// };
+
+
 export const markLectureAsComplete = async (data, token) => {
   let result = null
   console.log("mark complete data", data)

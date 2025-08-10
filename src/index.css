@@ -1041,3 +1041,19 @@ p {
     font-size: 16px;
   }
 }
+.custom-buy-btn {
+  display: block;
+  text-align: center;
+  background-color: white;
+  color: #07A698;
+  padding: 12px;
+  border-radius: 5px;
+  text-decoration: none;
+  font-weight: 600;
+  border: 1px solid #07A698;
+  transition: all 0.3s ease;
+}
+.custom-buy-btn:hover {
+  background-color: #07A698;
+  color: #ffffff;
+}

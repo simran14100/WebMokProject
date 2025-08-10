@@ -8,6 +8,9 @@ const BORDER = '#e0e0e0';
 const TEXT_DARK = '#222';
 const RED = '#e53935';
 
+
+
+
 export default function DeleteAccount() {
   const { token } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
