@@ -15,6 +15,7 @@ const enrollmentRoutes = require("./routes/enrollment");
 const admissionRoutes = require("./routes/admission");
 const installmentRoutes = require("./routes/installments");
 const videoRoutes = require("./routes/Video");
+const cartRoutes = require("./routes/cart");
 
 
 const database = require("./config/database");
@@ -22,6 +23,7 @@ const cookieParser = require("cookie-parser");
 const cors = require("cors");
 const { cloudinaryConnect } = require("./config/cloudinary");
 const fileUpload = require("express-fileupload");
+
 
 
 // Setting up port number
@@ -56,6 +58,7 @@ app.use(
 // Connecting to cloudinary
 cloudinaryConnect();
 
+
 // Setting up routes
 app.use("/api/v1/auth", userRoutes);
 app.use("/api/v1/profile", profileRoutes);
@@ -67,6 +70,7 @@ app.use("/api/v1/enrollment", enrollmentRoutes);
 app.use("/api/v1/admission", admissionRoutes);
 app.use("/api/v1/installments", installmentRoutes);
 app.use("/api/v1/video", videoRoutes);
+app.use("/api/v1/cart", cartRoutes);
 
 // Testing the server
 app.get("/", (req, res) => {
