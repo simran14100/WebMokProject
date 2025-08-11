@@ -62,7 +62,7 @@ function App() {
                 <Route path="/dashboard" element={<Dashboard />}>
                   <Route path="my-profile" element={<AdminProfile />} />
                   <Route path="settings" element={<Settings />} />
-                  <Route path="cart" element={<Cart />} />
+                  <Route path="/dashboard/cart" element={<Cart />} />
                   <Route path="active-courses" element={<ActiveCourses />} />
                   <Route path="enrolled-students" element={<EnrolledStudents />} />
                   {/* <Route path="instructor" element={<InstructorDashboard />} /> */}

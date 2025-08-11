@@ -99,3 +99,12 @@ export const videoProtection = {
     TRACK_VIDEO_PROGRESS: "/api/v1/video/progress",
     GET_VIDEO_ANALYTICS: "/api/v1/video/analytics",
 }; 
+
+// src/services/apis.js
+export const cart = {
+  GET_CART_DETAILS_API: "/api/v1/cart",
+  ADD_TO_CART_API: "/api/v1/cart/add",
+  UPDATE_CART_ITEM_API: "/api/v1/cart/update",
+  REMOVE_FROM_CART_API: "/api/v1/cart/remove",
+  CLEAR_CART_API: "/api/v1/cart/clear",
+};

@@ -1320,6 +1320,8 @@ import { getFullDetailsOfCourse } from '../services/operations/courseDetailsAPI'
 import { useNavigate } from 'react-router-dom';
 import { apiConnector } from '../services/apiConnector';
 import Footer from '../components/common/Footer';
+import { useSelector } from 'react-redux';
+import { addToCart } from '../services/operations/cartApi'; // Make sure this path is correct
 
 
 const CourseDetails = () => {
@@ -1330,7 +1332,7 @@ const CourseDetails = () => {
   const [expandedAccordion, setExpandedAccordion] = useState(null);
   const [isHovered, setIsHovered] = useState(false);
   const [courseData, setCourseData] = useState(null);
-
+  const { token } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
   const fetchCourseData = async () => {
@@ -1370,6 +1372,34 @@ const CourseDetails = () => {
     fetchCourseData();
   }, [courseId]);
 
+  const handleAddToCart = async () => {
+  if (!token) {
+    toast.error("Please login to add items to cart");
+    navigate("/login");
+    return;
+  }
+
+  try {
+    const toastId = toast.loading("Adding to cart...");
+    console.log("Attempting to add course:", courseId);
+    
+    const response = await addToCart(courseId, token);
+    console.log("Add to cart response:", response);
+    
+    toast.dismiss(toastId);
+
+    if (response.success) {
+      toast.success("Course added to cart");
+      navigate("/dashboard/cart");
+    } else {
+      toast.error(response.message);
+    }
+  } catch (error) {
+    console.error("Add to cart error:", error);
+    toast.error("Failed to add to cart");
+  }
+};
+ 
   // Loading state
   if (loading) {
     return <p>Loading course details...</p>;
@@ -2190,7 +2220,11 @@ const CourseDetails = () => {
                   </span>
                 )}
               </h4>
-              <a href="/cart" className="ed-primary-btn" style={{
+
+              <button
+                onClick={handleAddToCart}
+              className="ed-primary-btn" style={{
+                
                 display: 'block',
                 textAlign: 'center',
                 backgroundColor: '#07A698',
@@ -2204,7 +2238,7 @@ const CourseDetails = () => {
                 ':hover': {
                   backgroundColor: '#059a8c'
                 }
-              }}>Add to Cart</a>
+              }}>Add to Cart</button>
               <a href="/checkout" className="buy-btn custom-buy-btn" style={{
                 display: 'block',
                 textAlign: 'center',
