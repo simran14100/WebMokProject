@@ -41,6 +41,10 @@ export const addToCart = async (courseId, token) => {
         "Content-Type": "application/json",
       }
     );
+    if (response.data.success) {
+      // Trigger update event for navbar
+      window.dispatchEvent(new Event("cartUpdated"));
+    }
     console.log("Full response:", response); // Debug log
     return response.data;
   } catch (error) {
@@ -62,7 +66,10 @@ export const updateCartItem = async ({ courseId, quantity }, token) => {
         Authorization: `Bearer ${token}`,
       }
     );
-
+    if (response.data.success) {
+      // Trigger update event for navbar
+      window.dispatchEvent(new Event("cartUpdated"));
+    }
     if (!response.data.success) {
       throw new Error(response.data.message);
     }
@@ -89,6 +96,11 @@ export const removeFromCart = async ({ courseId }, token) => {
         Authorization: `Bearer ${token}`,
       }
     );
+
+    if (response.data.success) {
+      // Trigger update event for navbar
+      window.dispatchEvent(new Event("cartUpdated"));
+    }
 
     if (!response.data.success) {
       throw new Error(response.data.message);
@@ -117,6 +129,11 @@ export const clearCart = async (token) => {
       }
     );
 
+    if (response.data.success) {
+      // Trigger update event for navbar
+      window.dispatchEvent(new Event("cartUpdated"));
+    }
+
     if (!response.data.success) {
       throw new Error(response.data.message);
     }
@@ -129,6 +146,37 @@ export const clearCart = async (token) => {
     return {
       success: false,
       message: error.message,
+    };
+  }
+};
+
+export const getCartCount = async (token) => {
+  try {
+    const response = await apiConnector(
+      "GET",
+      cart.GET_CART_COUNT_API,
+      null,
+      {
+        Authorization: `Bearer ${token}`,
+      }
+    );
+
+   
+
+    if (!response.data.success) {
+      throw new Error(response.data.message);
+    }
+
+    return {
+      success: true,
+      count: response.data.count
+    };
+  } catch (error) {
+    console.error("Error getting cart count:", error);
+    return {
+      success: false,
+      message: error.message,
+      count: 0
     };
   }
 };

@@ -35,7 +35,7 @@ import AddCourse from './pages/AddCourse';
 import EditCourse from './components/core/EditCourse';
 import CourseViewer from './pages/CourseViewer';
 import CourseDetails from './pages/CourseDetails';
-
+import Checkout from './pages/Checkout';
 
 
 
@@ -96,7 +96,7 @@ function App() {
                 
                 {/* <Route path="/course/:courseId/:sectionId/:subsectionId" element={<CourseViewer />} /> */}
                 <Route path="/course/:courseId" element={<CourseViewer />} />
-
+                 <Route path="/dashboard/cart/checkout" element={<Checkout/>} />
               </Routes>
             </main>
             {/* <Footer /> */}

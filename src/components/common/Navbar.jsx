@@ -8,6 +8,10 @@ import { logout } from '../../services/operations/authApi';
 import { fetchCourseCategories } from '../../services/operations/courseDetailsAPI';
 import { motion, AnimatePresence } from 'framer-motion';
 
+ // Navbar.jsx
+import { getCartCount } from "../../services/operations/cartApi";
+
+
 const Navbar = () => {
   const { user } = useSelector((state) => state.profile);
   const { cart } = useSelector((state) => state.cart);
@@ -22,6 +26,56 @@ const Navbar = () => {
   const [isSticky, setIsSticky] = useState(false);
   const categoryDropdownRef = useRef(null);
   const profileDropdownRef = useRef(null);
+  const [cartCount, setCartCount] = useState(0);
+ 
+
+   const { token } = useSelector((state) => state.auth);
+
+// Fetch initial cart count
+  useEffect(() => {
+    const fetchCartCount = async () => {
+      if (token) {
+        try {
+          console.log("Fetching cart count...");
+          const response = await getCartCount(token);
+          console.log("Cart count response:", response);
+          if (response.success) {
+            setCartCount(response.count);
+          }
+        } catch (error) {
+          console.error("Error fetching cart count:", error);
+        }
+      } else {
+        setCartCount(0);
+      }
+    };
+
+    fetchCartCount();
+  }, [token]);
+
+  // Listen for cart updates
+  useEffect(() => {
+    const handleCartUpdate = async () => {
+      if (token) {
+        try {
+          const response = await getCartCount(token);
+          if (response.success) {
+            setCartCount(response.count);
+          }
+        } catch (error) {
+          console.error("Error updating cart count:", error);
+        }
+      }
+    };
+
+    window.addEventListener('cartUpdated', handleCartUpdate);
+    return () => window.removeEventListener('cartUpdated', handleCartUpdate);
+  }, [token]);
+
+  // Debug cart count changes
+  useEffect(() => {
+    console.log("Current cart count:", cartCount);
+  }, [cartCount]);
 
   // Fetch categories on component mount
   useEffect(() => {
@@ -353,7 +407,7 @@ const Navbar = () => {
                       <Link to="/cart">
                         <i className="fa-solid fa-shopping-cart"></i>
                       </Link>
-                      <span className="number">{cart?.length || 0}</span>
+                      <span className="number">{cartCount}</span>
                     </div>
                     
                     {/* Profile Dropdown */}

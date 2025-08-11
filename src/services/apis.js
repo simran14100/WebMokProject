@@ -107,4 +107,5 @@ export const cart = {
   UPDATE_CART_ITEM_API: "/api/v1/cart/update",
   REMOVE_FROM_CART_API: "/api/v1/cart/remove",
   CLEAR_CART_API: "/api/v1/cart/clear",
+ GET_CART_COUNT_API: "api/v1/cart/count"  // Add this new endpoint
 };

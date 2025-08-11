@@ -312,3 +312,24 @@ exports.clearCart = async (req, res) => {
     });
   }
 };
+
+// In your cartController.js
+exports.getCartCount = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const cart = await Cart.findOne({ user: userId });
+    
+    const count = cart ? cart.items.reduce((total, item) => total + item.quantity, 0) : 0;
+    
+    return res.status(200).json({
+      success: true,
+      count
+    });
+  } catch (error) {
+    console.error("Error getting cart count:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};

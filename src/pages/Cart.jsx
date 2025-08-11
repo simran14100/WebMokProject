@@ -756,7 +756,7 @@ const CartPage = () => {
       toast.error("Your cart is empty");
       return;
     }
-    navigate("/checkout");
+    navigate("/dashboard/cart/checkout");
   };
 
   if (loading) {
@@ -1157,7 +1157,7 @@ const CartPage = () => {
         </table>
       </div>
 
-      {cartData.items.length > 0 && (
+      {/* {cartData.items.length > 0 && (
         <div style={{ 
           display: 'flex',
           gap: '1rem',
@@ -1200,7 +1200,7 @@ const CartPage = () => {
             Apply Coupon
           </button>
         </div>
-      )}
+      )} */}
     </>
   )}
 </div>

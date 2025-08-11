@@ -1324,6 +1324,10 @@ import { useSelector } from 'react-redux';
 import { addToCart } from '../services/operations/cartApi'; // Make sure this path is correct
 
 
+const ED_TEAL = '#07A698';
+const ED_TEAL_DARK = '#059a8c';
+
+
 const CourseDetails = () => {
   const { courseId } = useParams();
   const [loading, setLoading] = useState(true);
@@ -1450,148 +1454,195 @@ const CourseDetails = () => {
   return (
 
     <div >
-             <section className="course-details pt-100 pb-120" style={{
+
+      {/* Header */}
+           <section style={{ 
+            position: 'relative', 
+            padding: '160px 0 110px', 
+            overflow: 'hidden',
+            backgroundImage: `url(${pageHeaderBg})`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            backgroundRepeat: 'no-repeat',
+            marginTop: '8rem'
+          }}>
+            {/* Background Overlay */}
+            <div style={{ 
+              position: 'absolute', 
+              inset: 0, 
+              backgroundColor: 'rgba(255, 255, 255, 0.5)',
+              backdropFilter: 'blur(1px)'
+            }}></div>
+            
+            {/* Decorative Elements */}
+            <div style={{ position: 'absolute', inset: 0 }}>
+              {/* Orange Triangle */}
+              <div style={{ 
+                position: 'absolute', 
+                top: '50px', 
+                left: '80px',
+                width: '0',
+                height: '0',
+                borderLeft: '20px solid transparent',
+                borderRight: '20px solid transparent',
+                borderBottom: '35px solid #f59e0b',
+                transform: 'rotate(35deg)',
+                opacity: 0.9,
+                zIndex: 3
+              }}></div>
+              
+              {/* Dashed Circle */}
+              <div style={{ 
+                position: 'absolute', 
+                top: '20px', 
+                left: '20px',
+                width: '100px',
+                height: '100px',
+                border: '2px dashed #9ca3af',
+                borderRadius: '50%',
+                opacity: 0.6,
+                zIndex: 10
+              }}></div>
+              
+              {/* Green Circles Pattern on Right */}
+              <div style={{ 
+                position: 'absolute', 
+                top: '30px', 
+                right: '150px',
+                width: '60px',
+                height: '60px',
+                background: `linear-gradient(135deg, ${ED_TEAL}, ${ED_TEAL_DARK})`,
+                borderRadius: '50%',
+                opacity: 0.8,
+                zIndex: 3
+              }}></div>
+              
+              <div style={{ 
+                position: 'absolute', 
+                top: '100px', 
+                right: '80px',
+                width: '90px',
+                height: '90px',
+                background: `linear-gradient(135deg, ${ED_TEAL}, ${ED_TEAL_DARK})`,
+                borderRadius: '50%',
+                opacity: 0.5,
+                zIndex: 2
+              }}></div>
+              
+              <div style={{ 
+                position: 'absolute', 
+                bottom: '20px', 
+                right: '200px',
+                width: '40px',
+                height: '40px',
+                background: ED_TEAL,
+                borderRadius: '50%',
+                opacity: 0.7,
+                zIndex: 3
+              }}></div>
+              
+              {/* Diagonal Stripes Pattern on Far Right */}
+              <div style={{ 
+                position: 'absolute', 
+                top: '0', 
+                right: '0',
+                width: '150px',
+                height: '100%',
+                background: `repeating-linear-gradient(
+                  45deg,
+                  transparent,
+                  transparent 6px,
+                  ${ED_TEAL} 6px,
+                  ${ED_TEAL} 9px
+                )`,
+                opacity: 0.15,
+                zIndex: 1
+              }}></div>
+            </div>
+            
+            {/* Content Container */}
+            <div style={{ 
+              position: 'relative', 
+              maxWidth: '1280px', 
+              margin: '0 auto', 
+              padding: '0 16px',
+              zIndex: 2
+            }}>
+              <div style={{ 
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center',
+                minHeight: '120px',
+                gap: '12px'
+              }}>
+                {/* Main Title */}
+                <h1 style={{ 
+                  fontSize: '48px', 
+                  fontWeight: '800', 
+                  color: '#1f2937', 
+                  margin: 0,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '16px'
+                }}>
+                  Course Details
+                  <span style={{ 
+                    display: 'inline-block',
+                    width: '12px',
+                    height: '12px',
+                    backgroundColor: ED_TEAL,
+                    borderRadius: '50%',
+                    marginLeft: '8px'
+                  }}></span>
+                </h1>
+                
+                {/* Breadcrumb Navigation */}
+                <div style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px', 
+                  color: '#6b7280',
+                  fontSize: '16px',
+                  fontWeight: '500'
+                }}>
+                  <span style={{ 
+                    color: '#6b7280', 
+                    textDecoration: 'none',
+                    transition: 'color 0.3s',
+                    cursor: 'pointer'
+                  }}>
+                    Home
+                  </span>
+                  <span style={{
+                    color: ED_TEAL,
+                    fontWeight: '600'
+                  }}>/</span>
+                  <span style={{ 
+                    color: ED_TEAL,
+                    fontWeight: '600'
+                  }}>
+                    Course Details
+                  </span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Bottom subtle border */}
+            <div style={{
+              position: 'absolute',
+              bottom: '0',
+              left: '0',
+              right: '0',
+              height: '1px',
+              background: 'linear-gradient(to right, transparent, #e5e7eb, transparent)'
+            }}></div>
+          </section>
+       <section className="course-details pt-100 pb-120" style={{
       padding: '60px 0',
       backgroundColor: '#ffffff'
     }}>
 
-       <section style={{ 
-        position: 'relative', 
-        padding: '120px 0', 
-        overflow: 'hidden',
-        borderBottom: '1px solid #e5e7eb',
-       
-      }}>
-        {/* Background Image */}
-        <div style={{ 
-          position: 'absolute', 
-          inset: 0, 
-          backgroundImage: `url(${pageHeaderBg})`,
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-          marginTop:'4rem'
-        }}></div>
-        
-        {/* Dark Overlay */}
-        <div style={{ 
-          position: 'absolute', 
-          inset: 0, 
-          backgroundColor: 'black', 
-          opacity: 0.4 
-        }}></div>
-        
-        {/* Background Shapes */}
-        <div style={{ position: 'absolute', inset: 0 }}>
-          <div style={{ 
-            position: 'absolute', 
-            top: '40px', 
-            left: '40px', 
-            opacity: 0.1 
-          }}>
-            <img src={pageHeaderShape1} alt="shape" style={{ width: '80px', height: '80px' }} />
-          </div>
-          <div style={{ 
-            position: 'absolute', 
-            top: '80px', 
-            right: '80px', 
-            opacity: 0.1 
-          }}>
-            <img src={pageHeaderShape2} alt="shape" style={{ width: '64px', height: '64px' }} />
-          </div>
-          <div style={{ 
-            position: 'absolute', 
-            bottom: '40px', 
-            left: '25%', 
-            opacity: 0.1 
-          }}>
-            <img src={pageHeaderShape3} alt="shape" style={{ width: '48px', height: '48px' }} />
-          </div>
-        </div>
-        
-        {/* Content Container */}
-        <div style={{ 
-          position: 'relative', 
-          maxWidth: '1280px', 
-          margin: '0 auto', 
-          padding: '0 16px' 
-        }}>
-          <div style={{ 
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-            minHeight: '220px',
-            gap: '16px'
-          }}>
-
-             {/* Main Title */}
-            <h1 style={{ 
-              fontSize: '48px', 
-              fontWeight: '800', 
-              color: 'white', 
-              margin: 0,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '16px'
-            }}>
-              <span style={{ 
-                display: 'inline-block',
-                width: '4px',
-                height: '40px',
-                backgroundColor: '#07A698',
-                borderRadius: '2px'
-              }}></span>
-              Course Details
-            </h1>
-            {/* Breadcrumb Navigation */}
-            <div style={{ 
-              display: 'flex', 
-              alignItems: 'center', 
-              gap: '8px', 
-              color: 'rgba(255,255,255,0.8)',
-              fontSize: '14px',
-              textTransform: 'uppercase',
-              letterSpacing: '1px'
-            }}>
-              <Link to="/" style={{ 
-                color: 'rgba(255,255,255,0.8)', 
-                textDecoration: 'none',
-                transition: 'color 0.3s',
-                ':hover': {
-                  color: 'white'
-                }
-              }}>
-                Home
-              </Link>
-              <span>/</span>
-              <Link to="/catalog" style={{ 
-                color: 'rgba(255,255,255,0.8)', 
-                textDecoration: 'none',
-                transition: 'color 0.3s',
-                ':hover': {
-                  color: 'white'
-                }
-              }}>
-                Course Details
-              </Link>
-              
-            </div>
-            
-           
-            
-            {/* Description */}
-            {/* <p style={{ 
-              maxWidth: '600px',
-              color: 'rgba(255,255,255,0.9)',
-              fontSize: '18px',
-              lineHeight: '1.6',
-              margin: 0
-            }}>
-              {catalogPageData?.data?.selectedCategory?.description}
-            </p> */}
-          </div>
-        </div>
-      </section>
+      
       <div className="container" style={{ maxWidth: '1400px', margin: '0 auto', padding: '0 15px' , marginTop: '145px'}}>
        
     
@@ -2239,7 +2290,7 @@ const CourseDetails = () => {
                   backgroundColor: '#059a8c'
                 }
               }}>Add to Cart</button>
-              <a href="/checkout" className="buy-btn custom-buy-btn" style={{
+              <a href="/dashboard/cart/checkout" className="buy-btn custom-buy-btn" style={{
                 display: 'block',
                 textAlign: 'center',
                 backgroundColor: isHovered ? '#07A698' : 'white',
