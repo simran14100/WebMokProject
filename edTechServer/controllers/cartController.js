@@ -95,16 +95,20 @@ exports.addToCart = async (req, res) => {
     );
 
     if (existingItemIndex >= 0) {
-      // Update quantity if already exists
-      cart.items[existingItemIndex].quantity += 1;
-    } else {
-      // Add new item
-      cart.items.push({
-        course: courseId,
-        quantity: 1,
-        price: course.price,
-      });
-    }
+  // Course already in cart - reject duplicate
+  return res.status(400).json({
+    success: false,
+    message: "Course is already added in your cart",
+  });
+} else {
+  // Add new item
+  cart.items.push({
+    course: courseId,
+    quantity: 1,
+    price: course.price,
+  });
+}
+
 
     await cart.save();
 

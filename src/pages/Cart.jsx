@@ -631,6 +631,7 @@ import {
 import { toast } from "react-hot-toast";
 import { Link, useNavigate } from 'react-router-dom';
 
+import RatingStars from '../components/common/RatingStars';
 
 const CartPage = () => {
   const { token } = useSelector((state) => state.auth);
@@ -641,6 +642,19 @@ const CartPage = () => {
   const [loading, setLoading] = useState(true);
   const [couponCode, setCouponCode] = useState('');
   const navigate = useNavigate();
+
+
+   useEffect(() => {
+  const handler = (e) => e.preventDefault();
+  document.querySelectorAll('form').forEach(form => {
+    form.addEventListener('submit', handler);
+  });
+  return () => {
+    document.querySelectorAll('form').forEach(form => {
+      form.removeEventListener('submit', handler);
+    });
+  };
+}, []);
 
   // Fetch cart data
   const fetchCart = async () => {
@@ -668,60 +682,68 @@ const CartPage = () => {
   }, [token, navigate]);
 
   // Handle quantity change
-
   const handleQuantityChange = async (courseId, newQuantity) => {
   if (newQuantity < 1 || newQuantity > 10) {
     toast.error("Quantity must be between 1 and 10");
     return;
   }
-  
-  try {
-    const toastId = toast.loading("Updating quantity...");
-    
-    // Get current scroll position
-    const scrollPosition = window.scrollY || document.documentElement.scrollTop;
-    
-    const response = await updateCartItem({ courseId, quantity: newQuantity }, token);
-    toast.dismiss(toastId);
 
-    if (response.success) {
-      toast.success("Cart updated successfully");
-      await fetchCart(); // Refresh cart data
-      
-      // Restore scroll position after update
-      window.requestAnimationFrame(() => {
-        window.scrollTo(0, scrollPosition);
-      });
-    } else {
+  // Optimistic UI update
+  setCartData(prev => ({
+    ...prev,
+    items: prev.items.map(item =>
+      item.course._id === courseId
+        ? { ...item, quantity: newQuantity }
+        : item
+    )
+  }));
+
+  try {
+    const response = await updateCartItem({ courseId, quantity: newQuantity }, token);
+    if (!response.success) {
       toast.error(response.message);
+      // Optionally revert if failed
+      fetchCart();
     }
   } catch (error) {
     toast.error("Failed to update cart");
-    console.error("Cart update error:", error);
+    fetchCart();
   }
 };
-  // const handleQuantityChange = async (courseId, newQuantity) => {
-  //   if (newQuantity < 1 || newQuantity > 10) {
-  //     toast.error("Quantity must be between 1 and 10");
-  //     return;
-  //   }
+
+
+//   const handleQuantityChange = async (courseId, newQuantity) => {
+//   if (newQuantity < 1 || newQuantity > 10) {
+//     toast.error("Quantity must be between 1 and 10");
+//     return;
+//   }
+  
+//   try {
+//     const toastId = toast.loading("Updating quantity...");
     
-  //   try {
-  //     const toastId = toast.loading("Updating quantity...");
-  //     const response = await updateCartItem({ courseId, quantity: newQuantity }, token);
-  //     toast.dismiss(toastId);
+//     // Get current scroll position
+//     const scrollPosition = window.scrollY || document.documentElement.scrollTop;
+    
+//     const response = await updateCartItem({ courseId, quantity: newQuantity }, token);
+//     toast.dismiss(toastId);
 
-  //     if (response.success) {
-  //       toast.success("Cart updated successfully");
-  //       fetchCart(); // Refresh cart data
-  //     } else {
-  //       toast.error(response.message);
-  //     }
-  //   } catch (error) {
-  //     toast.error("Failed to update cart");
-  //   }
-  // };
-
+//     if (response.success) {
+//       toast.success("Cart updated successfully");
+//       await fetchCart(); // Refresh cart data
+//       console.log("Still on cart page after update");
+//       // Restore scroll position after update
+//       window.requestAnimationFrame(() => {
+//         window.scrollTo(0, scrollPosition);
+//       });
+//     } else {
+//       toast.error(response.message);
+//     }
+//   } catch (error) {
+//     toast.error("Failed to update cart");
+//     console.error("Cart update error:", error);
+//   }
+// };
+  
   // Handle remove item
   const handleRemoveItem = async (courseId) => {
     try {
@@ -1020,7 +1042,7 @@ const CartPage = () => {
                 padding: '1rem',
                 textAlign: 'left',
                 fontWeight: '600'
-              }}>Quantity</th>
+              }}>Reviews</th>
               <th style={{ 
                 backgroundColor: '#f8f9fa',
                 padding: '1rem',
@@ -1087,34 +1109,34 @@ const CartPage = () => {
                   ₹{item.course.price.toFixed(2)}
                 </td>
                 <td style={{ padding: '1rem' }}>
-                  <div style={{ 
+                  {/* <div style={{ 
                     display: 'flex', 
                     alignItems: 'center', 
                     gap: '0.5rem',
                     height: '100%'
                   }}>
                     <button
-                      type="button"
-                      onClick={async (e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        const newQuantity = Math.max(1, item.quantity - 1);
-                        await handleQuantityChange(item.course._id, newQuantity);
-                      }}
-                      style={{
-                        background: '#f8f9fa',
-                        border: '1px solid #ddd',
-                        borderRadius: '4px',
-                        padding: '0.5rem',
-                        cursor: 'pointer',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        color: '#333'
-                      }}
-                    >
-                      <FaMinus size={12} />
-                    </button>
+  type="button"
+  onClick={(e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const newQuantity = Math.max(1, item.quantity - 1);
+    handleQuantityChange(item.course._id, newQuantity);
+  }}
+  style={{
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    color: '#333',
+    fontSize: '1rem',
+    transition: 'color 0.2s'
+  }}
+  onMouseEnter={(e) => e.target.style.color = '#e63946'}
+  onMouseLeave={(e) => e.target.style.color = '#333'}
+>
+  <FaMinus size={12} />
+</button>
+       
                     
                     <span style={{ 
                       minWidth: '30px', 
@@ -1146,7 +1168,8 @@ const CartPage = () => {
                     >
                       <FaPlus size={12} />
                     </button>
-                  </div>
+                  </div> */}
+<RatingStars courseId={item.course._id} Star_Size={16} />
                 </td>
                 <td style={{ padding: '1rem', fontWeight: '600' }}>
                   ₹{(item.course.price * item.quantity).toFixed(2)}

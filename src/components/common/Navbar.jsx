@@ -404,7 +404,7 @@ const Navbar = () => {
                 {user ? (
                   <>
                     <div className="header-right-icon shop-btn">
-                      <Link to="/cart">
+                      <Link to="/dashboard/cart">
                         <i className="fa-solid fa-shopping-cart"></i>
                       </Link>
                       <span className="number">{cartCount}</span>

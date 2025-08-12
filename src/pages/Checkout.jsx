@@ -422,90 +422,110 @@ const ED_TEAL_DARK = '#059a8c';
     }
   };
 
-  const handleBuyCourse = async () => {
-    if (!token) {
-      toast.error('Please login to purchase');
-      navigate('/login');
-      return;
+ const handleBuyCourse = async () => {
+  if (!token) {
+    toast.error('Please login to purchase');
+    navigate('/login');
+    return;
+  }
+
+  if (user?.accountType !== 'Student') {
+    toast.error('Only students can purchase courses');
+    return;
+  }
+
+  if (!user?.enrollmentFeePaid) {
+    toast.error('Please complete enrollment fee payment');
+    navigate('/enrollment-payment');
+    return;
+  }
+
+  if (!agreeTerms) {
+    toast.error('You must agree to the terms');
+    return;
+  }
+
+  setProcessingPayment(true);
+  const toastId = toast.loading('Processing payment...');
+
+  
+
+  try {
+
+
+     // 1. Get Razorpay key first
+    const keyResponse = await apiConnector(
+      "GET",
+      "/api/v1/payment/getRazorpayKey"
+    );
+
+    if (!keyResponse.data.success) {
+      throw new Error("Failed to get payment gateway");
     }
 
-    if (user?.accountType !== 'Student') {
-      toast.error('Only students can purchase courses');
-      return;
+    const razorpayKey = keyResponse.data.key;
+
+    console.log("Razorpay Key:", razorpayKey);
+    let courseIds = [];
+    let courseNames = [];
+   let totalAmount = cartData.grandTotal; 
+
+    if (cartData.items.length > 0) {
+      courseIds = cartData.items.map(item => item.course?._id || item._id);
+      courseNames = cartData.items.map(item => item.course?.courseName || item.courseName);
+    } else if (courseId && courseDetails) {
+      courseIds = [courseId];
+      courseNames = [courseDetails.courseName];
+      totalAmount = courseDetails.price;
     }
+    // Step 1: Initiate payment
+    const paymentResponse = await apiConnector(
+      "POST",
+      "/api/v1/payment/capturePayment",
+      { courses: courseIds ,
+        amount: totalAmount // Send calculated total amount
 
-    if (!user?.enrollmentFeePaid) {
-      toast.error('Please complete enrollment fee payment before purchasing courses');
-      navigate('/enrollment-payment');
-      return;
-    }
-
-    if (!agreeTerms) {
-      toast.error('You must agree to the terms and conditions');
-      return;
-    }
-
-    setProcessingPayment(true);
-    const toastId = toast.loading('Processing your payment...');
-
-    try {
-      let coursesToBuy = [];
-
-      if (cartData.items.length > 0) {
-        // Process cart items
-        coursesToBuy = cartData.items.map(item => ({
-          courseId: item.course?._id || item._id,
-          name: item.course?.courseName || item.courseName,
-          price: item.course?.price || item.price
-        }));
-      } else if (courseId && courseDetails) {
-        // Direct course purchase
-        coursesToBuy = [{
-          courseId,
-          name: courseDetails.courseName,
-          price: courseDetails.price
-        }];
-      } else {
-        throw new Error("No course(s) selected for purchase");
+      },
+      {
+        Authorization: `Bearer ${token}`
       }
+    );
 
-      // Process payment for all courses at once
-      await buyCourse(
-        token,
-        user,
-        coursesToBuy.map(c => c.courseId),
-        coursesToBuy.map(c => c.name).join(', '),
-        coursesToBuy.reduce((sum, c) => sum + c.price, 0),
-        navigate,
-        (paymentData) => {
-          setPaymentVerificationFailed(true);
-          console.error('Payment verification failed:', paymentData);
-        }
-      );
-
-      // Clear cart if payment was successful
-      if (cartData.items.length > 0) {
-        await clearCart(token);
-      }
-
-      toast.success("Payment successful! You can now access your courses.");
-      navigate('/dashboard/active-courses');
-    } catch (error) {
-      console.error('Payment error:', error);
-      
-      if (error.message?.includes('Student is already Enrolled')) {
-        toast.info('You are already enrolled in one or more of these courses!');
-        setEnrollmentStatus(true);
-        navigate('/dashboard/active-courses');
-        return;
-      }
-      
-      toast.error(error.message || 'Payment failed. Please try again.');
-    } finally {
-      setProcessingPayment(false);
-      toast.dismiss(toastId);
+    if (!paymentResponse.data.success) {
+      throw new Error(paymentResponse.data.message);
     }
-  };
+
+  // 4. Open Razorpay with proper key
+    const options = {
+      key: razorpayKey, // Use the key from backend
+      amount: paymentResponse.data.amount,
+      currency: "INR",
+      order_id: paymentResponse.data.orderId,
+      name: "Course Purchase",
+      description: `Purchasing ${courseNames.join(', ')}`,
+      prefill: {
+        name: `${user.firstName} ${user.lastName}`,
+        email: user.email
+      },
+      handler: async function(response) {
+        // ... verification logic ...
+      },
+      theme: {
+        color: "#07A698"
+      }
+    };
+
+    const rzp = new window.Razorpay(options);
+    rzp.open();
+
+  } catch (error) {
+    console.error('Payment error:', error);
+    toast.error(error.message || 'Payment failed');
+  } finally {
+    setProcessingPayment(false);
+    toast.dismiss(toastId);
+  }
+};
 
   if (error) {
     return (
@@ -1026,16 +1046,16 @@ const ED_TEAL_DARK = '#059a8c';
                   )}
                   
                   {/* Order Summary */}
-                  <div className="order-item item-1" style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #eee', fontWeight: 600 }}>
+                  {/* <div className="order-item item-1" style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #eee', fontWeight: 600 }}>
                     <div className="order-left" style={{ display: 'flex', alignItems: 'center' }}>
                       <span className="left-title">Subtotal</span>
                     </div>
                     <div className="order-right" style={{ display: 'flex', alignItems: 'center' }}>
                       <span className="right-title">₹{cartData.total.toFixed(2)}</span>
                     </div>
-                  </div>
+                  </div> */}
                   
-                  <div className="order-item item-1" style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #eee', fontWeight: 600 }}>
+                  {/* <div className="order-item item-1" style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #eee', fontWeight: 600 }}>
                     <div className="order-left" style={{ display: 'flex', alignItems: 'center' }}>
                       <span className="left-title">Shipping</span>
                     </div>
@@ -1044,7 +1064,7 @@ const ED_TEAL_DARK = '#059a8c';
                         <span>Flat rate:</span> ₹{cartData.shipping.toFixed(2)}
                       </span>
                     </div>
-                  </div>
+                  </div> */}
                   
                   {cartData.discount > 0 && (
                     <div className="order-item item-1" style={{ display: 'flex', justifyContent: 'space-between', padding: '15px 0', borderBottom: '1px solid #eee', fontWeight: 600 }}>
@@ -1065,68 +1085,15 @@ const ED_TEAL_DARK = '#059a8c';
                     </div>
                     <div className="order-right" style={{ display: 'flex', alignItems: 'center' }}>
                       <span className="right-title title-2" style={{ color: '#14b8a6', fontSize: '18px' }}>
-                        ₹{cartData.grandTotal.toFixed(2)}
+                        {/* ₹{cartData.grandTotal.toFixed(2)} */}₹{cartData.total.toFixed(2)}
                       </span>
                     </div>
                   </div>
                 </div>
                 
-                {/* Payment Options */}
+                 {/* Payment Options */}
                 <div className="payment-option-wrap">
-                  <div className="payment-option" style={{ marginBottom: '20px' }}>
-                    <div className="shipping-option" style={{ marginBottom: '15px' }}>
-                      <div className="options" style={{ display: 'flex', alignItems: 'center', marginBottom: '5px' }}>
-                        <input 
-                          id="bank_transfer" 
-                          type="radio" 
-                          name="payment" 
-                          style={{ marginRight: '10px' }} 
-                          checked={paymentMethod === 'bank_transfer'}
-                          onChange={() => handlePaymentMethodChange('bank_transfer')}
-                        />
-                        <label htmlFor="bank_transfer">Direct Bank Transfer</label>
-                      </div>
-                      <p className="mb-0" style={{ marginBottom: 0 }}>
-                        Make your payment directly into our bank account. Please use your Order ID as the payment reference.
-                      </p>
-                    </div>
-                    
-                    <div className="shipping-option" style={{ marginBottom: '15px' }}>
-                      <input 
-                        id="check_payment" 
-                        type="radio" 
-                        name="payment" 
-                        style={{ marginRight: '10px' }} 
-                        checked={paymentMethod === 'check_payment'}
-                        onChange={() => handlePaymentMethodChange('check_payment')}
-                      />
-                      <label htmlFor="check_payment">Check Payments</label>
-                    </div>
-                    
-                    <div className="shipping-option" style={{ marginBottom: '15px' }}>
-                      <input 
-                        id="cash_on_delivery" 
-                        type="radio" 
-                        name="payment" 
-                        style={{ marginRight: '10px' }} 
-                        checked={paymentMethod === 'cash_on_delivery'}
-                        onChange={() => handlePaymentMethodChange('cash_on_delivery')}
-                      />
-                      <label htmlFor="cash_on_delivery">Cash On Delivery</label>
-                    </div>
-                    
-                    <div className="shipping-option" style={{ marginBottom: '15px' }}>
-                      <input 
-                        id="paypal" 
-                        type="radio" 
-                        name="payment" 
-                        style={{ marginRight: '10px' }} 
-                        checked={paymentMethod === 'paypal'}
-                        onChange={() => handlePaymentMethodChange('paypal')}
-                      />
-                      <label htmlFor="paypal">Paypal</label>
-                    </div>
-                  </div>
+                  
                   
                   <p className="desc" style={{ fontSize: '14px', color: '#666', marginBottom: '20px' }}>
                     Your personal data will be used to process your order, support your experience throughout this website, and for other purposes described in our <span style={{ color: '#14b8a6' }}>privacy policy.</span>

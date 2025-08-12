@@ -385,7 +385,7 @@ export const getFullDetailsOfCourse = async (courseId) => {
 };
 
 
-// export const getFullDetailsOfCourse = async (courseId) => {
+
 //   // Initialize loading state
 //   let toastId;
 //   try {
