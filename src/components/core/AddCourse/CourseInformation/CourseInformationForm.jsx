@@ -10,7 +10,9 @@ import {
   editCourseDetails, 
   fetchCourseCategories, 
   fetchCourseSubCategories 
+
 } from '../../../../services/operations/courseDetailsAPI';
+import store from '../../../../store';
 import { setCourse, setStep } from '../../../../store/slices/courseSlice';
 import { ED_TEAL, ED_TEAL_DARK } from '../../../../utils/theme';
 import IconBtn from '../../../common/IconBtn';
@@ -27,9 +29,22 @@ export default function CourseInformationForm() {
     watch,
     formState: { errors },
   } = useForm();
-
+  
   const dispatch = useDispatch();
+  
+  // Get user data from Redux store
+  const { user } = useSelector((state) => state.profile);
   const { token } = useSelector((state) => state.auth);
+  
+  // Debug: Log user and token info
+  console.log('Current user:', user);
+  console.log('Current token:', token);
+  
+  // Log Redux store state for debugging
+  useEffect(() => {
+    console.log('Redux auth state:', store.getState().auth);
+    console.log('Redux profile state:', store.getState().profile);
+  }, []);
   const { course, editCourse } = useSelector((state) => state.course);
   const [loading, setLoading] = useState(false);
   const [courseCategories, setCourseCategories] = useState([]);
@@ -248,198 +263,171 @@ export default function CourseInformationForm() {
     return true; // For new course, form is always considered updated
   };
 
+  // Check if user has permission to create/edit courses
+  const checkCoursePermissions = () => {
+    if (!user) {
+      toast.error('Please log in to create or edit courses');
+      return false;
+    }
+    
+    // Check if user is either an Admin or an approved Instructor
+    const isAdmin = user?.accountType === 'Admin';
+    const isApprovedInstructor = user?.accountType === 'Instructor' && user?.isApproved;
+    
+    if (!isAdmin && !isApprovedInstructor) {
+      toast.error('You need to be an Admin or an approved Instructor to create or edit courses');
+      console.error('Insufficient permissions:', { 
+        isAdmin,
+        isApprovedInstructor,
+        userRole: user?.accountType,
+        isApproved: user?.isApproved
+      });
+      return false;
+    }
+    
+    console.log('User has permission to create/edit courses');
+    return true;
+  };
+
   // Handle form submission
   const onSubmit = async (data) => {
+    console.log('Form submitted with data:', data);
+    
+    // Check permissions first
+    if (!checkCoursePermissions()) {
+      return;
+    }
+    
     if (!isFormUpdated()) {
       toast.error('No changes made to update');
       return;
     }
 
-    if (courseTags.length === 0) {
-      toast.error('Please add at least one course tag');
-      return;
-    }
-
-    if (requirements.length === 1 && requirements[0] === '') {
+    // Ensure requirements are not empty
+    if (requirements.length === 0 || (requirements.length === 0 && !requirements[0].trim())) {
       toast.error('Please add at least one requirement');
       return;
     }
-
-    const formData = new FormData();
-    formData.append('courseName', data.courseTitle);
-    formData.append('courseDescription', data.courseShortDesc);
-    formData.append('price', data.coursePrice);
-    formData.append('tag', JSON.stringify(courseTags));
-    formData.append('whatYouWillLearn', data.courseBenefits);
-    formData.append('category', data.courseCategory);
-    formData.append('subCategory', data.courseSubCategory);
-    formData.append('instructions', JSON.stringify(data.courseRequirements));
-    formData.append('thumbnailImage', data.courseImage);
+    
+    // Ensure courseTags is not empty
+    // if (courseTags.length === 0) {
+    //   toast.error('Please add at least one tag');
+    //   return;
+    // }
 
     setLoading(true);
-    if (editCourse) {
-      if (isFormUpdated()) {
+    
+    try {
+      // Get the current token from Redux store
+      const currentToken = token || localStorage.getItem('debug_token');
+      console.log('Current token from Redux:', token);
+      console.log('Token from localStorage:', localStorage.getItem('debug_token'));
+      
+      if (!currentToken) {
+        throw new Error('Authentication token not found. Please log in again.');
+      }
+
+      // Create form data with all required fields
+      const formData = new FormData();
+      
+      // If editing, include the course ID
+      if (course) {
+        console.log('Editing course with ID:', course._id);
         formData.append('courseId', course._id);
-        const result = await editCourseDetails(formData, token);
+      }
+      
+      // Required fields from the form
+      formData.append('courseName', data.courseTitle || '');
+      formData.append('courseDescription', data.courseShortDesc || '');
+      formData.append('price', data.coursePrice || 0);
+      formData.append('category', data.courseCategory || '');
+      formData.append('whatYouWillLearn', data.courseBenefits || '');
+      
+      // Format instructions array - ensure at least one valid instruction
+      const instructionsList = requirements && requirements.length > 0 ? 
+        requirements.filter(r => r.trim() !== '') : [];
+      
+      // If no valid instructions, add a default one
+      if (instructionsList.length === 0) {
+        instructionsList.push('Complete all lectures and assignments');
+      }
+      
+      console.log('Final instructions:', instructionsList);
+      formData.append('instructions', JSON.stringify(instructionsList));
+      
+      // Default status for new courses
+      formData.append('status', 'Draft');
+      
+      // Add subCategory if it exists (not all backends require this)
+      if (data.courseSubCategory) {
+        formData.append('subCategory', data.courseSubCategory);
+      }
+      
+      // Handle thumbnail upload
+      if (data.courseImage) {
+        formData.append('thumbnailImage', data.courseImage);
+        console.log('Thumbnail file attached:', data.courseImage.name);
+      } else if (editCourse && !data.courseImage) {
+        // If editing and no new thumbnail was provided, keep the existing one
+        console.log('Using existing thumbnail');
+      } else {
+        console.error('Thumbnail is required');
+        toast.error('Please upload a course thumbnail');
+        setLoading(false);
+        return;
+      }
+
+      // Log form data for debugging
+      console.log('=== FormData contents ===');
+      const formDataObj = {};
+      for (let [key, value] of formData.entries()) {
+        console.log(key, ':', value);
+        formDataObj[key] = value;
+      }
+      console.log('=== End FormData ===');
+      console.log('FormData as object:', formDataObj);
+      
+      // Verify required fields
+      const requiredFields = [
+        'courseName', 'courseDescription', 'whatYouWillLearn', 
+        'price', 'category','instructions', 'status'
+      ];
+      
+      const missingFields = requiredFields.filter(field => !formDataObj[field]);
+      if (missingFields.length > 0) {
+        console.error('Missing required fields:', missingFields);
+        throw new Error(`Missing required fields: ${missingFields.join(', ')}`);
+      }
+
+      let result;
+      if (editCourse) {
+        // Update existing course
+        console.log('Updating existing course with token:', currentToken);
+        result = await editCourseDetails(formData, currentToken);
         if (result) {
-          dispatch(setStep(2));
           dispatch(setCourse(result));
+          toast.success('Course updated successfully');
+          dispatch(setStep(2)); // Move to next step (Course Builder)
         }
       } else {
-        toast.error('No changes made');
+        // Create new course
+        console.log('Creating new course with token:', currentToken);
+        result = await addCourseDetails(formData, currentToken);
+        if (result) {
+          dispatch(setCourse(result));
+          dispatch(setStep(2)); // Move to next step (Course Builder)
+        }
       }
-    } else {
-      formData.append('status', 'Draft');
-      const result = await addCourseDetails(formData, token);
-      if (result) {
-        dispatch(setStep(2));
-        dispatch(setCourse(result));
-      }
+    } catch (error) {
+      console.error('Error saving course:', error);
+      toast.error(error.response?.data?.message || 'Failed to save course');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
-    // <form onSubmit={handleSubmit(onSubmit)} style={formStyles.container}>
-    //   {/* Course Information Section */}
-    //   <div style={formStyles.section}>
-    //     <h2 style={formStyles.sectionTitle}>Course Information</h2>
-        
-    //     <div>
-    //       <label style={formStyles.label} htmlFor="courseTitle">
-    //         Course Title <span style={{ color: '#e53e3e' }}>*</span>
-    //       </label>
-    //       <input
-    //         id="courseTitle"
-    //         type="text"
-    //         placeholder="Enter course title"
-    //         style={formStyles.input}
-    //         {...register('courseTitle', { required: 'Course title is required' })}
-    //       />
-    //       {errors.courseTitle && (
-    //         <p style={formStyles.error}>{errors.courseTitle.message}</p>
-    //       )}
-    //     </div>
-
-    //     <div>
-    //       <label style={formStyles.label} htmlFor="courseShortDesc">
-    //         Course Short Description <span style={{ color: '#e53e3e' }}>*</span>
-    //       </label>
-    //       <textarea
-    //         id="courseShortDesc"
-    //         placeholder="Enter short description"
-    //         style={formStyles.textarea}
-    //         {...register('courseShortDesc', { 
-    //           required: 'Short description is required',
-    //           minLength: { value: 50, message: 'Description must be at least 50 characters' }
-    //         })}
-    //       />
-    //       {errors.courseShortDesc && (
-    //         <p style={formStyles.error}>{errors.courseShortDesc.message}</p>
-    //       )}
-    //     </div>
-
-    //     <div>
-    //       <label style={formStyles.label}>
-    //         Course Thumbnail <span style={{ color: '#e53e3e' }}>*</span>
-    //       </label>
-    //       <Upload
-    //         name="courseImage"
-    //         label="Choose Thumbnail"
-    //         register={register}
-    //         setValue={setValue}
-    //         errors={errors}
-    //         accept="image/png, image/jpg, image/jpeg"
-    //         required={!editCourse}
-    //       />
-    //     </div>
-    //   </div>
-
-    //   {/* Course Details Section */}
-    //   <div style={formStyles.section}>
-    //     <h2 style={formStyles.sectionTitle}>Course Details</h2>
-        
-    //     <div>
-    //       <label style={formStyles.label} htmlFor="coursePrice">
-    //         Course Price (in INR) <span style={{ color: '#e53e3e' }}>*</span>
-    //       </label>
-    //       <div style={{ position: 'relative' }}>
-    //         <HiOutlineCurrencyRupee 
-    //           style={{
-    //             position: 'absolute',
-    //             left: '12px',
-    //             top: '50%',
-    //             transform: 'translateY(-50%)',
-    //             color: '#718096',
-    //             fontSize: '1.25rem'
-    //           }} 
-    //         />
-    //         <input
-    //           id="coursePrice"
-    //           type="number"
-    //           placeholder="Enter course price"
-    //           style={{
-    //             ...formStyles.input,
-    //             paddingLeft: '40px',
-    //             WebkitAppearance: 'none',
-    //             MozAppearance: 'textfield'
-    //           }}
-    //           min="0"
-    //           {...register('coursePrice', { 
-    //             required: 'Course price is required',
-    //             min: { value: 0, message: 'Price cannot be negative' }
-    //           })}
-    //         />
-    //       </div>
-    //       {errors.coursePrice && (
-    //         <p style={formStyles.error}>{errors.coursePrice.message}</p>
-    //       )}
-    //     </div>
-    //     <label htmlFor='courseCategory' className='text-sm text-richblack-5'>Course Category <sup className='text-pink-200'>*</sup></label>
-    //     <select id='courseCategory' defaultValue='' {...register('courseCategory', { required: true })} className='form-style w-full'>
-    //       <option value='' disabled>Choose a Category</option>
-    //       {!loading && courseCategories.map((category) => (
-    //         <option key={category._id} value={category._id}>{category.name}</option>
-    //       ))}
-    //     </select>
-    //     {errors.courseCategory && <span className='ml-2 text-xs tracking-wide text-pink-200'>Course Category is required</span>}
-    //   </div>
-
-    //   <div>
-    //     <label htmlFor='courseSubCategory' className='text-sm text-richblack-5'>Course Sub-Category <sup className='text-pink-200'>*</sup></label>
-    //     <select id='courseSubCategory' defaultValue='' {...register('courseSubCategory', { required: true })} className='form-style w-full' disabled={!selectedCategory || loading}>
-    //       <option value='' disabled>Choose a Sub Category</option>
-    //       {!loading && courseSubCategories.map((subCategory) => (
-    //         <option key={subCategory._id} value={subCategory._id}>{subCategory.name}</option>
-    //       ))}
-    //     </select>
-    //     {errors.courseSubCategory && <span className='ml-2 text-xs tracking-wide text-pink-200'>Course Sub-Category is required</span>}
-    //   </div>
-
-    //   <ChipInput label='Tags' name='courseTags' placeholder='Enter tags and press enter' register={register} errors={errors} setValue={setValue} getValues={getValues} />
-
-    //   <Upload name='courseImage' label='Course Thumbnail' register={register} setValue={setValue} errors={errors} editData={editCourse ? course?.thumbnail : null} />
-
-    //   <div>
-    //     <label htmlFor='courseBenefits' className='text-sm text-richblack-5'>Benefits of the course <sup className='text-pink-200'>*</sup></label>
-    //     <textarea id='courseBenefits' placeholder='Enter benefits of the course' {...register('courseBenefits', { required: true })} className='form-style resize-x-none min-h-[130px] w-full' />
-    //     {errors.courseBenefits && <span className='ml-2 text-xs tracking-wide text-pink-200'>Benefits of the course are required</span>}
-    //   </div>
-
-    //   <RequirementsField name='courseRequirements' label='Requirements/Instructions' register={register} errors={errors} setValue={setValue} getValues={getValues} />
-
-    //   <div className='flex justify-end gap-x-2'>
-    //     {editCourse && (
-    //       <button onClick={() => dispatch(setStep(2))} disabled={loading} className='flex cursor-pointer items-center gap-x-2 rounded-md bg-richblack-300 py-[8px] px-[20px] font-semibold text-richblack-900'>
-    //         Continue Without Saving
-    //       </button>
-    //     )}
-    //     <button type='submit' disabled={loading} style={{ backgroundColor: ED_TEAL }} className='flex items-center gap-x-2 rounded-md py-2 px-5 font-semibold text-white'>
-    //       {!editCourse ? 'Next' : 'Save Changes'}
-    //       <MdNavigateNext />
-    //     </button>
-    //   </div>
-    // </form>
+    
 
     <form 
       onSubmit={handleSubmit(onSubmit)} 
@@ -635,93 +623,7 @@ export default function CourseInformationForm() {
           )}
         </div>
 
-        {/* <div style={{ marginBottom: '1.5rem' }}>
-          <label style={{
-            display: 'block',
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            color: '#4a5568',
-            marginBottom: '0.5rem'
-          }} htmlFor="courseCategory">
-            Course Category <span style={{ color: '#e53e3e' }}>*</span>
-          </label>
-          <select
-            id="courseCategory"
-            style={{
-              width: '100%',
-              padding: '0.75rem 1rem',
-              fontSize: '0.875rem',
-              border: `1px solid ${errors.courseCategory ? '#e53e3e' : '#e2e8f0'}`,
-              borderRadius: '8px',
-              backgroundColor: '#fff',
-              cursor: 'pointer',
-              outline: 'none',
-              boxShadow: errors.courseCategory ? '0 0 0 3px rgba(229, 62, 62, 0.1)' : 'none',
-              appearance: 'none',
-              backgroundImage: 'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiAjd2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1jaGV2cm9uLWRvd24iPjxwYXRoIGQ9Im02IDkgNiA2IDYtNiIvPjwvc3ZnPg==")',
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 1rem center'
-            }}
-            {...register('courseCategory', { required: 'Category is required' })}
-          >
-            <option value="" disabled>Choose a Category</option>
-            {!loading && courseCategories.map((category) => (
-              <option key={category._id} value={category._id}>{category.name}</option>
-            ))}
-          </select>
-          {errors.courseCategory && (
-            <p style={{
-              marginTop: '0.5rem',
-              fontSize: '0.75rem',
-              color: '#e53e3e'
-            }}>{errors.courseCategory.message}</p>
-          )}
-        </div>
-
-        <div style={{ marginBottom: '1.5rem' }}>
-          <label style={{
-            display: 'block',
-            fontSize: '0.875rem',
-            fontWeight: 500,
-            color: '#4a5568',
-            marginBottom: '0.5rem'
-          }} htmlFor="courseSubCategory">
-            Course Sub-Category <span style={{ color: '#e53e3e' }}>*</span>
-          </label>
-          <select
-            id="courseSubCategory"
-            disabled={!selectedCategory || loading}
-            style={{
-              width: '100%',
-              padding: '0.75rem 1rem',
-              fontSize: '0.875rem',
-              border: `1px solid ${errors.courseSubCategory ? '#e53e3e' : '#e2e8f0'}`,
-              borderRadius: '8px',
-              backgroundColor: '#fff',
-              cursor: 'pointer',
-              outline: 'none',
-              boxShadow: errors.courseSubCategory ? '0 0 0 3px rgba(229, 62, 62, 0.1)' : 'none',
-              appearance: 'none',
-              backgroundImage: 'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiAjd2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1jaGV2cm9uLWRvd24iPjxwYXRoIGQ9Im02IDkgNiA2IDYtNiIvPjwvc3ZnPg==")',
-              backgroundRepeat: 'no-repeat',
-              backgroundPosition: 'right 1rem center',
-              opacity: !selectedCategory || loading ? 0.7 : 1
-            }}
-            {...register('courseSubCategory', { required: 'Sub-category is required' })}
-          >
-            <option value="" disabled>Choose a Sub-Category</option>
-            {!loading && courseSubCategories.map((subCategory) => (
-              <option key={subCategory._id} value={subCategory._id}>{subCategory.name}</option>
-            ))}
-          </select>
-          {errors.courseSubCategory && (
-            <p style={{
-              marginTop: '0.5rem',
-              fontSize: '0.75rem',
-              color: '#e53e3e'
-            }}>{errors.courseSubCategory.message}</p>
-          )}
-        </div> */}
+        
 
 <div style={{ marginBottom: '1.5rem' }}>
   <label style={formStyles.label} htmlFor="courseCategory">
@@ -729,10 +631,12 @@ export default function CourseInformationForm() {
   </label>
   <select
     id="courseCategory"
+   
     style={{
       ...formStyles.select,
       border: `1px solid ${errors.courseCategory ? '#e53e3e' : '#e2e8f0'}`,
-      boxShadow: errors.courseCategory ? '0 0 0 3px rgba(229, 62, 62, 0.1)' : 'none'
+      boxShadow: errors.courseCategory ? '0 0 0 3px rgba(229, 62, 62, 0.1)' : 'none',
+       transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
     }}
     {...register('courseCategory', { 
       required: 'Category is required',
@@ -770,7 +674,8 @@ export default function CourseInformationForm() {
       ...formStyles.select,
       border: `1px solid ${errors.courseSubCategory ? '#e53e3e' : '#e2e8f0'}`,
       boxShadow: errors.courseSubCategory ? '0 0 0 3px rgba(229, 62, 62, 0.1)' : 'none',
-      opacity: !selectedCategory || loading ? 0.7 : 1
+      opacity: !selectedCategory || loading ? 0.7 : 1,
+      transition: 'border-color 0.2s ease, box-shadow 0.2s ease'
     }}
     {...register('courseSubCategory', { required: 'Sub-category is required' })}
   >
@@ -797,7 +702,7 @@ export default function CourseInformationForm() {
             name="courseTags" 
             placeholder="Enter tags and press enter" 
             register={register} 
-            errors={errors} 
+            errors={errors} v
             setValue={setValue} 
             getValues={getValues} 
           />

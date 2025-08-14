@@ -29,13 +29,37 @@ const processQueue = (error, token = null) => {
 // Add request interceptor to include Authorization header
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = store.getState().auth.token || localStorage.getItem("accessToken");
+    // First try to get token from Redux store
+    let token = store.getState()?.auth?.token;
+    
+    // If not in Redux, try to get from localStorage
+    if (!token) {
+      const persistedAuth = localStorage.getItem('persist:auth');
+      if (persistedAuth) {
+        try {
+          const parsedAuth = JSON.parse(persistedAuth);
+          token = JSON.parse(parsedAuth.token);
+          console.log('Retrieved token from localStorage:', token);
+        } catch (error) {
+          console.error('Error parsing persisted auth:', error);
+        }
+      }
+    }
+    
+    // Set Authorization header if token exists
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
+      console.log('Setting Authorization header with token');
+    } else {
+      console.warn('No token found for API request');
     }
+    
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    console.error('Request interceptor error:', error);
+    return Promise.reject(error);
+  }
 );
 
 // Add response interceptor to handle 401 errors

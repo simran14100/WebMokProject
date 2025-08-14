@@ -1273,7 +1273,17 @@ p {
   background-color: #0d9b8b;
 }
 
+/* Remove default focus outline and smooth it */
+.smooth-select:focus {
+  outline: none;
+  border-color: #3182ce !important;
+  box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.3) !important;
+}
 
+/* Optional: subtle hover effect inside dropdown */
+.smooth-select option:hover {
+  background-color: #f0f4f8;
+}
 
 
 

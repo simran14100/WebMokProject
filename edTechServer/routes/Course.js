@@ -57,36 +57,67 @@ const { auth, isApprovedInstructor, isStudent, isAdminLevel, isAdminOrSuperAdmin
 //                                      Course routes
 // ********************************************************************************************************
 
-// Courses can Only be Created by Approved Instructors
-router.post("/createCourse", auth, isApprovedInstructor, createCourse)
-router.get("/getInstructorCourses", auth, isApprovedInstructor, getInstructorCourses)
-router.delete("/deleteCourse", deleteCourse)
+// Courses can be created by Admins or approved Instructors
+router.post("/createCourse", auth, (req, res, next) => {
+  if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
+    next();
+  } else {
+    return res.status(403).json({
+      success: false,
+      message: 'You need to be an Admin or approved Instructor to perform this action'
+    });
+  }
+}, createCourse);
 
-// Edit Course routes
-router.post("/editCourse", auth, isApprovedInstructor, editCourse)
+// Get courses for the current instructor (or all courses for Admin)
+router.get("/getInstructorCourses", auth, (req, res, next) => {
+  if (req.user.accountType === 'Admin' || req.user.accountType === 'Instructor') {
+    next();
+  } else {
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Admins and Instructors only.'
+    });
+  }
+}, getInstructorCourses);
+
+// Delete course (Admin only for now, could be expanded to course owners)
+router.delete("/deleteCourse", auth, isAdminLevel, deleteCourse)
+
+// Edit Course routes - Allow both Admins and approved Instructors
+router.post("/editCourse", auth, (req, res, next) => {
+  if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
+    next();
+  } else {
+    return res.status(403).json({
+      success: false,
+      message: 'You need to be an Admin or approved Instructor to edit courses'
+    });
+  }
+}, editCourse)
 //Add a Section to a Course
-router.post("/addSection", auth, isApprovedInstructor, createSection)
+router.post("/addSection", auth, isApprovedInstructor, isAdminLevel,createSection)
 // Update a Section
-router.post("/updateSection", auth, isApprovedInstructor, updateSection)
+router.post("/updateSection", auth, isApprovedInstructor, isAdminLevel,updateSection)
 // Delete a Section
-router.post("/deleteSection", auth, isApprovedInstructor, deleteSection)
+router.post("/deleteSection", auth, isApprovedInstructor, isAdminLevel,deleteSection)
 // Edit Sub Section
-router.post("/updateSubSection", auth, isApprovedInstructor, updateSubSection)
+router.post("/updateSubSection", auth, isApprovedInstructor, isAdminLevel, updateSubSection)
 // Delete Sub Section
-router.post("/deleteSubSection", auth, isApprovedInstructor, deleteSubSection)
+router.post("/deleteSubSection", auth, isApprovedInstructor, isAdminLevel, deleteSubSection)
 // Add a Sub Section to a Section
-router.post("/addSubSection", auth, isApprovedInstructor, createSubSection)
+router.post("/addSubSection", auth, isApprovedInstructor, isAdminLevel, createSubSection)
 // Get all Courses Under a Specific Instructor
 
 // Get all Registered Courses
-router.get("/getAllCourses", getAllCourses)
+router.get("/getAllCourses", auth, isAdminLevel, getAllCourses)
 // Get Details for a Specific Courses
-router.post("/getCourseDetails", getCourseDetails)
+router.post("/getCourseDetails", auth, isAdminLevel, getCourseDetails)
 
 // Get Details for a Specific Courses
-router.post("/getFullCourseDetails", auth, getFullCourseDetails)
+router.post("/getFullCourseDetails", auth, isAdminLevel, getFullCourseDetails)
 // To Update Course Progress
-router.post("/updateCourseProgress", auth, isStudent, updateCourseProgress)
+router.post("/updateCourseProgress", auth, isStudent, isAdminLevel, updateCourseProgress)
 // To get Course Progress
 // router.post("/getProgressPercentage", auth, isStudent, getProgressPercentage)
 // Delete a Course

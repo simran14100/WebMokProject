@@ -23,31 +23,53 @@ const CourseProgress = require("../models/CourseProgress")
       status,
       instructions: _instructions,
     } = req.body
+    
     // Get thumbnail image from request files
     const thumbnail = req.files.thumbnailImage
 
-    // Convert the tag and instructions from stringified Array to Array
-    const tag = JSON.parse(_tag)
-    const instructions = JSON.parse(_instructions)
-
-    console.log("tag", tag)
-    console.log("instructions", instructions)
+    // Convert instructions from stringified Array to Array with validation
+    let instructions = [];
+    try {
+      instructions = _instructions ? JSON.parse(_instructions) : [];
+      if (!Array.isArray(instructions)) {
+        instructions = [];
+      }
+      // Ensure we have at least one valid instruction
+      instructions = instructions.filter(i => i && typeof i === 'string' && i.trim() !== '');
+      if (instructions.length === 0) {
+        instructions = ['Complete all lectures and assignments'];
+      }
+    } catch (error) {
+      console.error('Error parsing instructions:', error);
+      instructions = ['Complete all lectures and assignments'];
+    }
+    
+    // Handle optional tag field
+    const tag = _tag ? JSON.parse(_tag) : []
 
     // Check if any of the required fields are missing
+    // Note: instructions are now handled with defaults in the parsing step
     if (
       !courseName ||
       !courseDescription ||
       !whatYouWillLearn ||
       !price ||
-      !tag.length ||
       !thumbnail ||
-      !category ||
-      !instructions.length
+      !category
     ) {
       return res.status(400).json({
         success: false,
-        message: "All Fields are Mandatory",
-      })
+        message: "All required fields must be provided",
+        missingFields: {
+          courseName: !courseName,
+          courseDescription: !courseDescription,
+          whatYouWillLearn: !whatYouWillLearn,
+          price: !price,
+          thumbnail: !thumbnail,
+          category: !category,
+          instructions: !instructions.length
+        }
+      });
     }
     if (!status || status === undefined) {
       status = "Draft"
@@ -316,12 +338,29 @@ exports.deleteCourse = async (req, res) => {
 // Edit Course Details
 exports.editCourse = async (req, res) => {
   try {
-    const { courseId } = req.body
-    const updates = req.body
-    const course = await Course.findById(courseId)
+    console.log('Edit course request body:', req.body);
+    console.log('Edit course files:', req.files);
+    
+    const { courseId } = req.body;
+    const updates = { ...req.body };
+    
+    // Remove courseId from updates to avoid updating it
+    delete updates.courseId;
+    
+    if (!courseId) {
+      return res.status(400).json({ 
+        success: false,
+        message: "Course ID is required for editing" 
+      });
+    }
+    
+    const course = await Course.findById(courseId);
 
     if (!course) {
-      return res.status(404).json({ error: "Course not found" })
+      return res.status(404).json({ 
+        success: false,
+        message: "Course not found" 
+      });
     }
 
     // If Thumbnail Image is found, update it

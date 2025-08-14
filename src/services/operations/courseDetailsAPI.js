@@ -121,47 +121,90 @@ export const fetchCourseSubCategories = async (categoryId) => {
 
 // add the course details
 export const addCourseDetails = async (data, token) => {
-  let result = null
-  const toastId = toast.loading("Loading...")
+  let result = null;
+  const toastId = toast.loading("Saving course details...");
+  
   try {
-    const response = await apiConnector("POST", CREATE_COURSE_API, data, {
-      "Content-Type": "multipart/form-data",
-      Authorization: `Bearer ${token}`,
-    })
-    console.log("CREATE COURSE API RESPONSE............", response)
-    if (!response?.data?.success) {
-      throw new Error("Could Not Add Course Details")
+    console.log('addCourseDetails - Token:', token);
+    console.log('addCourseDetails - Data:', data);
+    
+    // Ensure we have a token
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
     }
-    toast.success("Course Details Added Successfully")
-    result = response?.data?.data
+    
+    // Create headers with proper content type for form data
+    const headers = {
+      'Content-Type': 'multipart/form-data',
+      'Authorization': `Bearer ${token}`,
+    };
+    
+    console.log('Sending request to:', CREATE_COURSE_API);
+    console.log('Headers:', headers);
+    
+    const response = await apiConnector("POST", CREATE_COURSE_API, data, headers);
+    
+    console.log("CREATE COURSE API RESPONSE............", response);
+    
+    if (!response?.data?.success) {
+      throw new Error(response.data.message || 'Failed to add course details');
+    }
+    
+    toast.success("Course details saved successfully!");
+    result = response?.data?.data;
+    
   } catch (error) {
-    console.log("CREATE COURSE API ERROR............", error)
-    toast.error(error.message)
+    console.error("CREATE COURSE API ERROR............", error);
+    
+    // Provide more detailed error message
+    let errorMessage = 'Failed to save course details';
+    if (error.response) {
+      // Server responded with an error status code
+      errorMessage = error.response.data?.message || errorMessage;
+      console.error('Error response data:', error.response.data);
+    } else if (error.request) {
+      // Request was made but no response received
+      errorMessage = 'No response from server. Please check your connection.';
+      console.error('No response received:', error.request);
+    } else {
+      // Something happened in setting up the request
+      errorMessage = error.message || errorMessage;
+    }
+    
+    toast.error(errorMessage);
+    throw error; // Re-throw to let the caller handle it if needed
+  } finally {
+    toast.dismiss(toastId);
   }
-  toast.dismiss(toastId)
   return result
 }
 
 // edit the course details
 export const editCourseDetails = async (data, token) => {
   let result = null
-  const toastId = toast.loading("Loading...")
+  const toastId = toast.loading("Saving course changes...")
   try {
     const response = await apiConnector("POST", EDIT_COURSE_API, data, {
       "Content-Type": "multipart/form-data",
       Authorization: `Bearer ${token}`,
     })
     console.log("EDIT COURSE API RESPONSE............", response)
+    
     if (!response?.data?.success) {
-      throw new Error("Could Not Update Course Details")
+      throw new Error(response?.data?.message || "Could Not Update Course Details")
     }
-    toast.success("Course Details Updated Successfully")
+    
+    // Dismiss loading toast and show success message
+    toast.dismiss(toastId)
+    toast.success("Course updated successfully")
+    
     result = response?.data?.data
   } catch (error) {
     console.log("EDIT COURSE API ERROR............", error)
-    toast.error(error.message)
+    // Dismiss loading toast before showing error
+    toast.dismiss(toastId)
+    toast.error(error.message || "Failed to update course")
   }
-  toast.dismiss(toastId)
   return result
 }
 

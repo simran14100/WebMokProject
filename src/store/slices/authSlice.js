@@ -11,7 +11,12 @@ const authSlice = createSlice({
   initialState: initialState,
   reducers: {
     setToken(state, value) {
+      console.log('Setting token in Redux store:', value.payload);
       state.token = value.payload;
+      // Also store in localStorage for debugging
+      if (value.payload) {
+        localStorage.setItem('debug_token', value.payload);
+      }
     },
     setLoading(state, value) {
       state.loading = value.payload;
