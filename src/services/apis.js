@@ -1,5 +1,6 @@
 // API endpoints for the application
 export const categories = {
+    CREATE_CATEGORY_API: "/api/v1/course/createCategory", 
     CATEGORIES_API: "/api/v1/course/showAllCategories",
     CATEGORY_PAGE_DETAILS_API: "/api/v1/course/categoryPageDetails",
 };
@@ -19,6 +20,10 @@ export const profile = {
     GET_USER_DETAILS_API: "/api/v1/profile/getUserDetails",
     GET_ENROLLED_COURSES_API: "/api/v1/profile/getEnrolledCourses",
     UPDATE_DISPLAY_PICTURE_API: "/api/v1/profile/updateDisplayPicture",
+};
+
+export const subCategory = {
+    GET_SUBCATEGORIES_BY_PARENT_API: "/api/v1/subCategory/getSubCategory",
 };
 
 export const course = {

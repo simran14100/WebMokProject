@@ -32,16 +32,19 @@ import InstructorLayout from './components/common/InstructorLayout';
 import Cart from './pages/Cart';
 import ActiveCourses from './pages/ActiveCourses';
 import MyCourses from './pages/MyCourses';
-
+import AddCourse from './pages/AddCourse';
 import EditCourse from './components/core/EditCourse';
 import CourseViewer from './pages/CourseViewer';
 import CourseDetails from './pages/CourseDetails';
 import Checkout from './pages/Checkout';
 import CreateCategory from './components/core/Admin/Category/createCategory';
-import AllCategories from "./components/core/Admin/Category/allCategory";
-import SubCategory from "./components/core/Admin/SubCategory/SubCategory";
-import AllSubCategory from "./components/core/Admin/SubCategory/AllSubCategory";
-import CreateCourse from './components/core/Admin/Course/createCourse';
+import AllCategories from './components/core/Admin/Category/allCategory';
+import EnrolledCourses from './pages/EnrolledCourses';
+import MyProfile from './pages/MyProfile';
+
+
+
+
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
 console.log("App starting - localStorage debug:");
@@ -56,14 +59,12 @@ function ProtectedRoute({ children, allowedRoles }) {
   }
   
   if (allowedRoles && !allowedRoles.includes(user.accountType)) {
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h2>
-          <p className="text-gray-600">You don't have permission to access this page.</p>
-        </div>
+    return <div className="flex items-center justify-center h-screen">
+      <div className="text-center">
+        <h2 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h2>
+        <p className="text-gray-600">You don't have permission to access this page.</p>
       </div>
-    );
+    </div>;
   }
   
   return children;
@@ -91,13 +92,13 @@ function AppRoutes() {
           <Dashboard />
         </ProtectedRoute>
       }>
-        <Route path="my-profile" element={<AdminProfile />} />
+        <Route path="my-profile" element={<MyProfile />} />
         <Route path="settings" element={<Settings />} />
         
         {/* Student Routes */}
         {user?.accountType === ACCOUNT_TYPE.STUDENT && (
           <>
-            <Route path="enrolled-courses" element={<ActiveCourses />} />
+            <Route path="enrolled-courses" element={<EnrolledCourses />} />
             <Route path="cart" element={<Cart />} />
             <Route path="cart/checkout" element={<Checkout />} />
           </>
@@ -108,7 +109,7 @@ function AppRoutes() {
           <>
             <Route path="instructor" element={<InstructorDashboard />} />
             <Route path="my-courses" element={<MyCourses />} />
-            {/* <Route path="add-course" element={<AddCourse />} /> */}
+            <Route path="add-course" element={<AddCourse />} />
             <Route path="edit-course/:courseId" element={<EditCourse />} />
           </>
         )}
@@ -138,19 +139,19 @@ function AppRoutes() {
           {/* Sub Category Management */}
           <Route path="/admin/subcategories/create" element={
             <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
-              <SubCategory />
+              <div>Create Sub Category Page</div>
             </ProtectedRoute>
           } />
-          <Route path="/admin/subcategories/allSubCategories" element={
+          <Route path="/admin/subcategories" element={
             <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
-              <AllSubCategory />
+              <div>All Sub Categories Page</div>
             </ProtectedRoute>
           } />
           
           {/* Course Management */}
           <Route path="/admin/course/create" element={
             <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
-              <CreateCourse />
+              <AddCourse />
             </ProtectedRoute>
           } />
           <Route path="/admin/course/scromCourse" element={
@@ -221,39 +222,6 @@ function AppRoutes() {
             </ProtectedRoute>
           } />
           <Route path="/instructor/add-course" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.INSTRUCTOR]}>
-              <CreateCourse/>
-            </ProtectedRoute>
-          } />
-          <Route path="/instructor/edit-course/:id" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.INSTRUCTOR]}>
-              <EditCourse />
-            </ProtectedRoute>
-          } />
-        </>
-      )}
-
-
-    </Routes>
-  );
-}
-
-function App() {
-  return (
-    <Provider store={store}>
-      <PersistGate loading={null} persistor={persistor}>
-        <Router>
-          <div className="flex min-h-screen flex-col">
-            <TokenManager />
-            <Navbar />
-            <main className="flex-1">
-              <AppRoutes />
-            </main>
-            {/* <Footer /> */}
-            <Toaster 
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
                 style: {
                   background: '#ffffff',
                   color: '#191A1F',

@@ -1,18 +1,22 @@
-import { useEffect, useState } from "react"
-import { useForm } from "react-hook-form"
-import { toast } from "react-hot-toast"
-import { HiOutlineCurrencyRupee } from "react-icons/hi"
-import { MdNavigateNext } from "react-icons/md"
-import { useDispatch, useSelector } from "react-redux"
-import { useNavigate } from "react-router-dom"
+import React, { useEffect, useState } from 'react';
+import { useForm } from 'react-hook-form';
+import { useDispatch, useSelector } from 'react-redux';
+import { toast } from 'react-hot-toast';
+import { HiOutlineCurrencyRupee } from 'react-icons/hi';
+import { MdNavigateNext } from 'react-icons/md';
 
-import { addCourseDetails, editCourseDetails, fetchCourseCategories } from "../../../../services/operations/courseDetailsAPI";
-import { setCourse, setStep, resetCourseState } from "../../../../store/slices/courseSlice";
-import { COURSE_STATUS } from "../../../../utils/constants";
-import IconBtn from "../../../common/IconBtn";
-import Upload from "../Upload";
-import ChipInput from "./ChipInput";
-import RequirementsField from "./RequirementsField";
+import { 
+  addCourseDetails,        
+  editCourseDetails, 
+  fetchCourseCategories, 
+  fetchCourseSubCategories 
+} from '../../../../services/operations/courseDetailsAPI';
+import { setCourse, setStep } from '../../../../store/slices/courseSlice';
+import { ED_TEAL, ED_TEAL_DARK } from '../../../../utils/theme';
+import IconBtn from '../../../common/IconBtn';
+import Upload from '../Upload';
+import RequirementsField from './RequirementsField';
+import ChipInput from './ChipInput';
 
 export default function CourseInformationForm() {
   const {
@@ -20,300 +24,890 @@ export default function CourseInformationForm() {
     handleSubmit,
     setValue,
     getValues,
+    watch,
     formState: { errors },
-  } = useForm()
+  } = useForm();
 
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
-  const { token } = useSelector((state) => state.auth)
-  const { course, editCourse } = useSelector((state) => state.course)
-  const [loading, setLoading] = useState(false)
-  const [courseCategories, setCourseCategories] = useState([])
+  const dispatch = useDispatch();
+  const { token } = useSelector((state) => state.auth);
+  const { course, editCourse } = useSelector((state) => state.course);
+  const [loading, setLoading] = useState(false);
+  const [courseCategories, setCourseCategories] = useState([]);
+  const [courseSubCategories, setCourseSubCategories] = useState([]);
+  const [requirements, setRequirements] = useState([""]);
+  const [courseTags, setCourseTags] = useState([]);
 
+  // Form styles
+  const formStyles = {
+    container: {
+      maxWidth: '800px',
+      margin: '0 auto',
+    },
+    section: {
+      backgroundColor: '#ffffff',
+      borderRadius: '8px',
+      padding: '1.5rem',
+      marginBottom: '1.5rem',
+      boxShadow: '0 1px 3px 0 rgba(0, 0, 0, 0.1)',
+    },
+    sectionTitle: {
+      fontSize: '1.25rem',
+      fontWeight: '600',
+      color: '#1a202c',
+      marginBottom: '1.25rem',
+      paddingBottom: '0.75rem',
+      borderBottom: `1px solid #e2e8f0`,
+    },
+    label: {
+      display: 'block',
+      fontSize: '0.875rem',
+      fontWeight: '500',
+      color: '#4a5568',
+      marginBottom: '0.5rem',
+    },
+    input: {
+      width: '100%',
+      padding: '0.625rem 0.875rem',
+      fontSize: '0.875rem',
+      border: '1px solid #e2e8f0',
+      borderRadius: '6px',
+      transition: 'all 0.2s ease',
+      marginBottom: '1rem',
+      ':focus': {
+        outline: 'none',
+        borderColor: ED_TEAL,
+        boxShadow: `0 0 0 3px ${ED_TEAL}20`,
+      },
+    },
+    textarea: {
+      width: '100%',
+      minHeight: '100px',
+      padding: '0.625rem 0.875rem',
+      fontSize: '0.875rem',
+      border: '1px solid #e2e8f0',
+      borderRadius: '6px',
+      transition: 'all 0.2s ease',
+      marginBottom: '1rem',
+      resize: 'vertical',
+      ':focus': {
+        outline: 'none',
+        borderColor: ED_TEAL,
+        boxShadow: `0 0 0 3px ${ED_TEAL}20`,
+      },
+    },
+    select: {
+      width: '100%',
+      padding: '0.625rem 0.875rem',
+      fontSize: '0.875rem',
+      border: '1px solid #e2e8f0',
+      borderRadius: '6px',
+      backgroundColor: '#fff',
+      marginBottom: '1rem',
+      cursor: 'pointer',
+      ':focus': {
+        outline: 'none',
+        borderColor: ED_TEAL,
+        boxShadow: `0 0 0 3px ${ED_TEAL}20`,
+      },
+    },
+    error: {
+      color: '#e53e3e',
+      fontSize: '0.75rem',
+      marginTop: '-0.5rem',
+      marginBottom: '0.5rem',
+    },
+    button: {
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '0.625rem 1.25rem',
+      backgroundColor: ED_TEAL,
+      color: 'white',
+      fontWeight: '600',
+      fontSize: '0.875rem',
+      borderRadius: '6px',
+      border: 'none',
+      cursor: 'pointer',
+      transition: 'all 0.2s ease',
+      ':hover': {
+        backgroundColor: ED_TEAL_DARK,
+      },
+      ':disabled': {
+        opacity: 0.7,
+        cursor: 'not-allowed',
+      },
+    },
+    buttonIcon: {
+      marginLeft: '0.5rem',
+      fontSize: '1.25rem',
+    },
+  };
+
+  // Fetch categories on component mount
   useEffect(() => {
     const getCategories = async () => {
-      setLoading(true)
-      const categories = await fetchCourseCategories()
+      setLoading(true);
+      const categories = await fetchCourseCategories();
       if (categories.length > 0) {
-        setCourseCategories(categories)
+        setCourseCategories(categories);
       }
-      setLoading(false)
-    }
-    // if form is in edit mode
+      setLoading(false);
+    };
+
+    getCategories();
+  }, []);
+
+  // Set form values if in edit mode
+  useEffect(() => {
     if (editCourse) {
-      console.log("Edit mode - Course data:", course)
-      console.log("Course tag:", course?.tag)
-      console.log("Course instructions:", course?.instructions)
-      setValue("courseTitle", course?.courseName || "")
-      setValue("courseShortDesc", course?.courseDescription || "")
-      setValue("coursePrice", course?.price || "")
-      setValue("courseTags", course?.tag || [])
-      setValue("courseBenefits", course?.whatYouWillLearn || "")
-      setValue("courseCategory", course?.category || "")
-      setValue("courseRequirements", course?.instructions || [])
-      setValue("courseImage", course?.thumbnail || "")
+      setValue('courseTitle', course.courseName);
+      setValue('courseShortDesc', course.courseDescription);
+      setValue('coursePrice', course.price);
+      setValue('courseTags', course.tag);
+      setValue('courseBenefits', course.whatYouWillLearn);
+      setValue('courseCategory', course.category?._id || '');
+      setValue('courseSubCategory', course.subCategory?._id || '');
+      setCourseTags(course.tag || []);
+      setRequirements(course.instructions || ['']);
     }
-    getCategories()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [editCourse, course, setValue]);
+
+  // Watch for category changes to load subcategories
+  const selectedCategory = watch('courseCategory');
+
+  // useEffect(() => {
+  //   const getSubCategories = async () => {
+  //     if (selectedCategory) {
+  //       setLoading(true);
+  //       try {
+  //         const result = await fetchCourseSubCategories(selectedCategory);
+  //         if (result) {
+  //           setCourseSubCategories(result);
+  //         }
+  //       } catch (error) {
+  //         console.error('Error fetching subcategories:', error);
+  //         toast.error('Failed to load subcategories');
+  //       } finally {
+  //         setLoading(false);
+  //       }
+  //     }
+  //   };
+
+  //   if (selectedCategory) {
+  //     getSubCategories();
+  //   }
+  //   setValue('courseSubCategory', '');
+  // }, [selectedCategory, setValue]);
+
+
+  useEffect(() => {
+    const getSubCategories = async () => {
+      if (selectedCategory) {
+        setLoading(true);
+        try {
+          const response = await fetchCourseSubCategories(selectedCategory);
+          console.log('Full API response:', response); // Debug log
+          
+          // Handle different response structures
+          const subCategories = response?.data || response || [];
+          console.log('Extracted subcategories:', subCategories); // Debug log
+          
+          setCourseSubCategories(subCategories);
+        } catch (error) {
+          console.error('Error fetching subcategories:', error);
+          toast.error('Failed to load subcategories');
+        } finally {
+          setLoading(false);
+        }
+      }
+    };
+  
+    if (selectedCategory) {
+      getSubCategories();
+    }
+    setValue('courseSubCategory', ''); // Reset subcategory when category changes
+  }, [selectedCategory, setValue]);
+
 
   const isFormUpdated = () => {
-    const currentValues = getValues()
-    if (
-      currentValues.courseTitle !== course.courseName ||
-      currentValues.courseShortDesc !== course.courseDescription ||
-      currentValues.coursePrice !== course.price ||
-      currentValues.courseTags.toString() !== course.tag.toString() ||
-      currentValues.courseBenefits !== course.whatYouWillLearn ||
-      currentValues.courseCategory._id !== course.category._id ||
-      currentValues.courseRequirements.toString() !==
-        course.instructions.toString() ||
-      currentValues.courseImage !== course.thumbnail
-    ) {
-      return true
+    const currentValues = getValues();
+    if (editCourse) {
+      // Check if any field has been modified
+      return (
+        currentValues.courseTitle !== course.courseName ||
+        currentValues.courseShortDesc !== course.courseDescription ||
+        currentValues.coursePrice !== course.price ||
+        currentValues.courseCategory !== course.category?._id ||
+        currentValues.courseSubCategory !== course.subCategory?._id ||
+        JSON.stringify(courseTags) !== JSON.stringify(course.tag || []) ||
+        JSON.stringify(requirements) !== JSON.stringify(course.instructions || []) ||
+        currentValues.courseBenefits !== course.whatYouWillLearn ||
+        currentValues.courseImage !== course.thumbnail
+      );
     }
-    return false
-  }
+    return true; // For new course, form is always considered updated
+  };
 
-  //   handle next button click
+  // Handle form submission
   const onSubmit = async (data) => {
+    if (!isFormUpdated()) {
+      toast.error('No changes made to update');
+      return;
+    }
+
+    if (courseTags.length === 0) {
+      toast.error('Please add at least one course tag');
+      return;
+    }
+
+    if (requirements.length === 1 && requirements[0] === '') {
+      toast.error('Please add at least one requirement');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('courseName', data.courseTitle);
+    formData.append('courseDescription', data.courseShortDesc);
+    formData.append('price', data.coursePrice);
+    formData.append('tag', JSON.stringify(courseTags));
+    formData.append('whatYouWillLearn', data.courseBenefits);
+    formData.append('category', data.courseCategory);
+    formData.append('subCategory', data.courseSubCategory);
+    formData.append('instructions', JSON.stringify(data.courseRequirements));
+    formData.append('thumbnailImage', data.courseImage);
+
+    setLoading(true);
     if (editCourse) {
       if (isFormUpdated()) {
-        const currentValues = getValues()
-        const formData = new FormData()
-        formData.append("courseId", course._id)
-        if (currentValues.courseTitle !== course.courseName) {
-          formData.append("courseName", data.courseTitle)
-        }
-        if (currentValues.courseShortDesc !== course.courseDescription) {
-          formData.append("courseDescription", data.courseShortDesc)
-        }
-        if (currentValues.coursePrice !== course.price) {
-          formData.append("price", data.coursePrice)
-        }
-        if (currentValues.courseTags.toString() !== course.tag.toString()) {
-          formData.append("tag", JSON.stringify(data.courseTags))
-        }
-        if (currentValues.courseBenefits !== course.whatYouWillLearn) {
-          formData.append("whatYouWillLearn", data.courseBenefits)
-        }
-        if (currentValues.courseCategory._id !== course.category._id) {
-          formData.append("category", data.courseCategory)
-        }
-        if (
-          currentValues.courseRequirements.toString() !==
-          course.instructions.toString()
-        ) {
-          formData.append(
-            "instructions",
-            JSON.stringify(data.courseRequirements)
-          )
-        }
-        if (currentValues.courseImage !== course.thumbnail) {
-          formData.append("thumbnailImage", data.courseImage)
-        }
-        setLoading(true)
-        const result = await editCourseDetails(formData, token)
-        setLoading(false)
+        formData.append('courseId', course._id);
+        const result = await editCourseDetails(formData, token);
         if (result) {
-          dispatch(setStep(2))
-          dispatch(setCourse(result))
+          dispatch(setStep(2));
+          dispatch(setCourse(result));
         }
       } else {
-        toast.error("No changes made to the form")
+        toast.error('No changes made');
       }
-      return
+    } else {
+      formData.append('status', 'Draft');
+      const result = await addCourseDetails(formData, token);
+      if (result) {
+        dispatch(setStep(2));
+        dispatch(setCourse(result));
+      }
     }
-
-    const formData = new FormData()
-    formData.append("courseName", data.courseTitle)
-    formData.append("courseDescription", data.courseShortDesc)
-    formData.append("price", data.coursePrice)
-    formData.append("tag", JSON.stringify(data.courseTags))
-    formData.append("whatYouWillLearn", data.courseBenefits)
-    formData.append("category", data.courseCategory)
-    formData.append("status", COURSE_STATUS.DRAFT)
-    formData.append("instructions", JSON.stringify(data.courseRequirements))
-    formData.append("thumbnailImage", data.courseImage)
-    setLoading(true)
-    const result = await addCourseDetails(formData, token)
-    if (result) {
-      dispatch(setStep(2))
-      dispatch(setCourse(result))
-    }
-    setLoading(false)
-  }
+    setLoading(false);
+  };
 
   return (
-    <form
-      onSubmit={handleSubmit(onSubmit)}
-      className="space-y-8 p-8 bg-white rounded-md border border-gray-200 shadow-md max-w-4xl mx-auto"
+    // <form onSubmit={handleSubmit(onSubmit)} style={formStyles.container}>
+    //   {/* Course Information Section */}
+    //   <div style={formStyles.section}>
+    //     <h2 style={formStyles.sectionTitle}>Course Information</h2>
+        
+    //     <div>
+    //       <label style={formStyles.label} htmlFor="courseTitle">
+    //         Course Title <span style={{ color: '#e53e3e' }}>*</span>
+    //       </label>
+    //       <input
+    //         id="courseTitle"
+    //         type="text"
+    //         placeholder="Enter course title"
+    //         style={formStyles.input}
+    //         {...register('courseTitle', { required: 'Course title is required' })}
+    //       />
+    //       {errors.courseTitle && (
+    //         <p style={formStyles.error}>{errors.courseTitle.message}</p>
+    //       )}
+    //     </div>
+
+    //     <div>
+    //       <label style={formStyles.label} htmlFor="courseShortDesc">
+    //         Course Short Description <span style={{ color: '#e53e3e' }}>*</span>
+    //       </label>
+    //       <textarea
+    //         id="courseShortDesc"
+    //         placeholder="Enter short description"
+    //         style={formStyles.textarea}
+    //         {...register('courseShortDesc', { 
+    //           required: 'Short description is required',
+    //           minLength: { value: 50, message: 'Description must be at least 50 characters' }
+    //         })}
+    //       />
+    //       {errors.courseShortDesc && (
+    //         <p style={formStyles.error}>{errors.courseShortDesc.message}</p>
+    //       )}
+    //     </div>
+
+    //     <div>
+    //       <label style={formStyles.label}>
+    //         Course Thumbnail <span style={{ color: '#e53e3e' }}>*</span>
+    //       </label>
+    //       <Upload
+    //         name="courseImage"
+    //         label="Choose Thumbnail"
+    //         register={register}
+    //         setValue={setValue}
+    //         errors={errors}
+    //         accept="image/png, image/jpg, image/jpeg"
+    //         required={!editCourse}
+    //       />
+    //     </div>
+    //   </div>
+
+    //   {/* Course Details Section */}
+    //   <div style={formStyles.section}>
+    //     <h2 style={formStyles.sectionTitle}>Course Details</h2>
+        
+    //     <div>
+    //       <label style={formStyles.label} htmlFor="coursePrice">
+    //         Course Price (in INR) <span style={{ color: '#e53e3e' }}>*</span>
+    //       </label>
+    //       <div style={{ position: 'relative' }}>
+    //         <HiOutlineCurrencyRupee 
+    //           style={{
+    //             position: 'absolute',
+    //             left: '12px',
+    //             top: '50%',
+    //             transform: 'translateY(-50%)',
+    //             color: '#718096',
+    //             fontSize: '1.25rem'
+    //           }} 
+    //         />
+    //         <input
+    //           id="coursePrice"
+    //           type="number"
+    //           placeholder="Enter course price"
+    //           style={{
+    //             ...formStyles.input,
+    //             paddingLeft: '40px',
+    //             WebkitAppearance: 'none',
+    //             MozAppearance: 'textfield'
+    //           }}
+    //           min="0"
+    //           {...register('coursePrice', { 
+    //             required: 'Course price is required',
+    //             min: { value: 0, message: 'Price cannot be negative' }
+    //           })}
+    //         />
+    //       </div>
+    //       {errors.coursePrice && (
+    //         <p style={formStyles.error}>{errors.coursePrice.message}</p>
+    //       )}
+    //     </div>
+    //     <label htmlFor='courseCategory' className='text-sm text-richblack-5'>Course Category <sup className='text-pink-200'>*</sup></label>
+    //     <select id='courseCategory' defaultValue='' {...register('courseCategory', { required: true })} className='form-style w-full'>
+    //       <option value='' disabled>Choose a Category</option>
+    //       {!loading && courseCategories.map((category) => (
+    //         <option key={category._id} value={category._id}>{category.name}</option>
+    //       ))}
+    //     </select>
+    //     {errors.courseCategory && <span className='ml-2 text-xs tracking-wide text-pink-200'>Course Category is required</span>}
+    //   </div>
+
+    //   <div>
+    //     <label htmlFor='courseSubCategory' className='text-sm text-richblack-5'>Course Sub-Category <sup className='text-pink-200'>*</sup></label>
+    //     <select id='courseSubCategory' defaultValue='' {...register('courseSubCategory', { required: true })} className='form-style w-full' disabled={!selectedCategory || loading}>
+    //       <option value='' disabled>Choose a Sub Category</option>
+    //       {!loading && courseSubCategories.map((subCategory) => (
+    //         <option key={subCategory._id} value={subCategory._id}>{subCategory.name}</option>
+    //       ))}
+    //     </select>
+    //     {errors.courseSubCategory && <span className='ml-2 text-xs tracking-wide text-pink-200'>Course Sub-Category is required</span>}
+    //   </div>
+
+    //   <ChipInput label='Tags' name='courseTags' placeholder='Enter tags and press enter' register={register} errors={errors} setValue={setValue} getValues={getValues} />
+
+    //   <Upload name='courseImage' label='Course Thumbnail' register={register} setValue={setValue} errors={errors} editData={editCourse ? course?.thumbnail : null} />
+
+    //   <div>
+    //     <label htmlFor='courseBenefits' className='text-sm text-richblack-5'>Benefits of the course <sup className='text-pink-200'>*</sup></label>
+    //     <textarea id='courseBenefits' placeholder='Enter benefits of the course' {...register('courseBenefits', { required: true })} className='form-style resize-x-none min-h-[130px] w-full' />
+    //     {errors.courseBenefits && <span className='ml-2 text-xs tracking-wide text-pink-200'>Benefits of the course are required</span>}
+    //   </div>
+
+    //   <RequirementsField name='courseRequirements' label='Requirements/Instructions' register={register} errors={errors} setValue={setValue} getValues={getValues} />
+
+    //   <div className='flex justify-end gap-x-2'>
+    //     {editCourse && (
+    //       <button onClick={() => dispatch(setStep(2))} disabled={loading} className='flex cursor-pointer items-center gap-x-2 rounded-md bg-richblack-300 py-[8px] px-[20px] font-semibold text-richblack-900'>
+    //         Continue Without Saving
+    //       </button>
+    //     )}
+    //     <button type='submit' disabled={loading} style={{ backgroundColor: ED_TEAL }} className='flex items-center gap-x-2 rounded-md py-2 px-5 font-semibold text-white'>
+    //       {!editCourse ? 'Next' : 'Save Changes'}
+    //       <MdNavigateNext />
+    //     </button>
+    //   </div>
+    // </form>
+
+    <form 
+      onSubmit={handleSubmit(onSubmit)} 
+      style={{
+        width: '80%',
+        maxWidth: '1200px',
+        margin: '0 auto',
+        padding: '2rem 0'
+      }}
     >
-      {/* Course Title */}
-      <div className="flex flex-col space-y-2">
-        <label className="text-sm font-semibold text-green-700" htmlFor="courseTitle">
-          Course Title <sup className="text-red-500">*</sup>
-        </label>
-        <input
-          id="courseTitle"
-          placeholder="Enter Course Title"
-          {...register("courseTitle", { required: true })}
-          className="w-full rounded-md border border-gray-300 bg-white p-3 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
-        />
-        {errors.courseTitle && (
-          <span className="ml-2 text-xs tracking-wide text-red-500">
-            Course title is required
-          </span>
-        )}
-      </div>
-      {/* Course Short Description */}
-      <div className="flex flex-col space-y-2">
-        <label className="text-sm font-semibold text-green-700" htmlFor="courseShortDesc">
-          Course Short Description <sup className="text-red-500">*</sup>
-        </label>
-        <textarea
-          id="courseShortDesc"
-          placeholder="Enter Description"
-          {...register("courseShortDesc", { required: true })}
-          className="w-full rounded-md border border-gray-300 bg-white p-3 text-gray-800 placeholder-gray-400 min-h-[130px] focus:outline-none focus:ring-2 focus:ring-green-500"
-        />
-        {errors.courseShortDesc && (
-          <span className="ml-2 text-xs tracking-wide text-red-500">
-            Course Description is required
-          </span>
-        )}
-      </div>
-      {/* Course Price */}
-      <div className="flex flex-col space-y-2">
-        <label className="text-sm font-semibold text-green-700" htmlFor="coursePrice">
-          Course Price <sup className="text-red-500">*</sup>
-        </label>
-        <div className="relative">
+      {/* Course Information Section */}
+      <div style={{
+        // backgroundColor: '#ffffff',
+        // borderRadius: '12px',
+        padding: '1rem',
+        marginBottom: '1.5rem',
+        // boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        // border: '1px solid #e2e8f0'
+      }}>
+        <h2 style={{
+          fontSize: '1.25rem',
+          fontWeight: 600,
+          color: '#1a202c',
+          marginBottom: '1.5rem',
+          paddingBottom: '0.75rem',
+          borderBottom: '1px solid #edf2f7'
+        }}>Course Information</h2>
+        
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{
+            display: 'block',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            color: '#4a5568',
+            marginBottom: '0.5rem'
+          }} htmlFor="courseTitle">
+            Course Title <span style={{ color: '#e53e3e' }}>*</span>
+          </label>
           <input
-            type="number"
-            id="coursePrice"
-            placeholder="Enter Course Price"
-            {...register("coursePrice", {
-              required: true,
-              valueAsNumber: true,
-              pattern: {
-                value: /^(0|[1-9]\d*)(\.\d+)?$/,
-              },
-            })}
-            className="w-full rounded-md border border-gray-300 bg-white p-3 pl-10 text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-green-500"
+            id="courseTitle"
+            type="text"
+            placeholder="Enter course title"
+            style={{
+              width: '100%',
+              padding: '0.75rem 1rem',
+              fontSize: '0.875rem',
+              border: `1px solid ${errors.courseTitle ? '#e53e3e' : '#e2e8f0'}`,
+              borderRadius: '8px',
+              transition: 'all 0.2s ease',
+              outline: 'none',
+              boxShadow: errors.courseTitle ? '0 0 0 3px rgba(229, 62, 62, 0.1)' : 'none'
+            }}
+            {...register('courseTitle', { required: 'Course title is required' })}
           />
-          <HiOutlineCurrencyRupee className="absolute left-3 top-1/2 -translate-y-1/2 text-2xl text-green-500" />
+          {errors.courseTitle && (
+            <p style={{
+              marginTop: '0.5rem',
+              fontSize: '0.75rem',
+              color: '#e53e3e'
+            }}>{errors.courseTitle.message}</p>
+          )}
         </div>
-        {errors.coursePrice && (
-          <span className="ml-2 text-xs tracking-wide text-red-500">
-            Course Price is required
-          </span>
-        )}
+
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{
+            display: 'block',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            color: '#4a5568',
+            marginBottom: '0.5rem'
+          }} htmlFor="courseShortDesc">
+            Course Short Description <span style={{ color: '#e53e3e' }}>*</span>
+          </label>
+          <textarea
+            id="courseShortDesc"
+            placeholder="Enter short description"
+            style={{
+              width: '100%',
+              minHeight: '120px',
+              padding: '0.75rem 1rem',
+              fontSize: '0.875rem',
+              border: `1px solid ${errors.courseShortDesc ? '#e53e3e' : '#e2e8f0'}`,
+              borderRadius: '8px',
+              transition: 'all 0.2s ease',
+              resize: 'vertical',
+              outline: 'none',
+              boxShadow: errors.courseShortDesc ? '0 0 0 3px rgba(229, 62, 62, 0.1)' : 'none'
+            }}
+            {...register('courseShortDesc', { 
+              required: 'Short description is required',
+              minLength: { value: 50, message: 'Description must be at least 50 characters' }
+            })}
+          />
+          {errors.courseShortDesc && (
+            <p style={{
+              marginTop: '0.5rem',
+              fontSize: '0.75rem',
+              color: '#e53e3e'
+            }}>{errors.courseShortDesc.message}</p>
+          )}
+        </div>
+
+        <div>
+          <label style={{
+            display: 'block',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            color: '#4a5568',
+            marginBottom: '0.5rem'
+          }}>
+            Course Thumbnail <span style={{ color: '#e53e3e' }}>*</span>
+          </label>
+          <Upload
+            name="courseImage"
+            label="Choose Thumbnail"
+            register={register}
+            setValue={setValue}
+            errors={errors}
+            accept="image/png, image/jpg, image/jpeg"
+            required={!editCourse}
+          />
+        </div>
       </div>
-      {/* Course Category */}
-      <div className="flex flex-col space-y-2">
-        <label className="text-sm font-semibold text-green-700" htmlFor="courseCategory">
-          Course Category <sup className="text-red-500">*</sup>
-        </label>
-        <select
-          {...register("courseCategory", { required: true })}
-          defaultValue=""
-          id="courseCategory"
-          className="w-full rounded-md border border-gray-300 bg-white p-3 text-gray-800 focus:outline-none focus:ring-2 focus:ring-green-500"
-        >
-          <option value="" disabled>
-            Choose a Category
-          </option>
-          {!loading &&
-            courseCategories?.map((category, indx) => (
-              <option key={indx} value={category?._id}>
-                {category?.name}
-              </option>
-            ))}
-        </select>
-        {errors.courseCategory && (
-          <span className="ml-2 text-xs tracking-wide text-red-500">
-            Course Category is required
-          </span>
-        )}
-      </div>
-      {/* Course Tags */}
-      <ChipInput
-        label="Tags"
-        name="courseTags"
-        placeholder="Enter Tags and press Enter"
-        register={register}
-        errors={errors}
-        setValue={setValue}
-        getValues={getValues}
-      />
-      {/* Course Thumbnail Image */}
-      <Upload
-        name="courseImage"
-        label="Course Thumbnail"
-        register={register}
-        setValue={setValue}
-        errors={errors}
-        editData={editCourse ? course?.thumbnail : null}
-      />
-      {/* Benefits of the course */}
-      <div className="flex flex-col space-y-2">
-        <label className="text-sm font-semibold text-green-700" htmlFor="courseBenefits">
-          Benefits of the course <sup className="text-red-500">*</sup>
-        </label>
-        <textarea
-          id="courseBenefits"
-          placeholder="Enter benefits of the course"
-          {...register("courseBenefits", { required: true })}
-          className="w-full rounded-md border border-gray-300 bg-white p-3 text-gray-800 placeholder-gray-400 min-h-[130px] focus:outline-none focus:ring-2 focus:ring-green-500"
-        />
-        {errors.courseBenefits && (
-          <span className="ml-2 text-xs tracking-wide text-red-500">
-            Benefits of the course is required
-          </span>
-        )}
-      </div>
-      {/* Requirements/Instructions */}
-      <RequirementsField
-        name="courseRequirements"
-        label="Requirements/Instructions"
-        register={register}
-        setValue={setValue}
-        errors={errors}
-        getValues={getValues}
-      />
-      {/* Next Button */}
-      <div className="flex justify-end gap-x-2">
-        {editCourse && (
-          <>
-            <button
-              type="button"
-              onClick={() => {
-                dispatch(resetCourseState())
-                navigate("/instructor/my-courses")
+
+      {/* Course Details Section */}
+      <div style={{
+        // backgroundColor: '#ffffff',
+        // borderRadius: '12px',
+        padding: '1rem',
+        marginBottom: '1.5rem',
+        // boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+        // border: '1px solid #e2e8f0'
+      }}>
+        <h2 style={{
+          fontSize: '1.25rem',
+          fontWeight: 600,
+          color: '#1a202c',
+          marginBottom: '1.5rem',
+          paddingBottom: '0.75rem',
+          borderBottom: '1px solid #edf2f7'
+        }}>Course Details</h2>
+        
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{
+            display: 'block',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            color: '#4a5568',
+            marginBottom: '0.5rem'
+          }} htmlFor="coursePrice">
+            Course Price (in INR) <span style={{ color: '#e53e3e' }}>*</span>
+          </label>
+          <div style={{ position: 'relative' }}>
+            <HiOutlineCurrencyRupee 
+              style={{
+                position: 'absolute',
+                left: '14px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                color: '#718096',
+                fontSize: '1.25rem'
+              }} 
+            />
+            <input
+              id="coursePrice"
+              type="number"
+              placeholder="Enter course price"
+              style={{
+                width: '100%',
+                padding: '0.75rem 1rem 0.75rem 2.5rem',
+                fontSize: '0.875rem',
+                border: `1px solid ${errors.coursePrice ? '#e53e3e' : '#e2e8f0'}`,
+                borderRadius: '8px',
+                transition: 'all 0.2s ease',
+                outline: 'none',
+                boxShadow: errors.coursePrice ? '0 0 0 3px rgba(229, 62, 62, 0.1)' : 'none',
+                WebkitAppearance: 'none',
+                MozAppearance: 'textfield'
               }}
-              disabled={loading}
-              className="flex cursor-pointer items-center gap-x-2 rounded-md bg-gray-200 py-[8px] px-[20px] font-semibold text-gray-700"
-            >
-              Back to My Courses
-            </button>
-            <button
-              type="button"
-              onClick={() => dispatch(setStep(2))}
-              disabled={loading}
-              className="flex cursor-pointer items-center gap-x-2 rounded-md bg-gray-200 py-[8px] px-[20px] font-semibold text-gray-700"
-            >
-              Continue Without Saving
-            </button>
-          </>
+              min="0"
+              {...register('coursePrice', { 
+                required: 'Course price is required',
+                min: { value: 0, message: 'Price cannot be negative' }
+              })}
+            />
+          </div>
+          {errors.coursePrice && (
+            <p style={{
+              marginTop: '0.5rem',
+              fontSize: '0.75rem',
+              color: '#e53e3e'
+            }}>{errors.coursePrice.message}</p>
+          )}
+        </div>
+
+        {/* <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{
+            display: 'block',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            color: '#4a5568',
+            marginBottom: '0.5rem'
+          }} htmlFor="courseCategory">
+            Course Category <span style={{ color: '#e53e3e' }}>*</span>
+          </label>
+          <select
+            id="courseCategory"
+            style={{
+              width: '100%',
+              padding: '0.75rem 1rem',
+              fontSize: '0.875rem',
+              border: `1px solid ${errors.courseCategory ? '#e53e3e' : '#e2e8f0'}`,
+              borderRadius: '8px',
+              backgroundColor: '#fff',
+              cursor: 'pointer',
+              outline: 'none',
+              boxShadow: errors.courseCategory ? '0 0 0 3px rgba(229, 62, 62, 0.1)' : 'none',
+              appearance: 'none',
+              backgroundImage: 'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiAjd2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1jaGV2cm9uLWRvd24iPjxwYXRoIGQ9Im02IDkgNiA2IDYtNiIvPjwvc3ZnPg==")',
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 1rem center'
+            }}
+            {...register('courseCategory', { required: 'Category is required' })}
+          >
+            <option value="" disabled>Choose a Category</option>
+            {!loading && courseCategories.map((category) => (
+              <option key={category._id} value={category._id}>{category.name}</option>
+            ))}
+          </select>
+          {errors.courseCategory && (
+            <p style={{
+              marginTop: '0.5rem',
+              fontSize: '0.75rem',
+              color: '#e53e3e'
+            }}>{errors.courseCategory.message}</p>
+          )}
+        </div>
+
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{
+            display: 'block',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            color: '#4a5568',
+            marginBottom: '0.5rem'
+          }} htmlFor="courseSubCategory">
+            Course Sub-Category <span style={{ color: '#e53e3e' }}>*</span>
+          </label>
+          <select
+            id="courseSubCategory"
+            disabled={!selectedCategory || loading}
+            style={{
+              width: '100%',
+              padding: '0.75rem 1rem',
+              fontSize: '0.875rem',
+              border: `1px solid ${errors.courseSubCategory ? '#e53e3e' : '#e2e8f0'}`,
+              borderRadius: '8px',
+              backgroundColor: '#fff',
+              cursor: 'pointer',
+              outline: 'none',
+              boxShadow: errors.courseSubCategory ? '0 0 0 3px rgba(229, 62, 62, 0.1)' : 'none',
+              appearance: 'none',
+              backgroundImage: 'url("data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IiAjd2hpdGUiIHN0cm9rZS13aWR0aD0iMiIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIiBzdHJva2UtbGluZWpvaW49InJvdW5kIiBjbGFzcz0ibHVjaWRlIGx1Y2lkZS1jaGV2cm9uLWRvd24iPjxwYXRoIGQ9Im02IDkgNiA2IDYtNiIvPjwvc3ZnPg==")',
+              backgroundRepeat: 'no-repeat',
+              backgroundPosition: 'right 1rem center',
+              opacity: !selectedCategory || loading ? 0.7 : 1
+            }}
+            {...register('courseSubCategory', { required: 'Sub-category is required' })}
+          >
+            <option value="" disabled>Choose a Sub-Category</option>
+            {!loading && courseSubCategories.map((subCategory) => (
+              <option key={subCategory._id} value={subCategory._id}>{subCategory.name}</option>
+            ))}
+          </select>
+          {errors.courseSubCategory && (
+            <p style={{
+              marginTop: '0.5rem',
+              fontSize: '0.75rem',
+              color: '#e53e3e'
+            }}>{errors.courseSubCategory.message}</p>
+          )}
+        </div> */}
+
+<div style={{ marginBottom: '1.5rem' }}>
+  <label style={formStyles.label} htmlFor="courseCategory">
+    Course Category <span style={{ color: '#e53e3e' }}>*</span>
+  </label>
+  <select
+    id="courseCategory"
+    style={{
+      ...formStyles.select,
+      border: `1px solid ${errors.courseCategory ? '#e53e3e' : '#e2e8f0'}`,
+      boxShadow: errors.courseCategory ? '0 0 0 3px rgba(229, 62, 62, 0.1)' : 'none'
+    }}
+    {...register('courseCategory', { 
+      required: 'Category is required',
+      onChange: (e) => {
+        // Force update when category changes
+        setValue('courseCategory', e.target.value);
+        setValue('courseSubCategory', '');
+      }
+    })}
+  >
+    <option value="" disabled>Choose a Category</option>
+    {courseCategories.map((category) => (
+      <option 
+        key={category._id} 
+        value={category._id}
+        selected={watch('courseCategory') === category._id}
+      >
+        {category.name}
+      </option>
+    ))}
+  </select>
+  {errors.courseCategory && (
+    <p style={formStyles.error}>{errors.courseCategory.message}</p>
+  )}
+</div>
+
+<div style={{ marginBottom: '1.5rem' }}>
+  <label style={formStyles.label} htmlFor="courseSubCategory">
+    Course Sub-Category <span style={{ color: '#e53e3e' }}>*</span>
+  </label>
+  <select
+    id="courseSubCategory"
+    disabled={!selectedCategory || loading}
+    style={{
+      ...formStyles.select,
+      border: `1px solid ${errors.courseSubCategory ? '#e53e3e' : '#e2e8f0'}`,
+      boxShadow: errors.courseSubCategory ? '0 0 0 3px rgba(229, 62, 62, 0.1)' : 'none',
+      opacity: !selectedCategory || loading ? 0.7 : 1
+    }}
+    {...register('courseSubCategory', { required: 'Sub-category is required' })}
+  >
+    <option value="" disabled>Choose a Sub-Category</option>
+    {courseSubCategories.map((subCategory) => (
+      <option 
+        key={subCategory._id} 
+        value={subCategory._id}
+        selected={watch('courseSubCategory') === subCategory._id}
+      >
+        {subCategory.name}
+      </option>
+    ))}
+    {loading && <option value="" disabled>Loading subcategories...</option>}
+  </select>
+  {errors.courseSubCategory && (
+    <p style={formStyles.error}>{errors.courseSubCategory.message}</p>
+  )}
+</div>
+
+        {/* <div style={{ marginBottom: '1.5rem' }}>
+          <ChipInput 
+            label="Tags" 
+            name="courseTags" 
+            placeholder="Enter tags and press enter" 
+            register={register} 
+            errors={errors} 
+            setValue={setValue} 
+            getValues={getValues} 
+          />
+        </div> */}
+
+        <div style={{ marginBottom: '1.5rem' }}>
+          <label style={{
+            display: 'block',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            color: '#4a5568',
+            marginBottom: '0.5rem'
+          }} htmlFor="courseBenefits">
+            Benefits of the course <span style={{ color: '#e53e3e' }}>*</span>
+          </label>
+          <textarea
+            id="courseBenefits"
+            placeholder="Enter benefits of the course"
+            style={{
+              width: '100%',
+              minHeight: '120px',
+              padding: '0.75rem 1rem',
+              fontSize: '0.875rem',
+              border: `1px solid ${errors.courseBenefits ? '#e53e3e' : '#e2e8f0'}`,
+              borderRadius: '8px',
+              transition: 'all 0.2s ease',
+              resize: 'vertical',
+              outline: 'none',
+              boxShadow: errors.courseBenefits ? '0 0 0 3px rgba(229, 62, 62, 0.1)' : 'none'
+            }}
+            {...register('courseBenefits', { required: 'Benefits are required' })}
+          />
+          {errors.courseBenefits && (
+            <p style={{
+              marginTop: '0.5rem',
+              fontSize: '0.75rem',
+              color: '#e53e3e'
+            }}>{errors.courseBenefits.message}</p>
+          )}
+        </div>
+
+        <div>
+          <RequirementsField 
+            name="courseRequirements" 
+            label="Requirements/Instructions" 
+            register={register} 
+            errors={errors} 
+            setValue={setValue} 
+            getValues={getValues} 
+          />
+        </div>
+      </div>
+
+      {/* Form Actions */}
+      <div style={{
+        display: 'flex',
+        justifyContent: 'flex-end',
+        gap: '0.75rem',
+        marginTop: '2rem'
+      }}>
+        {editCourse && (
+          <button
+            onClick={() => dispatch(setStep(2))}
+            disabled={loading}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.75rem 1.5rem',
+              backgroundColor: '#e2e8f0',
+              color: '#1a202c',
+              fontWeight: 600,
+              borderRadius: '8px',
+              border: 'none',
+              cursor: 'pointer',
+              transition: 'all 0.2s ease',
+              opacity: loading ? 0.7 : 1
+            }}
+          >
+            Continue Without Saving
+          </button>
         )}
-        <IconBtn
+        <button
+          type="submit"
           disabled={loading}
-          text={!editCourse ? "Next" : "Save Changes"}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            padding: '0.75rem 1.5rem',
+            backgroundColor: ED_TEAL,
+            color: '#ffffff',
+            fontWeight: 600,
+            borderRadius: '8px',
+            border: 'none',
+            cursor: 'pointer',
+            transition: 'all 0.2s ease',
+            opacity: loading ? 0.7 : 1,
+            ':hover': {
+              backgroundColor: ED_TEAL_DARK
+            }
+          }}
         >
-          <MdNavigateNext />
-        </IconBtn>
+          {!editCourse ? 'Next' : 'Save Changes'}
+          <MdNavigateNext style={{ fontSize: '1.25rem' }} />
+        </button>
       </div>
     </form>
-  )
+  );
 }
+
+
+

@@ -74,11 +74,7 @@ export default function EditCourse() {
   }
 
   return (
-    <div>
-      <h1 className="mb-14 text-3xl font-medium text-gray-900">
-        Edit Course
-      </h1>
-      <div className="mx-auto max-w-[600px]">
+    <div className="mx-auto w-11/12 max-w-[1000px] py-10">
         {course ? (
           <RenderSteps />
         ) : (
@@ -87,6 +83,5 @@ export default function EditCourse() {
           </p>
         )}
       </div>
-    </div>
   )
 }
