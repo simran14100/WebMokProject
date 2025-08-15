@@ -42,6 +42,7 @@ import AllCategories from "./components/core/Admin/Category/allCategory";
 import SubCategory from "./components/core/Admin/SubCategory/SubCategory";
 import AllSubCategory from "./components/core/Admin/SubCategory/AllSubCategory";
 import CreateCourse from './components/core/Admin/Course/createCourse';
+import NewUser from './components/core/Admin/UserManagement/User/NewUser';
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
 console.log("App starting - localStorage debug:");
@@ -196,7 +197,7 @@ function AppRoutes() {
           {/* User Management */}
           <Route path="/admin/users/create" element={
             <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
-              <div>Create User Page</div>
+              <NewUser/>
             </ProtectedRoute>
           } />
           <Route path="/admin/users" element={

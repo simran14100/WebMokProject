@@ -29,12 +29,12 @@ export default function EditCourse() {
       try {
         const result = await getFullDetailsOfCourse(id, token)
         console.log("EditCourse - Full result:", result)
-        console.log("EditCourse - Course details:", result?.courseDetails)
-        console.log("EditCourse - Instructions:", result?.courseDetails?.instructions)
+        console.log("EditCourse - Course details:", result?.data?.courseDetails)
+        console.log("EditCourse - Instructions:", result?.data?.courseDetails?.instructions)
         
-        if (result?.courseDetails) {
+        if (result?.data?.courseDetails) {
           dispatch(setEditCourse(true))
-          dispatch(setCourse(result.courseDetails))
+          dispatch(setCourse(result.data.courseDetails))
         } else {
           setError('Course not found or failed to load')
         }

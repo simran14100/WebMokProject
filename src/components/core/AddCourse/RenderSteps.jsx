@@ -7,7 +7,7 @@ import CourseInformationForm from "./CourseInformation/CourseInformationForm"
 import PublishCourse from "./PublishCourse"
 
 export default function RenderSteps() {
-  const { step, editCourse } = useSelector((state) => state.course)
+  const { step, editCourse, course } = useSelector((state) => state.course)
 
   const steps = [
     { id: 1, title: "Course Information" },
@@ -125,7 +125,7 @@ export default function RenderSteps() {
       </div>
 
       <div style={{ marginTop: '2rem' }}>
-        {step === 1 && <CourseInformationForm />}
+        {step === 1 && <CourseInformationForm course={editCourse ? course : undefined} />}
         {step === 2 && <CourseBuilderForm />}
         {step === 3 && <PublishCourse />}
       </div>

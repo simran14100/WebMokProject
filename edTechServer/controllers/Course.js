@@ -20,6 +20,7 @@ const CourseProgress = require("../models/CourseProgress")
       price,
       tag: _tag,
       category,
+      subCategory,
       status,
       instructions: _instructions,
     } = req.body
@@ -94,6 +95,21 @@ const CourseProgress = require("../models/CourseProgress")
         message: "Category Details Not Found",
       })
     }
+    // Optional: validate subCategory belongs to category when provided
+    if (subCategory) {
+      try {
+        const SubCategory = require('../models/SubCategory');
+        const subCatDoc = await SubCategory.findById(subCategory);
+        if (!subCatDoc) {
+          return res.status(404).json({ success: false, message: 'SubCategory not found' });
+        }
+        if (String(subCatDoc.parentCategory) !== String(categoryDetails._id)) {
+          return res.status(400).json({ success: false, message: 'SubCategory does not belong to selected Category' });
+        }
+      } catch (e) {
+        console.warn('SubCategory validation skipped due to error:', e.message);
+      }
+    }
     // Upload the Thumbnail to Cloudinary
     const thumbnailImage = await uploadImageToCloudinary(
       thumbnail,
@@ -109,6 +125,7 @@ const CourseProgress = require("../models/CourseProgress")
       price,
       tag,
       category: categoryDetails._id,
+      ...(subCategory ? { subCategory } : {}),
       thumbnail: thumbnailImage.secure_url,
       status: status,
       instructions,
@@ -450,6 +467,7 @@ exports.getFullCourseDetails = async (req, res) => {
         populate: { path: "additionalDetails" },
       })
       .populate("category")
+      .populate("subCategory")
       .populate("ratingAndReviews")
       .populate({
         path: "courseContent",

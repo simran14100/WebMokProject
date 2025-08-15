@@ -95,18 +95,75 @@ router.post("/editCourse", auth, (req, res, next) => {
     });
   }
 }, editCourse)
-//Add a Section to a Course
-router.post("/addSection", auth, isApprovedInstructor, isAdminLevel,createSection)
+// Add a Section to a Course
+router.post("/addSection", auth, (req, res, next) => {
+  if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
+    next();
+  } else {
+    return res.status(403).json({
+      success: false,
+      message: 'You need to be an Admin or approved Instructor to perform this action'
+    });
+  }
+}, createSection)
 // Update a Section
-router.post("/updateSection", auth, isApprovedInstructor, isAdminLevel,updateSection)
+router.post("/updateSection", auth, (req, res, next) => {
+  if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
+    next();
+  } else {
+    return res.status(403).json({
+      success: false,
+      message: 'You need to be an Admin or approved Instructor to perform this action'
+    });
+  }
+}, updateSection)
+
 // Delete a Section
-router.post("/deleteSection", auth, isApprovedInstructor, isAdminLevel,deleteSection)
+router.post("/deleteSection", auth, (req, res, next) => {
+  if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
+    next();
+  } else {
+    return res.status(403).json({
+      success: false,
+      message: 'You need to be an Admin or approved Instructor to perform this action'
+    });
+  }
+}, deleteSection)
 // Edit Sub Section
-router.post("/updateSubSection", auth, isApprovedInstructor, isAdminLevel, updateSubSection)
+router.post("/updateSubSection", auth, (req, res, next) => {
+  if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
+    next();
+  } else {
+    return res.status(403).json({
+      success: false,
+      message: 'You need to be an Admin or approved Instructor to perform this action'
+    });
+  }
+}, updateSubSection)
+
 // Delete Sub Section
-router.post("/deleteSubSection", auth, isApprovedInstructor, isAdminLevel, deleteSubSection)
-// Add a Sub Section to a Section
-router.post("/addSubSection", auth, isApprovedInstructor, isAdminLevel, createSubSection)
+router.post("/deleteSubSection", auth, (req, res, next) => {
+  if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
+    next();
+  } else {
+    return res.status(403).json({
+      success: false,
+      message: 'You need to be an Admin or approved Instructor to perform this action'
+    });
+  }
+}, deleteSubSection)
+
+// Add New Sub Section
+router.post("/addSubSection", auth, (req, res, next) => {
+  if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
+    next();
+  } else {
+    return res.status(403).json({
+      success: false,
+      message: 'You need to be an Admin or approved Instructor to perform this action'
+    });
+  }
+}, createSubSection)
 // Get all Courses Under a Specific Instructor
 
 // Get all Registered Courses

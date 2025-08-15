@@ -2,7 +2,7 @@ const cloudinary = require('cloudinary').v2;
 
 exports.uploadImageToCloudinary = async(file , folder , height , quality)=>{
 
-    const options={folder};
+    const options={ folder: folder || 'webmok-uploads' };
 
     if(height){
         options.height = height;

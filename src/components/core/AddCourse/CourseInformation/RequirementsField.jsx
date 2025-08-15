@@ -4,6 +4,7 @@
 import { useEffect, useState } from "react"
 import { useSelector } from "react-redux"
 import { ED_TEAL, ED_TEAL_DARK } from "../../../../utils/theme"
+import toast from "../../../../utils/toast"
 
 export default function RequirementsField({
   name,
@@ -13,32 +14,91 @@ export default function RequirementsField({
   errors,
   getValues,
 }) {
-  const { editCourse, course } = useSelector((state) => state.course)
-  const [requirement, setRequirement] = useState("")
-  const [requirementsList, setRequirementsList] = useState([])
+  const { editCourse, course } = useSelector((state) => state.course);
+  const [requirement, setRequirement] = useState("");
+  const [requirementsList, setRequirementsList] = useState([]);
 
+  // Register the field with react-hook-form
+  useEffect(() => {
+    register(name, { 
+      required: 'At least one requirement is required',
+      validate: {
+        notEmpty: value => {
+          const isValid = value && Array.isArray(value) && 
+                        value.length > 0 && 
+                        value.some(req => req && req.trim() !== '');
+          console.log('Validation result:', { value, isValid });
+          return isValid || 'Please add at least one requirement';
+        }
+      }
+    });
+  }, [register, name]);
+
+  // Initialize requirements from course data
   useEffect(() => {
     if (editCourse && course?.instructions) {
-      setRequirementsList(course.instructions || [])
+      console.log('Initializing requirements in edit mode:', course.instructions);
+      // Ensure we have a valid array of requirements
+      const initialRequirements = Array.isArray(course.instructions) 
+        ? course.instructions.filter(Boolean).filter(req => req.trim() !== '')
+        : [String(course.instructions || '')].filter(Boolean).filter(req => req.trim() !== '');
+      
+      console.log('Processed requirements:', initialRequirements);
+      setRequirementsList(initialRequirements);
+      setValue(name, initialRequirements, { shouldValidate: true });
+    } else if (!editCourse) {
+      console.log('Initializing empty requirements for new course');
+      setRequirementsList([]);
+      setValue(name, [], { shouldValidate: false });
     }
-    register(name, { required: true, validate: (value) => value.length > 0 })
-  }, [editCourse, course?.instructions, name, register])
-
-  useEffect(() => {
-    setValue(name, requirementsList)
-  }, [requirementsList, name, setValue])
+  }, [editCourse, course?.instructions, name, setValue]);
 
   const handleAddRequirement = () => {
-    if (requirement) {
-      setRequirementsList([...requirementsList, requirement])
-      setRequirement("")
+    if (requirement && requirement.trim() !== '') {
+      const newRequirement = requirement.trim();
+      const newRequirements = [...requirementsList, newRequirement];
+      console.log('Adding requirement:', newRequirement);
+      
+      // Update both local state and form state
+      setRequirementsList(newRequirements);
+      setValue(name, newRequirements, { 
+        shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true 
+      });
+      
+      // Clear the input field
+      setRequirement("");
+      
+      // Trigger validation
+      setTimeout(() => {
+        const currentValue = getValues(name);
+        console.log('Current form value after add:', currentValue);
+      }, 0);
+    } else {
+      toast.error('Please enter a requirement before adding');
     }
   }
 
   const handleRemoveRequirement = (index) => {
-    const updatedRequirements = [...requirementsList]
-    updatedRequirements.splice(index, 1)
-    setRequirementsList(updatedRequirements)
+    const updatedRequirements = [...requirementsList];
+    console.log('Removing requirement at index:', index, 'Value:', updatedRequirements[index]);
+    updatedRequirements.splice(index, 1);
+    console.log('Updated requirements after removal:', updatedRequirements);
+    
+    // Update both local state and form state
+    setRequirementsList(updatedRequirements);
+    setValue(name, updatedRequirements, { 
+      shouldValidate: true,
+      shouldDirty: true,
+      shouldTouch: true 
+    });
+    
+    // Trigger validation
+    setTimeout(() => {
+      const currentValue = getValues(name);
+      console.log('Current form value after remove:', currentValue);
+    }, 0);
   }
 
   return (

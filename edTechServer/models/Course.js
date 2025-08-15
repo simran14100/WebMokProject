@@ -43,6 +43,11 @@ const courseSchema = new mongoose.Schema({
         type:[String],
         required:true,
     },
+    // Optional subcategory reference
+    subCategory: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "SubCategory",
+    },
     category: {
       type: mongoose.Schema.Types.ObjectId,
       // required: true,

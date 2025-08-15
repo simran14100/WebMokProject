@@ -4,6 +4,9 @@ console.log('RAZORPAY_KEY_ID:', process.env.RAZORPAY_KEY_ID);
 console.log('RAZORPAY_KEY_SECRET:', process.env.RAZORPAY_KEY_SECRET ? 'SET' : 'NOT SET');
 console.log('MONGODB_URL:', process.env.MONGODB_URL);
 const express = require("express");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 const app = express();
 const userRoutes = require("./routes/user");
 const profileRoutes = require("./routes/profile");
@@ -49,11 +52,23 @@ app.use(
 		credentials: true,
 	})
 );
+
+// Configure a cross-platform temporary directory for uploads
+const uploadTmpDir = path.join(os.tmpdir(), "webmok-uploads");
+try {
+  if (!fs.existsSync(uploadTmpDir)) {
+    fs.mkdirSync(uploadTmpDir, { recursive: true });
+    console.log("Created temp upload directory:", uploadTmpDir);
+  }
+} catch (e) {
+  console.error("Failed to create temp upload directory:", e);
+}
+
 app.use(
-	fileUpload({
-		useTempFiles: true,
-		tempFileDir: "/tmp/",
-	})
+  fileUpload({
+    useTempFiles: true,
+    tempFileDir: uploadTmpDir,
+  })
 );
 
 // Connecting to cloudinary
