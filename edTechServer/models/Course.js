@@ -39,6 +39,10 @@ const courseSchema = new mongoose.Schema({
     thumbnail:{
         type:String
     },
+    // Optional intro video URL for the course landing page
+    introVideo: {
+        type: String,
+    },
     tag:{
         type:[String],
         required:true,

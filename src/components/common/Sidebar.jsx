@@ -76,8 +76,8 @@ const getSidebarLinks = (user) => {
         icon: <VscBook style={{ fontSize: 20, color: ED_TEAL }} />,
         subLinks: [
           { name: "Create New Course", path: "/admin/course/create" },
-          { name: "Create New Scrom Course", path: "/admin/course/scromCourse" },
-          { name: "All Scrom Course", path: "/admin/course/allScromCourses" },
+          // { name: "Create New Scrom Course", path: "/admin/course/scromCourse" },
+          // { name: "All Scrom Course", path: "/admin/course/allScromCourses" },
           { name: "All Courses", path: "/admin/course/allCourses" },
         ]
       },

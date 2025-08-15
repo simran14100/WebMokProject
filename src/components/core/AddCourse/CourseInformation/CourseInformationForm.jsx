@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useForm, useFormContext } from 'react-hook-form';
 import { useDispatch, useSelector } from 'react-redux';
 import { toast } from 'react-hot-toast';
@@ -32,6 +33,7 @@ export default function CourseInformationForm() {
   } = useForm();
   
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   
   // Get user data from Redux store
   const { user } = useSelector((state) => state.profile);
@@ -288,6 +290,7 @@ export default function CourseInformationForm() {
           courseCategory: categoryId,
           courseSubCategory: subCategoryId, // This will be set after subcategories load
           courseImage: course.thumbnail || '',
+          introVideo: course.introVideo || '',
           courseTags: Array.isArray(course.tag) ? course.tag : (course.tag ? [course.tag] : []),
           requirements: course.instructions?.length > 0 ? course.instructions : ['']
         };
@@ -403,7 +406,8 @@ export default function CourseInformationForm() {
       'courseBenefits',
       'courseCategory',
       'courseSubCategory',
-      'courseImage'
+      'courseImage',
+      'introVideo'
     ];
 
     // Check if any field has changed
@@ -525,7 +529,8 @@ export default function CourseInformationForm() {
         JSON.stringify(courseTags) !== JSON.stringify(course.tag || []) ||
         JSON.stringify(requirements) !== JSON.stringify(course.instructions || []) ||
         currentValues.courseBenefits !== course.whatYouWillLearn ||
-        currentValues.courseImage !== course.thumbnail
+        currentValues.courseImage !== course.thumbnail ||
+        currentValues.introVideo !== (course.introVideo || '')
       );
     }
     return true; // For new course, form is always considered updated
@@ -645,6 +650,15 @@ export default function CourseInformationForm() {
         return;
       }
 
+      // Handle intro video upload or URL (optional)
+      if (data.introVideo instanceof File) {
+        formData.append('introVideo', data.introVideo);
+        console.log('Intro video file attached:', data.introVideo.name);
+      } else if (editCourse && typeof data.introVideo === 'string' && data.introVideo) {
+        formData.append('introVideoUrl', data.introVideo);
+        console.log('Using existing intro video URL');
+      }
+
       // Log form data for debugging
       console.log('=== FormData contents ===');
       const formDataObj = {};
@@ -664,15 +678,19 @@ export default function CourseInformationForm() {
       if (result) {
         // Update Redux store with the course data
         dispatch(setCourse(result));
-        
-        // Move to the next step
-        dispatch(setStep(2));
-        
+
         toast.success(
           editCourse 
             ? 'Course updated successfully!'
             : 'Course created successfully!'
         );
+
+        // Navigate on create; keep step flow on edit
+        if (!editCourse) {
+          navigate('/admin/course/allCourses');
+        } else {
+          dispatch(setStep(2));
+        }
       }
     } catch (error) {
       console.error('Error submitting form:', error);
@@ -793,7 +811,7 @@ export default function CourseInformationForm() {
             color: '#4a5568',
             marginBottom: '0.5rem'
           }}>
-            Course Thumbnail <span style={{ color: '#e53e3e' }}>*</span>
+            {/* Course Thumbnail <span style={{ color: '#e53e3e' }}>*</span> */}
           </label>
           <Upload
             name="courseImage"
@@ -805,6 +823,30 @@ export default function CourseInformationForm() {
             required={!editCourse}
             editData={thumbnailPreview || ''}
             viewData={thumbnailPreview || ''}
+          />
+        </div>
+
+        {/* Intro Video Section (optional) */}
+        <div style={{ marginTop: '1rem' }}>
+          <label style={{
+            display: 'block',
+            fontSize: '0.875rem',
+            fontWeight: 500,
+            color: '#4a5568',
+            marginBottom: '0.5rem'
+          }}>
+            {/* Intro Video (optional) */}
+          </label>
+          <Upload
+            name="introVideo"
+            label="Choose Intro Video"
+            register={register}
+            setValue={setValue}
+            errors={errors}
+            video={true}
+            required={false}
+            editData={course?.introVideo || ''}
+            viewData={course?.introVideo || ''}
           />
         </div>
 

@@ -116,6 +116,21 @@ const CourseProgress = require("../models/CourseProgress")
       process.env.FOLDER_NAME
     )
     console.log(thumbnailImage)
+    
+    // Optionally upload Intro Video to Cloudinary (if provided)
+    let introVideoUrl
+    try {
+      if (req.files && req.files.introVideo) {
+        const introVideoFile = req.files.introVideo
+        const uploadedIntro = await uploadImageToCloudinary(
+          introVideoFile,
+          process.env.FOLDER_NAME
+        )
+        introVideoUrl = uploadedIntro.secure_url
+      }
+    } catch (e) {
+      console.warn('Intro video upload failed:', e.message)
+    }
     // Create a new course with the given details
     const newCourse = await Course.create({
       courseName,
@@ -127,6 +142,7 @@ const CourseProgress = require("../models/CourseProgress")
       category: categoryDetails._id,
       ...(subCategory ? { subCategory } : {}),
       thumbnail: thumbnailImage.secure_url,
+      ...(introVideoUrl ? { introVideo: introVideoUrl } : {}),
       status: status,
       instructions,
     })
@@ -174,8 +190,8 @@ const CourseProgress = require("../models/CourseProgress")
 exports.getAllCourses = async(req , res)=>{
     try{
         const allCourses = await Course.find({
-          status: "Published"
-        },{
+      status: "Published"
+    },{
             courseName:true,
             price:true,
             thumbnail:true,
@@ -193,6 +209,8 @@ exports.getAllCourses = async(req , res)=>{
               path: "instructor",
               select: "firstName lastName image email"
             })
+            .populate('category')
+            .populate('subCategory')
             .populate("studentsEnrolled") // Populate student details
             .exec();
 
@@ -389,6 +407,25 @@ exports.editCourse = async (req, res) => {
         process.env.FOLDER_NAME
       )
       course.thumbnail = thumbnailImage.secure_url
+    }
+
+    // Handle intro video update
+    // 1) If new introVideo file is provided, upload and set
+    if (req.files && req.files.introVideo) {
+      try {
+        const uploadedIntro = await uploadImageToCloudinary(
+          req.files.introVideo,
+          process.env.FOLDER_NAME
+        )
+        course.introVideo = uploadedIntro.secure_url
+      } catch (e) {
+        console.warn('Intro video upload failed:', e.message)
+      }
+    }
+    // 2) If a direct introVideoUrl is provided in body, set it
+    if (updates.introVideoUrl) {
+      course.introVideo = updates.introVideoUrl
+      delete updates.introVideoUrl
     }
 
     // Update only the fields that are present in the request body

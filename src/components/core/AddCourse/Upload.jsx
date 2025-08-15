@@ -159,6 +159,7 @@ export default function Upload({
   video = false,
   viewData = null,
   editData = null,
+  required = true,
 }) {
   const { course } = useSelector((state) => state.course)
   const [selectedFile, setSelectedFile] = useState(null)
@@ -191,8 +192,8 @@ export default function Upload({
   }
 
   useEffect(() => {
-    register(name, { required: true })
-  }, [register, name])
+    register(name, { required })
+  }, [register, name, required])
 
   useEffect(() => {
     setValue(name, selectedFile)
