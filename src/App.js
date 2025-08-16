@@ -27,11 +27,12 @@ import AdminLayout from './components/common/AdminLayout';
 import EnrolledStudents from './pages/EnrolledStudents';
 import RegisteredStudents from './pages/RegisteredStudents';
 import ManageUsers from './pages/ManageUsers';
-import Categories from './pages/Categories';
+import Category from "./pages/Category";
 import InstructorLayout from './components/common/InstructorLayout';
 import Cart from './pages/Cart';
 import ActiveCourses from './pages/ActiveCourses';
 import MyCourses from './pages/MyCourses';
+
 
 import EditCourse from './components/core/EditCourse';
 import CourseViewer from './pages/CourseViewer';
@@ -44,6 +45,11 @@ import AllSubCategory from "./components/core/Admin/SubCategory/AllSubCategory";
 import CreateCourse from './components/core/Admin/Course/createCourse';
 import NewUser from './components/core/Admin/UserManagement/User/NewUser';
 import AllCourse from './components/core/Admin/Course/AllCourse';
+import CreateBatch from './components/core/Admin/BatchManagement/CreateBatch';
+import AllBatches from './components/core/Admin/BatchManagement/AllBatches';
+import EditPage from './components/core/Admin/BatchManagement/EditPage';
+import CreateStudent from './components/core/Admin/StudentManagement/CreateStudent';
+
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
 console.log("App starting - localStorage debug:");
@@ -82,6 +88,7 @@ function AppRoutes() {
       <Route path="/contact" element={<Contact />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/category/:categoryId" element={<Category />} />
       <Route path="/catalog/:catalogName" element={<Catalog />} />
       <Route path="/courses/:courseId" element={<CourseDetails />} />
       <Route path="/enrollment-payment" element={<EnrollmentPayment />} />
@@ -174,19 +181,29 @@ function AppRoutes() {
           {/* Batch Management */}
           <Route path="/admin/batches/create" element={
             <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
-              <div>Create Batch Page</div>
+              <CreateBatch />
             </ProtectedRoute>
           } />
           <Route path="/admin/batches" element={
             <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
-              <div>All Batches Page</div>
+              <AllBatches />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/batches/:batchId/edit" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+              <EditPage />
             </ProtectedRoute>
           } />
           
           {/* Student Management */}
-          <Route path="/admin/students/admission" element={
+          {/* <Route path="/admin/students/admission" element={
             <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
               <AdmissionConfirmation />
+            </ProtectedRoute>
+          } /> */}
+          <Route path="/admin/students/create" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+              <CreateStudent />
             </ProtectedRoute>
           } />
           <Route path="/admin/students" element={

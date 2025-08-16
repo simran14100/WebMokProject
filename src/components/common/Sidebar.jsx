@@ -104,12 +104,13 @@ const getSidebarLinks = (user) => {
         isHeader: true,
         icon: <VscMortarBoard style={{ fontSize: 20, color: ED_TEAL }} />,
       },
+
       {
         id: 9,
         name: "Students",
         icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} />,
         subLinks: [
-          { name: "Admission", path: "/admin/students/admission" },
+          { name: "Create New Student", path: "/admin/students/create" },
           { name: "All Students", path: "/admin/students" }
         ]
       },

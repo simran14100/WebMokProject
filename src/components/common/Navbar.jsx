@@ -276,7 +276,7 @@ const Navbar = () => {
                                      transition: 'all 0.3s ease'
                                    }}>
                                      <Link 
-                                       to={`/catalog/${category._id}`}
+                                       to={`/category/${category._id}`}
                                        onClick={() => setIsCategoryDropdownOpen(false)}
                                        style={{
                                          color: '#333',

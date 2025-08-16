@@ -138,6 +138,7 @@ export default function PublishCourse() {
   const navigate = useNavigate()
   const { token } = useSelector((state) => state.auth)
   const { course } = useSelector((state) => state.course)
+  const { user } = useSelector((state) => state.profile)
   const [loading, setLoading] = useState(false)
   
   // Watch the public checkbox value for dynamic styling
@@ -155,7 +156,8 @@ export default function PublishCourse() {
 
   const goToCourses = () => {
     dispatch(resetCourseState())
-    navigate("/instructor/my-courses")
+    const target = user?.accountType === 'Admin' ? "/admin/course/allCourses" : "/instructor/my-courses"
+    navigate(target)
   }
 
   const handleCoursePublish = async () => {

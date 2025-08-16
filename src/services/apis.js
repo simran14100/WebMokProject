@@ -24,6 +24,8 @@ export const profile = {
 
 export const subCategory = {
     GET_SUBCATEGORIES_BY_PARENT_API: "/api/v1/subCategory/getSubCategory",
+    SHOW_ALL_SUBCATEGORIES_API: "/api/v1/subCategory/showAllSubCategories",
+    SUBCATEGORY_PAGE_DETAILS_API: "/api/v1/subCategory/subCategoryPageDetails",
 };
 
 export const course = {
@@ -73,6 +75,14 @@ export const admin = {
     GET_ALL_INSTRUCTORS_API: "/api/v1/admin/all-instructors",
     GET_DASHBOARD_STATS_API: "/api/v1/admin/dashboard-stats",
     UPDATE_USER_STATUS_API: "/api/v1/admin/update-user-status",
+    CREATE_BATCH_API: "/api/v1/admin/create-batch",
+    LIST_BATCHES_API: "/api/v1/admin/batches",
+    EXPORT_BATCHES_API: "/api/v1/admin/batches/export",
+    CREATE_STUDENT_API: "/api/v1/admin/create-student",
+    // Batch Students management
+    LIST_BATCH_STUDENTS_API: "/api/v1/admin/batches", // use `${LIST_BATCH_STUDENTS_API}/${batchId}/students`
+    ADD_STUDENT_TO_BATCH_API: "/api/v1/admin/batches", // POST `${ADD_STUDENT_TO_BATCH_API}/${batchId}/students`
+    REMOVE_STUDENT_FROM_BATCH_API: "/api/v1/admin/batches", // DELETE `${REMOVE_STUDENT_FROM_BATCH_API}/${batchId}/students/:studentId`
 };
 
 export const admission = {

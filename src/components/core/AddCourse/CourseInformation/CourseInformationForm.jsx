@@ -594,6 +594,11 @@ export default function CourseInformationForm() {
       return;
     }
 
+    // For creation flow, optimistically move to Step 2 after basic validation
+    if (!editCourse) {
+      dispatch(setStep(2));
+    }
+
     setLoading(true);
     
     try {
@@ -643,11 +648,9 @@ export default function CourseInformationForm() {
         formData.append('thumbnailUrl', data.courseImage);
         console.log('Using existing thumbnail URL');
       } else if (!editCourse) {
-        // For new courses, require a thumbnail
-        console.error('Thumbnail is required');
-        toast.error('Please upload a course thumbnail');
-        setLoading(false);
-        return;
+        // For new courses, thumbnail is recommended but do not block progression to next step
+        console.warn('Thumbnail not provided for new course');
+        toast((t) => 'Tip: Add a course thumbnail in Step 1 for better visibility');
       }
 
       // Handle intro video upload or URL (optional)
@@ -685,12 +688,9 @@ export default function CourseInformationForm() {
             : 'Course created successfully!'
         );
 
-        // Navigate on create; keep step flow on edit
-        if (!editCourse) {
-          navigate('/admin/course/allCourses');
-        } else {
-          dispatch(setStep(2));
-        }
+        // Move to next step for both create and edit flows (no navigation here)
+        // If we already advanced optimistically for create, this keeps step at 2; for edit, advance now
+        dispatch(setStep(2));
       }
     } catch (error) {
       console.error('Error submitting form:', error);

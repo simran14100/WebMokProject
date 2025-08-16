@@ -503,16 +503,16 @@ export const createRating = async (data, token) => {
   return success
 }
 
-export const getCatalogPageData = async (categoryId) => {
+export const getCatalogPageData = async (subCategoryId) => {
   let result = null;
   try {
-    const response = await apiConnector("POST", course.CATEGORY_PAGE_DETAILS_API, { categoryId });
+    const response = await apiConnector("POST", subCategory.SUBCATEGORY_PAGE_DETAILS_API, { subCategoryId });
     if (!response?.data?.success) {
       throw new Error(response?.data?.message || "Could not fetch catalog page data");
     }
     result = response.data;
   } catch (error) {
-    console.log("CATEGORY_PAGE_DETAILS_API ERROR............", error);
+    console.log("SUBCATEGORY_PAGE_DETAILS_API ERROR............", error);
     result = { success: false, message: error.message };
   }
   return result;

@@ -1,6 +1,8 @@
 const User = require('../models/User');
 const Course = require('../models/Course');
 const CourseProgress = require('../models/CourseProgress');
+const bcrypt = require('bcrypt');
+const Profile = require('../models/Profile');
 
 // Get all registered users for admin dashboard
 exports.getRegisteredUsers = async (req, res) => {
@@ -253,6 +255,76 @@ exports.getDashboardStats = async (req, res) => {
             message: 'Failed to fetch dashboard statistics',
             error: error.message
         });
+    }
+};
+
+// Admin-only: Create a Student user without OTP flow
+// Required body: { name, email, phone, password, confirmPassword }
+// Optional: { enrollmentFeePaid (default false) }
+exports.createStudentByAdmin = async (req, res) => {
+    try {
+        const { name, email, phone, password, confirmPassword, enrollmentFeePaid } = req.body;
+
+        if (!name || !email || !phone || !password || !confirmPassword) {
+            return res.status(400).json({ success: false, message: 'All fields are required' });
+        }
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({ success: false, message: 'Passwords do not match' });
+        }
+
+        const existing = await User.findOne({ email });
+        if (existing) {
+            return res.status(409).json({ success: false, message: 'Email already registered' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Split name into first/last with safe fallback for single-word names
+        const nameStr = String(name || '').trim().replace(/\s+/g, ' ');
+        const parts = nameStr.split(' ');
+        const firstName = parts.shift() || 'Student';
+        const lastName = parts.length ? parts.join(' ') : '-';
+
+        const profileDetails = await Profile.create({
+            gender: null,
+            dateOfBirth: null,
+            about: null,
+            contactNumber: phone,
+        });
+
+        const user = await User.create({
+            firstName,
+            lastName,
+            email,
+            contactNumber: phone,
+            password: hashedPassword,
+            accountType: 'Student',
+            approved: true,
+            enrollmentFeePaid: Boolean(enrollmentFeePaid) || false,
+            paymentStatus: Boolean(enrollmentFeePaid) ? 'Completed' : 'Pending',
+            additionalDetails: profileDetails._id,
+            image: `https://api.dicebear.com/5.x/initials/svg?seed=${encodeURIComponent(firstName + ' ' + (lastName || ''))}`,
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: 'Student created successfully',
+            data: {
+                _id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                contactNumber: user.contactNumber,
+                accountType: user.accountType,
+                approved: user.approved,
+                enrollmentFeePaid: user.enrollmentFeePaid,
+                paymentStatus: user.paymentStatus,
+            },
+        });
+    } catch (error) {
+        console.error('Error creating student by admin:', error);
+        return res.status(500).json({ success: false, message: 'Failed to create student', error: error.message });
     }
 };
 

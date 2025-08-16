@@ -143,8 +143,7 @@ import { useEffect, useRef, useState } from "react"
 import { useDropzone } from "react-dropzone"
 import { FiUploadCloud } from "react-icons/fi"
 import { useSelector } from "react-redux"
-import "video-react/dist/video-react.css"
-import { Player } from "video-react"
+// Replaced video-react Player (legacy context) with native HTML5 video for preview
 
 
 const ED_TEAL = '#07A698';
@@ -253,7 +252,11 @@ export default function Upload({
               />
             ) : (
               <div style={{ width: '100%' }}>
-                <Player aspectRatio="16:9" playsInline src={previewSource} />
+                <video
+                  src={previewSource}
+                  controls
+                  style={{ width: '100%', borderRadius: '4px' }}
+                />
               </div>
             )}
             {!viewData && (

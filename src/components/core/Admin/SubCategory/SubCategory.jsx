@@ -48,12 +48,17 @@ const SubCategory = () => {
   return (
     <DashboardLayout>
       <div className="sub-category-container">
-        <div className="header">
-          <h2>Create Sub-Category</h2>
+        
+ <div className="category-header">
+          <h2>Create Sub Category</h2>
+          <div className="breadcrumb">
+            <span>Category</span>
+            <span className="divider">/</span>
+            <span className="active">Create Sub Category</span>
+          </div>
         </div>
-
         <div className="form-card">
-          <h3>Add New Sub-Category</h3>
+          {/* <h3>Add New Sub-Category</h3> */}
           <form onSubmit={handleSubmit(onSubmit)} className="sub-category-form">
             <div className="form-field">
               <label>Parent Category</label>
@@ -85,6 +90,16 @@ const SubCategory = () => {
         </div>
 
         <style jsx>{`
+        .category-header {
+            margin-bottom: 2rem;
+          }
+
+          .category-header h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: ${TEXT_DARK};
+            margin-bottom: 0.5rem;
+          }
           .sub-category-container { width: calc(100% - 250px); margin-left: 250px; padding: 2rem; background-color: #f8fafc; }
           .header h2 { font-size: 1.5rem; font-weight: 600; color: ${TEXT_DARK}; margin-bottom: 2rem; }
           .form-card { background: white; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }

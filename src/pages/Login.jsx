@@ -6,6 +6,7 @@ import Logo from '../assets/img/logo/logo-1.png';
 
 const ED_TEAL = '#07A698';
 const ED_TEAL_DARK = '#059a8c';
+
 const BORDER = '#e0e0e0';
 const TEXT_DARK = '#191A1F';
 
