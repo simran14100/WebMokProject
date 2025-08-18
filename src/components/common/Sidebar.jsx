@@ -37,7 +37,8 @@ const BORDER = "#e0e0e0";
 const TEXT_DARK = "#191A1F";
 
 const getSidebarLinks = (user) => {
-  if (user?.accountType === 'Admin') {
+  // Admin UI for both Admin and Instructor
+  if (user?.accountType === 'Admin' || user?.accountType === 'Instructor') {
     return [
       {
         id: 1,
@@ -133,34 +134,7 @@ const getSidebarLinks = (user) => {
     ];
   }
   
-  if (user?.accountType === 'Instructor') {
-    return [
-      {
-        id: 1,
-        name: "Dashboard",
-        path: "/instructor/dashboard",
-        icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} />,
-      },
-      {
-        id: 2,
-        name: "My Courses",
-        path: "/instructor/my-courses",
-        icon: <VscLibrary style={{ fontSize: 20, color: ED_TEAL }} />,
-      },
-      {
-        id: 3,
-        name: "Add Course",
-        path: "/instructor/add-course",
-        icon: <VscGift style={{ fontSize: 20, color: ED_TEAL }} />,
-      },
-      {
-        id: 4,
-        name: "Settings",
-        path: "/dashboard/settings",
-        icon: <VscGear style={{ fontSize: 20, color: ED_TEAL }} />,
-      }
-    ];
-  }
+  // (No separate Instructor sidebar; they use Admin UI)
   
   // Student links
   return [

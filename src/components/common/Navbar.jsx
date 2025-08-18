@@ -578,10 +578,10 @@ const Navbar = () => {
                             </>
                           )}
                           
-                          {user.accountType === 'Instructor' && (
+                          {(user.accountType === 'Instructor' || user.accountType === 'Admin') && (
                             <>
                               <Link 
-                                to="/instructor/dashboard"
+                                to="/admin/dashboard"
                                 style={{
                                   display: 'block',
                                   padding: '10px 16px',
@@ -601,10 +601,10 @@ const Navbar = () => {
                                 onClick={() => setIsProfileDropdownOpen(false)}
                               >
                                 <i className="fa-solid fa-chalkboard-teacher" style={{ marginRight: '8px', width: '16px' }}></i>
-                                Instructor Dashboard
+                                Admin Dashboard
                               </Link>
                               <Link 
-                                to="/instructor/my-courses"
+                                to="/admin/courses"
                                 style={{
                                   display: 'block',
                                   padding: '10px 16px',
@@ -624,10 +624,10 @@ const Navbar = () => {
                                 onClick={() => setIsProfileDropdownOpen(false)}
                               >
                                 <i className="fa-solid fa-book" style={{ marginRight: '8px', width: '16px' }}></i>
-                                My Courses
+                                Manage Courses
                               </Link>
                               <Link 
-                                to="/instructor/add-course"
+                                to="/admin/add-course"
                                 style={{
                                   display: 'block',
                                   padding: '10px 16px',
@@ -647,12 +647,12 @@ const Navbar = () => {
                                 onClick={() => setIsProfileDropdownOpen(false)}
                               >
                                 <i className="fa-solid fa-plus" style={{ marginRight: '8px', width: '16px' }}></i>
-                                Create Course
+                                Add Course
                               </Link>
                             </>
                           )}
                           
-                          {(user.accountType === 'Admin' || user.accountType === 'Super Admin' || user.accountType === 'Staff') && (
+                          {(user.accountType === 'Admin' || user.accountType === 'Instructor' || user.accountType === 'Super Admin' || user.accountType === 'Staff') && (
                             <>
                               <Link 
                                 to="/admin/users"
