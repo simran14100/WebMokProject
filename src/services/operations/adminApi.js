@@ -17,10 +17,27 @@ const {
   LIST_BATCH_STUDENTS_API,
   ADD_STUDENT_TO_BATCH_API,
   REMOVE_STUDENT_FROM_BATCH_API,
+  // Batch trainers
+  LIST_BATCH_TRAINERS_API,
+  ADD_TRAINER_TO_BATCH_API,
+  REMOVE_TRAINER_FROM_BATCH_API,
+  // Batch courses
+  LIST_BATCH_COURSES_API,
+  ADD_COURSE_TO_BATCH_API,
+  REMOVE_COURSE_FROM_BATCH_API,
+  // Live Classes
+  ADD_LIVE_CLASS_TO_BATCH_API,
+  // Admin Reviews
+  CREATE_ADMIN_REVIEW_API,
+  // Google Calendar integration
+  CREATE_MEET_LINK_API,
+  // Bulk students
+  STUDENTS_TEMPLATE_API,
+  BULK_UPLOAD_STUDENTS_API,
 } = admin
 
 // Get registered users
-export async function getRegisteredUsers(token) {
+export async function getRegisteredUsers(token, { page = 1, limit = 10, role = "all", search = "" } = {}) {
   try {
     const response = await apiConnector(
       "GET",
@@ -28,7 +45,8 @@ export async function getRegisteredUsers(token) {
       {},
       {
         Authorization: `Bearer ${token}`,
-      }
+      },
+      { params: { page, limit, role, search } }
     )
     console.log("GET REGISTERED USERS RESPONSE............", response)
 
@@ -46,6 +64,189 @@ export async function getRegisteredUsers(token) {
   }
 }
 
+// Download CSV template for bulk student upload (Admin only)
+export async function downloadStudentsTemplate(token) {
+  const toastId = toast.loading("Preparing template...")
+  try {
+    const response = await apiConnector(
+      "GET",
+      STUDENTS_TEMPLATE_API,
+      {},
+      { Authorization: `Bearer ${token}` },
+      { responseType: "blob" }
+    )
+    toast.success("Template ready")
+    return response.data // Blob
+  } catch (error) {
+    console.log("DOWNLOAD STUDENTS TEMPLATE ERROR............", error)
+    toast.error(error.response?.data?.message || error.message || "Failed to download template")
+    throw error
+  } finally {
+    toast.dismiss(toastId)
+  }
+}
+
+// Create a generic user by Admin (Admin, Instructor, Content-management, Student)
+export async function createUserByAdmin({ name, email, phone, password, confirmPassword, accountType, enrollmentFeePaid = false }, token) {
+  const toastId = toast.loading("Creating user...")
+  try {
+    const response = await apiConnector(
+      "POST",
+      admin.CREATE_USER_API,
+      { name, email, phone, password, confirmPassword, accountType, enrollmentFeePaid },
+      { Authorization: `Bearer ${token}` }
+    )
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to create user")
+    }
+
+    toast.success(`${accountType} created successfully`)
+    return response.data.data
+  } catch (error) {
+    console.log("CREATE USER BY ADMIN ERROR............", error)
+    toast.error(error.response?.data?.message || error.message || "Failed to create user")
+    throw error
+  } finally {
+    toast.dismiss(toastId)
+  }
+}
+
+// =========================
+// Batch Trainers management
+// =========================
+// List trainers assigned to a batch
+export async function listBatchTrainers(batchId, token) {
+  try {
+    const response = await apiConnector(
+      "GET",
+      `${LIST_BATCH_TRAINERS_API}/${batchId}/trainers`,
+      {},
+      { Authorization: `Bearer ${token}` }
+    )
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to fetch batch trainers")
+    }
+    const payload = response.data?.data
+    return Array.isArray(payload) ? payload : []
+  } catch (error) {
+    console.log("LIST BATCH TRAINERS ERROR............", error)
+    toast.error(error.response?.data?.message || error.message || "Failed to fetch batch trainers")
+    throw error
+  }
+}
+
+// Assign a trainer to a batch
+export async function addTrainerToBatch(batchId, trainerId, token) {
+  const toastId = toast.loading("Assigning trainer...")
+  try {
+    const response = await apiConnector(
+      "POST",
+      `${ADD_TRAINER_TO_BATCH_API}/${batchId}/trainers`,
+      { trainerId },
+      { Authorization: `Bearer ${token}` }
+    )
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to assign trainer")
+    }
+    toast.success("Trainer assigned to batch")
+    return true
+  } catch (error) {
+    console.log("ADD TRAINER TO BATCH ERROR............", error)
+    toast.error(error.response?.data?.message || error.message || "Failed to assign trainer")
+    throw error
+  } finally {
+    toast.dismiss(toastId)
+  }
+}
+
+// Remove a trainer from a batch
+export async function removeTrainerFromBatch(batchId, trainerId, token) {
+  const toastId = toast.loading("Removing trainer...")
+  try {
+    const response = await apiConnector(
+      "DELETE",
+      `${REMOVE_TRAINER_FROM_BATCH_API}/${batchId}/trainers/${trainerId}`,
+      {},
+      { Authorization: `Bearer ${token}` }
+    )
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to remove trainer")
+    }
+    toast.success("Trainer removed from batch")
+    return true
+  } catch (error) {
+    console.log("REMOVE TRAINER FROM BATCH ERROR............", error)
+    toast.error(error.response?.data?.message || error.message || "Failed to remove trainer")
+    throw error
+  } finally {
+    toast.dismiss(toastId)
+  }
+}
+
+// Bulk upload students (CSV/XLSX) and assign to a batch (Admin only)
+export async function bulkUploadStudents({ batchId, file }, token) {
+  const toastId = toast.loading("Uploading students...")
+  try {
+    const formData = new FormData()
+    formData.append("batchId", batchId)
+    formData.append("file", file)
+
+    const response = await apiConnector(
+      "POST",
+      BULK_UPLOAD_STUDENTS_API,
+      formData,
+      { Authorization: `Bearer ${token}` },
+      { headers: { "Content-Type": "multipart/form-data" } }
+    )
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Bulk upload failed")
+    }
+    toast.success("Bulk upload processed")
+    return response.data.data
+  } catch (error) {
+    console.log("BULK UPLOAD STUDENTS ERROR............", error)
+    toast.error(error.response?.data?.message || error.message || "Failed to upload students")
+    throw error
+  } finally {
+    toast.dismiss(toastId)
+  }
+}
+
+// Create Google Meet link via backend (Admin only)
+export async function createGoogleMeetLink({ startISO, endISO, title = "Live Class", description = "" }, token) {
+  const toastId = toast.loading("Creating Google Meet link...")
+  try {
+    const response = await apiConnector(
+      "POST",
+      CREATE_MEET_LINK_API,
+      { title, description, startISO, endISO },
+      { Authorization: `Bearer ${token}` }
+    )
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to create Meet link")
+    }
+    const link = response.data?.hangoutLink || response.data?.event?.hangoutLink || null
+    if (!link) {
+      throw new Error("Meet link not returned by Google Calendar")
+    }
+    toast.success("Meet link created")
+    return link
+  } catch (error) {
+    console.log("CREATE MEET LINK ERROR............", error)
+    toast.error(error.response?.data?.message || error.message || "Failed to create Meet link")
+    throw error
+  } finally {
+    toast.dismiss(toastId)
+  }
+}
+
+
 // Update a batch (Admin only)
 export async function updateBatch(batchId, payload, token) {
   try {
@@ -57,7 +258,6 @@ export async function updateBatch(batchId, payload, token) {
         Authorization: `Bearer ${token}`,
       }
     )
-
     if (!response.data?.success) {
       throw new Error(response.data?.message || "Failed to update batch")
     }
@@ -158,6 +358,166 @@ export async function exportBatches({ token, search = "" }) {
   } catch (error) {
     console.log("EXPORT BATCHES ERROR............", error)
     toast.error(error.response?.data?.message || error.message || "Failed to export batches")
+    throw error
+  } finally {
+    toast.dismiss(toastId)
+  }
+}
+
+export async function deleteAdminReview(reviewId, token) {
+  const toastId = toast.loading("Deleting review...")
+  try {
+    const response = await apiConnector(
+      "DELETE",
+      `${CREATE_ADMIN_REVIEW_API}/${reviewId}`,
+      null,
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to delete review")
+    }
+    toast.success("Review deleted")
+    return true
+  } catch (error) {
+    console.log("DELETE ADMIN REVIEW ERROR............", error)
+    toast.error(error.response?.data?.message || error.message || "Failed to delete review")
+    return false
+  } finally {
+    toast.dismiss(toastId)
+  }
+}
+
+// =========================
+// Admin Reviews
+// =========================
+export async function createAdminReview({ courseId, rating, review }, token) {
+  const toastId = toast.loading("Submitting review...")
+  try {
+    const response = await apiConnector(
+      "POST",
+      CREATE_ADMIN_REVIEW_API,
+      { courseId, rating, review },
+      { Authorization: `Bearer ${token}` }
+    )
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to create review")
+    }
+    toast.success("Review submitted")
+    return response.data.data
+  } catch (error) {
+    console.log("CREATE ADMIN REVIEW ERROR............", error)
+    toast.error(error.response?.data?.message || error.message || "Failed to create review")
+    throw error
+  } finally {
+    toast.dismiss(toastId)
+  }
+}
+
+// =========================
+// Batch Live Classes
+// =========================
+export async function addLiveClassToBatch(batchId, payload, token) {
+  const toastId = toast.loading("Creating live class...")
+  try {
+    const response = await apiConnector(
+      "POST",
+      `${ADD_LIVE_CLASS_TO_BATCH_API}/${batchId}/live-classes`,
+      payload,
+      {
+        Authorization: `Bearer ${token}`,
+      }
+    )
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to create live class")
+    }
+    toast.success("Live class created")
+    return response.data.data
+  } catch (error) {
+    console.log("ADD LIVE CLASS TO BATCH ERROR............", error)
+    toast.error(error.response?.data?.message || error.message || "Failed to create live class")
+    throw error
+  } finally {
+    toast.dismiss(toastId)
+  }
+}
+
+// =========================
+// Batch Courses management
+// =========================
+// List courses assigned to a batch
+export async function listBatchCourses(batchId, token) {
+  try {
+    const response = await apiConnector(
+      "GET",
+      `${LIST_BATCH_COURSES_API}/${batchId}/courses`,
+      {},
+      {
+        Authorization: `Bearer ${token}`,
+      }
+    )
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to fetch batch courses")
+    }
+    const payload = response.data?.data
+    return Array.isArray(payload) ? payload : []
+  } catch (error) {
+    console.log("LIST BATCH COURSES ERROR............", error)
+    toast.error(error.response?.data?.message || error.message || "Failed to fetch batch courses")
+    throw error
+  }
+}
+
+// Add a course to a batch
+export async function addCourseToBatch(batchId, courseId, token) {
+  const toastId = toast.loading("Adding course...")
+  try {
+    const response = await apiConnector(
+      "POST",
+      `${ADD_COURSE_TO_BATCH_API}/${batchId}/courses`,
+      { courseId },
+      {
+        Authorization: `Bearer ${token}`,
+      }
+    )
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to add course")
+    }
+    toast.success("Course added to batch")
+    return true
+  } catch (error) {
+    console.log("ADD COURSE TO BATCH ERROR............", error)
+    toast.error(error.response?.data?.message || error.message || "Failed to add course")
+    throw error
+  } finally {
+    toast.dismiss(toastId)
+  }
+}
+
+// Remove a course from a batch
+export async function removeCourseFromBatch(batchId, courseId, token) {
+  const toastId = toast.loading("Removing course...")
+  try {
+    const response = await apiConnector(
+      "DELETE",
+      `${REMOVE_COURSE_FROM_BATCH_API}/${batchId}/courses/${courseId}`,
+      {},
+      {
+        Authorization: `Bearer ${token}`,
+      }
+    )
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to remove course")
+    }
+    toast.success("Course removed from batch")
+    return true
+  } catch (error) {
+    console.log("REMOVE COURSE FROM BATCH ERROR............", error)
+    toast.error(error.response?.data?.message || error.message || "Failed to remove course")
     throw error
   } finally {
     toast.dismiss(toastId)
@@ -293,7 +653,7 @@ export async function getEnrolledStudents(token) {
 
     const payload = response.data?.data
     // Return a flat array for convenience
-    return Array.isArray(payload?.students) ? payload.students : (Array.isArray(payload) ? payload : [])
+    return Array.isArray(payload?.enrolledStudents) ? payload.enrolledStudents : (Array.isArray(payload) ? payload : [])
   } catch (error) {
     console.log("GET ENROLLED STUDENTS ERROR............", error)
     toast.error("Failed to fetch enrolled students")

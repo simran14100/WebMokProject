@@ -118,7 +118,7 @@ const courseDetails = await Course.findOne({
         .sort({ rating: "desc" }) // Sorting by rating in descending order
         .populate({
           path: "user",
-          select: "firstName lastName email image", // Populate specific fields from User model
+          select: "firstName lastName email image accountType role", // include accountType/role for classification
         })
         .populate({
           path: "course",
@@ -141,6 +141,29 @@ const courseDetails = await Course.findOne({
       });
     }
   };
+
+// Admin: delete a rating/review and unlink from course
+exports.deleteReview = async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    if (!reviewId) {
+      return res.status(400).json({ success: false, message: "reviewId is required" });
+    }
+    const review = await RatingAndReview.findById(reviewId);
+    if (!review) {
+      return res.status(404).json({ success: false, message: "Review not found" });
+    }
+    // Remove reference from course
+    if (review.course) {
+      await Course.findByIdAndUpdate(review.course, { $pull: { ratingAndReviews: review._id } });
+    }
+    await RatingAndReview.findByIdAndDelete(reviewId);
+    return res.status(200).json({ success: true, message: "Review deleted" });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Failed to delete review", error: error.message });
+  }
+};
   // Get the average rating for a course
 // exports.getAverageRating = async (req, res) => {
 //     try {
@@ -187,3 +210,40 @@ const courseDetails = await Course.findOne({
 // };
   
   
+// Admin: create a rating/review without enrollment restriction
+exports.createAdminReview = async (req, res) => {
+  try {
+    const adminUserId = req.user.id;
+    const { rating, review, courseId } = req.body;
+
+    if (!courseId || !review || typeof rating === "undefined") {
+      return res.status(400).json({ success: false, message: "courseId, rating and review are required" });
+    }
+
+    // Ensure the course exists
+    const course = await Course.findById(courseId).select("_id");
+    if (!course) {
+      return res.status(404).json({ success: false, message: "Course not found" });
+    }
+
+    // Create rating and review attributed to the admin user
+    const ratingReview = await RatingAndReview.create({
+      rating,
+      review,
+      course: courseId,
+      user: adminUserId,
+    });
+
+    // Link to course
+    await Course.findByIdAndUpdate(courseId, { $push: { ratingAndReviews: ratingReview._id } }, { new: true });
+
+    return res.status(200).json({
+      success: true,
+      message: "Admin review created successfully",
+      data: ratingReview,
+    });
+  } catch (error) {
+    console.error(error);
+    return res.status(500).json({ success: false, message: "Failed to create admin review", error: error.message });
+  }
+};

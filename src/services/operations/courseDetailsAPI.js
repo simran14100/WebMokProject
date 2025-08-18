@@ -24,6 +24,7 @@ const {
   GET_FULL_COURSE_DETAILS_AUTHENTICATED,
   CREATE_RATING_API,
   LECTURE_COMPLETION_API,
+  GET_REVIEWS_API,
   
 } = course;
 
@@ -501,6 +502,24 @@ export const createRating = async (data, token) => {
   }
   toast.dismiss(toastId)
   return success
+}
+
+// Fetch all ratings and reviews
+export const getAllReviews = async () => {
+  const toastId = toast.loading("Loading reviews...")
+  try {
+    const response = await apiConnector("GET", GET_REVIEWS_API)
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || "Could not fetch reviews")
+    }
+    return response?.data?.data || []
+  } catch (error) {
+    console.log("GET_REVIEWS_API ERROR............", error)
+    toast.error(error.message || "Failed to load reviews")
+    return []
+  } finally {
+    toast.dismiss(toastId)
+  }
 }
 
 export const getCatalogPageData = async (subCategoryId) => {

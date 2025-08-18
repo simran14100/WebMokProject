@@ -1,7 +1,9 @@
 import React from 'react';
 import { useForm } from 'react-hook-form';
+import { useSelector } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import DashboardLayout from '../../../../common/DashboardLayout';
+import { createUserByAdmin } from '../../../../../services/operations/adminApi';
 
 // Color constants
 const ED_TEAL = '#07A698';
@@ -16,13 +18,39 @@ const FormPage = () => {
   const { 
     register, 
     handleSubmit, 
-    watch, // Added watch here
+    watch, 
+    reset,
     formState: { errors } 
   } = useForm();
 
-  const onSubmit = (data) => {
-    console.log(data);
-    toast.success('Form submitted successfully!');
+  const token = useSelector((state) => state.auth.token);
+
+  const onSubmit = async (form) => {
+    const mapping = {
+      admin: 'Admin',
+      trainer: 'Instructor',
+      contentManager: 'Content-management',
+    };
+    const accountType = mapping[form.userType];
+    if (!accountType) {
+      toast.error('Invalid user type');
+      return;
+    }
+
+    try {
+      await createUserByAdmin({
+        name: form.name,
+        email: form.email,
+        phone: form.phone,
+        password: form.password,
+        confirmPassword: form.confirmPassword,
+        accountType,
+      }, token);
+      toast.success('User created successfully!');
+      reset();
+    } catch (_) {
+      // errors are handled in service
+    }
   };
 
   // Font styles - similar to reference image

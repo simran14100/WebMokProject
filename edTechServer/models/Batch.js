@@ -26,6 +26,34 @@ const BatchSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    // Trainers (instructors) assigned to this batch
+    trainers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User",
+      },
+    ],
+    // Courses assigned to this batch (optional, can be empty)
+    courses: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Course",
+      },
+    ],
+    // Live classes scheduled for this batch
+    liveClasses: [
+      {
+        title: { type: String, required: true, trim: true },
+        description: { type: String, default: "" },
+        link: { type: String, default: "" },
+        startTime: { type: Date, required: true },
+        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+        attendees: [
+          { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+        ],
+        createdAt: { type: Date, default: Date.now },
+      },
+    ],
     isActive: {
       type: Boolean,
       default: true,

@@ -79,10 +79,28 @@ export const admin = {
     LIST_BATCHES_API: "/api/v1/admin/batches",
     EXPORT_BATCHES_API: "/api/v1/admin/batches/export",
     CREATE_STUDENT_API: "/api/v1/admin/create-student",
+    CREATE_USER_API: "/api/v1/admin/create-user",
+    // Bulk Students
+    STUDENTS_TEMPLATE_API: "/api/v1/admin/students/template",
+    BULK_UPLOAD_STUDENTS_API: "/api/v1/admin/students/bulk-upload",
     // Batch Students management
     LIST_BATCH_STUDENTS_API: "/api/v1/admin/batches", // use `${LIST_BATCH_STUDENTS_API}/${batchId}/students`
     ADD_STUDENT_TO_BATCH_API: "/api/v1/admin/batches", // POST `${ADD_STUDENT_TO_BATCH_API}/${batchId}/students`
     REMOVE_STUDENT_FROM_BATCH_API: "/api/v1/admin/batches", // DELETE `${REMOVE_STUDENT_FROM_BATCH_API}/${batchId}/students/:studentId`
+    // Batch Trainers management
+    LIST_BATCH_TRAINERS_API: "/api/v1/admin/batches", // GET `${LIST_BATCH_TRAINERS_API}/${batchId}/trainers`
+    ADD_TRAINER_TO_BATCH_API: "/api/v1/admin/batches", // POST `${ADD_TRAINER_TO_BATCH_API}/${batchId}/trainers`
+    REMOVE_TRAINER_FROM_BATCH_API: "/api/v1/admin/batches", // DELETE `${REMOVE_TRAINER_FROM_BATCH_API}/${batchId}/trainers/:trainerId`
+    // Batch Courses management
+    LIST_BATCH_COURSES_API: "/api/v1/admin/batches", // GET `${LIST_BATCH_COURSES_API}/${batchId}/courses`
+    ADD_COURSE_TO_BATCH_API: "/api/v1/admin/batches", // POST `${ADD_COURSE_TO_BATCH_API}/${batchId}/courses`
+    REMOVE_COURSE_FROM_BATCH_API: "/api/v1/admin/batches", // DELETE `${REMOVE_COURSE_FROM_BATCH_API}/${batchId}/courses/:courseId`
+    // Batch Live Classes management
+    ADD_LIVE_CLASS_TO_BATCH_API: "/api/v1/admin/batches", // POST `${ADD_LIVE_CLASS_TO_BATCH_API}/${batchId}/live-classes`
+    // Admin Reviews
+    CREATE_ADMIN_REVIEW_API: "/api/v1/admin/reviews",
+    // Google Calendar integration
+    CREATE_MEET_LINK_API: "/api/v1/admin/calendar/create-meet",
 };
 
 export const admission = {

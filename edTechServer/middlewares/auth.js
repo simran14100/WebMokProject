@@ -87,21 +87,22 @@ exports.isStudent = async (req, res, next) => {
 	}
 };
 exports.isAdmin = async (req, res, next) => {
-	try {
-		const userDetails = await User.findOne({ email: req.user.email });
+  try {
+    const userDetails = await User.findOne({ email: req.user.email });
 
-		if (userDetails.accountType !== "Admin") {
-			return res.status(401).json({
-				success: false,
-				message: "This is a Protected Route for Admin",
-			});
-		}
-		next();
-	} catch (error) {
-		return res
-			.status(500)
-			.json({ success: false, message: `User Role Can't be Verified` });
-	}
+    // Allow Admin and Instructor to access Admin-protected routes
+    if (!["Admin", "Instructor"].includes(userDetails.accountType)) {
+      return res.status(401).json({
+        success: false,
+        message: "This is a Protected Route for Admin/Instructor",
+      });
+    }
+    next();
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ success: false, message: `User Role Can't be Verified` });
+  }
 };
 exports.isSuperAdmin = async (req, res, next) => {
 	try {
@@ -168,40 +169,42 @@ exports.isInstructor = async (req, res, next) => {
 };
 // Middleware for admin-level access (Admin, SuperAdmin, Staff)
 exports.isAdminLevel = async (req, res, next) => {
-	try {
-		const userDetails = await User.findOne({ email: req.user.email });
+  try {
+    const userDetails = await User.findOne({ email: req.user.email });
 
-		if (!["Admin", "SuperAdmin", "Staff"].includes(userDetails.accountType)) {
-			return res.status(401).json({
-				success: false,
-				message: "This is a Protected Route for Admin Level Users (Admin, SuperAdmin, Staff)",
-			});
-		}
-		next();
-	} catch (error) {
-		return res
-			.status(500)
-			.json({ success: false, message: `User Role Can't be Verified` });
-	}
+    // Include Instructor as admin-level access
+    if (!["Admin", "SuperAdmin", "Staff", "Instructor"].includes(userDetails.accountType)) {
+      return res.status(401).json({
+        success: false,
+        message: "This is a Protected Route for Admin Level Users (Admin, SuperAdmin, Staff, Instructor)",
+      });
+    }
+    next();
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ success: false, message: `User Role Can't be Verified` });
+  }
 };
 
 // Middleware for admin dashboard access (Admin, SuperAdmin, Staff)
 exports.isAdminDashboard = async (req, res, next) => {
-	try {
-		const userDetails = await User.findOne({ email: req.user.email });
+  try {
+    const userDetails = await User.findOne({ email: req.user.email });
 
-		if (!["Admin", "SuperAdmin", "Staff"].includes(userDetails.accountType)) {
-			return res.status(401).json({
-				success: false,
-				message: "This is a Protected Route for Admin Dashboard Access",
-			});
-		}
-		next();
-	} catch (error) {
-		return res
-			.status(500)
-			.json({ success: false, message: `User Role Can't be Verified` });
-	}
+    // Include Instructor for dashboard access
+    if (!['Admin', 'SuperAdmin', 'Staff', 'Instructor'].includes(userDetails.accountType)) {
+      return res.status(401).json({
+        success: false,
+        message: "This is a Protected Route for Admin Dashboard Access",
+      });
+    }
+    next();
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ success: false, message: `User Role Can't be Verified` });
+  }
 };
 
 // Middleware to check if instructor is approved

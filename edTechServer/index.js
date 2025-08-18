@@ -20,6 +20,7 @@ const admissionRoutes = require("./routes/admission");
 const installmentRoutes = require("./routes/installments");
 const videoRoutes = require("./routes/Video");
 const cartRoutes = require("./routes/cart");
+const googleRoutes = require("./routes/google");
 
 
 const database = require("./config/database");
@@ -88,6 +89,7 @@ app.use("/api/v1/admission", admissionRoutes);
 app.use("/api/v1/installments", installmentRoutes);
 app.use("/api/v1/video", videoRoutes);
 app.use("/api/v1/cart", cartRoutes);
+app.use("/api/v1/google", googleRoutes);
 
 // Testing the server
 app.get("/", (req, res) => {

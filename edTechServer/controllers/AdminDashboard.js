@@ -3,6 +3,9 @@ const Course = require('../models/Course');
 const CourseProgress = require('../models/CourseProgress');
 const bcrypt = require('bcrypt');
 const Profile = require('../models/Profile');
+const Batch = require('../models/Batch');
+const fs = require('fs');
+const path = require('path');
 
 // Get all registered users for admin dashboard
 exports.getRegisteredUsers = async (req, res) => {
@@ -11,7 +14,6 @@ exports.getRegisteredUsers = async (req, res) => {
         
         // Build filter object
         let filter = {};
-        
         if (role && role !== 'all') {
             filter.accountType = role;
         }
@@ -301,6 +303,7 @@ exports.createStudentByAdmin = async (req, res) => {
             password: hashedPassword,
             accountType: 'Student',
             approved: true,
+            createdByAdmin: true,
             enrollmentFeePaid: Boolean(enrollmentFeePaid) || false,
             paymentStatus: Boolean(enrollmentFeePaid) ? 'Completed' : 'Pending',
             additionalDetails: profileDetails._id,
@@ -327,6 +330,247 @@ exports.createStudentByAdmin = async (req, res) => {
         return res.status(500).json({ success: false, message: 'Failed to create student', error: error.message });
     }
 };
+
+// Admin-only: Generic create user (Admin, Instructor, Content-management, Student)
+// Required body: { name, email, phone, password, confirmPassword, accountType }
+// Optional body for Student: { enrollmentFeePaid }
+exports.createUserByAdmin = async (req, res) => {
+    try {
+        const { name, email, phone, password, confirmPassword, accountType, enrollmentFeePaid } = req.body;
+
+        if (!name || !email || !phone || !password || !confirmPassword || !accountType) {
+            return res.status(400).json({ success: false, message: 'All fields are required' });
+        }
+
+        if (password !== confirmPassword) {
+            return res.status(400).json({ success: false, message: 'Passwords do not match' });
+        }
+
+        const validTypes = ['Admin', 'Instructor', 'Content-management', 'Student'];
+        if (!validTypes.includes(accountType)) {
+            return res.status(400).json({ success: false, message: 'Invalid accountType' });
+        }
+
+        const existing = await User.findOne({ email });
+        if (existing) {
+            return res.status(409).json({ success: false, message: 'Email already registered' });
+        }
+
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        const nameStr = String(name || '').trim().replace(/\s+/g, ' ');
+        const parts = nameStr.split(' ');
+        const firstName = parts.shift() || 'User';
+        const lastName = parts.length ? parts.join(' ') : '-';
+
+        const profileDetails = await Profile.create({
+            gender: null,
+            dateOfBirth: null,
+            about: null,
+            contactNumber: phone,
+        });
+
+        const isStudent = accountType === 'Student';
+        const enrollmentPaid = isStudent ? Boolean(enrollmentFeePaid) : false;
+
+        const user = await User.create({
+            firstName,
+            lastName,
+            email,
+            contactNumber: phone,
+            password: hashedPassword,
+            accountType,
+            approved: true,
+            createdByAdmin: true,
+            enrollmentFeePaid: enrollmentPaid,
+            paymentStatus: enrollmentPaid ? 'Completed' : (isStudent ? 'Pending' : undefined),
+            additionalDetails: profileDetails._id,
+            image: `https://api.dicebear.com/5.x/initials/svg?seed=${encodeURIComponent(firstName + ' ' + (lastName || ''))}`,
+        });
+
+        return res.status(201).json({
+            success: true,
+            message: `${accountType} created successfully`,
+            data: {
+                _id: user._id,
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                contactNumber: user.contactNumber,
+                accountType: user.accountType,
+                approved: user.approved,
+                enrollmentFeePaid: user.enrollmentFeePaid,
+                paymentStatus: user.paymentStatus,
+            },
+        });
+    } catch (error) {
+        console.error('Error creating user by admin:', error);
+        return res.status(500).json({ success: false, message: 'Failed to create user', error: error.message });
+    }
+};
+
+// Download CSV template for bulk student upload
+exports.downloadStudentsTemplate = async (req, res) => {
+    const csv = [
+        'name,email,phone,enrollmentFeePaid',
+        'John Doe,john@example.com,9876543210,false',
+        'Jane Smith,jane@example.com,9876543211,true'
+    ].join('\n');
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename="students_template.csv"');
+    return res.status(200).send(csv);
+};
+
+// Bulk create students via CSV/XLSX upload and add them to a batch
+// Expected: form-data with fields { batchId, file }
+exports.bulkCreateStudents = async (req, res) => {
+    try {
+        const { batchId } = req.body;
+        if (!batchId) return res.status(400).json({ success: false, message: 'batchId is required' });
+        if (!req.files || !req.files.file) return res.status(400).json({ success: false, message: 'Upload file is required' });
+
+        const batch = await Batch.findById(batchId);
+        if (!batch) return res.status(404).json({ success: false, message: 'Batch not found' });
+
+        const upload = req.files.file;
+        const filepath = upload.tempFilePath || upload.path;
+        const ext = (upload.name || '').toLowerCase().split('.').pop();
+
+        let rows = [];
+        if (ext === 'csv') {
+            const data = fs.readFileSync(filepath, 'utf8');
+            rows = parseCSV(data);
+        } else if (ext === 'xlsx') {
+            // Lazy-load xlsx if available
+            let XLSX;
+            try { XLSX = require('xlsx'); } catch (_) {}
+            if (!XLSX) {
+                return res.status(400).json({ success: false, message: 'XLSX not supported on server. Please upload CSV.' });
+            }
+            const wb = XLSX.readFile(filepath);
+            const sheet = wb.SheetNames[0];
+            const json = XLSX.utils.sheet_to_json(wb.Sheets[sheet], { defval: '' });
+            rows = json.map(r => ({
+                name: String(r.name || r.Name || '').trim(),
+                email: String(r.email || r.Email || '').trim(),
+                phone: String(r.phone || r.Phone || r.contactNumber || '').toString(),
+                enrollmentFeePaid: normalizeBool(r.enrollmentFeePaid ?? r.EnrollmentFeePaid),
+            }));
+        } else {
+            return res.status(400).json({ success: false, message: 'Unsupported file type. Upload CSV or XLSX.' });
+        }
+
+        // Validate rows
+        const emailRe = /[^@\s]+@[^@\s]+\.[^@\s]+/;
+        const results = { created: 0, skipped: 0, errors: [], details: [] };
+        const toAddToBatch = [];
+
+        for (const [index, row] of rows.entries()) {
+            const line = index + 2; // considering header line
+            const name = String(row.name || '').trim();
+            const email = String(row.email || '').trim().toLowerCase();
+            const phoneRaw = String(row.phone || '').trim();
+            const phone = phoneRaw.replace(/\D/g, '');
+            const enrollmentFeePaid = Boolean(row.enrollmentFeePaid);
+
+            if (!name || !email || !phone) {
+                results.skipped++; results.errors.push(`Line ${line}: Missing required fields`); continue;
+            }
+            if (!emailRe.test(email)) { results.skipped++; results.errors.push(`Line ${line}: Invalid email`); continue; }
+            if (phone.length < 8) { results.skipped++; results.errors.push(`Line ${line}: Invalid phone`); continue; }
+
+            const exists = await User.findOne({ email });
+            if (exists) { results.skipped++; results.details.push(`Line ${line}: Email already exists, skipped`); toAddToBatch.push(exists._id); continue; }
+
+            const password = randomPassword();
+            const nameStr = name.replace(/\s+/g, ' ');
+            const parts = nameStr.split(' ');
+            const firstName = parts.shift() || 'Student';
+            const lastName = parts.length ? parts.join(' ') : '-';
+
+            const profileDetails = await Profile.create({
+                gender: null,
+                dateOfBirth: null,
+                about: null,
+                contactNumber: phone,
+            });
+
+            const hashedPassword = await require('bcrypt').hash(password, 10);
+            const user = await User.create({
+                firstName,
+                lastName,
+                email,
+                contactNumber: phone,
+                password: hashedPassword,
+                accountType: 'Student',
+                approved: true,
+                createdByAdmin: true,
+                enrollmentFeePaid: Boolean(enrollmentFeePaid) || false,
+                paymentStatus: enrollmentFeePaid ? 'Completed' : 'Pending',
+                additionalDetails: profileDetails._id,
+                image: `https://api.dicebear.com/5.x/initials/svg?seed=${encodeURIComponent(firstName + ' ' + (lastName || ''))}`,
+            });
+
+            results.created++; toAddToBatch.push(user._id);
+        }
+
+        if (toAddToBatch.length) {
+            await Batch.findByIdAndUpdate(batchId, { $addToSet: { students: { $each: toAddToBatch } } });
+        }
+
+        return res.status(200).json({ success: true, message: 'Bulk upload processed', data: results });
+    } catch (error) {
+        console.error('Bulk create students error:', error);
+        return res.status(500).json({ success: false, message: 'Failed to process bulk upload', error: error.message });
+    }
+};
+
+// Helpers
+function parseCSV(text) {
+    const lines = text.replace(/\r\n?/g, '\n').split('\n').filter(Boolean);
+    if (!lines.length) return [];
+    const headers = lines.shift().split(',').map(h => h.trim().toLowerCase());
+    const idx = {
+        name: headers.indexOf('name'),
+        email: headers.indexOf('email'),
+        phone: headers.indexOf('phone'),
+        enrollmentFeePaid: headers.indexOf('enrollmentfeepaid'),
+    };
+    const rows = [];
+    for (const line of lines) {
+        const cols = splitCSVLine(line);
+        rows.push({
+            name: idx.name >= 0 ? cols[idx.name] : '',
+            email: idx.email >= 0 ? cols[idx.email] : '',
+            phone: idx.phone >= 0 ? cols[idx.phone] : '',
+            enrollmentFeePaid: normalizeBool(idx.enrollmentFeePaid >= 0 ? cols[idx.enrollmentFeePaid] : false),
+        });
+    }
+    return rows;
+}
+function splitCSVLine(line) {
+    const result = [];
+    let cur = '', inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+        const ch = line[i];
+        if (ch === '"') {
+            if (inQuotes && line[i+1] === '"') { cur += '"'; i++; }
+            else inQuotes = !inQuotes;
+        } else if (ch === ',' && !inQuotes) { result.push(cur); cur = ''; }
+        else cur += ch;
+    }
+    result.push(cur);
+    return result.map(s => s.trim());
+}
+function normalizeBool(v) {
+    if (typeof v === 'boolean') return v;
+    const s = String(v).trim().toLowerCase();
+    return s === '1' || s === 'true' || s === 'yes' || s === 'y';
+}
+function randomPassword() {
+    const rand = () => Math.random().toString(36).slice(-8);
+    return `${rand()}${rand()}`;
+}
 
 // Update user status (activate/deactivate)
 exports.updateUserStatus = async (req, res) => {

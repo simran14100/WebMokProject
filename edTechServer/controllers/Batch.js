@@ -42,6 +42,152 @@ exports.createBatch = async (req, res) => {
   }
 };
 
+// ***********************************
+// Batch Trainers management (Admin only)
+// ***********************************
+// GET /api/v1/admin/batches/:batchId/trainers
+exports.listBatchTrainers = async (req, res) => {
+  try {
+    const { batchId } = req.params;
+    if (!batchId) return res.status(400).json({ success: false, message: "batchId is required" });
+
+    const batch = await Batch.findById(batchId).populate({ path: "trainers", select: "firstName lastName email image accountType approved" }).lean();
+    if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
+
+    return res.status(200).json({ success: true, data: batch.trainers || [] });
+  } catch (error) {
+    console.error("LIST BATCH TRAINERS ERROR:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// POST /api/v1/admin/batches/:batchId/trainers
+exports.addTrainerToBatch = async (req, res) => {
+  try {
+    const { batchId } = req.params;
+    const { trainerId } = req.body;
+
+    if (!batchId || !trainerId) {
+      return res.status(400).json({ success: false, message: "batchId and trainerId are required" });
+    }
+
+    const [batch, trainer] = await Promise.all([
+      Batch.findById(batchId),
+      User.findById(trainerId).lean(),
+    ]);
+
+    if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
+    if (!trainer) return res.status(404).json({ success: false, message: "Trainer not found" });
+    if (trainer.accountType !== "Instructor") {
+      return res.status(400).json({ success: false, message: "Only Instructor accounts can be assigned as trainers" });
+    }
+
+    const exists = (batch.trainers || []).some((id) => String(id) === String(trainerId));
+    if (!exists) {
+      batch.trainers = Array.isArray(batch.trainers) ? batch.trainers : [];
+      batch.trainers.push(trainerId);
+      await batch.save();
+    }
+
+    return res.status(200).json({ success: true, message: "Trainer assigned to batch" });
+  } catch (error) {
+    console.error("ADD TRAINER TO BATCH ERROR:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// DELETE /api/v1/admin/batches/:batchId/trainers/:trainerId
+exports.removeTrainerFromBatch = async (req, res) => {
+  try {
+    const { batchId, trainerId } = req.params;
+    if (!batchId || !trainerId) return res.status(400).json({ success: false, message: "batchId and trainerId are required" });
+
+    const batch = await Batch.findById(batchId);
+    if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
+
+    const before = batch.trainers?.length || 0;
+    batch.trainers = (batch.trainers || []).filter((id) => String(id) !== String(trainerId));
+    const after = batch.trainers.length;
+    if (after !== before) {
+      await batch.save();
+    }
+
+    return res.status(200).json({ success: true, message: "Trainer removed from batch" });
+  } catch (error) {
+    console.error("REMOVE TRAINER FROM BATCH ERROR:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// ***********************************
+// Batch Courses management (Admin only)
+// ***********************************
+// GET /api/v1/admin/batches/:batchId/courses
+exports.listBatchCourses = async (req, res) => {
+  try {
+    const { batchId } = req.params;
+    if (!batchId) return res.status(400).json({ success: false, message: "batchId is required" });
+
+    const batch = await Batch.findById(batchId)
+      .populate({ path: "courses", select: "courseName price thumbnail instructor", populate: { path: "instructor", select: "firstName lastName" } })
+      .lean();
+    if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
+
+    return res.status(200).json({ success: true, data: batch.courses || [] });
+  } catch (error) {
+    console.error("LIST BATCH COURSES ERROR:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// POST /api/v1/admin/batches/:batchId/courses
+exports.addCourseToBatch = async (req, res) => {
+  try {
+    const { batchId } = req.params;
+    const { courseId } = req.body;
+    if (!batchId || !courseId) {
+      return res.status(400).json({ success: false, message: "batchId and courseId are required" });
+    }
+
+    const batch = await Batch.findById(batchId);
+    if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
+
+    const exists = (batch.courses || []).some((id) => String(id) === String(courseId));
+    if (!exists) {
+      batch.courses.push(courseId);
+      await batch.save();
+    }
+
+    return res.status(200).json({ success: true, message: "Course added to batch" });
+  } catch (error) {
+    console.error("ADD COURSE TO BATCH ERROR:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// DELETE /api/v1/admin/batches/:batchId/courses/:courseId
+exports.removeCourseFromBatch = async (req, res) => {
+  try {
+    const { batchId, courseId } = req.params;
+    if (!batchId || !courseId) return res.status(400).json({ success: false, message: "batchId and courseId are required" });
+
+    const batch = await Batch.findById(batchId);
+    if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
+
+    const before = batch.courses?.length || 0;
+    batch.courses = (batch.courses || []).filter((id) => String(id) !== String(courseId));
+    const after = batch.courses.length;
+    if (after !== before) {
+      await batch.save();
+    }
+
+    return res.status(200).json({ success: true, message: "Course removed from batch" });
+  } catch (error) {
+    console.error("REMOVE COURSE FROM BATCH ERROR:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
 // PATCH /api/v1/admin/batches/:batchId
 exports.updateBatch = async (req, res) => {
   try {
@@ -99,7 +245,11 @@ exports.getBatchById = async (req, res) => {
       return res.status(400).json({ success: false, message: "batchId is required" });
     }
 
-    const batch = await Batch.findById(batchId).lean();
+    const batch = await Batch.findById(batchId)
+      .populate({ path: "students", select: "firstName lastName email image contactNumber enrollmentFeePaid accountType createdByAdmin" })
+      .populate({ path: "trainers", select: "firstName lastName email image accountType approved" })
+      .populate({ path: "courses", select: "courseName price thumbnail instructor", populate: { path: "instructor", select: "firstName lastName" } })
+      .lean();
     if (!batch) {
       return res.status(404).json({ success: false, message: "Batch not found" });
     }
@@ -269,3 +419,50 @@ function escapeCsv(val) {
   }
   return str;
 }
+
+// ***********************************
+// Batch Live Classes (Admin only)
+// ***********************************
+// POST /api/v1/admin/batches/:batchId/live-classes
+exports.addLiveClassToBatch = async (req, res) => {
+  try {
+    const { batchId } = req.params;
+    const { title, description = "", link = "", startTime } = req.body || {};
+
+    if (!batchId) return res.status(400).json({ success: false, message: "batchId is required" });
+    if (!title || !startTime) {
+      return res.status(400).json({ success: false, message: "title and startTime are required" });
+    }
+
+    const batch = await Batch.findById(batchId);
+    if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
+
+    const start = new Date(startTime);
+    if (isNaN(start.getTime())) {
+      return res.status(400).json({ success: false, message: "Invalid startTime" });
+    }
+    const now = new Date();
+    if (start.getTime() < now.getTime()) {
+      return res.status(400).json({ success: false, message: "Cannot schedule a class in the past" });
+    }
+
+    const event = {
+      title: String(title).trim(),
+      description: String(description || ""),
+      link: String(link || ""),
+      startTime: start,
+      createdBy: req.user.id,
+      attendees: (batch.students || []).map((s) => s),
+      createdAt: new Date(),
+    };
+
+    batch.liveClasses = Array.isArray(batch.liveClasses) ? batch.liveClasses : [];
+    batch.liveClasses.push(event);
+    await batch.save();
+
+    return res.status(201).json({ success: true, message: "Live class created", data: event });
+  } catch (error) {
+    console.error("ADD LIVE CLASS ERROR:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};

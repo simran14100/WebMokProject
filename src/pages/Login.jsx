@@ -20,7 +20,9 @@ const Login = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
+    setLoading(true
+      
+    );
     setError(null);
     try {
       await dispatch(login(email, password, navigate));

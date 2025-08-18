@@ -30,7 +30,7 @@ const userSchema = new mongoose.Schema({
     accountType:{
         type:String,
         required:true,
-        enum:["Student" , "Instructor" , "Admin", "SuperAdmin", "Staff"],
+        enum:["Student" , "Instructor" , "Admin", "SuperAdmin", "Content-management"],
 
     },
     additionalDetails:{
@@ -45,6 +45,11 @@ const userSchema = new mongoose.Schema({
     approved: {
       type: Boolean,
       default: true,
+    },
+    // Flag to indicate the user was created by an Admin flow (single-create or bulk-upload)
+    createdByAdmin: {
+      type: Boolean,
+      default: false,
     },
     // New field for student payment status
     paymentStatus: {

@@ -49,6 +49,9 @@ import CreateBatch from './components/core/Admin/BatchManagement/CreateBatch';
 import AllBatches from './components/core/Admin/BatchManagement/AllBatches';
 import EditPage from './components/core/Admin/BatchManagement/EditPage';
 import CreateStudent from './components/core/Admin/StudentManagement/CreateStudent';
+import CreateStudentsLanding from './components/core/Admin/StudentManagement/CreateStudentsLanding';
+import BulkUploadStudents from './components/core/Admin/StudentManagement/BulkUploadStudents';
+
 
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
@@ -123,74 +126,74 @@ function AppRoutes() {
         )}
       </Route>
 
-      {/* Admin Routes */}
-      {user?.accountType === ACCOUNT_TYPE.ADMIN && (
+      {/* Admin Routes (Admin + Instructor) */}
+      {(user?.accountType === ACCOUNT_TYPE.ADMIN || user?.accountType === ACCOUNT_TYPE.INSTRUCTOR) && (
         <>
           <Route path="/admin/dashboard" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <AdminDashboard />
             </ProtectedRoute>
           } />
           
           {/* Category Management */}
           <Route path="/admin/categories/create" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <CreateCategory />
             </ProtectedRoute>
           } />
           <Route path="/admin/categories/allCategories" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <AllCategories />
             </ProtectedRoute>
           } />
           
           {/* Sub Category Management */}
           <Route path="/admin/subcategories/create" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <SubCategory />
             </ProtectedRoute>
           } />
           <Route path="/admin/subcategories/allSubCategories" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <AllSubCategory />
             </ProtectedRoute>
           } />
           
           {/* Course Management */}
           <Route path="/admin/course/create" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <CreateCourse />
             </ProtectedRoute>
           } />
           <Route path="/admin/course/scromCourse" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <div>Create Scrom Course Page</div>
             </ProtectedRoute>
           } />
           <Route path="/admin/course/allScromCourses" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <div>All Scrom Courses Page</div>
             </ProtectedRoute>
           } />
           <Route path="/admin/course/allCourses" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
              <AllCourse />
             </ProtectedRoute>
           } />
           
           {/* Batch Management */}
           <Route path="/admin/batches/create" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <CreateBatch />
             </ProtectedRoute>
           } />
           <Route path="/admin/batches" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <AllBatches />
             </ProtectedRoute>
           } />
           <Route path="/admin/batches/:batchId/edit" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <EditPage />
             </ProtectedRoute>
           } />
@@ -202,24 +205,34 @@ function AppRoutes() {
             </ProtectedRoute>
           } /> */}
           <Route path="/admin/students/create" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+              <CreateStudentsLanding />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/students/create/single" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <CreateStudent />
             </ProtectedRoute>
           } />
+          <Route path="/admin/students/create/multiple" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+              <BulkUploadStudents />
+            </ProtectedRoute>
+          } />
           <Route path="/admin/students" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <EnrolledStudents />
             </ProtectedRoute>
           } />
           
           {/* User Management */}
           <Route path="/admin/users/create" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <NewUser/>
             </ProtectedRoute>
           } />
           <Route path="/admin/users" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <ManageUsers />
             </ProtectedRoute>
           } />
