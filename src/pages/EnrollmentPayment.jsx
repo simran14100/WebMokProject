@@ -184,7 +184,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
+import { showError } from '../utils/toast';
 import { FaSpinner, FaCheckCircle, FaTimesCircle, FaLock } from 'react-icons/fa';
 import { buyEnrollment } from '../services/operations/enrollmentApi';
 
@@ -210,12 +210,12 @@ const EnrollmentPayment = () => {
 
   useEffect(() => {
     if (!token) {
-      toast.error('Please login to access enrollment payment');
+      showError('Please login to access enrollment payment');
       navigate('/login');
       return;
     }
     if (user?.accountType !== 'Student') {
-      toast.error('Only students can access enrollment payment');
+      showError('Only students can access enrollment payment');
       navigate('/dashboard');
       return;
     }
@@ -236,7 +236,7 @@ const EnrollmentPayment = () => {
     } catch (error) {
       setPaymentStatus('failed');
       console.error("ENROLLMENT PAYMENT ERROR:", error);
-      toast.error('Payment failed. Please try again.');
+      showError('Payment failed. Please try again.');
     } finally {
       setLoading(false);
     }

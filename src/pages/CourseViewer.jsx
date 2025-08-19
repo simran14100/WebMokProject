@@ -5,7 +5,7 @@
 // import CourseVideoPlayer from '../components/core/CourseViewer/CourseVideoPlayer';
 // import { apiConnector } from '../services/apiConnector';
 // import { course as courseApi } from '../services/apis';
-// import { toast } from 'react-hot-toast';
+// import { showError, showSuccess, showLoading, dismissToast } from '../utils/toast';
 
 // const CourseViewer = () => {
 //   const { courseId, sectionId, subsectionId } = useParams();
@@ -47,10 +47,12 @@
 //         }
 //       } else {
 //         setError('Failed to load course details');
+//         showError('Failed to load course details');
 //       }
 //     } catch (err) {
 //       console.error('Error fetching course:', err);
 //       setError('Failed to load course');
+//       showError('Failed to load course');
 //     } finally {
 //       setLoading(false);
 //     }
@@ -70,7 +72,7 @@
 //       );
 
 //       if (response.data?.success) {
-//         toast.success('Video marked as completed!');
+//         showSuccess('Video marked as completed!');
 //       }
 //     } catch (err) {
 //       console.error('Error marking video complete:', err);
@@ -1315,7 +1317,7 @@ import pageHeaderShape2 from '../assets/img/shapes/page-header-shape-2.png';
 import pageHeaderShape3 from '../assets/img/shapes/page-header-shape-3.png';
 import pageHeaderBg from '../assets/img/bg-img/page-header-bg.png';
 import { Link } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
+import { showError, showSuccess, showLoading, dismissToast } from '../utils/toast';
 import { getFullDetailsOfCourse } from '../services/operations/courseDetailsAPI';
 import { useNavigate } from 'react-router-dom';
 import { apiConnector } from '../services/apiConnector';
@@ -1366,7 +1368,7 @@ const CourseDetails = () => {
     } catch (err) {
       console.error("Fetch error:", err);
       setError(err.message);
-      toast.error(err.message);
+      showError(err.message);
     } finally {
       setLoading(false);
     }
@@ -1378,29 +1380,29 @@ const CourseDetails = () => {
 
   const handleAddToCart = async () => {
   if (!token) {
-    toast.error("Please login to add items to cart");
+    showError("Please login to add items to cart");
     navigate("/login");
     return;
   }
 
   try {
-    const toastId = toast.loading("Adding to cart...");
+    const toastId = showLoading("Adding to cart...");
     console.log("Attempting to add course:", courseId);
     
     const response = await addToCart(courseId, token);
     console.log("Add to cart response:", response);
     
-    toast.dismiss(toastId);
+    dismissToast(toastId);
 
     if (response.success) {
-      toast.success("Course added to cart");
+      showSuccess("Course added to cart");
       navigate("/dashboard/cart");
     } else {
-      toast.error(response.message);
+      showError(response.message);
     }
   } catch (error) {
     console.error("Add to cart error:", error);
-    toast.error("Failed to add to cart");
+    showError("Failed to add to cart");
   }
 };
  

@@ -1,4 +1,4 @@
-import { toast } from "react-hot-toast"
+import { showSuccess, showError, showLoading, dismissToast } from "../../utils/toast"
 import { apiConnector } from "../apiConnector"
 import { installments } from "../apis"
 
@@ -15,7 +15,7 @@ const {
 
 // Create installment plan
 export async function createInstallmentPlan(planData, token) {
-  const toastId = toast.loading("Creating installment plan...")
+  const toastId = showLoading("Creating installment plan...")
   try {
     const response = await apiConnector(
       "POST",
@@ -32,14 +32,14 @@ export async function createInstallmentPlan(planData, token) {
       throw new Error(response.message)
     }
 
-    toast.success("Installment plan created successfully")
+    showSuccess("Installment plan created successfully")
     return response.data
   } catch (error) {
     console.log("CREATE INSTALLMENT PLAN ERROR............", error)
-    toast.error("Failed to create installment plan")
+    showError("Failed to create installment plan")
     throw error
   } finally {
-    toast.dismiss(toastId)
+    dismissToast(toastId)
   }
 }
 
@@ -64,7 +64,7 @@ export async function getStudentInstallments(token) {
     return response.data
   } catch (error) {
     console.log("GET STUDENT INSTALLMENTS ERROR............", error)
-    toast.error("Failed to fetch student installments")
+    showError("Failed to fetch student installments")
     throw error
   }
 }
@@ -90,14 +90,14 @@ export async function getInstallmentDetails(installmentId, token) {
     return response.data
   } catch (error) {
     console.log("GET INSTALLMENT DETAILS ERROR............", error)
-    toast.error("Failed to fetch installment details")
+    showError("Failed to fetch installment details")
     throw error
   }
 }
 
 // Create installment payment order
 export async function createInstallmentPaymentOrder(installmentId, token) {
-  const toastId = toast.loading("Creating payment order...")
+  const toastId = showLoading("Creating payment order...")
   try {
     const response = await apiConnector(
       "POST",
@@ -117,16 +117,16 @@ export async function createInstallmentPaymentOrder(installmentId, token) {
     return response.data
   } catch (error) {
     console.log("CREATE INSTALLMENT PAYMENT ORDER ERROR............", error)
-    toast.error("Failed to create payment order")
+    showError("Failed to create payment order")
     throw error
   } finally {
-    toast.dismiss(toastId)
+    dismissToast(toastId)
   }
 }
 
 // Verify installment payment
 export async function verifyInstallmentPayment(paymentData, token) {
-  const toastId = toast.loading("Verifying payment...")
+  const toastId = showLoading("Verifying payment...")
   try {
     const response = await apiConnector(
       "POST",
@@ -143,20 +143,20 @@ export async function verifyInstallmentPayment(paymentData, token) {
       throw new Error(response.message)
     }
 
-    toast.success("Payment verified successfully")
+    showSuccess("Payment verified successfully")
     return response.data
   } catch (error) {
     console.log("VERIFY INSTALLMENT PAYMENT ERROR............", error)
-    toast.error("Failed to verify payment")
+    showError("Failed to verify payment")
     throw error
   } finally {
-    toast.dismiss(toastId)
+    dismissToast(toastId)
   }
 }
 
 // Send payment reminders
 export async function sendPaymentReminders(token) {
-  const toastId = toast.loading("Sending reminders...")
+  const toastId = showLoading("Sending reminders...")
   try {
     const response = await apiConnector(
       "POST",
@@ -173,14 +173,14 @@ export async function sendPaymentReminders(token) {
       throw new Error(response.message)
     }
 
-    toast.success("Payment reminders sent successfully")
+    showSuccess("Payment reminders sent successfully")
     return response.data
   } catch (error) {
     console.log("SEND PAYMENT REMINDERS ERROR............", error)
-    toast.error("Failed to send payment reminders")
+    showError("Failed to send payment reminders")
     throw error
   } finally {
-    toast.dismiss(toastId)
+    dismissToast(toastId)
   }
 }
 
@@ -205,7 +205,7 @@ export async function getAllInstallments(token) {
     return response.data
   } catch (error) {
     console.log("GET ALL INSTALLMENTS ERROR............", error)
-    toast.error("Failed to fetch all installments")
+    showError("Failed to fetch all installments")
     throw error
   }
 }
@@ -231,7 +231,7 @@ export async function getInstallmentStats(token) {
     return response.data
   } catch (error) {
     console.log("GET INSTALLMENT STATS ERROR............", error)
-    toast.error("Failed to fetch installment stats")
+    showError("Failed to fetch installment stats")
     throw error
   }
-} 
+}

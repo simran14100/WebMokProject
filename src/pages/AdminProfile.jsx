@@ -518,7 +518,7 @@ const AdminProfile = () => {
         .page-heading {
           text-align: center;
           margin-bottom: 32px;
-          margin-top: -44px;
+          margin-top: 1rem;
           color: ${ED_TEAL};
           font-weight: 700;
           font-size: 36px;

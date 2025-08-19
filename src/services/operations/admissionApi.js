@@ -1,4 +1,4 @@
-import { toast } from "react-hot-toast"
+import { showSuccess, showError, showLoading, dismissToast } from "../../utils/toast"
 import { apiConnector } from "../apiConnector"
 import { admission } from "../apis"
 
@@ -31,7 +31,7 @@ export async function getAllAdmissionConfirmations(token) {
     return response.data
   } catch (error) {
     console.log("GET ALL ADMISSION CONFIRMATIONS ERROR............", error)
-    toast.error("Failed to fetch admission confirmations")
+    showError("Failed to fetch admission confirmations")
     throw error
   }
 }
@@ -57,14 +57,14 @@ export async function getAdmissionConfirmationById(confirmationId, token) {
     return response.data
   } catch (error) {
     console.log("GET ADMISSION CONFIRMATION BY ID ERROR............", error)
-    toast.error("Failed to fetch admission confirmation")
+    showError("Failed to fetch admission confirmation")
     throw error
   }
 }
 
 // Confirm admission
 export async function confirmAdmission(confirmationId, token) {
-  const toastId = toast.loading("Confirming admission...")
+  const toastId = showLoading("Confirming admission...")
   try {
     const response = await apiConnector(
       "PUT",
@@ -81,20 +81,20 @@ export async function confirmAdmission(confirmationId, token) {
       throw new Error(response.message)
     }
 
-    toast.success("Admission confirmed successfully")
+    showSuccess("Admission confirmed successfully")
     return response.data
   } catch (error) {
     console.log("CONFIRM ADMISSION ERROR............", error)
-    toast.error("Failed to confirm admission")
+    showError("Failed to confirm admission")
     throw error
   } finally {
-    toast.dismiss(toastId)
+    dismissToast(toastId)
   }
 }
 
 // Reject admission
 export async function rejectAdmission(confirmationId, reason, token) {
-  const toastId = toast.loading("Rejecting admission...")
+  const toastId = showLoading("Rejecting admission...")
   try {
     const response = await apiConnector(
       "PUT",
@@ -111,14 +111,14 @@ export async function rejectAdmission(confirmationId, reason, token) {
       throw new Error(response.message)
     }
 
-    toast.success("Admission rejected successfully")
+    showSuccess("Admission rejected successfully")
     return response.data
   } catch (error) {
     console.log("REJECT ADMISSION ERROR............", error)
-    toast.error("Failed to reject admission")
+    showError("Failed to reject admission")
     throw error
   } finally {
-    toast.dismiss(toastId)
+    dismissToast(toastId)
   }
 }
 
@@ -143,7 +143,7 @@ export async function getAdmissionStats(token) {
     return response.data
   } catch (error) {
     console.log("GET ADMISSION STATS ERROR............", error)
-    toast.error("Failed to fetch admission stats")
+    showError("Failed to fetch admission stats")
     throw error
   }
-} 
+}

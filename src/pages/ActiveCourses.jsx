@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { toast } from 'react-hot-toast';
+import { showError } from '../utils/toast';
 import { apiConnector } from '../services/apiConnector';
 import { profile } from '../services/apis';
 import { VscPlay, VscBook, VscCalendar, VscPerson } from 'react-icons/vsc';
@@ -35,14 +35,14 @@ export default function ActiveCourses() {
           setEnrolledCourses(response.data.data);
         } else {
           console.error("Failed to fetch enrolled courses:", response.data.message);
-          toast.error("Failed to fetch enrolled courses");
+          showError("Failed to fetch enrolled courses");
         }
       } catch (error) {
         console.error("Error fetching enrolled courses:", error);
         if (error.response?.status === 401) {
-          toast.error("Please login to view your courses");
+          showError("Please login to view your courses");
         } else {
-          toast.error("Failed to load enrolled courses");
+          showError("Failed to load enrolled courses");
         }
       } finally {
         setLoading(false);

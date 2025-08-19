@@ -209,7 +209,7 @@
 
 import { useState } from "react";
 import { useForm } from "react-hook-form";
-import { toast } from "react-hot-toast";
+import { showSuccess, showError } from "../../../../utils/toast";
 import { IoAddCircleOutline } from "react-icons/io5";
 import { MdNavigateNext } from "react-icons/md";
 import { useDispatch, useSelector } from "react-redux";
@@ -366,7 +366,7 @@ export default function CourseBuilderForm() {
   // handle form submission
   const onSubmit = async (data) => {
     if (!data.sectionName?.trim()) {
-      toast.error("Section name cannot be empty");
+      showError("Section name cannot be empty");
       return;
     }
     
@@ -396,11 +396,11 @@ export default function CourseBuilderForm() {
         dispatch(setCourse(result));
         setEditSectionName(null);
         setValue("sectionName", "");
-        toast.success(`Section ${editSectionName ? 'updated' : 'created'} successfully`);
+        showSuccess(`Section ${editSectionName ? 'updated' : 'created'} successfully`);
       }
     } catch (error) {
       console.error("Error saving section:", error);
-      toast.error(error.response?.data?.message || 'Failed to save section');
+      showError(error.response?.data?.message || 'Failed to save section');
     } finally {
       setLoading(false);
     }
@@ -427,7 +427,7 @@ export default function CourseBuilderForm() {
 
   const goToNext = () => {
     if (!course.courseContent || course.courseContent.length === 0) {
-      toast.error("Please add at least one section");
+      showError("Please add at least one section");
       return;
     }
     
@@ -436,7 +436,7 @@ export default function CourseBuilderForm() {
     );
     
     if (hasEmptySubsections) {
-      toast.error("Please add at least one lecture in each section");
+      showError("Please add at least one lecture in each section");
       return;
     }
     

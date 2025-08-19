@@ -5,7 +5,7 @@ import { apiConnector } from '../services/apiConnector';
 import { course as courseApi } from '../services/apis';
 import { deleteCourse } from '../services/operations/courseDetailsAPI';
 import { VscEdit, VscTrash, VscEye, VscSearch, VscFilter } from 'react-icons/vsc';
-import { toast } from 'react-hot-toast';
+import { showSuccess, showError } from '../utils/toast';
 import { setCourse, setEditCourse } from '../store/slices/courseSlice';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 
@@ -125,10 +125,10 @@ export default function MyCourses() {
     try {
       // Navigate directly to edit course page
       navigate(`/instructor/edit-course/${courseId}`);
-      toast.success(`Editing course...`);
+      showSuccess(`Editing course...`);
     } catch (error) {
       console.error('Error navigating to edit course:', error);
-      toast.error('Failed to open edit course page');
+      showError('Failed to open edit course page');
     }
   };
 
@@ -143,9 +143,9 @@ export default function MyCourses() {
         try {
           await deleteCourse({ courseId }, token);
           setCourses((prev) => prev.filter((c) => c._id !== courseId));
-          toast.success('Course deleted successfully');
+          showSuccess('Course deleted successfully');
         } catch (error) {
-          toast.error('Failed to delete course');
+          showError('Failed to delete course');
         }
       },
       btn2Handler: () => setConfirmationModal(null),
@@ -155,7 +155,7 @@ export default function MyCourses() {
   const handleViewCourse = (courseId) => {
     // Navigate to course viewer with screenshot protection
     navigate(`/course/${courseId}/view`);
-    toast.success('Opening course viewer with protection enabled');
+    showSuccess('Opening course viewer with protection enabled');
   };
 
   return (

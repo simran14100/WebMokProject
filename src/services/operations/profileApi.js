@@ -1,4 +1,4 @@
-import { toast } from "react-hot-toast";
+import { showSuccess, showError, showLoading, dismissToast } from "../../utils/toast";
 import { setLoading, setUser } from "../../store/slices/profileSlice";
 import { apiConnector } from "../apiConnector";
 import { profile } from "../apis";
@@ -21,7 +21,7 @@ export function fetchUserProfile(token) {
       dispatch(setUser(response.data.data));
     } catch (error) {
       console.log("FETCH USER PROFILE ERROR............", error);
-      toast.error("Failed to fetch profile");
+      showError("Failed to fetch profile");
     }
     dispatch(setLoading(false));
   };
@@ -30,7 +30,7 @@ export function fetchUserProfile(token) {
 // Update profile info
 export function updateProfile(profileData, token) {
   return async (dispatch) => {
-    const toastId = toast.loading("Updating profile...");
+    const toastId = showLoading("Updating profile...");
     dispatch(setLoading(true));
     try {
       const response = await apiConnector(
@@ -43,22 +43,22 @@ export function updateProfile(profileData, token) {
       if (!response.data.success) {
         throw new Error(response.data.message);
       }
-      toast.success("Profile updated successfully");
+      showSuccess("Profile updated successfully");
       // Fetch the latest profile after update
       await dispatch(fetchUserProfile(token));
     } catch (error) {
       console.log("UPDATE PROFILE ERROR............", error);
-      toast.error("Failed to update profile");
+      showError("Failed to update profile");
     }
     dispatch(setLoading(false));
-    toast.dismiss(toastId);
+    dismissToast(toastId);
   };
 }
 
 // Update profile picture
 export function updateDisplayPicture(token, formData) {
   return async (dispatch) => {
-    const toastId = toast.loading("Uploading image...");
+    const toastId = showLoading("Uploading image...");
     dispatch(setLoading(true));
     try {
       const response = await apiConnector(
@@ -71,21 +71,21 @@ export function updateDisplayPicture(token, formData) {
       if (!response.data.success) {
         throw new Error(response.data.message);
       }
-      toast.success("Profile picture updated successfully");
+      showSuccess("Profile picture updated successfully");
       dispatch(setUser(response.data.data));
     } catch (error) {
       console.log("UPDATE DISPLAY PICTURE ERROR............", error);
-      toast.error("Failed to update profile picture");
+      showError("Failed to update profile picture");
     }
     dispatch(setLoading(false));
-    toast.dismiss(toastId);
+    dismissToast(toastId);
   };
 }
 
 // Delete profile
 export function deleteProfile(token, navigate) {
   return async (dispatch) => {
-    const toastId = toast.loading("Deleting account...");
+    const toastId = showLoading("Deleting account...");
     dispatch(setLoading(true));
     try {
       const response = await apiConnector(
@@ -98,22 +98,22 @@ export function deleteProfile(token, navigate) {
       if (!response.data.success) {
         throw new Error(response.data.message);
       }
-      toast.success("Account deleted successfully");
+      showSuccess("Account deleted successfully");
       // Optionally clear user state here
       navigate("/");
     } catch (error) {
       console.log("DELETE PROFILE ERROR............", error);
-      toast.error("Failed to delete account");
+      showError("Failed to delete account");
     }
     dispatch(setLoading(false));
-    toast.dismiss(toastId);
+    dismissToast(toastId);
   };
 }
 
 // Change password
 export function changePassword(token, data) {
   return async (dispatch) => {
-    const toastId = toast.loading("Updating password...");
+    const toastId = showLoading("Updating password...");
     dispatch(setLoading(true));
     try {
       const response = await apiConnector(
@@ -126,12 +126,12 @@ export function changePassword(token, data) {
       if (!response.data.success) {
         throw new Error(response.data.message);
       }
-      toast.success("Password updated successfully");
+      showSuccess("Password updated successfully");
     } catch (error) {
       console.log("CHANGE PASSWORD ERROR............", error);
-      toast.error("Failed to update password");
+      showError("Failed to update password");
     }
     dispatch(setLoading(false));
-    toast.dismiss(toastId);
+    dismissToast(toastId);
   };
-} 
+}

@@ -569,7 +569,7 @@
 
 import { useEffect, useState } from "react"
 import { useForm } from "react-hook-form"
-import { toast } from "react-hot-toast"
+import { showSuccess, showError } from "../../../../utils/toast"
 import { RxCross2 } from "react-icons/rx"
 import { useDispatch, useSelector } from "react-redux"
 
@@ -651,7 +651,7 @@ export default function SubSectionModal({
         section._id === modalData.sectionId ? result : section
       )
       dispatch(setCourse({ ...course, courseContent: updatedCourseContent }))
-      toast.success("Lecture updated successfully")
+      showSuccess("Lecture updated successfully")
     }
     setModalData(null)
     setLoading(false)
@@ -662,7 +662,7 @@ export default function SubSectionModal({
 
     if (edit) {
       if (!isFormUpdated()) {
-        toast.error("No changes made to the form")
+        showError("No changes made to the form")
       } else {
         await handleEditSubsection()
       }
@@ -682,7 +682,7 @@ export default function SubSectionModal({
         section._id === modalData ? result : section
       )
       dispatch(setCourse({ ...course, courseContent: updatedCourseContent }))
-      toast.success("Lecture added successfully")
+      showSuccess("Lecture added successfully")
     }
     setModalData(null)
     setLoading(false)

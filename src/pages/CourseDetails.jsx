@@ -4,7 +4,7 @@ import { useSelector } from 'react-redux';
 import { fetchCourseDetails, getFullDetailsOfCourse } from '../services/operations/courseDetailsAPI';
 import { buyCourse } from '../services/operations/coursePaymentApi';
 import { VscStarFull, VscStarEmpty, VscPerson, VscCalendar, VscBook } from 'react-icons/vsc';
-import { toast } from 'react-hot-toast';
+import { showError, showInfo } from '../utils/toast';
 
 const CourseDetails = () => {
   const { courseId } = useParams();
@@ -47,11 +47,11 @@ const CourseDetails = () => {
           setCourse(result.data);
         } else {
           console.error('Failed to fetch course:', result);
-          toast.error(result?.message || 'Failed to fetch course details');
+          showError(result?.message || 'Failed to fetch course details');
         }
       } catch (error) {
         console.error('Error fetching course:', error);
-        toast.error('Failed to load course details');
+        showError('Failed to load course details');
       } finally {
         setLoading(false);
       }
@@ -115,18 +115,18 @@ const CourseDetails = () => {
   // Handle course purchase
   const handleBuyCourse = async () => {
     if (!token) {
-      toast.error('Please login to purchase this course');
+      showError('Please login to purchase this course');
       navigate('/login');
       return;
     }
 
     if (user?.accountType !== 'Student') {
-      toast.error('Only students can purchase courses');
+      showError('Only students can purchase courses');
       return;
     }
 
     if (!user?.enrollmentFeePaid) {
-      toast.error('Please complete enrollment fee payment before purchasing courses');
+      showError('Please complete enrollment fee payment before purchasing courses');
       navigate('/enrollment-payment');
       return;
     }
@@ -157,20 +157,20 @@ const CourseDetails = () => {
       
       // Check if the error is about student already being enrolled
       if (error.message && error.message.includes('Student is already Enrolled')) {
-        toast.info('You are already enrolled in this course!');
+        showInfo('You are already enrolled in this course!');
         // Update the enrollment status and navigate to active courses
         setEnrollmentStatus(true);
         navigate('/dashboard/active-courses');
         return;
       }
       
-      toast.error('Failed to process payment');
+      showError('Failed to process payment');
     }
   };
 
   // Handle manual payment verification
   const handleManualVerification = () => {
-    toast.info('Please contact support with your payment details for manual verification.');
+    showInfo('Please contact support with your payment details for manual verification.');
     // You could also open a modal or navigate to a support page
   };
 

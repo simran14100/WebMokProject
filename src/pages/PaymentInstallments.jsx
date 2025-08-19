@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { apiConnector } from '../services/apiConnector';
 import { installments } from '../services/apis';
-import { toast } from 'react-hot-toast';
+import { showSuccess, showError } from '../utils/toast';
 import DashboardLayout from '../components/common/DashboardLayout';
 
 const PaymentInstallments = () => {
@@ -56,7 +56,7 @@ const PaymentInstallments = () => {
       }
     } catch (error) {
       console.error('Error fetching installments:', error);
-      toast.error('Failed to fetch installment plans');
+      showError('Failed to fetch installment plans');
     } finally {
       setLoading(false);
     }
@@ -95,12 +95,12 @@ const PaymentInstallments = () => {
       );
 
       if (response.data.success) {
-        toast.success(`Reminders sent successfully! ${response.data.data.remindersSent} reminders sent.`);
+        showSuccess(`Reminders sent successfully! ${response.data.data.remindersSent} reminders sent.`);
         fetchInstallments();
       }
     } catch (error) {
       console.error('Error sending reminders:', error);
-      toast.error('Failed to send reminders');
+      showError('Failed to send reminders');
     }
   };
 
@@ -116,14 +116,14 @@ const PaymentInstallments = () => {
       );
 
       if (response.data.success) {
-        toast.success('Installment plan created successfully');
+        showSuccess('Installment plan created successfully');
         setShowModal(false);
         setFormData({ courseId: '', paymentMethod: 'Installment', installmentCount: 2 });
         fetchInstallments();
       }
     } catch (error) {
       console.error('Error creating installment plan:', error);
-      toast.error('Failed to create installment plan');
+      showError('Failed to create installment plan');
     }
   };
 

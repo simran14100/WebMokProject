@@ -1,4 +1,4 @@
-import { toast } from "react-hot-toast"
+import { showSuccess, showError, showLoading, dismissToast } from "../../utils/toast"
 import { setUser } from "../../store/slices/profileSlice"
 import { apiConnector } from "../apiConnector"
 import { enrollment } from "../apis"
@@ -28,13 +28,13 @@ function loadScript(src) {
 
 // Buy the Enrollment
 export async function buyEnrollment(token, user, navigate, dispatch) {
-  const toastId = toast.loading("Loading...")
+  const toastId = showLoading("Loading...")
   try {
     // Loading the script of Razorpay SDK
     const res = await loadScript("https://checkout.razorpay.com/v1/checkout.js")
 
     if (!res) {
-      toast.error("Razorpay SDK failed to load. Check your Internet Connection.")
+      showError("Razorpay SDK failed to load. Check your Internet Connection.")
       return
     }
 
@@ -88,19 +88,19 @@ export async function buyEnrollment(token, user, navigate, dispatch) {
 
     paymentObject.open()
     paymentObject.on("payment.failed", function (response) {
-      toast.error("Oops! Payment Failed.")
+      showError("Oops! Payment Failed.")
       console.log(response.error)
     })
   } catch (error) {
     console.log("ENROLLMENT PAYMENT API ERROR............", error)
-    toast.error("Could Not make Payment.")
+    showError("Could Not make Payment.")
   }
-  toast.dismiss(toastId)
+  dismissToast(toastId)
 }
 
 // Verify the Enrollment Payment
 async function verifyEnrollmentPayment(bodyData, token, navigate, dispatch) {
-  const toastId = toast.loading("Verifying Payment...")
+  const toastId = showLoading("Verifying Payment...")
   try {
     const response = await apiConnector(
       "POST", 
@@ -118,14 +118,14 @@ async function verifyEnrollmentPayment(bodyData, token, navigate, dispatch) {
       throw new Error(backendData.message)
     }
 
-    toast.success("Enrollment Payment Successful! You can now access all courses.")
+    showSuccess("Enrollment Payment Successful! You can now access all courses.")
     dispatch(setUser(backendData.data))
     navigate("/dashboard")
   } catch (error) {
     console.log("ENROLLMENT PAYMENT VERIFY ERROR............", error)
-    toast.error("Could Not Verify Payment.")
+    showError("Could Not Verify Payment.")
   }
-  toast.dismiss(toastId)
+  dismissToast(toastId)
 }
 
 // Get enrollment status

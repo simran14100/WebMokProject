@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { apiConnector } from '../services/apiConnector';
 import { admission } from '../services/apis';
-import { toast } from 'react-hot-toast';
+import { showSuccess, showError } from '../utils/toast';
 import DashboardLayout from '../components/common/DashboardLayout';
 
 // EdCare Design System Colors
@@ -72,7 +72,7 @@ const AdmissionConfirmation = () => {
       }
     } catch (error) {
       console.error('Error fetching confirmations:', error);
-      toast.error('Failed to fetch admission confirmations');
+      showError('Failed to fetch admission confirmations');
     } finally {
       setLoading(false);
     }
@@ -116,7 +116,7 @@ const AdmissionConfirmation = () => {
       );
 
       if (response.data.success) {
-        toast.success('Admission confirmed successfully');
+        showSuccess('Admission confirmed successfully');
         setShowModal(false);
         setSelectedConfirmation(null);
         setNotes('');
@@ -125,13 +125,13 @@ const AdmissionConfirmation = () => {
       }
     } catch (error) {
       console.error('Error confirming admission:', error);
-      toast.error('Failed to confirm admission');
+      showError('Failed to confirm admission');
     }
   };
 
   const handleReject = async () => {
     if (!selectedConfirmation || !rejectionReason) {
-      toast.error('Please provide a rejection reason');
+      showError('Please provide a rejection reason');
       return;
     }
 
@@ -146,7 +146,7 @@ const AdmissionConfirmation = () => {
       );
 
       if (response.data.success) {
-        toast.success('Admission rejected successfully');
+        showSuccess('Admission rejected successfully');
         setShowModal(false);
         setSelectedConfirmation(null);
         setRejectionReason('');
@@ -156,7 +156,7 @@ const AdmissionConfirmation = () => {
       }
     } catch (error) {
       console.error('Error rejecting admission:', error);
-      toast.error('Failed to reject admission');
+      showError('Failed to reject admission');
     }
   };
 

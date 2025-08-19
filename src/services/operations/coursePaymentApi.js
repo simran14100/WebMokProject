@@ -1,4 +1,4 @@
-import { toast } from "react-hot-toast"
+import { showSuccess, showError, showLoading, dismissToast } from "../../utils/toast"
 import { apiConnector } from "../apiConnector"
 import { payment } from "../apis"
 import { clearCart } from "../../store/slices/cartSlice"
@@ -34,13 +34,13 @@ export async function buyCourse(
   navigate,
   dispatch
 ) {
-  const toastId = toast.loading("Loading...")
+  const toastId = showLoading("Loading...")
   try {
     // Loading the script of Razorpay SDK
     const res = await loadScript("https://checkout.razorpay.com/v1/checkout.js")
 
     if (!res) {
-      toast.error(
+      showError(
         "Razorpay SDK failed to load. Check your Internet Connection."
       )
       return
@@ -77,10 +77,11 @@ export async function buyCourse(
       },
       handler: function (response) {
         console.log("Razorpay handler called with response:", response)
-        toast.loading("Finalizing your enrollment...")
+        const finalizingId = showLoading("Finalizing your enrollment...")
         sendPaymentSuccessEmail(response, orderResponse.data.amount, token)
         const payload = { ...response, courses }
         console.log("Calling verifyPayment with payload:", payload)
+        dismissToast(finalizingId)
         verifyPayment(payload, token, navigate, dispatch)
       },
     }
@@ -91,19 +92,19 @@ export async function buyCourse(
     console.log("Opening Razorpay Checkout with options:", options)
     paymentObject.open()
     paymentObject.on("payment.failed", function (response) {
-      toast.error("Oops! Payment Failed.")
+      showError("Oops! Payment Failed.")
       console.log(response.error)
     })
   } catch (error) {
     console.log("PAYMENT API ERROR............", error)
-    toast.error("Could Not make Payment.")
+    showError("Could Not make Payment.")
   }
-  toast.dismiss(toastId)
+  dismissToast(toastId)
 }
 
 // Verify the Payment
 async function verifyPayment(bodyData, token, navigate, dispatch) {
-  const toastId = toast.loading("Verifying Payment...")
+  const toastId = showLoading("Verifying Payment...")
   dispatch(setPaymentLoading(true))
   try {
     console.log("verifyPayment(): sending body:", bodyData)
@@ -120,15 +121,15 @@ async function verifyPayment(bodyData, token, navigate, dispatch) {
       throw new Error(response.data.message)
     }
 
-    toast.success("Payment Successful. You are Added to the course ")
+    showSuccess("Payment Successful. You are Added to the course ")
     navigate("/dashboard/enrolled-courses")
     dispatch(clearCart())
   } catch (error) {
     console.log("PAYMENT VERIFY ERROR............", error)
     const backendMsg = error?.response?.data?.message || error?.message || "Could Not Verify Payment."
-    toast.error(backendMsg)
+    showError(backendMsg)
   }
-  toast.dismiss(toastId)
+  dismissToast(toastId)
   dispatch(setPaymentLoading(false))
 }
 
