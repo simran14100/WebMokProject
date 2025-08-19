@@ -785,11 +785,11 @@ export async function getDashboardStats(token) {
 
     console.log("GET DASHBOARD STATS RESPONSE............", response)
 
-    if (!response.success) {
-      throw new Error(response.message)
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to fetch dashboard stats")
     }
 
-    return response.data
+    return response.data?.data
   } catch (error) {
     console.log("GET DASHBOARD STATS ERROR............", error)
     toast.error("Failed to fetch dashboard stats")

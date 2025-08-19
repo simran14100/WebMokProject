@@ -100,7 +100,7 @@ const SubCategory = () => {
             color: ${TEXT_DARK};
             margin-bottom: 0.5rem;
           }
-          .sub-category-container { width: calc(100% - 250px); margin-left: 250px; padding: 2rem; background-color: #f8fafc; }
+          .sub-category-container { width: calc(100% - 550px); margin-left: 1px; padding: 2rem; background-color: #f8fafc; }
           .header h2 { font-size: 1.5rem; font-weight: 600; color: ${TEXT_DARK}; margin-bottom: 2rem; }
           .form-card { background: white; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
           h3 { font-size: 1.25rem; font-weight: 600; color: ${TEXT_DARK}; margin-bottom: 1.5rem; }

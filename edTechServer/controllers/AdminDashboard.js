@@ -2,6 +2,7 @@ const User = require('../models/User');
 const UserType = require('../models/UserType');
 const Course = require('../models/Course');
 const CourseProgress = require('../models/CourseProgress');
+const AdmissionConfirmation = require('../models/AdmissionConfirmation');
 const bcrypt = require('bcrypt');
 const Profile = require('../models/Profile');
 const Batch = require('../models/Batch');
@@ -222,41 +223,321 @@ exports.approveInstructor = async (req, res) => {
     }
 };
 
-// Get dashboard statistics
+// Get dashboard statistics (with dynamic previous-period comparison)
 exports.getDashboardStats = async (req, res) => {
     try {
+        // Define time windows: last 30 days vs the 30 days before that
+        const now = new Date();
+        const startCurrent = new Date(now);
+        startCurrent.setDate(startCurrent.getDate() - 30);
+        const startPrev = new Date(startCurrent);
+        startPrev.setDate(startPrev.getDate() - 30);
+
+        // Helper to compute delta percentage safely
+        const pct = (curr, prev) => {
+            if (prev === 0) return curr > 0 ? 100 : 0;
+            return Number((((curr - prev) / prev) * 100).toFixed(2));
+        };
+
+        // Base totals
         const totalUsers = await User.countDocuments();
         const totalStudents = await User.countDocuments({ accountType: 'Student' });
         const totalInstructors = await User.countDocuments({ accountType: 'Instructor' });
-        const enrolledStudents = await User.countDocuments({ 
-            accountType: 'Student', 
-            enrollmentFeePaid: true 
-        });
-        const pendingInstructors = await User.countDocuments({ 
-            accountType: 'Instructor', 
-            approved: false 
-        });
-        const totalCourses = await Course.countDocuments();
-        const totalRevenue = enrolledStudents * 1000; // 1000 rupees per student
+        const enrolledStudents = await User.countDocuments({ accountType: 'Student', enrollmentFeePaid: true });
+        const pendingInstructors = await User.countDocuments({ accountType: 'Instructor', approved: false });
+        // Consider only active (non-draft) courses for dashboard cards
+        const activeCourseFilter = { status: { $ne: 'Draft' } };
+        const totalCourses = await Course.countDocuments(activeCourseFilter);
 
-        res.status(200).json({
-            success: true,
-            data: {
-                totalUsers,
-                totalStudents,
-                totalInstructors,
-                enrolledStudents,
-                pendingInstructors,
-                totalCourses,
-                totalRevenue
+        // Totals per model
+        const totalBatches = await require('../models/Batch').countDocuments();
+
+        // Current vs previous period counts
+        const [
+            coursesCurrent, coursesPrev,
+            batchesCurrent, batchesPrev,
+            studentsCurrent, studentsPrev,
+        ] = await Promise.all([
+            // Courses
+            Course.countDocuments({ ...activeCourseFilter, createdAt: { $gte: startCurrent, $lt: now } }),
+            Course.countDocuments({ ...activeCourseFilter, createdAt: { $gte: startPrev, $lt: startCurrent } }),
+            // Batches
+            require('../models/Batch').countDocuments({ createdAt: { $gte: startCurrent, $lt: now } }),
+            require('../models/Batch').countDocuments({ createdAt: { $gte: startPrev, $lt: startCurrent } }),
+            // Students (registered users with Student role)
+            User.countDocuments({ accountType: 'Student', createdAt: { $gte: startCurrent, $lt: now } }),
+            User.countDocuments({ accountType: 'Student', createdAt: { $gte: startPrev, $lt: startCurrent } }),
+        ]);
+
+        const stats = {
+            // Keep legacy fields for backward compatibility
+            totalUsers,
+            totalStudents,
+            totalInstructors,
+            enrolledStudents,
+            pendingInstructors,
+            totalCourses,
+            // Extended structured cards data
+            cards: {
+                courses: {
+                    title: 'Courses in LMS',
+                    total: totalCourses,
+                    currentPeriod: coursesCurrent,
+                    previousPeriod: coursesPrev,
+                    deltaPercent: pct(coursesCurrent, coursesPrev),
+                },
+                batches: {
+                    title: 'Batch Register',
+                    total: totalBatches,
+                    currentPeriod: batchesCurrent,
+                    previousPeriod: batchesPrev,
+                    deltaPercent: pct(batchesCurrent, batchesPrev),
+                },
+                students: {
+                    title: 'Student Registered',
+                    total: totalStudents,
+                    currentPeriod: studentsCurrent,
+                    previousPeriod: studentsPrev,
+                    deltaPercent: pct(studentsCurrent, studentsPrev),
+                },
+            },
+        };
+
+        // =============================
+        // Purchases & Learning Progress
+        // =============================
+        // Purchased courses = Confirmed admissions
+        const totalPurchased = await AdmissionConfirmation.countDocuments({ status: 'Confirmed' });
+        // =============================
+        // Revenue: Course fees + Enrollment fees
+        // =============================
+        // 1) Course fees primary source: AdmissionConfirmation (Confirmed)
+        let courseAgg = await AdmissionConfirmation.aggregate([
+            { $match: { status: 'Confirmed' } },
+            { $group: {
+                _id: { y: { $year: '$paymentDetails.paidAt' }, m: { $month: '$paymentDetails.paidAt' } },
+                amount: { $sum: '$paymentDetails.amount' }
+            }},
+            { $sort: { '_id.y': 1, '_id.m': 1 } }
+        ]);
+        // 2) If no confirmations exist (e.g., legacy), fallback to installments sum
+        if (!courseAgg || courseAgg.length === 0) {
+            const fromInstallments = await require('../models/PaymentInstallment').aggregate([
+                { $unwind: '$installmentDetails' },
+                { $match: {
+                    'installmentDetails.status': 'Paid',
+                    'installmentDetails.paidAt': { $type: 'date' },
+                    'installmentDetails.amount': { $gt: 0 }
+                }},
+                { $group: {
+                    _id: { y: { $year: '$installmentDetails.paidAt' }, m: { $month: '$installmentDetails.paidAt' } },
+                    amount: { $sum: '$installmentDetails.amount' }
+                }},
+                { $sort: { '_id.y': 1, '_id.m': 1 } }
+            ]);
+            courseAgg = fromInstallments;
+        }
+        const monthlyCourseEarnings = (courseAgg || []).map(e => ({ year: e._id.y, month: e._id.m, amount: e.amount }));
+
+        // 3) Enrollment fees (one-time) from User.paymentDetails
+        const enrollmentAgg = await User.aggregate([
+            { $match: {
+                accountType: 'Student',
+                enrollmentFeePaid: true,
+                paymentStatus: 'Completed',
+                'paymentDetails.amount': { $gt: 0 },
+                'paymentDetails.paidAt': { $type: 'date' }
+            }},
+            { $group: {
+                _id: { y: { $year: '$paymentDetails.paidAt' }, m: { $month: '$paymentDetails.paidAt' } },
+                amount: { $sum: '$paymentDetails.amount' }
+            }},
+            { $sort: { '_id.y': 1, '_id.m': 1 } }
+        ]);
+        const monthlyEnrollmentEarnings = (enrollmentAgg || []).map(e => ({ year: e._id.y, month: e._id.m, amount: e.amount }));
+
+        // 4) Merge monthly arrays by (year, month)
+        const key = (y, m) => `${y}-${m}`;
+        const mergeMap = new Map();
+        for (const e of monthlyCourseEarnings) {
+            mergeMap.set(key(e.year, e.month), { year: e.year, month: e.month, amount: e.amount, courseAmount: e.amount, enrollmentAmount: 0 });
+        }
+        for (const e of monthlyEnrollmentEarnings) {
+            const k = key(e.year, e.month);
+            if (!mergeMap.has(k)) {
+                mergeMap.set(k, { year: e.year, month: e.month, amount: e.amount, courseAmount: 0, enrollmentAmount: e.amount });
+            } else {
+                const v = mergeMap.get(k);
+                v.amount += e.amount;
+                v.enrollmentAmount += e.amount;
+                mergeMap.set(k, v);
             }
-        });
+        }
+        const monthlyEarnings = Array.from(mergeMap.values()).sort((a, b) => (a.year - b.year) || (a.month - b.month));
+        // Monthly purchases count
+        // 1) AdmissionConfirmation counts
+        let purchasesAgg = await AdmissionConfirmation.aggregate([
+            { $match: { status: 'Confirmed' } },
+            { $group: {
+                _id: { y: { $year: '$paymentDetails.paidAt' }, m: { $month: '$paymentDetails.paidAt' } },
+                count: { $sum: 1 }
+            }},
+            { $sort: { '_id.y': 1, '_id.m': 1 } }
+        ]);
+        // 2) If empty, try PaymentInstallment (count paid installments)
+        if (!purchasesAgg || purchasesAgg.length === 0) {
+            const purchasesFromInstallments = await require('../models/PaymentInstallment').aggregate([
+                { $unwind: '$installmentDetails' },
+                { $match: {
+                    'installmentDetails.status': 'Paid',
+                    'installmentDetails.paidAt': { $type: 'date' },
+                    'installmentDetails.amount': { $gt: 0 }
+                }},
+                { $group: {
+                    _id: { y: { $year: '$installmentDetails.paidAt' }, m: { $month: '$installmentDetails.paidAt' } },
+                    count: { $sum: 1 }
+                }},
+                { $sort: { '_id.y': 1, '_id.m': 1 } }
+            ]);
+            purchasesAgg = purchasesFromInstallments;
+        }
+        // 3) If still empty, fallback to User.paymentDetails
+        if (!purchasesAgg || purchasesAgg.length === 0) {
+            const purchasesFromUsers = await User.aggregate([
+                { $match: {
+                    accountType: 'Student',
+                    enrollmentFeePaid: true,
+                    paymentStatus: 'Completed',
+                    'paymentDetails.amount': { $gt: 0 },
+                    'paymentDetails.paidAt': { $type: 'date' }
+                }},
+                { $group: {
+                    _id: { y: { $year: '$paymentDetails.paidAt' }, m: { $month: '$paymentDetails.paidAt' } },
+                    count: { $sum: 1 }
+                }},
+                { $sort: { '_id.y': 1, '_id.m': 1 } }
+            ]);
+            purchasesAgg = purchasesFromUsers;
+        }
+        const monthlyPurchases = (purchasesAgg || []).map(e => ({ year: e._id.y, month: e._id.m, count: e.count }));
+
+        // Compute completed vs pending using CourseProgress against total lectures per course
+        const cpDocs = await CourseProgress.find({}, { courseID: 1, completedVideos: 1 });
+        let completedCourses = 0;
+        let pendingCourses = 0;
+        if (cpDocs.length) {
+            // Build set of courseIds from progress
+            const courseIds = [...new Set(cpDocs.map(d => d.courseID).filter(Boolean))];
+            if (courseIds.length) {
+                // For these courses, compute total lectures = sum of subSection array sizes in their sections
+                const totals = await Course.aggregate([
+                    { $match: { _id: { $in: courseIds } } },
+                    { $lookup: { from: 'sections', localField: 'courseContent', foreignField: '_id', as: 'sections' } },
+                    { $project: {
+                        _id: 1,
+                        totalLectures: { $sum: { $map: { input: '$sections', as: 's', in: { $size: '$$s.subSection' } } } }
+                    } }
+                ]);
+                const totalMap = new Map(totals.map(t => [String(t._id), t.totalLectures || 0]));
+
+                for (const d of cpDocs) {
+                    const t = totalMap.get(String(d.courseID)) || 0;
+                    const done = (d.completedVideos || []).length;
+                    if (t > 0 && done >= t) completedCourses += 1;
+                    else if (t > 0 && done < t) pendingCourses += 1;
+                }
+            }
+        }
+
+        // =============================
+        // Batch details: totals and monthly trends
+        // =============================
+        const batchAgg = await Batch.aggregate([
+            { $project: {
+                createdAt: 1,
+                studentsCount: { $size: { $ifNull: ["$students", []] } }
+            }},
+            { $group: {
+                _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } },
+                batches: { $sum: 1 },
+                students: { $sum: '$studentsCount' }
+            }},
+            { $sort: { '_id.y': 1, '_id.m': 1 } }
+        ]);
+        const batchMonthly = batchAgg.map(e => ({ year: e._id.y, month: e._id.m, batches: e.batches, students: e.students }));
+        const batchTotalsAgg = await Batch.aggregate([
+            { $project: { studentsCount: { $size: { $ifNull: ["$students", []] } } } },
+            { $group: { _id: null, batches: { $sum: 1 }, students: { $sum: '$studentsCount' } } }
+        ]);
+        const batchTotals = batchTotalsAgg[0] || { batches: 0, students: 0 };
+
+        // Students monthly enrolled (paid students)
+        const enrolledMonthlyAgg = await User.aggregate([
+            { $match: { accountType: 'Student', enrollmentFeePaid: true, paymentStatus: 'Completed' } },
+            { $group: { _id: { y: { $year: '$createdAt' }, m: { $month: '$createdAt' } }, count: { $sum: 1 } } },
+            { $sort: { '_id.y': 1, '_id.m': 1 } }
+        ]);
+        const monthlyEnrolled = enrolledMonthlyAgg.map(e => ({ year: e._id.y, month: e._id.m, count: e.count }));
+        const nowY = now.getFullYear();
+        const nowM = now.getMonth() + 1;
+        const currentMonthEnrolled = monthlyEnrolled.find(e => e.year === nowY && e.month === nowM)?.count || 0;
+
+        // Attach new stats
+        stats.learning = {
+            purchased: { title: 'Purchased Courses', total: totalPurchased },
+            completed: { title: 'Completed Courses', total: completedCourses },
+            pending: { title: 'Pending Courses', total: pendingCourses },
+        };
+        stats.revenue = {
+            monthlyEarnings, // [{year, month, amount, courseAmount, enrollmentAmount}]
+            monthlyPurchases, // [{year, month, count}]
+            breakdown: {
+                course: monthlyCourseEarnings,
+                enrollment: monthlyEnrollmentEarnings,
+            },
+            currency: 'INR',
+        };
+        stats.students = {
+            monthlyEnrolled, // [{year, month, count}]
+            currentMonthEnrolled,
+        };
+        // Totals for Donut: overall earnings and enrolled students
+        const totalEarnings = (monthlyEarnings || []).reduce((sum, e) => sum + (e.amount || 0), 0);
+        // Overall enrolled students = unique students who have any successful payment record across sources
+        // Source 1: Confirmed admissions
+        const acStudentIds = await AdmissionConfirmation.distinct('student', { status: 'Confirmed' });
+        // Source 2: Any paid installment in PaymentInstallment
+        const piAgg = await require('../models/PaymentInstallment').aggregate([
+            { $unwind: '$installmentDetails' },
+            { $match: { 'installmentDetails.status': 'Paid', 'installmentDetails.amount': { $gt: 0 }, 'installmentDetails.paidAt': { $type: 'date' } } },
+            { $group: { _id: '$student' } }
+        ]);
+        const piStudentIds = piAgg.map(d => String(d._id));
+        // Source 3: Fallback paid users (enrollment fee)
+        const paidUserIds = await User.distinct('_id', { accountType: 'Student', enrollmentFeePaid: true, paymentStatus: 'Completed' });
+        // Deduplicate
+        const enrolledSet = new Set([
+            ...acStudentIds.map(String),
+            ...piStudentIds,
+            ...paidUserIds.map(String),
+        ]);
+        const totalStudentsEnrolled = enrolledSet.size;
+        stats.totals = {
+            totalEarnings,
+            totalStudentsEnrolled,
+        };
+        stats.batch = {
+            totals: { batches: batchTotals.batches || 0, students: batchTotals.students || 0 },
+            monthly: batchMonthly,
+        };
+
+        res.status(200).json({ success: true, data: stats });
     } catch (error) {
         console.error('Error fetching dashboard stats:', error);
         res.status(500).json({
             success: false,
             message: 'Failed to fetch dashboard statistics',
-            error: error.message
+            error: error.message,
         });
     }
 };

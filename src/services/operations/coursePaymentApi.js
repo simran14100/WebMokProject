@@ -6,7 +6,8 @@ import { setPaymentLoading } from "../../store/slices/courseSlice"
 const BASE_URL = process.env.REACT_APP_BASE_URL;
 
 
-const {COURSE_PAYMENT_API , COURSE_VERIFY_API , SEND_PAYMENT_SUCCESS_EMAIL_API} = payment;
+const { CAPTURE_PAYMENT_API, VERIFY_PAYMENT_API, SEND_PAYMENT_SUCCESS_EMAIL_API } = payment;
+
 
 console.log('Frontend Razorpay Key (at import):', process.env.REACT_APP_RAZORPAY_KEY);
 
@@ -50,11 +51,10 @@ export async function buyCourse(
 
     // Initiating the Order in Backend
     const orderResponse = await apiConnector(
-   
       "POST",
-  `${BASE_URL}${payment.CAPTURE_PAYMENT_API}`, // note no slash between BASE_URL and API path
- { courses: courses },
-  { Authorization: `Bearer ${token}` }
+      CAPTURE_PAYMENT_API,
+      { courses: courses },
+      { Authorization: `Bearer ${token}` }
     )
     console.log("Before")
     if (!orderResponse.data.success) {
@@ -65,9 +65,9 @@ export async function buyCourse(
     // Opening the Razorpay SDK
     const options = {
       key: process.env.REACT_APP_RAZORPAY_KEY || "rzp_test_XZrJHQ4hfoi9FU",
-      currency: orderResponse.data.data.currency,
-      amount: `${orderResponse.data.data.amount}`,
-      order_id: orderResponse.data.data.id,
+      currency: orderResponse.data.currency,
+      amount: `${orderResponse.data.amount}`,
+      order_id: orderResponse.data.orderId,
       name: "StudyNotion",
       description: "Thank you for Purchasing the Course.",
       // image: rzpLogo,
@@ -76,14 +76,19 @@ export async function buyCourse(
         email: user_details.email,
       },
       handler: function (response) {
-        sendPaymentSuccessEmail(response, orderResponse.data.data.amount, token)
-        verifyPayment({ ...response, courses }, token, navigate, dispatch)
+        console.log("Razorpay handler called with response:", response)
+        toast.loading("Finalizing your enrollment...")
+        sendPaymentSuccessEmail(response, orderResponse.data.amount, token)
+        const payload = { ...response, courses }
+        console.log("Calling verifyPayment with payload:", payload)
+        verifyPayment(payload, token, navigate, dispatch)
       },
     }
     console.log("Razorpay Key used:", process.env.REACT_APP_RAZORPAY_KEY);
 
     const paymentObject = new window.Razorpay(options)
-
+    
+    console.log("Opening Razorpay Checkout with options:", options)
     paymentObject.open()
     paymentObject.on("payment.failed", function (response) {
       toast.error("Oops! Payment Failed.")
@@ -101,9 +106,13 @@ async function verifyPayment(bodyData, token, navigate, dispatch) {
   const toastId = toast.loading("Verifying Payment...")
   dispatch(setPaymentLoading(true))
   try {
-    const response = await apiConnector("POST", COURSE_VERIFY_API, bodyData, {
-      Authorization: `Bearer ${token}`,
-    })
+    console.log("verifyPayment(): sending body:", bodyData)
+    const response = await apiConnector(
+      "POST",
+      VERIFY_PAYMENT_API,
+      bodyData,
+      { Authorization: `Bearer ${token}` }
+    )
 
     console.log("VERIFY PAYMENT RESPONSE FROM BACKEND............", response)
 
@@ -116,7 +125,8 @@ async function verifyPayment(bodyData, token, navigate, dispatch) {
     dispatch(clearCart())
   } catch (error) {
     console.log("PAYMENT VERIFY ERROR............", error)
-    toast.error("Could Not Verify Payment.")
+    const backendMsg = error?.response?.data?.message || error?.message || "Could Not Verify Payment."
+    toast.error(backendMsg)
   }
   toast.dismiss(toastId)
   dispatch(setPaymentLoading(false))

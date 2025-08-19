@@ -112,153 +112,7 @@ export default function EnrolledStudents() {
         backgroundColor: '#f8fafc',
         minHeight: '100vh'
       }}>
-      {/* Header Section */}
-      <div style={{ marginBottom: '32px' }}>
-        <div style={{ 
-          display: 'flex', 
-          alignItems: 'center', 
-          marginBottom: '16px' 
-        }}>
-                     <div style={{
-             width: '48px',
-             height: '48px',
-             background: 'linear-gradient(135deg, #07A698 0%, #059a8c 100%)',
-             borderRadius: '12px',
-             display: 'flex',
-             alignItems: 'center',
-             justifyContent: 'center',
-             marginRight: '16px'
-           }}>
-            <svg style={{ width: '24px', height: '24px', color: 'white' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197m13.5-9a2.5 2.5 0 11-5 0 2.5 2.5 0 015 0z" />
-            </svg>
-          </div>
-          <div>
-                         <h1 style={{
-               fontSize: '36px',
-               fontWeight: 'bold',
-               background: 'linear-gradient(135deg, #07A698 0%, #059a8c 100%)',
-               WebkitBackgroundClip: 'text',
-               WebkitTextFillColor: 'transparent',
-               margin: '0'
-             }}>
-              Enrolled Students
-            </h1>
-            <p style={{ color: '#666', margin: '4px 0 0 0', fontSize: '18px' }}>
-              Manage and view all students actively enrolled in courses
-            </p>
-          </div>
-        </div>
-        
-        {/* Stats Cards */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
-          gap: '24px',
-          marginBottom: '32px'
-        }}>
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-            border: '1px solid #e5e7eb',
-            padding: '24px',
-            transition: 'box-shadow 0.2s'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                backgroundColor: '#dbeafe',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: '16px'
-              }}>
-                <svg style={{ width: '20px', height: '20px', color: '#2563eb' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              </div>
-              <div>
-                <p style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: '0' }}>Total Students</p>
-                <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: '0' }}>{filteredStudents.length}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-            border: '1px solid #e5e7eb',
-            padding: '24px',
-            transition: 'box-shadow 0.2s'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                                 backgroundColor: '#e6f7f5',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: '16px'
-              }}>
-                                 <svg style={{ width: '20px', height: '20px', color: '#07A698' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.746 0 3.332.477 4.5 1.253v13C19.832 18.477 18.246 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
-              </div>
-              <div>
-                <p style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: '0' }}>Available Courses</p>
-                <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: '0' }}>{courses.length}</p>
-              </div>
-            </div>
-          </div>
-          
-          <div style={{
-            backgroundColor: 'white',
-            borderRadius: '12px',
-            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-            border: '1px solid #e5e7eb',
-            padding: '24px',
-            transition: 'box-shadow 0.2s'
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center' }}>
-              <div style={{
-                width: '40px',
-                height: '40px',
-                backgroundColor: '#f3e8ff',
-                borderRadius: '8px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                marginRight: '16px'
-              }}>
-                <svg style={{ width: '20px', height: '20px', color: '#9333ea' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <div>
-                <p style={{ fontSize: '14px', fontWeight: '500', color: '#6b7280', margin: '0' }}>Active Enrollments</p>
-                <p style={{ fontSize: '24px', fontWeight: 'bold', color: '#111827', margin: '0' }}>
-                  {courses.reduce((total, course) => {
-                    const students = course.studentsEnrolled;
-                    if (Array.isArray(students)) {
-                      return total + students.length;
-                    } else if (students && typeof students === 'object') {
-                      return total + Object.values(students).length;
-                    } else {
-                      return total;
-                    }
-                  }, 0)}
-                </p>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
+      
       
       {/* Filter Section */}
       <div style={{
@@ -267,7 +121,9 @@ export default function EnrolledStudents() {
         boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
         border: '1px solid #e5e7eb',
         padding: '24px',
-        marginBottom: '32px'
+        marginBottom: '32px',
+        marginTop: '20px'
+
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
           <label style={{ 

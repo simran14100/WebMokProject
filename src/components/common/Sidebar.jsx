@@ -37,13 +37,118 @@ const BORDER = "#e0e0e0";
 const TEXT_DARK = "#191A1F";
 
 const getSidebarLinks = (user) => {
-  // Admin UI for both Admin and Instructor
-  if (user?.accountType === 'Admin' || user?.accountType === 'Instructor') {
+  // Admin UI for Admin
+  if (user?.accountType === 'Admin') {
     return [
       {
         id: 1,
         name: "Dashboard",
         path: "/admin/dashboard",
+        icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} />,
+      },
+      // CONTENT MANAGEMENT - Section Header
+      {
+        id: 2,
+        name: "CONTENT MANAGEMENT",
+        isHeader: true,
+        icon: <VscFiles style={{ fontSize: 20, color: ED_TEAL }} />,
+      },
+      {
+        id: 3,
+        name: "Category",
+        icon: <VscListTree style={{ fontSize: 20, color: ED_TEAL }} />,
+        subLinks: [
+          { name: "Create New Category", path: "/admin/categories/create" },
+          { name: "All Categories", path: "/admin/categories/allCategories" }
+        ]
+      },
+      {
+        id: 4,
+        name: "Sub Category", 
+        icon: <VscListFlat style={{ fontSize: 20, color: ED_TEAL }} />,
+        subLinks: [
+          { name: "Create New Sub Category", path: "/admin/subcategories/create" },
+          { name: "All Sub Categories", path: "/admin/subcategories/allSubCategories" }
+        ]
+      },
+      {
+        id: 5,
+        name: "Course", 
+        icon: <VscBook style={{ fontSize: 20, color: ED_TEAL }} />,
+        subLinks: [
+          { name: "Create New Course", path: "/admin/course/create" },
+          // { name: "Create New Scrom Course", path: "/admin/course/scromCourse" },
+          // { name: "All Scrom Course", path: "/admin/course/allScromCourses" },
+          { name: "All Courses", path: "/admin/course/allCourses" },
+        ]
+      },
+      // BATCH MANAGEMENT - Section Header
+      {
+        id: 6,
+        name: "BATCH MANAGEMENT",
+        isHeader: true,
+        icon: <VscOrganization style={{ fontSize: 20, color: ED_TEAL }} />,
+      },
+      {
+        id: 7,
+        name: "Batch",
+        icon: <VscVersions style={{ fontSize: 20, color: ED_TEAL }} />,
+        subLinks: [
+          { name: "Create Batch", path: "/admin/batches/create" },
+          { name: "All Batches", path: "/admin/batches" }
+        ]
+      },
+      // STUDENT MANAGEMENT - Section Header
+      {
+        id: 8,
+        name: "STUDENT MANAGEMENT",
+        isHeader: true,
+        icon: <VscMortarBoard style={{ fontSize: 20, color: ED_TEAL }} />,
+      },
+      {
+        id: 9,
+        name: "Students",
+        icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} />,
+        subLinks: [
+          { name: "Create New Student", path: "/admin/students/create" },
+          { name: "All Students", path: "/admin/students" }
+        ]
+      },
+      // USER MANAGEMENT - Section Header
+      {
+        id: 10,
+        name: "USER MANAGEMENT", 
+        isHeader: true,
+        icon: <VscGear style={{ fontSize: 20, color: ED_TEAL }} />,
+      },
+      {
+        id: 11,
+        name: "Users",
+        icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} />,
+        subLinks: [
+          { name: "Create User", path: "/admin/users/create" },
+          { name: "All Users", path: "/admin/all-users" }
+        ]
+      },
+      {
+        id: 13,
+        name: "User Type",
+        icon: <VscVersions style={{ fontSize: 20, color: ED_TEAL }} />,
+        subLinks: [
+          { name: "Create User Type", path: "/admin/user-types/create" },
+          { name: "All User Types", path: "/admin/user-types" }
+        ]
+      },
+    ];
+  }
+
+  // Instructor UI - same menu, but Dashboard points to instructor dashboard
+  if (user?.accountType === 'Instructor') {
+    return [
+      {
+        id: 1,
+        name: "Dashboard",
+        path: "/instructor/dashboard",
         icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} />,
       },
       // CONTENT MANAGEMENT - Section Header

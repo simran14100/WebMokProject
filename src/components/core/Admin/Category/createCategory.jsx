@@ -420,7 +420,7 @@ export default function CreateCategory() {
 
           .category-form-section {
             max-width: 800px;
-            margin: 0 auto;
+            margin-left: 5px;
           }
 
           .form-card {

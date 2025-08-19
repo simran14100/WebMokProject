@@ -13,7 +13,9 @@ exports.createAdmissionConfirmation = async (studentId, courseId, paymentDetails
                 paymentId: paymentDetails.paymentId,
                 amount: paymentDetails.amount,
                 paidAt: paymentDetails.paidAt
-            }
+            },
+            // Auto-confirm on successful Razorpay verification
+            status: 'Confirmed'
         });
 
         return admissionConfirmation;

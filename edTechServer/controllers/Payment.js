@@ -134,20 +134,20 @@ exports.verifyPayment = async (req, res) => {
 
   let body = razorpay_order_id + "|" + razorpay_payment_id
 
-  console.log("raz- secreat " , process.env.RAZORPAY_SECRET)
-  console.log("raz-key" , process.env.RAZORPAY_KEY)
+  console.log("razorpay key id:" , process.env.RAZORPAY_KEY_ID)
+  console.log("razorpay key secret present:" , !!process.env.RAZORPAY_KEY_SECRET)
   const expectedSignature = crypto
-    .createHmac("sha256", process.env.RAZORPAY_SECRET)
+    .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
     .update(body.toString())
     .digest("hex")
 
 
   if (expectedSignature === razorpay_signature) {
-    await enrollStudents(courses, userId, res)
+    await enrollStudents(courses, userId, res, req.body)
     return res.status(200).json({ success: true, message: "Payment Verified" })
   }
 
-  return res.status(200).json({ success: false, message: "Payment Failed" })
+  return res.status(400).json({ success: false, message: "Payment Failed - Invalid signature" })
 }
 
 

@@ -170,13 +170,10 @@ router.post("/addSubSection", auth, (req, res, next) => {
 }, createSubSection)
 // Get all Courses Under a Specific Instructor
 
-// Get all Registered Courses
-router.get("/getAllCourses", auth, isAdminLevel, getAllCourses)
-// Get Details for a Specific Courses
-router.post("/getCourseDetails", auth, isAdminLevel, getCourseDetails)
-
-// Get Details for a Specific Courses
-router.post("/getFullCourseDetails", auth, isAdminLevel, getFullCourseDetails)
+// Public Course queries (viewable by anyone)
+router.get("/getAllCourses", getAllCourses)
+router.post("/getCourseDetails", getCourseDetails)
+router.post("/getFullCourseDetails", getFullCourseDetails)
 // To Update Course Progress
 router.post("/updateCourseProgress", auth, isStudent, isAdminLevel, updateCourseProgress)
 // To get Course Progress

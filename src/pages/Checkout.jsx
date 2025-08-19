@@ -414,7 +414,7 @@ const ED_TEAL_DARK = '#059a8c';
 
   const handleRemoveFromCart = async (courseId) => {
     try {
-      await removeFromCart(courseId, token);
+      await removeFromCart({ courseId }, token);
       await fetchCartData(); // Refresh cart data
       toast.success("Item removed from cart");
     } catch (error) {
@@ -508,7 +508,34 @@ const ED_TEAL_DARK = '#059a8c';
         email: user.email
       },
       handler: async function(response) {
-        // ... verification logic ...
+        console.log("Razorpay success handler response:", response)
+        const verifyToast = toast.loading("Verifying payment...")
+        try {
+          const payload = { ...response, courses: courseIds }
+          console.log("Sending verify payload:", payload)
+          const verifyRes = await apiConnector(
+            "POST",
+            "/api/v1/payment/verifyPayment",
+            payload,
+            { Authorization: `Bearer ${token}` }
+          )
+          console.log("Verify response:", verifyRes)
+          if (!verifyRes?.data?.success) {
+            throw new Error(verifyRes?.data?.message || "Payment verification failed")
+          }
+          toast.success("Payment successful. You are enrolled!")
+          // Clear cart (server-side) if applicable
+          try { await clearCart(token) } catch (e) { console.warn("clearCart failed", e) }
+          setEnrollmentStatus(true)
+          navigate("/dashboard/enrolled-courses")
+        } catch (err) {
+          console.error("Payment verification error:", err)
+          setPaymentVerificationFailed(true)
+          const backendMsg = err?.response?.data?.message || err?.message || "Payment verification failed"
+          toast.error(backendMsg)
+        } finally {
+          toast.dismiss(verifyToast)
+        }
       },
       theme: {
         color: "#07A698"
@@ -516,6 +543,10 @@ const ED_TEAL_DARK = '#059a8c';
     };
 
     const rzp = new window.Razorpay(options);
+    rzp.on("payment.failed", function (resp) {
+      console.error("Razorpay payment.failed:", resp)
+      toast.error(resp?.error?.description || "Payment failed. Please try again.")
+    })
     rzp.open();
 
   } catch (error) {
