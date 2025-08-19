@@ -69,6 +69,39 @@ if (!token && req.cookies.token) {
 		});
 	}
 };
+
+// Capability-based middleware using dynamic UserType flags
+exports.isContentManager = async (req, res, next) => {
+  try {
+    const userDetails = await User.findOne({ email: req.user.email }).populate('userType');
+    // If userType exists and flag is true, allow
+    if (userDetails.userType && userDetails.userType.contentManagement) {
+      return next();
+    }
+    // Fallback: allow legacy role Content-management or Admin
+    if (["Content-management", "Admin", "SuperAdmin"].includes(userDetails.accountType)) {
+      return next();
+    }
+    return res.status(403).json({ success: false, message: 'Content management access denied' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "User capability can't be verified" });
+  }
+};
+
+exports.isTrainerManager = async (req, res, next) => {
+  try {
+    const userDetails = await User.findOne({ email: req.user.email }).populate('userType');
+    if (userDetails.userType && userDetails.userType.trainerManagement) {
+      return next();
+    }
+    if (["Instructor", "Admin", "SuperAdmin"].includes(userDetails.accountType)) {
+      return next();
+    }
+    return res.status(403).json({ success: false, message: 'Trainer management access denied' });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: "User capability can't be verified" });
+  }
+};
 exports.isStudent = async (req, res, next) => {
 	try {
 		const userDetails = await User.findOne({ email: req.user.email });
@@ -172,11 +205,11 @@ exports.isAdminLevel = async (req, res, next) => {
   try {
     const userDetails = await User.findOne({ email: req.user.email });
 
-    // Include Instructor as admin-level access
-    if (!["Admin", "SuperAdmin", "Staff", "Instructor"].includes(userDetails.accountType)) {
+    // Include Instructor and Content-management as admin-level access
+    if (!["Admin", "SuperAdmin", "Staff", "Instructor", "Content-management"].includes(userDetails.accountType)) {
       return res.status(401).json({
         success: false,
-        message: "This is a Protected Route for Admin Level Users (Admin, SuperAdmin, Staff, Instructor)",
+        message: "This is a Protected Route for Admin Level Users (Admin, SuperAdmin, Staff, Instructor, Content-management)",
       });
     }
     next();

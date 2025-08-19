@@ -45,8 +45,8 @@ export const RoleBasedLinks = {
             path: "/admin/dashboard",
         },
         {
-            title: "Manage Users",
-            path: "/admin/users",
+            title: "All Users",
+            path: "/admin/all-users",
         },
         {
             title: "Manage Categories",
@@ -59,8 +59,8 @@ export const RoleBasedLinks = {
             path: "/admin/dashboard",
         },
         {
-            title: "Manage Users",
-            path: "/admin/users",
+            title: "All Users",
+            path: "/admin/all-users",
         },
         {
             title: "Manage Categories",
@@ -77,8 +77,8 @@ export const RoleBasedLinks = {
             path: "/admin/dashboard",
         },
         {
-            title: "Manage Users",
-            path: "/admin/users",
+            title: "All Users",
+            path: "/admin/all-users",
         },
     ],
 }; 

@@ -20,6 +20,7 @@ const {
 // Import batch controllers
 const { createBatch, listBatches, exportBatches, getBatchById, updateBatch, deleteBatch, addStudentToBatch, removeStudentFromBatch, listBatchStudents, listBatchCourses, addCourseToBatch, removeCourseFromBatch, addLiveClassToBatch, listBatchTrainers, addTrainerToBatch, removeTrainerFromBatch } = require("../controllers/Batch");
 const { createAdminReview, deleteReview } = require("../controllers/RatingAndReview");
+const { createUserType, listUserTypes } = require("../controllers/UserType");
 const { createMeetEvent } = require("../controllers/GoogleCalendar");
 
 // Import middleware
@@ -60,6 +61,12 @@ router.post("/create-student", auth, isAdmin, createStudentByAdmin);
 router.post("/create-user", auth, isAdmin, createUserByAdmin);
 
 // ***********************************
+// User Types (Admin-level)
+// ***********************************
+router.post("/user-types", auth, isAdminLevel, createUserType);
+router.get("/user-types", auth, isAdminLevel, listUserTypes);
+
+// ***********************************
 // Bulk Students (Admin only)
 // ***********************************
 // Download CSV template
@@ -70,59 +77,59 @@ router.post("/students/bulk-upload", auth, isAdmin, bulkCreateStudents);
 // ********************************************************************************************************
 //                                      Batch Management routes (Admin only)
 // ********************************************************************************************************
-// Create a new batch (Admin only)
-router.post("/create-batch", auth, isAdmin, createBatch);
+// Create a new batch (Admin-level)
+router.post("/create-batch", auth, isAdminLevel, createBatch);
 
-// List batches with pagination and search (Admin only)
-router.get("/batches", auth, isAdmin, listBatches);
+// List batches with pagination and search (Admin-level)
+router.get("/batches", auth, isAdminLevel, listBatches);
 
-// Export batches as CSV (Admin only)
-router.get("/batches/export", auth, isAdmin, exportBatches);
+// Export batches as CSV (Admin-level)
+router.get("/batches/export", auth, isAdminLevel, exportBatches);
 
-// Get single batch by ID (Admin only) - keep after export to avoid capturing 'export' as :batchId
-router.get("/batches/:batchId", auth, isAdmin, getBatchById);
+// Get single batch by ID (Admin-level) - keep after export to avoid capturing 'export' as :batchId
+router.get("/batches/:batchId", auth, isAdminLevel, getBatchById);
 
-// Update batch by ID (Admin only)
-router.patch("/batches/:batchId", auth, isAdmin, updateBatch);
+// Update batch by ID (Admin-level)
+router.patch("/batches/:batchId", auth, isAdminLevel, updateBatch);
 
-// Delete batch by ID (Admin only)
-router.delete("/batches/:batchId", auth, isAdmin, deleteBatch);
+// Delete batch by ID (Admin-level)
+router.delete("/batches/:batchId", auth, isAdminLevel, deleteBatch);
 
 // ***********************************
 // Batch Students management (Admin only)
 // ***********************************
 // List students in a batch
-router.get("/batches/:batchId/students", auth, isAdmin, listBatchStudents);
+router.get("/batches/:batchId/students", auth, isAdminLevel, listBatchStudents);
 // Assign student to batch
-router.post("/batches/:batchId/students", auth, isAdmin, addStudentToBatch);
+router.post("/batches/:batchId/students", auth, isAdminLevel, addStudentToBatch);
 // Remove student from batch
-router.delete("/batches/:batchId/students/:studentId", auth, isAdmin, removeStudentFromBatch);
+router.delete("/batches/:batchId/students/:studentId", auth, isAdminLevel, removeStudentFromBatch);
 
 // ***********************************
 // Batch Trainers management (Admin only)
 // ***********************************
 // List trainers in a batch
-router.get("/batches/:batchId/trainers", auth, isAdmin, listBatchTrainers);
+router.get("/batches/:batchId/trainers", auth, isAdminLevel, listBatchTrainers);
 // Assign trainer to batch
-router.post("/batches/:batchId/trainers", auth, isAdmin, addTrainerToBatch);
+router.post("/batches/:batchId/trainers", auth, isAdminLevel, addTrainerToBatch);
 // Remove trainer from batch
-router.delete("/batches/:batchId/trainers/:trainerId", auth, isAdmin, removeTrainerFromBatch);
+router.delete("/batches/:batchId/trainers/:trainerId", auth, isAdminLevel, removeTrainerFromBatch);
 
 // ***********************************
 // Batch Courses management (Admin only)
 // ***********************************
 // List courses in a batch
-router.get("/batches/:batchId/courses", auth, isAdmin, listBatchCourses);
+router.get("/batches/:batchId/courses", auth, isAdminLevel, listBatchCourses);
 // Add course to batch
-router.post("/batches/:batchId/courses", auth, isAdmin, addCourseToBatch);
+router.post("/batches/:batchId/courses", auth, isAdminLevel, addCourseToBatch);
 // Remove course from batch
-router.delete("/batches/:batchId/courses/:courseId", auth, isAdmin, removeCourseFromBatch);
+router.delete("/batches/:batchId/courses/:courseId", auth, isAdminLevel, removeCourseFromBatch);
 
 // ***********************************
 // Batch Live Classes (Admin only)
 // ***********************************
 // Create a live class for a batch
-router.post("/batches/:batchId/live-classes", auth, isAdmin, addLiveClassToBatch);
+router.post("/batches/:batchId/live-classes", auth, isAdminLevel, addLiveClassToBatch);
 
 // ***********************************
 // Admin Reviews (Admin/SuperAdmin)

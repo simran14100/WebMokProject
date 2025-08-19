@@ -295,7 +295,7 @@ exports.login = async (req, res) => {
       });
     }
 
-    const user = await User.findOne({ email }).populate("additionalDetails");
+    const user = await User.findOne({ email }).populate("additionalDetails").populate("userType");
     if (!user) {
       return res.status(404).json({
         success: false,
@@ -331,6 +331,12 @@ exports.login = async (req, res) => {
         user: {
           ...user._doc,
           password: undefined,
+          userType: user.userType ? {
+            _id: user.userType._id,
+            name: user.userType.name,
+            contentManagement: user.userType.contentManagement,
+            trainerManagement: user.userType.trainerManagement,
+          } : null,
         },
         // Still return token for mobile clients
         token,
@@ -422,7 +428,7 @@ exports.changePassword = async (req, res) => {
 exports.refreshToken = async (req, res) => {
   try {
     // Get user from the request (set by auth middleware)
-    const user = await User.findById(req.user.id).populate("additionalDetails");
+    const user = await User.findById(req.user.id).populate("additionalDetails").populate("userType");
     
     if (!user) {
       return res.status(401).json({
@@ -466,6 +472,12 @@ exports.refreshToken = async (req, res) => {
         enrollmentFeePaid: user.enrollmentFeePaid,
         approved: user.approved,
         additionalDetails: user.additionalDetails,
+        userType: user.userType ? {
+          _id: user.userType._id,
+          name: user.userType.name,
+          contentManagement: user.userType.contentManagement,
+          trainerManagement: user.userType.trainerManagement,
+        } : null,
       },
     });
   } catch (error) {

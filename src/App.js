@@ -1,5 +1,5 @@
 import "./App.css";
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
 import { Provider, useSelector } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import store, { persistor } from './store';
@@ -26,7 +26,7 @@ import Settings from "./components/common/setting/Settings";
 import AdminLayout from './components/common/AdminLayout';
 import EnrolledStudents from './pages/EnrolledStudents';
 import RegisteredStudents from './pages/RegisteredStudents';
-import ManageUsers from './pages/ManageUsers';
+import AllUsers from './components/core/Admin/UserManagement/User/AllUser';
 import Category from "./pages/Category";
 import InstructorLayout from './components/common/InstructorLayout';
 import Cart from './pages/Cart';
@@ -51,6 +51,9 @@ import EditPage from './components/core/Admin/BatchManagement/EditPage';
 import CreateStudent from './components/core/Admin/StudentManagement/CreateStudent';
 import CreateStudentsLanding from './components/core/Admin/StudentManagement/CreateStudentsLanding';
 import BulkUploadStudents from './components/core/Admin/StudentManagement/BulkUploadStudents';
+import CreateUserType from './components/core/Admin/UserManagement/UserType/CreateUserType';
+import AllUserTypes from './components/core/Admin/UserManagement/UserType/AllUserTypes';
+
 
 
 // Debug Redux store on app start
@@ -231,9 +234,60 @@ function AppRoutes() {
               <NewUser/>
             </ProtectedRoute>
           } />
-          <Route path="/admin/users" element={
+          <Route path="/admin/user-types/create" element={
             <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
-              <ManageUsers />
+              <CreateUserType />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/user-types" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+              <AllUserTypes />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/users" element={<Navigate to="/admin/all-users" replace />} />
+          <Route path="/admin/all-users" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+              <AllUsers />
+            </ProtectedRoute>
+          } />
+        </>
+      )}
+
+      {/* Content-manager limited Admin-like Routes */}
+      {user?.accountType === ACCOUNT_TYPE.CONTENT_MANAGER && (
+        <>
+          <Route path="/admin/dashboard" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.CONTENT_MANAGER, ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+
+          {/* Course Management (Content-manager) */}
+          <Route path="/admin/course/create" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.CONTENT_MANAGER, ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+              <CreateCourse />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/course/allCourses" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.CONTENT_MANAGER, ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+              <AllCourse />
+            </ProtectedRoute>
+          } />
+
+          {/* Batch Management (Content-manager) */}
+          <Route path="/admin/batches/create" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.CONTENT_MANAGER, ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+              <CreateBatch />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/batches" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.CONTENT_MANAGER, ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+              <AllBatches />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/batches/:batchId/edit" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.CONTENT_MANAGER, ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+              <EditPage />
             </ProtectedRoute>
           } />
         </>

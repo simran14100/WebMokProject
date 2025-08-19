@@ -87,13 +87,13 @@ export async function downloadStudentsTemplate(token) {
 }
 
 // Create a generic user by Admin (Admin, Instructor, Content-management, Student)
-export async function createUserByAdmin({ name, email, phone, password, confirmPassword, accountType, enrollmentFeePaid = false }, token) {
+export async function createUserByAdmin({ name, email, phone, password, confirmPassword, accountType, enrollmentFeePaid = false, userTypeId = null }, token) {
   const toastId = toast.loading("Creating user...")
   try {
     const response = await apiConnector(
       "POST",
       admin.CREATE_USER_API,
-      { name, email, phone, password, confirmPassword, accountType, enrollmentFeePaid },
+      { name, email, phone, password, confirmPassword, accountType, enrollmentFeePaid, userTypeId },
       { Authorization: `Bearer ${token}` }
     )
 

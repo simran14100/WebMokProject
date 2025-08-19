@@ -59,12 +59,16 @@ const { auth, isApprovedInstructor, isStudent, isAdminLevel, isAdminOrSuperAdmin
 
 // Courses can be created by Admins or approved Instructors
 router.post("/createCourse", auth, (req, res, next) => {
-  if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
+  if (
+    req.user.accountType === 'Admin' ||
+    req.user.accountType === 'Content-management' ||
+    (req.user.accountType === 'Instructor' && req.user.isApproved)
+  ) {
     next();
   } else {
     return res.status(403).json({
       success: false,
-      message: 'You need to be an Admin or approved Instructor to perform this action'
+      message: 'You need to be an Admin, Content-manager, or approved Instructor to perform this action'
     });
   }
 }, createCourse);

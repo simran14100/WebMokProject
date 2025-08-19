@@ -80,6 +80,8 @@ export const admin = {
     EXPORT_BATCHES_API: "/api/v1/admin/batches/export",
     CREATE_STUDENT_API: "/api/v1/admin/create-student",
     CREATE_USER_API: "/api/v1/admin/create-user",
+    // User Types
+    USER_TYPES_API: "/api/v1/admin/user-types",
     // Bulk Students
     STUDENTS_TEMPLATE_API: "/api/v1/admin/students/template",
     BULK_UPLOAD_STUDENTS_API: "/api/v1/admin/students/bulk-upload",

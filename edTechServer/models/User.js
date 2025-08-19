@@ -77,6 +77,12 @@ const userSchema = new mongoose.Schema({
             ref:"Course",
         }
     ],
+    // Reference to dynamic UserType for capability flags
+    userType: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "UserType",
+        default: null,
+    },
     image:{
         type:String,
         

@@ -1,9 +1,11 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import DashboardLayout from '../../../../common/DashboardLayout';
 import { createUserByAdmin } from '../../../../../services/operations/adminApi';
+import { apiConnector } from '../../../../../services/apiConnector';
+import { admin } from '../../../../../services/apis';
 
 // Color constants
 const ED_TEAL = '#07A698';
@@ -24,16 +26,41 @@ const FormPage = () => {
   } = useForm();
 
   const token = useSelector((state) => state.auth.token);
+  const [userTypes, setUserTypes] = useState([]);
+  const [loadingUserTypes, setLoadingUserTypes] = useState(false);
+
+  useEffect(() => {
+    const fetchUserTypes = async () => {
+      setLoadingUserTypes(true);
+      try {
+        const res = await apiConnector(
+          'GET',
+          admin.USER_TYPES_API,
+          {},
+          token ? { Authorization: `Bearer ${token}` } : {}
+        );
+        // Expecting { success, data: { userTypes: [...] } } or array
+        const payload = res.data?.data;
+        const list = Array.isArray(payload?.userTypes) ? payload.userTypes : (Array.isArray(payload) ? payload : []);
+        setUserTypes(list);
+      } catch (e) {
+        console.log('FETCH USER TYPES ERROR............', e);
+        toast.error(e.response?.data?.message || e.message || 'Failed to fetch user types');
+      } finally {
+        setLoadingUserTypes(false);
+      }
+    };
+    fetchUserTypes();
+  }, [token]);
 
   const onSubmit = async (form) => {
-    const mapping = {
-      admin: 'Admin',
-      trainer: 'Instructor',
-      contentManager: 'Content-management',
-    };
-    const accountType = mapping[form.userType];
-    if (!accountType) {
-      toast.error('Invalid user type');
+    // Keep legacy accountType mapping for now; default to Instructor if not provided
+    const accountType = form.accountType || 'Instructor';
+
+    // Validate userTypeId if list is present
+    const userTypeId = form.userTypeId || '';
+    if (!userTypeId) {
+      toast.error('Please select a User Type');
       return;
     }
 
@@ -45,6 +72,7 @@ const FormPage = () => {
         password: form.password,
         confirmPassword: form.confirmPassword,
         accountType,
+        userTypeId,
       }, token);
       toast.success('User created successfully!');
       reset();
@@ -194,37 +222,73 @@ const FormPage = () => {
             )}
           </div>
 
-          {/* User Type Dropdown */}
+          {/* User Type Dropdown (Dynamic) */}
           <div style={{ marginBottom: '20px' }}>
-            <label style={fontStyles.label} htmlFor="userType">User Type</label>
+            <label style={fontStyles.label} htmlFor="userTypeId">User Type</label>
             <select
-              id="userType"
+              id="userTypeId"
               style={{
                 ...fontStyles.input,
                 width: '100%',
                 padding: '12px 15px',
                 borderRadius: '4px',
-                border: `1px solid ${errors.userType ? ED_RED : '#ddd'}`,
-                backgroundColor: errors.userType ? `${ED_RED}10` : WHITE,
+                border: `1px solid ${errors.userTypeId ? ED_RED : '#ddd'}`,
+                backgroundColor: errors.userTypeId ? `${ED_RED}10` : WHITE,
                 outline: 'none',
                 appearance: 'none',
                 backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2307A698' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
                 backgroundRepeat: 'no-repeat',
                 backgroundPosition: 'right 15px center',
               }}
-              {...register('userType', { required: 'User type is required' })}
+              disabled={loadingUserTypes}
+              {...register('userTypeId', { required: 'User type is required' })}
             >
-              <option value="">Select User Type</option>
-              <option value="admin">Admin</option>
-              <option value="trainer">Trainer</option>
-              <option value="contentManager">Content manager</option>
+              <option value="">{loadingUserTypes ? 'Loading...' : 'Select User Type'}</option>
+              {userTypes.map((ut) => (
+                <option key={ut._id} value={ut._id}>
+                  {ut.name}
+                </option>
+              ))}
             </select>
-            {errors.userType && (
+            {errors.userTypeId && (
               <span style={{ color: ED_RED, fontSize: '12px', marginTop: '5px', display: 'block' }}>
-                {errors.userType.message}
+                {errors.userTypeId.message}
               </span>
             )}
           </div>
+
+          {/* Account Type (legacy role) */}
+          {/* <div style={{ marginBottom: '20px' }}>
+            <label style={fontStyles.label} htmlFor="accountType">Account Type (Role)</label>
+            <select
+              id="accountType"
+              style={{
+                ...fontStyles.input,
+                width: '100%',
+                padding: '12px 15px',
+                borderRadius: '4px',
+                border: `1px solid ${errors.accountType ? ED_RED : '#ddd'}`,
+                backgroundColor: errors.accountType ? `${ED_RED}10` : WHITE,
+                outline: 'none',
+                appearance: 'none',
+                backgroundImage: `url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2307A698' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E")`,
+                backgroundRepeat: 'no-repeat',
+                backgroundPosition: 'right 15px center',
+              }}
+              defaultValue="Instructor"
+              {...register('accountType', { required: 'Account type is required' })}
+            >
+              <option value="Admin">Admin</option>
+              <option value="Instructor">Instructor</option>
+              <option value="Content-management">Content-management</option>
+              <option value="Student">Student</option>
+            </select>
+            {errors.accountType && (
+              <span style={{ color: ED_RED, fontSize: '12px', marginTop: '5px', display: 'block' }}>
+                {errors.accountType.message}
+              </span>
+            )}
+          </div> */}
 
           {/* Password Field */}
           <div style={{ marginBottom: '20px' }}>

@@ -105,7 +105,6 @@ const getSidebarLinks = (user) => {
         isHeader: true,
         icon: <VscMortarBoard style={{ fontSize: 20, color: ED_TEAL }} />,
       },
-
       {
         id: 9,
         name: "Students",
@@ -128,15 +127,66 @@ const getSidebarLinks = (user) => {
         icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} />,
         subLinks: [
           { name: "Create User", path: "/admin/users/create" },
-          { name: "All Users", path: "/admin/users" }
+          { name: "All Users", path: "/admin/all-users" }
         ]
-      }
+      },
+      {
+        id: 13,
+        name: "User Type",
+        icon: <VscVersions style={{ fontSize: 20, color: ED_TEAL }} />,
+        subLinks: [
+          { name: "Create User Type", path: "/admin/user-types/create" },
+          { name: "All User Types", path: "/admin/user-types" }
+        ]
+      },
     ];
   }
-  
-  // (No separate Instructor sidebar; they use Admin UI)
-  
-  // Student links
+
+  // Content-manager: limited admin-like UI (Course + Batch only)
+  if (user?.accountType === 'Content-management') {
+    return [
+      {
+        id: 1,
+        name: "Dashboard",
+        path: "/admin/dashboard",
+        icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} />,
+      },
+      // CONTENT MANAGEMENT - Section Header
+      {
+        id: 2,
+        name: "CONTENT MANAGEMENT",
+        isHeader: true,
+        icon: <VscFiles style={{ fontSize: 20, color: ED_TEAL }} />,
+      },
+      {
+        id: 5,
+        name: "Course", 
+        icon: <VscBook style={{ fontSize: 20, color: ED_TEAL }} />,
+        subLinks: [
+          { name: "Create New Course", path: "/admin/course/create" },
+          { name: "All Courses", path: "/admin/course/allCourses" },
+        ]
+      },
+      // BATCH MANAGEMENT - Section Header
+      {
+        id: 6,
+        name: "BATCH MANAGEMENT",
+        isHeader: true,
+        icon: <VscOrganization style={{ fontSize: 20, color: ED_TEAL }} />,
+      },
+      {
+        id: 7,
+        name: "Batch",
+        icon: <VscVersions style={{ fontSize: 20, color: ED_TEAL }} />,
+        subLinks: [
+          { name: "Create Batch", path: "/admin/batches/create" },
+          { name: "All Batches", path: "/admin/batches" }
+        ]
+      },
+    ];
+  }
+
+  // Student links (default)
   return [
     {
       id: 1,

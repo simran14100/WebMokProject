@@ -4,6 +4,7 @@ import { logout as logoutAction } from "../store/slices/authSlice";
 import { clearUser } from "../store/slices/profileSlice";
 import { refreshToken } from "./operations/authApi";
 import { showError } from "../utils/toast";
+import { isUserLoggingOut } from "../utils/sessionFlags";
 
 
 export const axiosInstance = axios.create({
@@ -68,6 +69,14 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   async (error) => {
+    // If user initiated a logout, don't run 401 logic or show toasts
+    try {
+      if (typeof isUserLoggingOut === 'function' && isUserLoggingOut()) {
+        return Promise.reject(error);
+      }
+    } catch (e) {
+      // noop
+    }
     const originalRequest = error.config;
     
     if (error.response?.status === 401 && !originalRequest._retry) {

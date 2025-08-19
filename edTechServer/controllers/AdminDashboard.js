@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const UserType = require('../models/UserType');
 const Course = require('../models/Course');
 const CourseProgress = require('../models/CourseProgress');
 const bcrypt = require('bcrypt');
@@ -336,7 +337,7 @@ exports.createStudentByAdmin = async (req, res) => {
 // Optional body for Student: { enrollmentFeePaid }
 exports.createUserByAdmin = async (req, res) => {
     try {
-        const { name, email, phone, password, confirmPassword, accountType, enrollmentFeePaid } = req.body;
+        const { name, email, phone, password, confirmPassword, accountType, enrollmentFeePaid, userTypeId } = req.body;
 
         if (!name || !email || !phone || !password || !confirmPassword || !accountType) {
             return res.status(400).json({ success: false, message: 'All fields are required' });
@@ -373,6 +374,15 @@ exports.createUserByAdmin = async (req, res) => {
         const isStudent = accountType === 'Student';
         const enrollmentPaid = isStudent ? Boolean(enrollmentFeePaid) : false;
 
+        // Validate optional userTypeId
+        let userType = null;
+        if (userTypeId) {
+            userType = await UserType.findById(userTypeId);
+            if (!userType) {
+                return res.status(400).json({ success: false, message: 'Invalid userTypeId' });
+            }
+        }
+
         const user = await User.create({
             firstName,
             lastName,
@@ -386,6 +396,7 @@ exports.createUserByAdmin = async (req, res) => {
             paymentStatus: enrollmentPaid ? 'Completed' : (isStudent ? 'Pending' : undefined),
             additionalDetails: profileDetails._id,
             image: `https://api.dicebear.com/5.x/initials/svg?seed=${encodeURIComponent(firstName + ' ' + (lastName || ''))}`,
+            userType: userType ? userType._id : null,
         });
 
         return res.status(201).json({
@@ -401,6 +412,7 @@ exports.createUserByAdmin = async (req, res) => {
                 approved: user.approved,
                 enrollmentFeePaid: user.enrollmentFeePaid,
                 paymentStatus: user.paymentStatus,
+                userType: user.userType,
             },
         });
     } catch (error) {

@@ -4,7 +4,8 @@ export const ACCOUNT_TYPE = {
     INSTRUCTOR: "Instructor", 
     ADMIN: "Admin",
     SUPER_ADMIN: "SuperAdmin",
-    STAFF: "Staff"
+    STAFF: "Staff",
+    CONTENT_MANAGER: "Content-management",
 };
 
 // API Endpoints
