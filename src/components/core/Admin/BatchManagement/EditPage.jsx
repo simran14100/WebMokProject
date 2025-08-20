@@ -3452,10 +3452,10 @@ export default function EditPage() {
                 </div>
               </div>
 
-              {/* Temporary Students */}
-              {tempStudents.length === 0 ? (
+              {/* Assigned Students */}
+              {students.length === 0 ? (
                 <div style={{ marginTop: 8, color: TEXT_LIGHT }}>
-                  No temporary students in this batch.
+                  No students assigned to this batch.
                 </div>
               ) : (
                 <div style={{ marginTop: 24 }} className="data-table-container">
@@ -3466,32 +3466,29 @@ export default function EditPage() {
                         <th>Name</th>
                         <th>Email</th>
                         <th>Phone</th>
-                        <th>Enrollment Fee Paid</th>
                         <th>Actions</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {tempStudents
+                      {students
                         .slice(
-                          tempStudentPageIndex * tempStudentRowsPerPage,
-                          tempStudentPageIndex * tempStudentRowsPerPage + tempStudentRowsPerPage
+                          studentPageIndex * studentRowsPerPage,
+                          studentPageIndex * studentRowsPerPage + studentRowsPerPage
                         )
-                        .map((t) => {
-                          const id = t._id || t.id || "—";
-                          const name = t.name || [t.firstName, t.lastName].filter(Boolean).join(" ") || "—";
-                          const email = t.email || "—";
-                          const phone = t.phone || t.mobile || t.contactNumber || "—";
-                          const paid = !!t.enrollmentFeePaid;
+                        .map((stu) => {
+                          const id = stu._id || stu.id || stu.userId || "—";
+                          const name = stu.name || [stu.firstName, stu.lastName].filter(Boolean).join(" ") || "—";
+                          const email = stu.email || "—";
+                          const phone = stu.phone || stu.mobile || stu.contactNumber || "—";
                           return (
-                            <tr key={`temp-${id}`}>
+                            <tr key={`stu-${id}`}>
                               <td>{String(id).slice(-6)}</td>
                               <td>{name}</td>
                               <td>{email}</td>
                               <td>{phone}</td>
-                              <td>{paid ? "Yes" : "No"}</td>
                               <td>
                                 <button
-                                  onClick={() => removeTempStudent(t._id || t.id)}
+                                  onClick={() => removeStudent(stu._id || stu.id || stu.userId)}
                                   className="danger-button small"
                                 >
                                   Remove
@@ -3508,10 +3505,10 @@ export default function EditPage() {
                     <div className="rows-per-page">
                       <span>Rows per page:</span>
                       <select
-                        value={tempStudentRowsPerPage}
+                        value={studentRowsPerPage}
                         onChange={(e) => {
-                          setTempStudentRowsPerPage(Number(e.target.value));
-                          setTempStudentPageIndex(0);
+                          setStudentRowsPerPage(Number(e.target.value));
+                          setStudentPageIndex(0);
                         }}
                       >
                         <option value={5}>5</option>
@@ -3520,27 +3517,24 @@ export default function EditPage() {
                       </select>
                     </div>
                     <div className="page-info">
-                      {tempStudents.length > 0 && (
+                      {students.length > 0 && (
                         <>
-                          {tempStudentPageIndex * tempStudentRowsPerPage + 1}-
-                          {Math.min((tempStudentPageIndex + 1) * tempStudentRowsPerPage, tempStudents.length)} of {tempStudents.length}
+                          {studentPageIndex * studentRowsPerPage + 1}-
+                          {Math.min((studentPageIndex + 1) * studentRowsPerPage, students.length)} of {students.length}
                         </>
                       )}
                     </div>
                     <div className="pagination-buttons">
                       <button
-                        onClick={() => setTempStudentPageIndex((p) => Math.max(0, p - 1))}
+                        onClick={() => setStudentPageIndex((p) => Math.max(0, p - 1))}
                         className="pagination-button"
                       >
                         &lt;
                       </button>
                       <button
                         onClick={() =>
-                          setTempStudentPageIndex((p) =>
-                            Math.min(
-                              Math.ceil(tempStudents.length / tempStudentRowsPerPage) - 1,
-                              p + 1
-                            )
+                          setStudentPageIndex((p) =>
+                            (p + 1) * studentRowsPerPage < students.length ? p + 1 : p
                           )
                         }
                         className="pagination-button"
