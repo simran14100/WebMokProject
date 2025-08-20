@@ -141,6 +141,7 @@ const AdminDashboard = () => {
 
   const lineOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: { display: true, labels: { color: TEXT_DARK } },
       tooltip: { mode: "index", intersect: false },
@@ -170,6 +171,7 @@ const AdminDashboard = () => {
   };
   const doughnutOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: { legend: { display: true, position: 'bottom', labels: { color: TEXT_DARK } } },
     cutout: '65%',
   };
@@ -251,6 +253,7 @@ const AdminDashboard = () => {
       },
     ],
   };
+  const coursesVsStudentsMax = Math.max(totalCoursesCount, totalStudentsEnrolledCount);
   const coursesVsStudentsOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -266,9 +269,16 @@ const AdminDashboard = () => {
     },
     scales: {
       x: {
-        ticks: { color: TEXT_DARK, beginAtZero: true, precision: 0, font: { size: 11 } },
+        ticks: {
+          color: TEXT_DARK,
+          beginAtZero: true,
+          precision: 0,
+          font: { size: 11 },
+          callback: (value) => new Intl.NumberFormat('en-US', { notation: 'compact' }).format(value),
+        },
         grid: { color: '#f2f2f2' },
         border: { display: false },
+        suggestedMax: Math.ceil(coursesVsStudentsMax * 1.1),
       },
       y: {
         ticks: { color: TEXT_DARK, font: { size: 12 } },
@@ -294,6 +304,7 @@ const AdminDashboard = () => {
       },
     ],
   };
+  const regVsEnrollMax = Math.max(totalStudentsRegistered, totalStudentsEnrolled2);
   const regVsEnrollOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -309,9 +320,16 @@ const AdminDashboard = () => {
     },
     scales: {
       x: {
-        ticks: { color: TEXT_DARK, beginAtZero: true, precision: 0, font: { size: 11 } },
+        ticks: {
+          color: TEXT_DARK,
+          beginAtZero: true,
+          precision: 0,
+          font: { size: 11 },
+          callback: (value) => new Intl.NumberFormat('en-US', { notation: 'compact' }).format(value),
+        },
         grid: { color: '#f2f2f2' },
         border: { display: false },
+        suggestedMax: Math.ceil(regVsEnrollMax * 1.1),
       },
       y: {
         ticks: { color: TEXT_DARK, font: { size: 12 } },
@@ -404,10 +422,8 @@ const AdminDashboard = () => {
   };
 
   return (
-    
-
     <DashboardLayout>
-  <div style={{ maxWidth: "1200px", margin: "0 auto" , marginLeft: "240px" }}>
+  <div className="admin-container">
     <div style={{ textAlign: "center", marginBottom: "24px" }}>
       <h1
         style={{
@@ -424,14 +440,7 @@ const AdminDashboard = () => {
     </div>
 
     {/* KPI Cards */}
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "repeat(3, 1fr)",
-        gap: "16px",
-        marginBottom: "24px",
-      }}
-    >
+    <div className="kpi-grid">
       {cardOrder.map((card, idx) => (
         <div
           key={idx}
@@ -538,14 +547,7 @@ const AdminDashboard = () => {
     </div>
 
     {/* Charts Row: Donut + Area */}
-    <div
-      style={{
-        display: "grid",
-        gridTemplateColumns: "1fr 2fr",
-        gap: "16px",
-        marginBottom: "24px",
-      }}
-    >
+    <div className="charts-grid">
       <div
         style={{
           background: "#ffffff",
@@ -575,7 +577,9 @@ const AdminDashboard = () => {
           </div>
         ) : (
           <>
-            <Doughnut data={earningVsStudentData} options={doughnutOptions} />
+            <div className="chart-box">
+              <Doughnut data={earningVsStudentData} options={doughnutOptions} />
+            </div>
             {scaleInfo.label && (
               <div style={{ marginTop: 8, fontSize: 12, color: "#6b7280" }}>
                 Note: Earnings scaled in {scaleInfo.label} for visualization.
@@ -610,7 +614,9 @@ const AdminDashboard = () => {
         ) : areaLabels.length === 0 ? (
           <div style={{ color: "#191A1F" }}>No trend data yet.</div>
         ) : (
-          <Line data={lineData} options={lineOptions} />
+          <div className="line-box">
+            <Line data={lineData} options={lineOptions} />
+          </div>
         )}
       </div>
     </div>
@@ -624,7 +630,7 @@ const AdminDashboard = () => {
         padding: "16px",
         marginBottom: "16px",
         border: "1px solid #e0e0e0",
-        height: "180px",
+        minHeight: "180px",
       }}
     >
       <h2
@@ -642,7 +648,9 @@ const AdminDashboard = () => {
       ) : statsError ? (
         <div style={{ color: "#e53935" }}>{statsError}</div>
       ) : (
-        <Bar data={coursesVsStudentsData} options={coursesVsStudentsOptions} />
+        <div className="bar-box">
+          <Bar data={coursesVsStudentsData} options={coursesVsStudentsOptions} />
+        </div>
       )}
     </div>
 
@@ -655,7 +663,7 @@ const AdminDashboard = () => {
         padding: "16px",
         marginBottom: "16px",
         border: "1px solid #e0e0e0",
-        height: "180px",
+        minHeight: "180px",
       }}
     >
       <h2
@@ -673,7 +681,9 @@ const AdminDashboard = () => {
       ) : statsError ? (
         <div style={{ color: "#e53935" }}>{statsError}</div>
       ) : (
-        <Bar data={regVsEnrollData} options={regVsEnrollOptions} />
+        <div className="bar-box">
+          <Bar data={regVsEnrollData} options={regVsEnrollOptions} />
+        </div>
       )}
     </div>
 
@@ -707,11 +717,56 @@ const AdminDashboard = () => {
       ) : bLabels.length === 0 ? (
         <div style={{ color: "#191A1F" }}>No batch data yet.</div>
       ) : (
-        <div style={{ height: 260 }}>
+        <div className="batch-bar-box">
           <Bar data={batchBarData} options={batchBarOptions} />
         </div>
       )}
     </div>
+  <style jsx>{`
+    .admin-container {
+      max-width: 1200px;
+      margin-left: 0; /* mobile: no sidebar offset */
+      padding: 0 16px;
+      overflow-x: hidden;
+      margin-top: 20px; /* mobile top spacing */
+    }
+    .kpi-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (min-width: 640px) { /* sm */
+      .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+      .admin-container { margin-top: 8px; }
+    }
+    @media (min-width: 1024px) { /* lg */
+      .kpi-grid { grid-template-columns: repeat(3, 1fr); }
+      .admin-container { margin-top: 0; margin-left: 100px; }
+    }
+
+    .charts-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    @media (min-width: 1024px) { /* lg */
+      .charts-grid { grid-template-columns: 1fr 2fr; }
+    }
+
+    /* Chart containers for responsive heights */
+    .chart-box { height: 240px; }
+    .line-box { height: 220px; }
+    .bar-box { height: 200px; }
+    .batch-bar-box { height: 220px; }
+    @media (min-width: 640px) { /* sm */
+      .chart-box { height: 300px; }
+      .line-box { height: 260px; }
+      .bar-box { height: 220px; }
+      .batch-bar-box { height: 260px; }
+    }
+  `}</style>
   </div>
 </DashboardLayout>
 

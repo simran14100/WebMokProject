@@ -57,19 +57,19 @@ export default function AllUserTypes() {
 
   return (
     <DashboardLayout>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px', marginLeft: '250px' }}>
+      <div className="all-user-types-container">
         <h1 style={{ fontSize: 24, fontWeight: 800, color: ED_TEAL, marginBottom: 8 }}>All User Types</h1>
-        <div style={{ color: '#777', fontSize: 13, marginBottom: 16 }}>User Type > All User Types</div>
+        <div style={{ color: '#777', fontSize: 13, marginBottom: 16 }}>User Type {'>'} All User Types</div>
 
         <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          <div className="controls-row">
+            <div className="entries-row">
               <span style={{ color: TEXT_GRAY, fontSize: 13 }}>Show entries</span>
               <select value={limit} onChange={(e) => { setLimit(Number(e.target.value)); }} style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '6px 10px', background: BG }}>
                 {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
               </select>
             </div>
-            <input placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: 240, border: `1px solid ${BORDER}`, borderRadius: 8, padding: '8px 12px', background: '#fff' }} />
+            <input className="search-input" placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '8px 12px', background: '#fff' }} />
           </div>
         </div>
 
@@ -111,6 +111,50 @@ export default function AllUserTypes() {
           </div>
         )}
       </div>
+      <style jsx>{`
+        .all-user-types-container {
+          width: calc(100% - 250px);
+          margin-left: 250px;
+          padding: 24px;
+          min-height: 100vh;
+          background: ${BG};
+          
+        }
+        .controls-row {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+          justify-content: space-between;
+          flex-wrap: wrap;
+        }
+        .entries-row {
+          display: flex;
+          gap: 12px;
+          align-items: center;
+        }
+        .search-input {
+          width: 240px;
+        }
+        @media (max-width: 1024px) {
+          .all-user-types-container {
+            width: calc(100% - 200px);
+            margin-left: 200px;
+            padding: 16px;
+            margin-top: 4rem;
+          }
+        }
+        @media (max-width: 768px) {
+          .all-user-types-container {
+            width: 100%;
+            margin-left: 0;
+            padding: 16px;
+            
+          }
+          .search-input {
+            width: 100%;
+          }
+        }
+      `}</style>
     </DashboardLayout>
   );
 }

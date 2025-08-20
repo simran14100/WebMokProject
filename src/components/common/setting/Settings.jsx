@@ -86,11 +86,12 @@ export default function Settings() {
           display: flex;
           flex-direction: column;
           align-items: center;
-          margin-top: 2rem;
+          margin-top: -40px;
+          // margin-right: 15rem;
           animation: fadeIn 0.5s ease-out;
         }
         
-        .settings-heading {
+        .settings-heading 
           color: ${TEXT_DARK};
           font-weight: 700;
           font-size: 2.5rem;

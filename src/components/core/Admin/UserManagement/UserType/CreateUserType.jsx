@@ -48,9 +48,9 @@ export default function CreateUserType() {
 
   return (
     <DashboardLayout>
-      <div style={{ maxWidth: 1200, margin: '0 auto', padding: '24px', marginLeft: '250px' }}>
+      <div className="create-user-type-container">
         <h1 style={{ fontSize: 24, fontWeight: 800, color: ED_TEAL, marginBottom: 8 }}>Create User Type</h1>
-        <div style={{ color: '#777', fontSize: 13, marginBottom: 16 }}>User Type &gt; Create User Type</div>
+        <div style={{ color: '#777', fontSize: 13, marginBottom: 16 }}>User Type {'>'} Create User Type</div>
 
         <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16 }}>
           <form onSubmit={onSubmit}>
@@ -72,7 +72,7 @@ export default function CreateUserType() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
+              <div className="perm-grid">
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#555' }}>
                   <input
                     type="checkbox"
@@ -110,6 +110,35 @@ export default function CreateUserType() {
             </div>
           </form>
         </div>
+        <style jsx>{`
+          .create-user-type-container {
+            width: calc(100% - 250px);
+            margin-left: 250px;
+            padding: 24px;
+            min-height: 100vh;
+            background: ${BG};
+          }
+          .perm-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+          }
+          @media (max-width: 1024px) {
+            .create-user-type-container {
+              width: calc(100% - 200px);
+              margin-left: 200px;
+              padding: 16px;
+            }
+          }
+          @media (max-width: 768px) {
+            .create-user-type-container {
+              width: 100%;
+              margin-left: 0;
+              padding: 16px;
+            }
+            .perm-grid { grid-template-columns: 1fr; }
+          }
+        `}</style>
       </div>
     </DashboardLayout>
   );

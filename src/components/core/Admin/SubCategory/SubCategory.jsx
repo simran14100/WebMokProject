@@ -92,6 +92,7 @@ const SubCategory = () => {
         <style jsx>{`
         .category-header {
             margin-bottom: 2rem;
+            margin-top: 3rem;
           }
 
           .category-header h2 {
@@ -100,7 +101,13 @@ const SubCategory = () => {
             color: ${TEXT_DARK};
             margin-bottom: 0.5rem;
           }
-          .sub-category-container { width: calc(100% - 550px); margin-left: 1px; padding: 2rem; background-color: #f8fafc; }
+          .sub-category-container {
+            width: calc(100% - 250px);
+            margin-left: 250px;
+            padding: 2rem;
+            background-color: #f8fafc;
+            min-height: 100vh;
+          }
           .header h2 { font-size: 1.5rem; font-weight: 600; color: ${TEXT_DARK}; margin-bottom: 2rem; }
           .form-card { background: white; border-radius: 0.5rem; padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
           h3 { font-size: 1.25rem; font-weight: 600; color: ${TEXT_DARK}; margin-bottom: 1.5rem; }
@@ -110,6 +117,24 @@ const SubCategory = () => {
           .error-message { color: #e53e3e; font-size: 0.75rem; margin-top: 0.25rem; }
           .submit-button { background-color: ${ED_TEAL}; color: white; padding: 0.75rem 1.5rem; border: none; border-radius: 0.375rem; cursor: pointer; font-weight: 500; }
           .submit-button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+          @media (max-width: 1024px) {
+            .sub-category-container {
+              width: calc(100% - 200px);
+              margin-left: 200px;
+              padding: 1.5rem;
+            }
+          }
+
+          @media (max-width: 768px) {
+            .sub-category-container {
+              width: 100%;
+              margin-left: 0;
+              padding: 1rem;
+            }
+
+            .form-card { padding: 1rem; }
+          }
         `}</style>
       </div>
     </DashboardLayout>

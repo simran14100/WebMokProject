@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout as logoutAction } from '../../store/slices/authSlice';
 import { clearUser } from '../../store/slices/profileSlice';
@@ -17,6 +17,7 @@ const Navbar = () => {
   const { cart } = useSelector((state) => state.cart);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
@@ -27,6 +28,7 @@ const Navbar = () => {
   const categoryDropdownRef = useRef(null);
   const profileDropdownRef = useRef(null);
   const [cartCount, setCartCount] = useState(0);
+  const [isMobile, setIsMobile] = useState(false);
  
 
    const { token } = useSelector((state) => state.auth);
@@ -104,6 +106,14 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Detect mobile viewport for responsive behaviors
+  useEffect(() => {
+    const checkMobile = () => setIsMobile(window.innerWidth <= 768);
+    checkMobile();
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   // Handle click outside dropdowns
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -130,8 +140,8 @@ const Navbar = () => {
 
   return (
     <>
-      {/* Top Bar - Exact EdCare Template */}
-      <div className="top-bar" style={{ position: 'fixed', top: '0', left: 0, right: 0, zIndex: 1001, display: isSticky ? 'none' : 'block', transition: 'opacity 0.3s ease' }}>
+      {/* Top Bar - Hidden on mobile */}
+      <div className="top-bar" style={{ position: 'fixed', top: '0', left: 0, right: 0, zIndex: 30010, display: isSticky || isMobile ? 'none' : 'block', transition: 'opacity 0.3s ease' }}>
         <div className="container">
           <div className="top-bar-inner">
             <div className="top-bar-left">
@@ -158,7 +168,7 @@ const Navbar = () => {
       </div>
 
       {/* Primary Header - Modified for centered navigation and right-side auth buttons */}
-      <header className={`header header-2 ${isSticky ? 'sticky-active' : ''}`} style={{ position: 'fixed', top: isSticky ? '0' : '40px', left: 0, right: 0, zIndex: 1000, background: '#fff', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', transition: 'top 0.3s ease' }}>
+      <header className={`header header-2 ${isSticky ? 'sticky-active' : ''}`} style={{ position: 'fixed', top: (isSticky || isMobile) ? '0' : '40px', left: 0, right: 0, zIndex: 30000, background: '#fff', boxShadow: '0 2px 10px rgba(0,0,0,0.1)', transition: 'top 0.3s ease' }}>
         <div className="primary-header">
           <div className="container">
             <div className="primary-header-inner" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -476,7 +486,22 @@ const Navbar = () => {
                       
                       {/* Profile Dropdown Menu */}
                       {isProfileDropdownOpen && (
-                        <div style={{
+                        <div style={isMobile ? {
+                          position: 'fixed',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          background: '#fff',
+                          border: '1px solid #e0e0e0',
+                          borderRadius: '12px',
+                          boxShadow: '0 8px 25px rgba(0, 0, 0, 0.15)',
+                          width: 'min(90vw, 220px)',
+                          zIndex: 2001,
+                          padding: '8px 0',
+                          listStyle: 'none',
+                          maxHeight: '80vh',
+                          overflowY: 'auto',
+                        } : {
                           position: 'absolute',
                           top: '100%',
                           right: '0',
@@ -735,8 +760,16 @@ const Navbar = () => {
                             <i className="fa-solid fa-sign-out-alt" style={{ marginRight: '8px', width: '16px' }}></i>
                             Sign Out
                           </button>
-                    </div>
-                  )}
+                        </div>
+                      )}
+                      {isProfileDropdownOpen && isMobile && (
+                        <div onClick={() => setIsProfileDropdownOpen(false)} style={{
+                          position: 'fixed',
+                          inset: 0,
+                          background: 'rgba(0,0,0,0.35)',
+                          zIndex: 2000
+                        }} />
+                      )}
                     </div>
                   </>
                                  ) : (
@@ -816,7 +849,19 @@ const Navbar = () => {
                   </div>
                 
                   <div className="header-right-item d-lg-none d-md-block">
-                    <a href="javascript:void(0)" className="mobile-side-menu-toggle" onClick={() => setIsMobileMenuOpen(true)}>
+                    <a
+                      href="javascript:void(0)"
+                      className="mobile-side-menu-toggle"
+                      onClick={() => {
+                        // Toggle dashboard sidebar when in dashboard area; otherwise open site mobile menu
+                        const isDashboardArea = /(dashboard|admin|instructor)/i.test(location.pathname);
+                        if (isDashboardArea) {
+                          window.dispatchEvent(new CustomEvent('dashboard:toggleSidebar'));
+                        } else {
+                          setIsMobileMenuOpen(true);
+                        }
+                      }}
+                    >
                       <i className="fa-sharp fa-solid fa-bars"></i>
                     </a>
                   </div>

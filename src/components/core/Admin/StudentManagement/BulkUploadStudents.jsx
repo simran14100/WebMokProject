@@ -303,121 +303,199 @@ export default function BulkUploadStudents() {
         </div>
       </div>
 
-      {/* Scoped styles */}
-      <style jsx>{`
-       .divider {
-            color: #cbd5e0;
-          }
 
-          .active {
-            color: ${ED_TEAL};
-            font-weight: 500;
-          }
 
-        .bulk-container {
-          max-width: 900px;
-         margin-left: -130px;
-          
-          padding: 2rem;
-        }
-        .bulk-card {
-          background: #fff;
-          padding: 2.5rem;
-          border-radius: 16px;
-          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-          border: 1px solid #e5e7eb;
-        }
-        .bulk-title {
-          font-size: 1.5rem;
-          font-weight: 600;
-          margin-bottom: 0.5rem;
-          color: ${TEXT_DARK};
-        }
-        .bulk-desc {
-          font-size: 0.95rem;
-          color: #555;
-          margin-bottom: 2rem;
-          line-height: 1.6;
-        }
-        .download-btn-wrapper {
-          margin-bottom: 1.5rem;
-        }
-        .download-btn {
-          background-color: ${ED_TEAL};
-          color: white;
-          padding: 0.75rem 1.25rem;
-          border: none;
-          border-radius: 8px;
-          font-size: 0.95rem;
-          font-weight: 500;
-          cursor: pointer;
-          transition: background 0.2s ease-in-out;
-        }
-        .download-btn:hover {
-          background-color: ${ED_TEAL_DARK};
-        }
-        .bulk-form {
-          display: flex;
-          flex-direction: column;
-          gap: 1.5rem;
-        }
-        .form-group {
-          display: flex;
-          flex-direction: column;
-        }
-        .form-group label {
-          font-size: 0.9rem;
-          font-weight: 600;
-          margin-bottom: 0.5rem;
-          color: #333;
-        }
-        .form-input {
-          padding: 0.65rem 0.8rem;
-          border: 1px solid #ccc;
-          border-radius: 8px;
-          font-size: 0.95rem;
-          outline: none;
-          transition: border 0.2s;
-        }
-        .form-input:focus {
-          border-color: ${ED_TEAL};
-          box-shadow: 0 0 0 2px rgba(7, 166, 152, 0.2);
-        }
-        .note {
-          font-size: 0.8rem;
-          margin-top: 0.4rem;
-          color: #666;
-        }
-        .submit-wrapper {
-          margin-top: 1rem;
-        }
-        .submit-btn {
-          background-color: ${ED_TEAL};
-          color: #fff;
-          padding: 0.75rem 1.25rem;
-          border: none;
-          border-radius: 8px;
-          font-size: 1rem;
-          font-weight: 600;
-          cursor: pointer;
-          transition: background 0.2s ease-in-out;
-        }
-        .submit-btn:hover {
-          background-color: ${ED_TEAL_DARK};
-        }
-        .submit-btn.disabled {
-          background-color: #aaa;
-          cursor: not-allowed;
-        }
-        @media (max-width: 768px) {
-          .bulk-card {
-            padding: 1.5rem;
-          }
-          .bulk-title {
-            font-size: 1.5rem;
-          }
-        }
-      `}</style>
+<style jsx>{`
+  .divider {
+    color: #cbd5e0;
+  }
+
+  .active {
+    color: ${ED_TEAL};
+    font-weight: 500;
+  }
+
+  .bulk-container {
+    max-width: 900px;
+    margin-left: -130px;
+    padding: 2rem;
+  }
+
+  .category-header {
+    margin-bottom: 1.5rem;
+  }
+
+  .category-header h2 {
+    font-size: 1.75rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: ${TEXT_DARK};
+  }
+
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    color: #666;
+    flex-wrap: wrap;
+  }
+
+  .bulk-card {
+    background: #fff;
+    padding: 2.5rem;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e5e7eb;
+  }
+
+  .bulk-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: ${TEXT_DARK};
+  }
+
+  .bulk-desc {
+    font-size: 0.95rem;
+    color: #555;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+
+  .download-btn-wrapper {
+    margin-bottom: 1.5rem;
+  }
+
+  .download-btn {
+    background-color: ${ED_TEAL};
+    color: white;
+    padding: 0.75rem 1.25rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s ease-in-out;
+  }
+
+  .download-btn:hover {
+    background-color: ${ED_TEAL_DARK};
+  }
+
+  .bulk-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .form-group label {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: #333;
+  }
+
+  .form-input {
+    padding: 0.65rem 0.8rem;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border 0.2s;
+  }
+
+  .form-input:focus {
+    border-color: ${ED_TEAL};
+    box-shadow: 0 0 0 2px rgba(7, 166, 152, 0.2);
+  }
+
+  .note {
+    font-size: 0.8rem;
+    margin-top: 0.4rem;
+    color: #666;
+    word-break: break-word;
+  }
+
+  .submit-wrapper {
+    margin-top: 1rem;
+  }
+
+  .submit-btn {
+    background-color: ${ED_TEAL};
+    color: #fff;
+    padding: 0.75rem 1.25rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s ease-in-out;
+  }
+
+  .submit-btn:hover {
+    background-color: ${ED_TEAL_DARK};
+  }
+
+  .submit-btn.disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+  }
+
+  /* 📱 Responsive adjustments */
+  @media (max-width: 1024px) {
+    .bulk-container {
+      margin-left: 0; /* reset fixed offset */
+      padding: 1.5rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .bulk-card {
+      padding: 1.5rem;
+    }
+    .bulk-title {
+      font-size: 1.25rem;
+    }
+    .download-btn,
+    .submit-btn {
+      width: 100%;
+      text-align: center;
+    }
+    .form-input {
+      font-size: 0.9rem;
+    }
+    .category-header h2 {
+      font-size: 1.5rem;
+    }
+    .breadcrumb {
+      font-size: 0.8rem;
+      gap: 0.25rem;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .bulk-container {
+      padding: 1rem;
+    }
+    .bulk-card {
+      padding: 1rem;
+      border-radius: 12px;
+    }
+    .bulk-title {
+      font-size: 1.1rem;
+    }
+    .bulk-desc {
+      font-size: 0.85rem;
+    }
+  }
+`}</style>
+
     </DashboardLayout>
   );
 }

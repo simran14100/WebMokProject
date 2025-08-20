@@ -3035,7 +3035,7 @@ export default function EditPage() {
 
           {/* Courses Modal */}
           {showCourseModal && (
-            <div className="modal-overlay" onClick={closeCourseModal}>
+            <div className="modal-overlay course-modal" onClick={closeCourseModal}>
               <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
                 <div className="modal-header sticky">
                   <h3>Search Course</h3>
@@ -3496,9 +3496,9 @@ export default function EditPage() {
 
           {/* Add Student Modal */}
           {showStudentModal && (
-            <div className="modal-overlay" onClick={() => setShowStudentModal(false)}>
+            <div className="modal-overlay student-modal" onClick={() => setShowStudentModal(false)}>
               <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
-                <div className="modal-header">
+                <div className="modal-header sticky">
                   <h3>Add Students</h3>
                 </div>
                 <div className="modal-body">
@@ -3777,13 +3777,12 @@ export default function EditPage() {
 
           {/* Add Instructor Modal */}
           {showInstructorModal && (
-            <div className="modal-overlay" onClick={closeInstructorModal}>
+            <div className="modal-overlay instructor-modal" onClick={closeInstructorModal}>
               <div className="modal-content large" onClick={(e) => e.stopPropagation()}>
-                {/* <div className="modal-header">
-                  <h3>Add Trainer</h3>
-                </div> */}
+                <div className="modal-header sticky">
+                  <h3>All Trainers</h3>
+                </div>
                 <div className="modal-body">
-                  <h2 className="modal-title">All Trainers</h2>
 
                   {instructorsLoading ? (
                     <div className="loading-state">Loading instructors...</div>
@@ -4212,38 +4211,32 @@ export default function EditPage() {
 
 .modal-overlay {
   position: fixed;
-    top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
   inset: 0;
-  background: rgba(0,0,0,0.45);
+  background: rgba(0,0,0,0.5);
   display: flex;
-  align-items: start;
+  align-items: center;
   justify-content: center;
-  z-index: 50;
-  margin-top: 7rem;
-  padding: 6rem;
-  
-  
+  z-index: 60000; /* above sidebar and navbar */
+  padding: 2rem;
+  padding-top: 7rem; /* start lower from top on desktop by default */
+  overflow-y: auto;
 }
 
 .modal-content {
-  width: min(720px, 94vw);
+  width: min(800px, 90vw);
   background: #fff;
   border-radius: 12px;
   box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1), 0 10px 10px -5px rgba(0,0,0,0.04);
   border: 1px solid #e5e7eb;
   overflow: hidden;
-  margin-top: -4rem;
-  margin-bottom: 5rem;
+  margin: 0;
   display: flex;
   flex-direction: column;
-  max-height: 80vh;
+  max-height: 90vh;
 }
 
 .modal-content.large {
-  width: min(920px, 94vw);
+  width: min(1100px, 94vw);
 }
 
 .modal-header {
@@ -4256,7 +4249,15 @@ export default function EditPage() {
   position: sticky;
   top: 0;
   background: #fff;
-  z-index: 1;
+  z-index: 60010; /* above other modal content */
+}
+
+/* Course modal: stack title and search field to avoid overlap */
+.course-modal .modal-header {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.5rem;
 }
 
 .modal-header h3 {
@@ -4291,6 +4292,9 @@ export default function EditPage() {
   border-top: 1px solid #e5e7eb;
   gap: 0.75rem;
   background-color: #f9fafb;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
 }
 
 /* Form Grid */
@@ -4749,16 +4753,29 @@ button:disabled {
 
 /* Student and Instructor Modal Specific Styles */
 .student-modal .modal-content,
-.instructor-modal .modal-content {
-  max-height: 80vh;
+.instructor-modal .modal-content,
+.course-modal .modal-content {
+  max-height: 90vh;
   display: flex;
   flex-direction: column;
 }
 
 .student-modal .modal-body,
-.instructor-modal .modal-body {
+.instructor-modal .modal-body,
+.course-modal .modal-body {
   flex: 1;
   overflow-y: auto;
+}
+
+/* Ensure tables in pick modals are scrollable horizontally on small screens */
+.student-modal .data-table-container,
+.instructor-modal .data-table-container {
+  overflow-x: auto;
+}
+
+.student-modal .data-table,
+.instructor-modal .data-table {
+  min-width: 640px; /* allow horizontal scroll if viewport is narrow */
 }
 
 /* Add Course Modal Improvements */
@@ -4767,15 +4784,49 @@ button:disabled {
 }
 
 .course-modal .search-bar {
-  position: sticky;
-  top: 0;
-  background: white;
-  z-index: 10;
-  padding: 1rem 0;
-  margin-bottom: 0;
+  position: static;
+  top: auto;
+  background: transparent;
+  z-index: auto;
+  padding: 0;
+  margin: 0;
 }
 
 /* Responsive Adjustments */
+@media (max-width: 1024px) {
+  .batch-details-container {
+    width: calc(100% - 200px);
+    margin-left: 200px;
+  }
+}
+
+/* Desktop overlays should not overlap sidebar */
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .modal-overlay {
+    justify-content: flex-start;
+    padding-left: calc(200px + 2rem);
+  }
+  .modal-content {
+    width: min(760px, calc(100vw - 200px - 4rem));
+  }
+  .modal-content.large {
+    width: min(900px, calc(100vw - 200px - 4rem));
+  }
+}
+
+@media (min-width: 1280px) {
+  .modal-overlay {
+    justify-content: flex-start;
+    padding-left: calc(250px + 2rem);
+  }
+  .modal-content {
+    width: min(760px, calc(100vw - 250px - 4rem));
+  }
+  .modal-content.large {
+    width: min(1000px, calc(100vw - 250px - 4rem));
+  }
+}
+
 @media (max-width: 768px) {
   .batch-details-container {
     width: 100%;
@@ -4804,6 +4855,21 @@ button:disabled {
     width: 95vw;
     margin-top: 0;
   }
+  .modal-content.large {
+    width: 98vw;
+  }
+  
+  .modal-overlay {
+    padding: 1rem;
+    padding-top: 6rem; /* ensure clear of mobile navbar */
+  }
+  /* Compact modal header and title on mobile */
+  .modal-header {
+    padding: 0.75rem 1rem;
+  }
+  .modal-header h3 {
+    font-size: 1.125rem; /* 18px */
+  }
   
   .modal-footer {
     flex-direction: column-reverse;
@@ -4822,11 +4888,18 @@ button:disabled {
     padding: 0.5rem 0.75rem;
     font-size: 0.875rem;
   }
+
+  /* Tighter table cell padding in modals for small screens */
+  .student-modal .data-table th,
+  .student-modal .data-table td,
+  .instructor-modal .data-table th,
+  .instructor-modal .data-table td {
+    padding: 8px 10px;
+  }
 }
-     
-     `}</style>
 
-      </DashboardLayout>
-  )
+`}</style>
 
+</DashboardLayout>
+);
 }

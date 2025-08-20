@@ -72,22 +72,40 @@ export default function AddCourse() {
 
   return (
      <DashboardLayout>
-    
-        {/* <div className="mx-auto w-11/12 max-w-[1000px] py-10">
-            <RenderSteps />
-        </div> */}
-         <div style={{
-      width: "100%",
-      maxWidth: "100vw",  // optional max width for large screens
-      margin: "0 auto",    // center the content
-      padding: "15px",
-      marginLeft:"60px",
-      boxSizing: "border-box",
-      overflowX: "hidden"  // prevent horizontal scroll
-    }}>
-      <RenderSteps />
-    </div>
+        {/* Wrapper uses responsive layout respecting sidebar + fixed navbar */}
+        <div className="create-course-container">
+          <RenderSteps />
+        </div>
+
+        <style jsx>{`
+          .create-course-container {
+            width: calc(100% - 250px);
+            margin-left: 250px;
+            padding: 6rem 1.5rem 1.5rem; /* top padding avoids fixed navbar overlap */
+            max-width: 100vw;
+            box-sizing: border-box;
+            overflow-x: hidden;
+            background: #f8fafc;
+            min-height: 100vh;
+          }
+
+          @media (max-width: 1024px) {
+            .create-course-container {
+              width: calc(100% - 200px);
+              margin-left: 200px;
+              padding: 5.5rem 1.25rem 1.25rem;
+            }
+          }
+
+          @media (max-width: 768px) {
+            .create-course-container {
+              width: 100%;
+              margin-left: 0;
+              padding: 5rem 1rem 1rem;
+            }
+          }
+        `}</style>
   
-   </DashboardLayout>
+     </DashboardLayout>
   )
 }

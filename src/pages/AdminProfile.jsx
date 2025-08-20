@@ -477,8 +477,8 @@ const AdminProfile = () => {
         .profile-page-container {
           width: 100%;
           max-width: 1200px;
-          margin: 0 auto;
-          padding: 32px 24px;
+          // margin-right: 15rem;
+          padding: 22px 14px;
           overflow-x: hidden;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
         }
@@ -518,8 +518,8 @@ const AdminProfile = () => {
         .page-heading {
           text-align: center;
           margin-bottom: 32px;
-          margin-top: 1rem;
-          color: ${ED_TEAL};
+          margin-top: -40px;
+          color: ${TEXT_DARK};
           font-weight: 700;
           font-size: 36px;
           letter-spacing: -0.5px;

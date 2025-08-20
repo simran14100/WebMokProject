@@ -17,9 +17,8 @@ export default function RenderSteps() {
 
   const containerStyle = {
     maxWidth: '900px',
-    marginTop: '5rem',
+    marginTop: 0,
     margin: '0 auto',
-    marginLeft: '260px',
     padding: '2rem',
     backgroundColor: '#ffffff',
     borderRadius: '12px',
@@ -90,12 +89,12 @@ export default function RenderSteps() {
   })
 
   return (
-    <div style={containerStyle}>
+    <div style={containerStyle} className="steps-root">
       <h1 style={headingStyle}>
         {editCourse ? "Edit Course" : "Create New Course"}
       </h1>
 
-      <div style={stepperContainerStyle}>
+      <div style={stepperContainerStyle} className="stepper-scroll">
         {steps.map((item, index) => {
           const isActive = step === item.id
           const isCompleted = step > item.id
@@ -129,6 +128,19 @@ export default function RenderSteps() {
         {step === 2 && <CourseBuilderForm />}
         {step === 3 && <PublishCourse />}
       </div>
+
+      <style jsx>{`
+        @media (max-width: 768px) {
+          .steps-root { padding: 1rem; }
+          .stepper-scroll {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 0.5rem;
+            margin: 0 -0.5rem;
+          }
+          .stepper-scroll::-webkit-scrollbar { height: 6px; }
+        }
+      `}</style>
     </div>
   )
 }

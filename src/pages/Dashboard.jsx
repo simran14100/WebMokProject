@@ -1,16 +1,14 @@
 import React from 'react';
-import Sidebar from '../components/common/Sidebar';
 import { Outlet } from 'react-router-dom';
 
 const Dashboard = () => {
   return (
-    <div className="bg-white" style={{ marginLeft: 220 }}>
-      <Sidebar />
-      <div className="flex-1">
+    <div className="bg-white">
+      <div className="flex-1" style={{ paddingTop: 120 }}>
         <Outlet />
       </div>
     </div>
   );
 };
 
-export default Dashboard; 
+export default Dashboard;

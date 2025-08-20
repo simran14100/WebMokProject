@@ -94,13 +94,7 @@ export default function CreateStudent() {
 
   return (
     <DashboardLayout>
-      <div style={{
-        width: 'calc(100% - 250px)',
-        marginLeft: '250px',
-        minHeight: '100vh',
-        backgroundColor: BG_LIGHT,
-        padding: '2rem'
-      }}>
+      <div className="create-student-container">
         <div style={{ marginBottom: '2rem' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: TEXT_DARK, marginBottom: '0.5rem' }}>
             Create Student
@@ -140,7 +134,7 @@ export default function CreateStudent() {
               New Student Details
             </h2>
 
-            <form onSubmit={handleSubmit} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', maxWidth: '700px' }}>
+            <form onSubmit={handleSubmit} className="student-form">
               <div style={{ gridColumn: 'span 2' }}>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: TEXT_DARK, marginBottom: '0.5rem' }}>Full Name</label>
                 <input name="name" type="text" value={formData.name} onChange={handleChange} placeholder="Enter full name" style={inputStyle} />
@@ -180,6 +174,42 @@ export default function CreateStudent() {
           </div>
         )}
       </div>
+      <style jsx>{`
+        .create-student-container {
+          width: calc(100% - 250px);
+          margin-left: 250px;
+          min-height: 100vh;
+          background-color: ${BG_LIGHT};
+          padding: 2rem;
+        }
+
+        .student-form {
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          gap: 1rem;
+          max-width: 700px;
+        }
+
+        @media (max-width: 1024px) {
+          .create-student-container {
+            width: calc(100% - 200px);
+            margin-left: 200px;
+            padding: 1.5rem;
+          }
+        }
+
+        @media (max-width: 768px) {
+          .create-student-container {
+            width: 100%;
+            margin-left: 0;
+            padding: 1rem;
+          }
+          .student-form {
+            grid-template-columns: 1fr;
+            max-width: 100%;
+          }
+        }
+      `}</style>
     </DashboardLayout>
   )
 }

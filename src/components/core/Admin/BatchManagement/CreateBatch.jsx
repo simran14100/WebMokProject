@@ -385,11 +385,12 @@ export default function CreateBatch() {
   return (
     <DashboardLayout>
       <div style={{
-        width: 'calc(100% - 250px)',
-        marginLeft: '250px',
+        width: '100%',
         minHeight: '100vh',
         backgroundColor: BG_LIGHT,
-        padding: '2rem'
+        padding: '2rem 1rem',
+        maxWidth: 1280,
+        marginLeft:"200px"
       }}>
         {/* Header Section */}
         <div style={{ marginBottom: '2rem' }}>

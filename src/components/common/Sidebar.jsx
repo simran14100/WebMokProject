@@ -320,7 +320,7 @@ const getSidebarLinks = (user) => {
   ];
 };
 
-export default function Sidebar() {
+export default function Sidebar({ isMobile = false, isOpen = true, onClose = () => {} }) {
   const { user, loading: profileLoading } = useSelector((state) => state.profile);
   const { loading: authLoading } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
@@ -512,24 +512,44 @@ export default function Sidebar() {
 
   return (
     <>
+      {/* Overlay for mobile */}
+      {isMobile && isOpen && (
+        <div
+          onClick={onClose}
+          style={{
+            position: 'fixed',
+            left: 0,
+            right: 0,
+            top: 120,
+            bottom: 0,
+            background: 'rgba(0,0,0,0.35)',
+            zIndex: 20000,
+          }}
+        />
+      )}
       <div style={{
         position: 'fixed',
         left: 0,
         top: 110,
         height: 'calc(100vh - 110px)',
         paddingTop: "180px",
-        width: 260,
+        width: 220,
         display: 'flex',
         flexDirection: 'column',
         borderRight: `1px solid rgba(0,0,0,0.1)`,
         background: 'linear-gradient(180deg, #ffffff 0%, #fafafa 100%)',
         padding: '2rem 0',
-        zIndex: 100,
+        zIndex: 20001,
         boxShadow: '0 8px 32px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04)',
         overflowY: 'auto',
+        // slide-in on mobile
+        transform: isMobile ? (isOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none',
+        transition: isMobile ? 'transform 0.3s ease' : 'none',
+        visibility: isMobile ? (isOpen ? 'visible' : 'hidden') : 'visible',
+        pointerEvents: isMobile ? (isOpen ? 'auto' : 'none') : 'auto',
         // Custom scrollbar
         scrollbarWidth: 'thin',
-        scrollbarColor: 'rgba(0,128,128,0.3) transparent',
+        scrollbarColor: 'rgba(0,128,0,0.3) transparent',
       }}>
         <style>
           {`

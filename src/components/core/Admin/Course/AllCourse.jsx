@@ -510,7 +510,7 @@ export default function AllCourses() {
           .all-courses-container {
             width: calc(100% - 250px);
             margin-left: 250px;
-            padding: 2rem;
+            padding: 6rem 2rem 2rem; /* top padding avoids fixed navbar overlap */
             min-height: 100vh;
             background-color: #f8fafc;
           }
@@ -603,7 +603,7 @@ export default function AllCourses() {
 
           .courses-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
           }
@@ -809,15 +809,16 @@ export default function AllCourses() {
             .all-courses-container {
               width: calc(100% - 200px);
               margin-left: 200px;
-              padding: 1.5rem;
+              padding: 5.5rem 1.5rem 1.5rem;
             }
+            .course-thumbnail { height: 180px; }
           }
 
           @media (max-width: 768px) {
             .all-courses-container {
               width: 100%;
               margin-left: 0;
-              padding: 1rem;
+              padding: 5rem 1rem 1rem;
             }
 
             .controls-container {
@@ -825,15 +826,21 @@ export default function AllCourses() {
               align-items: flex-start;
             }
 
-            .search-control input {
-              width: 100%;
-            }
+            .search-control input { width: 100%; }
 
             .pagination-container {
               flex-direction: column;
               gap: 1rem;
               align-items: flex-start;
             }
+
+            .courses-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+            .course-thumbnail { height: 160px; }
+          }
+
+          @media (max-width: 480px) {
+            .courses-grid { grid-template-columns: 1fr; }
+            .course-thumbnail { height: 140px; }
           }
         `}</style>
       </div>
