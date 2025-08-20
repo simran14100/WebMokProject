@@ -17,6 +17,10 @@ const {
   LIST_BATCH_STUDENTS_API,
   ADD_STUDENT_TO_BATCH_API,
   REMOVE_STUDENT_FROM_BATCH_API,
+  // Batch temp students
+  LIST_TEMP_STUDENTS_IN_BATCH_API,
+  ADD_TEMP_STUDENT_TO_BATCH_API,
+  REMOVE_TEMP_STUDENT_FROM_BATCH_API,
   // Batch trainers
   LIST_BATCH_TRAINERS_API,
   ADD_TRAINER_TO_BATCH_API,
@@ -61,6 +65,84 @@ export async function getRegisteredUsers(token, { page = 1, limit = 10, role = "
     console.log("GET REGISTERED USERS ERROR............", error)
     showError("Failed to fetch registered users")
     throw error
+  }
+}
+
+// List temp students in a batch (not persisted as Users)
+export async function listTempStudentsInBatch(batchId, token) {
+  try {
+    const response = await apiConnector(
+      "GET",
+      `${LIST_TEMP_STUDENTS_IN_BATCH_API}/${batchId}/temp-students`,
+      {},
+      {
+        Authorization: `Bearer ${token}`,
+      }
+    )
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to fetch temp students")
+    }
+    const payload = response.data?.data
+    return Array.isArray(payload) ? payload : []
+  } catch (error) {
+    console.log("LIST TEMP STUDENTS ERROR............", error)
+    showError(error.response?.data?.message || error.message || "Failed to fetch temp students")
+    throw error
+  }
+}
+
+// Add a temp student to a batch
+export async function addTempStudentToBatch(batchId, { name, email, phone, enrollmentFeePaid = false }, token) {
+  const toastId = showLoading("Adding student to batch...")
+  try {
+    const response = await apiConnector(
+      "POST",
+      `${ADD_TEMP_STUDENT_TO_BATCH_API}/${batchId}/temp-students`,
+      { name, email, phone, enrollmentFeePaid },
+      {
+        Authorization: `Bearer ${token}`,
+      }
+    )
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to add student to batch")
+    }
+    showSuccess("Student added to batch")
+    return response.data.data
+  } catch (error) {
+    console.log("ADD TEMP STUDENT ERROR............", error)
+    showError(error.response?.data?.message || error.message || "Failed to add student to batch")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+// Remove a temp student from a batch
+export async function removeTempStudentFromBatch(batchId, tempId, token) {
+  const toastId = showLoading("Removing student...")
+  try {
+    const response = await apiConnector(
+      "DELETE",
+      `${REMOVE_TEMP_STUDENT_FROM_BATCH_API}/${batchId}/temp-students/${tempId}`,
+      {},
+      {
+        Authorization: `Bearer ${token}`,
+      }
+    )
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to remove student")
+    }
+    showSuccess("Student removed from batch")
+    return true
+  } catch (error) {
+    console.log("REMOVE TEMP STUDENT ERROR............", error)
+    showError(error.response?.data?.message || error.message || "Failed to remove student")
+    throw error
+  } finally {
+    dismissToast(toastId)
   }
 }
 

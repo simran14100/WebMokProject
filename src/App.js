@@ -32,6 +32,7 @@ import InstructorLayout from './components/common/InstructorLayout';
 import Cart from './pages/Cart';
 import ActiveCourses from './pages/ActiveCourses';
 import MyCourses from './pages/MyCourses';
+import LiveClasses from './pages/LiveClasses';
 
 
 import EditCourse from './components/core/EditCourse';
@@ -113,6 +114,7 @@ function AppRoutes() {
         {user?.accountType === ACCOUNT_TYPE.STUDENT && (
           <>
             <Route path="enrolled-courses" element={<ActiveCourses />} />
+            <Route path="live-classes" element={<LiveClasses />} />
             <Route path="cart" element={<Cart />} />
             <Route path="cart/checkout" element={<Checkout />} />
           </>
@@ -338,6 +340,7 @@ function App() {
             {/* <Footer /> */}
             <Toaster 
               position="top-right"
+              containerStyle={{ zIndex: 40000 }}
               toastOptions={{
                 duration: 4000,
                 style: {
@@ -346,7 +349,7 @@ function App() {
                   marginLeft: 'auto',
                   marginRight: 40,
                   maxWidth: 450,
-                  marginTop: 80,
+                  marginTop: 120,
                   borderRadius: '16px',
                   boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
                   border: '1px solid #e0e0e0',

@@ -3,7 +3,7 @@ import { useSelector } from "react-redux"
 import { useNavigate } from "react-router-dom"
 import { toast } from "react-hot-toast"
 import DashboardLayout from "../../../common/DashboardLayout"
-import { createStudent as createStudentApi, getBatches } from "../../../../services/operations/adminApi"
+import { getBatches, createStudent, addStudentToBatch } from "../../../../services/operations/adminApi"
 
 const ED_TEAL = "#07A698"
 const ED_TEAL_DARK = "#059a8c"
@@ -24,6 +24,8 @@ export default function CreateStudent() {
     phone: "",
     batchId: "",
     enrollmentFeePaid: false,
+    password: "",
+    confirmPassword: "",
   })
   const [submitting, setSubmitting] = useState(false)
   const [batches, setBatches] = useState([])
@@ -52,7 +54,7 @@ export default function CreateStudent() {
   }
 
   const validate = () => {
-    const { name, email, phone, batchId } = formData
+    const { name, email, phone, batchId, password, confirmPassword } = formData
     if (!name.trim() || !email.trim() || !phone.trim() || !batchId) {
       toast.error("Please fill all required fields")
       return false
@@ -67,6 +69,14 @@ export default function CreateStudent() {
       toast.error("Enter a valid phone number")
       return false
     }
+    if (!password.trim() || !confirmPassword.trim()) {
+      toast.error("Password and Confirm Password are required")
+      return false
+    }
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match")
+      return false
+    }
     return true
   }
 
@@ -77,14 +87,24 @@ export default function CreateStudent() {
 
     setSubmitting(true)
     try {
-      // Generate a secure random password client-side (backend currently requires it)
-      const rand = () => Math.random().toString(36).slice(-8)
-      const password = `${rand()}${rand()}` // ~16 chars
       const phoneDigits = formData.phone.replace(/\D/g, "")
-      const payload = { ...formData, phone: phoneDigits, password, confirmPassword: password }
+      // Create a persisted Student user with createdByAdmin=true
+      const created = await createStudent({
+        name: formData.name,
+        email: formData.email,
+        phone: phoneDigits,
+        password: formData.password,
+        confirmPassword: formData.confirmPassword,
+        enrollmentFeePaid: formData.enrollmentFeePaid,
+        batchId: formData.batchId,
+      }, token)
 
-      await createStudentApi(payload, token)
-      setFormData({ name: "", email: "", phone: "", batchId: "", enrollmentFeePaid: false })
+      // Assign to batch (idempotent server-side)
+      if (created?._id && formData.batchId) {
+        await addStudentToBatch(formData.batchId, created._id, token)
+      }
+
+      setFormData({ name: "", email: "", phone: "", batchId: "", enrollmentFeePaid: false, password: "", confirmPassword: "" })
     } catch (_) {
       // errors are toasted in API
     } finally {
@@ -97,7 +117,7 @@ export default function CreateStudent() {
       <div className="create-student-container">
         <div style={{ marginBottom: '2rem' }}>
           <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: TEXT_DARK, marginBottom: '0.5rem' }}>
-            Create Student
+            Create Student (Persisted)
           </h2>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: TEXT_LIGHT }}>
             <span>Students</span>
@@ -148,6 +168,16 @@ export default function CreateStudent() {
               <div>
                 <label style={labelStyle}>Phone</label>
                 <input name="phone" type="tel" value={formData.phone} onChange={handleChange} placeholder="Enter phone" style={inputStyle} />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Password</label>
+                <input name="password" type="password" value={formData.password} onChange={handleChange} placeholder="Enter password" style={inputStyle} />
+              </div>
+
+              <div>
+                <label style={labelStyle}>Confirm Password</label>
+                <input name="confirmPassword" type="password" value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm password" style={inputStyle} />
               </div>
 
               <div>

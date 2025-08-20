@@ -18,7 +18,7 @@ const {
 } = require("../controllers/AdminDashboard");
 
 // Import batch controllers
-const { createBatch, listBatches, exportBatches, getBatchById, updateBatch, deleteBatch, addStudentToBatch, removeStudentFromBatch, listBatchStudents, listBatchCourses, addCourseToBatch, removeCourseFromBatch, addLiveClassToBatch, listBatchTrainers, addTrainerToBatch, removeTrainerFromBatch } = require("../controllers/Batch");
+const { createBatch, listBatches, exportBatches, getBatchById, updateBatch, deleteBatch, addStudentToBatch, removeStudentFromBatch, listBatchStudents, listTempStudentsInBatch, addTempStudentToBatch, removeTempStudentFromBatch, listBatchCourses, addCourseToBatch, removeCourseFromBatch, addLiveClassToBatch, listBatchTrainers, addTrainerToBatch, removeTrainerFromBatch } = require("../controllers/Batch");
 const { createAdminReview, deleteReview } = require("../controllers/RatingAndReview");
 const { createUserType, listUserTypes } = require("../controllers/UserType");
 const { createMeetEvent } = require("../controllers/GoogleCalendar");
@@ -104,6 +104,11 @@ router.get("/batches/:batchId/students", auth, isAdminLevel, listBatchStudents);
 router.post("/batches/:batchId/students", auth, isAdminLevel, addStudentToBatch);
 // Remove student from batch
 router.delete("/batches/:batchId/students/:studentId", auth, isAdminLevel, removeStudentFromBatch);
+
+// Temp Students in a batch (not saved as Users)
+router.get("/batches/:batchId/temp-students", auth, isAdminLevel, listTempStudentsInBatch);
+router.post("/batches/:batchId/temp-students", auth, isAdminLevel, addTempStudentToBatch);
+router.delete("/batches/:batchId/temp-students/:tempId", auth, isAdminLevel, removeTempStudentFromBatch);
 
 // ***********************************
 // Batch Trainers management (Admin only)

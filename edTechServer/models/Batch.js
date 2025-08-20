@@ -26,6 +26,18 @@ const BatchSchema = new mongoose.Schema(
         ref: "User",
       },
     ],
+    // Temporary students (not persisted as Users). Used when admin chooses to add student only to batch.
+    tempStudents: [
+      {
+        _id: { type: mongoose.Schema.Types.ObjectId, default: () => new mongoose.Types.ObjectId() },
+        name: { type: String, required: true, trim: true },
+        email: { type: String, required: true, trim: true },
+        phone: { type: String, required: true, trim: true },
+        enrollmentFeePaid: { type: Boolean, default: false },
+        createdAt: { type: Date, default: Date.now },
+        createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+      },
+    ],
     // Trainers (instructors) assigned to this batch
     trainers: [
       {

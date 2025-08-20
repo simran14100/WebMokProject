@@ -307,12 +307,18 @@ const getSidebarLinks = (user) => {
     },
     {
       id: 3,
+      name: "Live Classes",
+      path: "/dashboard/live-classes",
+      icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} />,
+    },
+    {
+      id: 4,
       name: "Cart",
       path: "/dashboard/cart",
       icon: <VscBriefcase style={{ fontSize: 20, color: ED_TEAL }} />,
     },
     {
-      id: 4,
+      id: 5,
       name: "Settings",
       path: "/dashboard/settings",
       icon: <VscGear style={{ fontSize: 20, color: ED_TEAL }} />,

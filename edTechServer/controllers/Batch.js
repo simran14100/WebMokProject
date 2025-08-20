@@ -43,6 +43,84 @@ exports.createBatch = async (req, res) => {
 };
 
 // ***********************************
+// Batch Temp Students management (Admin only)
+// ***********************************
+// GET /api/v1/admin/batches/:batchId/temp-students
+exports.listTempStudentsInBatch = async (req, res) => {
+  try {
+    const { batchId } = req.params;
+    if (!batchId) return res.status(400).json({ success: false, message: "batchId is required" });
+
+    const batch = await Batch.findById(batchId).lean();
+    if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
+
+    return res.status(200).json({ success: true, data: Array.isArray(batch.tempStudents) ? batch.tempStudents : [] });
+  } catch (error) {
+    console.error("LIST TEMP STUDENTS ERROR:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// POST /api/v1/admin/batches/:batchId/temp-students
+exports.addTempStudentToBatch = async (req, res) => {
+  try {
+    const { batchId } = req.params;
+    const { name, email, phone, enrollmentFeePaid = false } = req.body || {};
+
+    if (!batchId || !name || !email || !phone) {
+      return res.status(400).json({ success: false, message: "batchId, name, email and phone are required" });
+    }
+
+    const batch = await Batch.findById(batchId);
+    if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
+
+    // Basic normalization
+    const temp = {
+      name: String(name).trim(),
+      email: String(email).trim().toLowerCase(),
+      phone: String(phone).trim(),
+      enrollmentFeePaid: Boolean(enrollmentFeePaid),
+      createdBy: req.user.id,
+      createdAt: new Date(),
+    };
+
+    batch.tempStudents = Array.isArray(batch.tempStudents) ? batch.tempStudents : [];
+    batch.tempStudents.push(temp);
+    await batch.save();
+
+    // Return the last inserted temp student (with generated _id)
+    const added = batch.tempStudents[batch.tempStudents.length - 1];
+    return res.status(201).json({ success: true, message: "Temporary student added to batch", data: added });
+  } catch (error) {
+    console.error("ADD TEMP STUDENT ERROR:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// DELETE /api/v1/admin/batches/:batchId/temp-students/:tempId
+exports.removeTempStudentFromBatch = async (req, res) => {
+  try {
+    const { batchId, tempId } = req.params;
+    if (!batchId || !tempId) return res.status(400).json({ success: false, message: "batchId and tempId are required" });
+
+    const batch = await Batch.findById(batchId);
+    if (!batch) return res.status(404).json({ success: false, message: "Batch not found" });
+
+    const before = batch.tempStudents?.length || 0;
+    batch.tempStudents = (batch.tempStudents || []).filter((s) => String(s._id) !== String(tempId));
+    const after = batch.tempStudents.length;
+    if (after !== before) {
+      await batch.save();
+    }
+
+    return res.status(200).json({ success: true, message: "Temporary student removed from batch" });
+  } catch (error) {
+    console.error("REMOVE TEMP STUDENT ERROR:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// ***********************************
 // Batch Trainers management (Admin only)
 // ***********************************
 // GET /api/v1/admin/batches/:batchId/trainers

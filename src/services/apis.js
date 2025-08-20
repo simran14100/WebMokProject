@@ -20,6 +20,7 @@ export const profile = {
     GET_USER_DETAILS_API: "/api/v1/profile/getUserDetails",
     GET_ENROLLED_COURSES_API: "/api/v1/profile/getEnrolledCourses",
     UPDATE_DISPLAY_PICTURE_API: "/api/v1/profile/updateDisplayPicture",
+    LIVE_CLASSES_API: "/api/v1/profile/live-classes",
 };
 
 export const subCategory = {
@@ -89,6 +90,10 @@ export const admin = {
     LIST_BATCH_STUDENTS_API: "/api/v1/admin/batches", // use `${LIST_BATCH_STUDENTS_API}/${batchId}/students`
     ADD_STUDENT_TO_BATCH_API: "/api/v1/admin/batches", // POST `${ADD_STUDENT_TO_BATCH_API}/${batchId}/students`
     REMOVE_STUDENT_FROM_BATCH_API: "/api/v1/admin/batches", // DELETE `${REMOVE_STUDENT_FROM_BATCH_API}/${batchId}/students/:studentId`
+    // Batch Temp Students (not persisted as Users)
+    LIST_TEMP_STUDENTS_IN_BATCH_API: "/api/v1/admin/batches", // GET `${LIST_TEMP_STUDENTS_IN_BATCH_API}/${batchId}/temp-students`
+    ADD_TEMP_STUDENT_TO_BATCH_API: "/api/v1/admin/batches", // POST `${ADD_TEMP_STUDENT_TO_BATCH_API}/${batchId}/temp-students`
+    REMOVE_TEMP_STUDENT_FROM_BATCH_API: "/api/v1/admin/batches", // DELETE `${REMOVE_TEMP_STUDENT_FROM_BATCH_API}/${batchId}/temp-students/:tempId`
     // Batch Trainers management
     LIST_BATCH_TRAINERS_API: "/api/v1/admin/batches", // GET `${LIST_BATCH_TRAINERS_API}/${batchId}/trainers`
     ADD_TRAINER_TO_BATCH_API: "/api/v1/admin/batches", // POST `${ADD_TRAINER_TO_BATCH_API}/${batchId}/trainers`

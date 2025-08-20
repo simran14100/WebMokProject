@@ -2,7 +2,7 @@
 // import { useNavigate, useParams } from "react-router-dom";
 // import { useSelector } from "react-redux";
 // import DashboardLayout from "../../../common/DashboardLayout";
-// import { getBatchById, updateBatch, deleteBatch, getAllInstructors, getRegisteredUsers, getEnrolledStudents, listBatchStudents, addStudentToBatch, removeStudentFromBatch, listBatchCourses, addCourseToBatch, removeCourseFromBatch, addLiveClassToBatch, createAdminReview, deleteAdminReview, createGoogleMeetLink, listBatchTrainers, addTrainerToBatch, removeTrainerFromBatch } from "../../../../services/operations/adminApi";
+// import { getBatchById, updateBatch, deleteBatch, getAllInstructors, getRegisteredUsers, getEnrolledStudents, listBatchStudents, addStudentToBatch, removeStudentFromBatch, listBatchCourses, addCourseToBatch, removeCourseFromBatch, addLiveClassToBatch, createAdminReview, deleteAdminReview, createGoogleMeetLink, listBatchTrainers, addTrainerToBatch, removeTrainerFromBatch, listTempStudentsInBatch, addTempStudentToBatch, removeTempStudentFromBatch } from "../../../../services/operations/adminApi";
 // import { getAllCourses, getAllReviews } from "../../../../services/operations/courseDetailsAPI";
 // import { showError, showSuccess, showLoading, dismissToast } from "../../../../utils/toast";
 
@@ -2176,7 +2176,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import DashboardLayout from "../../../common/DashboardLayout";
-import { getBatchById, updateBatch, deleteBatch, getAllInstructors, getRegisteredUsers, getEnrolledStudents, listBatchStudents, addStudentToBatch, removeStudentFromBatch, listBatchCourses, addCourseToBatch, removeCourseFromBatch, addLiveClassToBatch, createAdminReview, deleteAdminReview, createGoogleMeetLink, listBatchTrainers, addTrainerToBatch, removeTrainerFromBatch } from "../../../../services/operations/adminApi";
+import { getBatchById, updateBatch, deleteBatch, getAllInstructors, getRegisteredUsers, getEnrolledStudents, listBatchStudents, addStudentToBatch, removeStudentFromBatch, listBatchCourses, addCourseToBatch, removeCourseFromBatch, addLiveClassToBatch, createAdminReview, deleteAdminReview, createGoogleMeetLink, listBatchTrainers, addTrainerToBatch, removeTrainerFromBatch, listTempStudentsInBatch, addTempStudentToBatch, removeTempStudentFromBatch } from "../../../../services/operations/adminApi";
 import { getAllCourses, getAllReviews } from "../../../../services/operations/courseDetailsAPI";
 import { showError, showSuccess, showLoading, dismissToast } from "../../../../utils/toast";
 
@@ -2249,6 +2249,11 @@ export default function EditPage() {
   const [pickPageIndex, setPickPageIndex] = useState(0);
   const [pickRowsPerPage, setPickRowsPerPage] = useState(10);
 
+  // Temp students state
+  const [tempStudents, setTempStudents] = useState([]); // {_id,name,email,phone,enrollmentFeePaid}
+  const [tempStudentPageIndex, setTempStudentPageIndex] = useState(0);
+  const [tempStudentRowsPerPage, setTempStudentRowsPerPage] = useState(10);
+
   // Instructors state
   const [showInstructorModal, setShowInstructorModal] = useState(false);
   const [instructors, setInstructors] = useState([]);
@@ -2295,6 +2300,141 @@ export default function EditPage() {
     const hh = pad(d.getHours());
     const mm = pad(d.getMinutes());
     return `${y}-${m}-${day}T${hh}:${mm}`;
+  };
+
+  // ==========================
+  // Student Tab: Data & Actions
+  // ==========================
+  // Fetch assigned students and temp students whenever Student tab becomes active
+  useEffect(() => {
+    if (activeTab !== "student" || !batchId || !token) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const [persisted, temps] = await Promise.all([
+          listBatchStudents(batchId, token).catch(() => []),
+          listTempStudentsInBatch(batchId, token).catch(() => []),
+        ]);
+        if (!cancelled) setStudents(Array.isArray(persisted) ? persisted : []);
+        if (!cancelled) setTempStudents(Array.isArray(temps) ? temps : []);
+        if (!cancelled) {
+          setSelectedStudentIds(new Set());
+          setTempStudentPageIndex(0);
+        }
+      } catch (e) {
+        if (!cancelled) {
+          showError(e?.response?.data?.message || e?.message || "Failed to load batch students");
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [activeTab, batchId, token]);
+
+  // Open Add Student modal and load admin-created students with role=Student
+  const onAddStudent = async () => {
+    setShowStudentModal(true);
+    setStudentModalLoading(true);
+    setStudentModalError("");
+    try {
+      const registered = await getRegisteredUsers(token, {
+        page: 1,
+        limit: 1000,
+        role: "Student",
+        search: "",
+      }).catch(() => []);
+
+      const regArr = Array.isArray(registered?.users || registered?.data || registered)
+        ? (registered.users || registered.data || registered)
+        : [];
+
+      const assignedIds = new Set((students || []).map((s) => String(s._id || s.id || s.userId || s.email)));
+      const map = new Map();
+      for (const u of regArr) {
+        const id = u._id || u.id || u.userId || u.email;
+        if (!id) continue;
+        // Only Students (ONLY Admin-created accounts)
+        const isStudent = !u.accountType || String(u.accountType).toLowerCase() === "student";
+        if (!isStudent) continue;
+        if (!u.createdByAdmin) continue;
+        // Exclude already assigned
+        if (assignedIds.has(String(id))) continue;
+        if (!map.has(id)) map.set(id, u);
+      }
+      setAllStudents(Array.from(map.values()));
+      setPickPageIndex(0);
+    } catch (e) {
+      setStudentModalError(e?.message || "Failed to load students");
+      showError(e?.message || "Failed to load students");
+    } finally {
+      setStudentModalLoading(false);
+    }
+  };
+
+  const onDownloadAllStudents = () => {
+    showSuccess("Download coming soon");
+  };
+
+  const onRemoveAllStudents = () => {
+    if (students.length === 0) return;
+    const ok = window.confirm("Remove all students from this batch?");
+    if (!ok) return;
+    // UI-only for now to avoid accidental mass deletions
+    setStudents([]);
+    setSelectedStudentIds(new Set());
+    showSuccess("All students removed (UI only)");
+  };
+
+  const toggleSelectAllStudents = (e) => {
+    const checked = !!e.target.checked;
+    const pageSlice = students.slice(
+      studentPageIndex * studentRowsPerPage,
+      studentPageIndex * studentRowsPerPage + studentRowsPerPage
+    );
+    const ids = pageSlice.map((s) => s._id || s.id || s.userId).filter(Boolean);
+    const next = new Set(selectedStudentIds);
+    if (checked) {
+      ids.forEach((id) => next.add(id));
+    } else {
+      ids.forEach((id) => next.delete(id));
+    }
+    setSelectedStudentIds(next);
+  };
+
+  const toggleSelectStudent = (id) => {
+    if (!id) return;
+    const next = new Set(selectedStudentIds);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setSelectedStudentIds(next);
+  };
+
+  const removeStudent = async (id) => {
+    if (!id || !batchId) return;
+    try {
+      await removeStudentFromBatch(batchId, id, token);
+      setStudents((prev) => prev.filter((s) => (s._id || s.id || s.userId) !== id));
+      setSelectedStudentIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      showSuccess("Student removed from batch");
+    } catch (e) {
+      showError(e?.response?.data?.message || e?.message || "Failed to remove student");
+    }
+  };
+
+  const removeTempStudent = async (tempId) => {
+    if (!tempId || !batchId) return;
+    try {
+      await removeTempStudentFromBatch(batchId, tempId, token);
+      setTempStudents((prev) => prev.filter((t) => (t._id || t.id) !== tempId));
+      showSuccess("Student removed from batch");
+    } catch (e) {
+      showError(e?.response?.data?.message || e?.message || "Failed to remove student");
+    }
   };
 
   const openLiveClassModal = () => {
@@ -2380,89 +2520,6 @@ export default function EditPage() {
       });
     } else {
       setCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
-    }
-  };
-
-  // Student functions
-  const toggleSelectAllStudents = () => {
-    if (students.length === 0) return;
-    const pageSlice = students.slice(
-      studentPageIndex * studentRowsPerPage,
-      studentPageIndex * studentRowsPerPage + studentRowsPerPage
-    );
-    const pageIds = pageSlice.map((s) => s._id || s.id);
-    const allSelected = pageIds.every((id) => selectedStudentIds.has(id));
-    const next = new Set(selectedStudentIds);
-    if (allSelected) {
-      pageIds.forEach((id) => next.delete(id));
-    } else {
-      pageIds.forEach((id) => id && next.add(id));
-    }
-    setSelectedStudentIds(next);
-  };
-
-  const toggleSelectStudent = (id) => {
-    if (!id) return;
-    const next = new Set(selectedStudentIds);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    setSelectedStudentIds(next);
-  };
-
-  const onDownloadAllStudents = () => {
-    showSuccess("Download coming soon");
-  };
-
-  const onAddStudent = async () => {
-    setShowStudentModal(true);
-    setStudentModalLoading(true);
-    setStudentModalError("");
-    try {
-      const registered = await getRegisteredUsers(token, { page: 1, limit: 1000, role: "Student", search: "" }).catch(() => []);
-      const regArr = Array.isArray(registered?.users || registered?.data || registered) ? (registered.users || registered.data || registered) : [];
-      const map = new Map();
-      for (const u of regArr) {
-        const id = u._id || u.id || u.userId || u.email;
-        if (!id) continue;
-        if (u.accountType && String(u.accountType).toLowerCase() !== "student") continue;
-        if (!u.createdByAdmin) continue;
-        const alreadyAssigned = Array.isArray(students) && students.some(s => (s._id || s.id || s.userId) === id);
-        if (alreadyAssigned) continue;
-        if (!map.has(id)) map.set(id, u);
-      }
-      const list = Array.from(map.values());
-      setAllStudents(list);
-      setPickPageIndex(0);
-    } catch (e) {
-      setStudentModalError(e?.message || "Failed to load students");
-      showError(e?.message || "Failed to load students");
-    } finally {
-      setStudentModalLoading(false);
-    }
-  };
-
-  const onRemoveAllStudents = () => {
-    if (students.length === 0) return;
-    const ok = window.confirm("Remove all students from this batch?");
-    if (!ok) return;
-    setStudents([]);
-    setSelectedStudentIds(new Set());
-    showSuccess("All students removed (UI only)");
-  };
-
-  const removeStudent = async (id) => {
-    if (!id || !batchId) return;
-    try {
-      await removeStudentFromBatch(batchId, id, token);
-      setStudents((prev) => prev.filter((s) => (s._id || s.id || s.userId) !== id));
-      setSelectedStudentIds((prev) => {
-        const next = new Set(prev);
-        next.delete(id);
-        return next;
-      });
-      showSuccess("Student removed from batch");
-    } catch (e) {
-      showError(e?.message || "Failed to remove student");
     }
   };
 
@@ -3395,51 +3452,46 @@ export default function EditPage() {
                 </div>
               </div>
 
-              {/* Student Table */}
-              <div className="data-table-container">
-                <table className="data-table">
-                  <thead>
-                    <tr>
-                      <th>
-                        <input type="checkbox" onChange={toggleSelectAllStudents} />
-                      </th>
-                      <th>ID</th>
-                      <th>Full name</th>
-                      <th>Email</th>
-                      <th>Mobile</th>
-                      <th>Assessment</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {students.length === 0 ? (
+              {/* Temporary Students */}
+              {tempStudents.length === 0 ? (
+                <div style={{ marginTop: 8, color: TEXT_LIGHT }}>
+                  No temporary students in this batch.
+                </div>
+              ) : (
+                <div style={{ marginTop: 24 }} className="data-table-container">
+                  <table className="data-table">
+                    <thead>
                       <tr>
-                        <td colSpan={7} className="empty-table">
-                          No rows
-                        </td>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Email</th>
+                        <th>Phone</th>
+                        <th>Enrollment Fee Paid</th>
+                        <th>Actions</th>
                       </tr>
-                    ) : (
-                      students
-                        .slice(studentPageIndex * studentRowsPerPage, studentPageIndex * studentRowsPerPage + studentRowsPerPage)
-                        .map((stu) => {
-                          const id = stu._id || stu.id || "—";
-                          const name = stu.name || [stu.firstName, stu.lastName].filter(Boolean).join(" ") || "—";
-                          const email = stu.email || "—";
-                          const phone = stu.phone || stu.mobile || stu.contactNumber || "—";
-                          const checked = selectedStudentIds.has(stu._id || stu.id);
+                    </thead>
+                    <tbody>
+                      {tempStudents
+                        .slice(
+                          tempStudentPageIndex * tempStudentRowsPerPage,
+                          tempStudentPageIndex * tempStudentRowsPerPage + tempStudentRowsPerPage
+                        )
+                        .map((t) => {
+                          const id = t._id || t.id || "—";
+                          const name = t.name || [t.firstName, t.lastName].filter(Boolean).join(" ") || "—";
+                          const email = t.email || "—";
+                          const phone = t.phone || t.mobile || t.contactNumber || "—";
+                          const paid = !!t.enrollmentFeePaid;
                           return (
-                            <tr key={id}>
-                              <td>
-                                <input type="checkbox" checked={checked} onChange={() => toggleSelectStudent(stu._id || stu.id)} />
-                              </td>
+                            <tr key={`temp-${id}`}>
                               <td>{String(id).slice(-6)}</td>
                               <td>{name}</td>
                               <td>{email}</td>
                               <td>{phone}</td>
-                              <td>/0</td>
+                              <td>{paid ? "Yes" : "No"}</td>
                               <td>
                                 <button
-                                  onClick={() => removeStudent(stu._id || stu.id || stu.userId)}
+                                  onClick={() => removeTempStudent(t._id || t.id)}
                                   className="danger-button small"
                                 >
                                   Remove
@@ -3447,50 +3499,58 @@ export default function EditPage() {
                               </td>
                             </tr>
                           );
-                        })
-                    )}
-                  </tbody>
-                </table>
+                        })}
+                    </tbody>
+                  </table>
 
-                {/* Pagination */}
-                <div className="table-footer">
-                  <div className="rows-per-page">
-                    <span>Rows per page:</span>
-                    <select 
-                      value={studentRowsPerPage} 
-                      onChange={(e) => { 
-                        setStudentRowsPerPage(Number(e.target.value)); 
-                        setStudentPageIndex(0); 
-                      }}
-                    >
-                      <option value={5}>5</option>
-                      <option value={10}>10</option>
-                      <option value={20}>20</option>
-                    </select>
-                  </div>
-                  <div className="page-info">
-                    {students.length > 0 && (
-                      <>
-                        {studentPageIndex * studentRowsPerPage + 1}-{Math.min((studentPageIndex + 1) * studentRowsPerPage, students.length)} of {students.length}
-                      </>
-                    )}
-                  </div>
-                  <div className="pagination-buttons">
-                    <button 
-                      onClick={() => setStudentPageIndex((p) => Math.max(0, p - 1))} 
-                      className="pagination-button"
-                    >
-                      &lt;
-                    </button>
-                    <button 
-                      onClick={() => setStudentPageIndex((p) => (p + 1) * studentRowsPerPage < students.length ? p + 1 : p)} 
-                      className="pagination-button"
-                    >
-                      &gt;
-                    </button>
+                  {/* Pagination */}
+                  <div className="table-footer">
+                    <div className="rows-per-page">
+                      <span>Rows per page:</span>
+                      <select
+                        value={tempStudentRowsPerPage}
+                        onChange={(e) => {
+                          setTempStudentRowsPerPage(Number(e.target.value));
+                          setTempStudentPageIndex(0);
+                        }}
+                      >
+                        <option value={5}>5</option>
+                        <option value={10}>10</option>
+                        <option value={20}>20</option>
+                      </select>
+                    </div>
+                    <div className="page-info">
+                      {tempStudents.length > 0 && (
+                        <>
+                          {tempStudentPageIndex * tempStudentRowsPerPage + 1}-
+                          {Math.min((tempStudentPageIndex + 1) * tempStudentRowsPerPage, tempStudents.length)} of {tempStudents.length}
+                        </>
+                      )}
+                    </div>
+                    <div className="pagination-buttons">
+                      <button
+                        onClick={() => setTempStudentPageIndex((p) => Math.max(0, p - 1))}
+                        className="pagination-button"
+                      >
+                        &lt;
+                      </button>
+                      <button
+                        onClick={() =>
+                          setTempStudentPageIndex((p) =>
+                            Math.min(
+                              Math.ceil(tempStudents.length / tempStudentRowsPerPage) - 1,
+                              p + 1
+                            )
+                          )
+                        }
+                        className="pagination-button"
+                      >
+                        &gt;
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           )}
 

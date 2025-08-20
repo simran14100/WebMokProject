@@ -477,7 +477,8 @@ const AdminProfile = () => {
         .profile-page-container {
           width: 100%;
           max-width: 1200px;
-          // margin-right: 15rem;
+          margin-left:200px;
+          margin-top:-30px;
           padding: 22px 14px;
           overflow-x: hidden;
           font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;

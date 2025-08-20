@@ -2,6 +2,7 @@ const Profile = require("../models/Profile")
 const CourseProgress = require("../models/CourseProgress");
 const Course = require("../models/Course")
 const User = require("../models/User")
+const Batch = require("../models/Batch")
 const { uploadImageToCloudinary } = require("../utils/imageUploader")
 const mongoose = require("mongoose")
 const {convertSecondsToDuration} = require("../utils/secToDuration")
@@ -50,6 +51,43 @@ exports.updateProfile = async (req, res) => {
       success: false,
       error: error.message,
     })
+  }
+}
+
+// GET /api/v1/profile/live-classes
+// Returns all upcoming and past live classes for batches the student is assigned to
+exports.getStudentLiveClasses = async (req, res) => {
+  try {
+    const userId = req.user.id;
+
+    // Find batches where the student is assigned
+    // We only check persisted students array
+    const batches = await Batch.find({ students: userId }, { name: 1, liveClasses: 1 })
+      .lean();
+
+    const events = [];
+    for (const b of batches) {
+      for (const e of (b.liveClasses || [])) {
+        events.push({
+          id: String(e._id || `${b._id}-${e.startTime}`),
+          title: e.title || "Live Class",
+          description: e.description || "",
+          batchId: String(b._id),
+          batchName: b.name,
+          link: e.link || "",
+          startTime: e.startTime,
+          createdAt: e.createdAt,
+        });
+      }
+    }
+
+    // Sort by startTime ascending
+    events.sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+    return res.status(200).json({ success: true, data: events });
+  } catch (error) {
+    console.error("GET STUDENT LIVE CLASSES ERROR:", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
   }
 }
 exports.deleteAccount = async (req, res) => {
