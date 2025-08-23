@@ -319,6 +319,33 @@ exports.getInstructorCourses = async (req, res) => {
     })
   }
 }
+// Get courses created by the requesting Admin/SuperAdmin (matched via instructor field)
+exports.getAdminCourses = async (req, res) => {
+  try {
+    // Resolve the admin's ObjectId robustly; tokens may not always include id
+    const userDoc = await User.findOne({ email: req.user.email }).select('_id');
+    if (!userDoc) {
+      return res.status(404).json({ success: false, message: 'Admin user not found' });
+    }
+    const adminId = userDoc._id;
+
+    const adminCourses = await Course.find({ instructor: adminId })
+      .sort({ createdAt: -1 })
+      .populate({ path: 'instructor', select: 'firstName lastName image email' })
+      .populate('category')
+      .populate('subCategory')
+      .exec();
+
+    return res.status(200).json({ success: true, data: adminCourses });
+  } catch (error) {
+    console.error('getAdminCourses error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to retrieve admin courses',
+      error: error.message,
+    });
+  }
+}
 // Delete the Course
 exports.deleteCourse = async (req, res) => {
   try {

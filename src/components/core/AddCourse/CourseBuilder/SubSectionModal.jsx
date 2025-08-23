@@ -711,7 +711,7 @@ export default function SubSectionModal({
       maxWidth: '42rem', // Increased max width for better content display
       backgroundColor: WHITE,
       borderRadius: '0.75rem',
-      marginTop: '2rem',  
+      marginTop: '16rem',  
       boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
       overflow: 'hidden',
       maxHeight: '90vh', // Prevent modal from being too tall

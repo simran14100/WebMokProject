@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { VscDashboard, VscSignOut } from "react-icons/vsc";
+import { FiBookOpen } from "react-icons/fi";
 import { AiOutlineCaretDown } from "react-icons/ai";
 import { ACCOUNT_TYPE } from '../../../utils/constants';
 import { logout } from '../../../services/operations/authApi';
@@ -13,6 +14,7 @@ const ProfileDropDown = ({ mobile = false }) => {
     const [isOpen, setIsOpen] = useState(false);
     const dropdownRef = useRef(null);
     const location = useLocation();
+    const isAdminLike = [ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN].includes(user?.accountType);
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -56,7 +58,7 @@ const ProfileDropDown = ({ mobile = false }) => {
 
     const getDashboardLink = () => {
         switch (user?.accountType) {
-            case ACCOUNT_TYPE.STUDENT:
+            case ACCOUNT_TYPE.STUDENT:  
                 return "/dashboard/my-profile";
             case ACCOUNT_TYPE.INSTRUCTOR:
                 return "/dashboard/my-profile";
@@ -100,7 +102,16 @@ const ProfileDropDown = ({ mobile = false }) => {
                         <VscDashboard className="text-lg" />
                         <span>Dashboard</span>
                     </Link>
-
+                    {isAdminLike && (
+                        <Link
+                            to="/admin/my-courses"
+                            className="flex items-center gap-3 px-4 py-3 text-richblack-100 hover:bg-richblack-700 hover:text-yellow-25 rounded-lg transition-all duration-300 font-medium"
+                            onClick={() => setIsOpen(false)}
+                        >
+                            <FiBookOpen className="text-lg" />
+                            <span>My Courses</span>
+                        </Link>
+                    )}
                     <button
                         onClick={handleLogout}
                         className="flex items-center gap-3 px-4 py-3 text-red-400 hover:bg-red-900/20 hover:text-red-300 rounded-lg transition-all duration-300 font-medium text-left w-full"
@@ -166,6 +177,16 @@ const ProfileDropDown = ({ mobile = false }) => {
                             <VscDashboard className="text-lg text-[#009e5c] group-hover:text-[#007a44]" />
                             <span>Dashboard</span>
                         </Link>
+                        {isAdminLike && (
+                            <Link
+                                to="/admin/my-courses"
+                                className="flex items-center gap-3 px-4 py-3 text-sm text-gray-800 hover:bg-[#f9fefb] hover:text-[#007a44] transition-all duration-300 font-medium rounded-lg"
+                                onClick={() => setIsOpen(false)}
+                            >
+                                <FiBookOpen className="text-lg text-[#009e5c] group-hover:text-[#007a44]" />
+                                <span>My Courses</span>
+                            </Link>
+                        )}
                         <button
                             onClick={handleLogout}
                             className="flex items-center gap-3 px-4 py-3 text-sm text-red-500 hover:bg-red-50 hover:text-red-700 transition-all duration-300 font-medium w-full text-left rounded-lg"
@@ -180,4 +201,4 @@ const ProfileDropDown = ({ mobile = false }) => {
     );
 };
 
-export default ProfileDropDown; 
+export default ProfileDropDown;

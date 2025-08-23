@@ -20,6 +20,7 @@ const {
   DELETE_SECTION_API,
   DELETE_SUBSECTION_API,
   GET_ALL_INSTRUCTOR_COURSES_API,
+  GET_ADMIN_COURSES_API,
   DELETE_COURSE_API,
   GET_FULL_COURSE_DETAILS_AUTHENTICATED,
   CREATE_RATING_API,
@@ -387,6 +388,38 @@ export const fetchInstructorCourses = async (token) => {
   return result;
 }
 
+// Fetch courses created by the logged-in Admin/Super Admin
+export const fetchAdminCourses = async (token) => {
+  // Use shared loading toast state
+  if (!isLoading) {
+    isLoading = true;
+    toastId = showLoading("Loading...");
+  }
+  let result = [];
+  try {
+    const response = await apiConnector(
+      "GET",
+      GET_ADMIN_COURSES_API,
+      null,
+      { Authorization: `Bearer ${token}` }
+    );
+    if (!response?.data?.success) {
+      throw new Error("Could Not Fetch Admin Courses");
+    }
+    result = response?.data?.data;
+  } catch (error) {
+    console.log("ADMIN COURSES API ERROR............", error);
+    showError(error.message || "Could Not Fetch Admin Courses");
+  } finally {
+    if (toastId) {
+      dismissToast(toastId);
+      toastId = null;
+    }
+    isLoading = false;
+  }
+  return result;
+}
+
 // delete a course
 export const deleteCourse = async (data, token) => {
   const toastId = showLoading("Loading...")
@@ -406,7 +439,7 @@ export const deleteCourse = async (data, token) => {
   dismissToast(toastId)
 }
 
-export const getFullDetailsOfCourse = async (courseId) => {
+export const getFullDetailsOfCourse = async (courseId, token) => {
   let toastId;
   try {
     toastId = showLoading("Loading course details...");
@@ -414,7 +447,8 @@ export const getFullDetailsOfCourse = async (courseId) => {
     const response = await apiConnector(
       "POST",
       "/api/v1/course/getFullCourseDetails",
-      { courseId } // ✅ pass the real courseId
+      { courseId },
+      token ? { Authorization: `Bearer ${token}` } : undefined
     );
 
     if (!response.data.success) {
@@ -467,8 +501,16 @@ export const markLectureAsComplete = async (data, token) => {
     result = true
   } catch (error) {
     console.log("MARK_LECTURE_AS_COMPLETE_API API ERROR............", error)
-    showError(error.message)
-    result = false
+    // Treat already-completed as a successful, idempotent operation
+    const status = error?.response?.status
+    const errMsg = error?.response?.data?.error || error?.message
+    if (status === 400 && errMsg === "Subsection already completed") {
+      showSuccess("Lecture already marked as completed")
+      result = true
+    } else {
+      showError(errMsg || "Failed to update progress")
+      result = false
+    }
   }
   dismissToast(toastId)
   return result

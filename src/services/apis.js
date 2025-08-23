@@ -21,6 +21,13 @@ export const profile = {
     GET_ENROLLED_COURSES_API: "/api/v1/profile/getEnrolledCourses",
     UPDATE_DISPLAY_PICTURE_API: "/api/v1/profile/updateDisplayPicture",
     LIVE_CLASSES_API: "/api/v1/profile/live-classes",
+    BATCH_COURSES_API: "/api/v1/profile/batch-courses",
+    // Student Assignments
+    STUDENT_ASSIGNMENTS_API: "/api/v1/profile/assignments", // GET list
+    STUDENT_ASSIGNMENT_DETAIL_API: "/api/v1/profile/assignments", // GET `${...}/${taskId}`
+    STUDENT_ASSIGNMENT_SUBMIT_API: "/api/v1/profile/assignments", // POST `${...}/${taskId}/submit`
+    // Student Notifications
+    STUDENT_NOTIFICATIONS_API: "/api/v1/profile/notifications", // GET list
 };
 
 export const subCategory = {
@@ -37,6 +44,7 @@ export const course = {
     GET_FULL_COURSE_DETAILS_AUTHENTICATED: "/api/v1/course/getFullCourseDetails",
     EDIT_COURSE_API: "/api/v1/course/editCourse",
     GET_INSTRUCTOR_COURSES_API: "/api/v1/course/getInstructorCourses",
+    GET_ADMIN_COURSES_API: "/api/v1/course/getAdminCourses",
     DELETE_COURSE_API: "/api/v1/course/deleteCourse",
     CREATE_CATEGORY_API: "/api/v1/course/createCategory",
     SHOW_ALL_CATEGORIES_API: "/api/v1/course/showAllCategories",
@@ -104,10 +112,21 @@ export const admin = {
     REMOVE_COURSE_FROM_BATCH_API: "/api/v1/admin/batches", // DELETE `${REMOVE_COURSE_FROM_BATCH_API}/${batchId}/courses/:courseId`
     // Batch Live Classes management
     ADD_LIVE_CLASS_TO_BATCH_API: "/api/v1/admin/batches", // POST `${ADD_LIVE_CLASS_TO_BATCH_API}/${batchId}/live-classes`
+    // Batch Tasks management
+    LIST_BATCH_TASKS_API: "/api/v1/admin/batches", // GET `${LIST_BATCH_TASKS_API}/${batchId}/tasks`
+    CREATE_BATCH_TASK_API: "/api/v1/admin/batches", // POST `${CREATE_BATCH_TASK_API}/${batchId}/tasks`
+    UPDATE_TASK_API: "/api/v1/admin/tasks", // PUT `${UPDATE_TASK_API}/${taskId}`
+    DELETE_TASK_API: "/api/v1/admin/tasks", // DELETE `${DELETE_TASK_API}/${taskId}`
+    GET_TASK_STATUSES_API: "/api/v1/admin/tasks", // GET `${GET_TASK_STATUSES_API}/${taskId}/statuses`
+    GET_TASK_SUMMARY_API: "/api/v1/admin/tasks", // GET `${GET_TASK_SUMMARY_API}/${taskId}/summary`
     // Admin Reviews
     CREATE_ADMIN_REVIEW_API: "/api/v1/admin/reviews",
     // Google Calendar integration
     CREATE_MEET_LINK_API: "/api/v1/admin/calendar/create-meet",
+    // Notifications
+    CREATE_NOTIFICATION_API: "/api/v1/admin/notifications",
+    LIST_NOTIFICATIONS_API: "/api/v1/admin/notifications",
+    DELETE_NOTIFICATION_API: "/api/v1/admin/notifications", // DELETE `${...}/${id}`
 };
 
 export const admission = {

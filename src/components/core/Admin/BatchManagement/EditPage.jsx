@@ -2,7 +2,7 @@
 // import { useNavigate, useParams } from "react-router-dom";
 // import { useSelector } from "react-redux";
 // import DashboardLayout from "../../../common/DashboardLayout";
-// import { getBatchById, updateBatch, deleteBatch, getAllInstructors, getRegisteredUsers, getEnrolledStudents, listBatchStudents, addStudentToBatch, removeStudentFromBatch, listBatchCourses, addCourseToBatch, removeCourseFromBatch, addLiveClassToBatch, createAdminReview, deleteAdminReview, createGoogleMeetLink, listBatchTrainers, addTrainerToBatch, removeTrainerFromBatch, listTempStudentsInBatch, addTempStudentToBatch, removeTempStudentFromBatch } from "../../../../services/operations/adminApi";
+// import { getBatchById, updateBatch, deleteBatch, getAllInstructors, getRegisteredUsers, getEnrolledStudents, listBatchStudents, addStudentToBatch, removeStudentFromBatch, listBatchCourses, addCourseToBatch, removeCourseFromBatch, addLiveClassToBatch, createAdminReview, deleteAdminReview, createGoogleMeetLink, listBatchTrainers, addTrainerToBatch, removeTrainerFromBatch, listTempStudentsInBatch, addTempStudentToBatch, removeTempStudentFromBatch, listBatchTasks, createBatchTask, updateTask, deleteTask } from "../../../../services/operations/adminApi";
 // import { getAllCourses, getAllReviews } from "../../../../services/operations/courseDetailsAPI";
 // import { showError, showSuccess, showLoading, dismissToast } from "../../../../utils/toast";
 
@@ -673,6 +673,8 @@
 //                     }}
 //                   />
 //                 )}
+
+          
 
           
 
@@ -2176,7 +2178,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import DashboardLayout from "../../../common/DashboardLayout";
-import { getBatchById, updateBatch, deleteBatch, getAllInstructors, getRegisteredUsers, getEnrolledStudents, listBatchStudents, addStudentToBatch, removeStudentFromBatch, listBatchCourses, addCourseToBatch, removeCourseFromBatch, addLiveClassToBatch, createAdminReview, deleteAdminReview, createGoogleMeetLink, listBatchTrainers, addTrainerToBatch, removeTrainerFromBatch, listTempStudentsInBatch, addTempStudentToBatch, removeTempStudentFromBatch } from "../../../../services/operations/adminApi";
+import { getBatchById, updateBatch, deleteBatch, getAllInstructors, getRegisteredUsers, getEnrolledStudents, listBatchStudents, addStudentToBatch, removeStudentFromBatch, listBatchCourses, addCourseToBatch, removeCourseFromBatch, addLiveClassToBatch, createAdminReview, deleteAdminReview, createGoogleMeetLink, listBatchTrainers, addTrainerToBatch, removeTrainerFromBatch, listTempStudentsInBatch, addTempStudentToBatch, removeTempStudentFromBatch, listBatchTasks, createBatchTask, updateTask, deleteTask, getTaskStatuses, getTaskSummary } from "../../../../services/operations/adminApi";
 import { getAllCourses, getAllReviews } from "../../../../services/operations/courseDetailsAPI";
 import { showError, showSuccess, showLoading, dismissToast } from "../../../../utils/toast";
 
@@ -2195,9 +2197,9 @@ const TABS = [
   { key: "info", label: "Info" },
   { key: "trainer", label: "Trainer" },
   { key: "student", label: "Student" },
-  { key: "courses", label: "Courses" },
   { key: "live", label: "Live Classes" },
-  { key: "attendance", label: "Attendance" },
+  { key: "task", label: "Task" },
+  { key: "performance", label: "Performance" },
   { key: "reviews", label: "Reviews" },
 ];
 
@@ -2216,6 +2218,29 @@ export default function EditPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
   const [department, setDepartment] = useState("");
+
+  // Task tab state
+  const [tasks, setTasks] = useState([]);
+  const [tasksLoading, setTasksLoading] = useState(false);
+  const [tasksError, setTasksError] = useState("");
+  const [taskModalOpen, setTaskModalOpen] = useState(false);
+  const [taskForm, setTaskForm] = useState({ title: "", description: "", dueDate: "" });
+  const [editingTaskId, setEditingTaskId] = useState(null);
+  const [statusModalOpen, setStatusModalOpen] = useState(false);
+  const [statusLoading, setStatusLoading] = useState(false);
+  const [statusError, setStatusError] = useState("");
+  const [statusSummary, setStatusSummary] = useState({ total: 0, submitted: 0, completed: 0, pending: 0, graded: 0 });
+  const [taskStatuses, setTaskStatuses] = useState([]);
+  const [statusTaskTitle, setStatusTaskTitle] = useState("");
+  const [selectedAttendanceTaskId, setSelectedAttendanceTaskId] = useState("");
+
+  // Auto-select the first task for Attendance tab when tasks load
+  useEffect(() => {
+    if (!selectedAttendanceTaskId && Array.isArray(tasks) && tasks.length > 0) {
+      const firstId = String(tasks[0]._id || tasks[0].id || "");
+      setSelectedAttendanceTaskId(firstId);
+    }
+  }, [tasks]);
 
   // Live classes state
   const [showLiveClassModal, setShowLiveClassModal] = useState(false);
@@ -2331,6 +2356,120 @@ export default function EditPage() {
       cancelled = true;
     };
   }, [activeTab, batchId, token]);
+
+  // Load tasks when Task tab becomes active
+  useEffect(() => {
+    const loadTasks = async () => {
+      if (!batchId || !token) return;
+      setTasksLoading(true);
+      setTasksError("");
+      try {
+        const list = await listBatchTasks(batchId, token);
+        setTasks(Array.isArray(list) ? list : []);
+      } catch (e) {
+        const msg = e?.response?.data?.message || e?.message || "Failed to load tasks";
+        setTasksError(msg);
+      } finally {
+        setTasksLoading(false);
+      }
+    };
+    if (activeTab === "task" || activeTab === "performance" || activeTab === "attendance") {
+      loadTasks();
+    }
+  }, [activeTab, batchId, token]);
+
+  // Task tab handlers
+  const openCreateTaskModal = () => {
+    setTaskForm({ title: "", description: "", dueDate: "" });
+    setEditingTaskId(null);
+    setTaskModalOpen(true);
+  };
+
+  const openEditTaskModal = (task) => {
+    setTaskForm({
+      title: task?.title || "",
+      description: task?.description || "",
+      dueDate: task?.dueDate ? new Date(task.dueDate).toISOString().slice(0, 16) : "",
+    });
+    setEditingTaskId(task?._id || task?.id);
+    setTaskModalOpen(true);
+  };
+
+  const handleDeleteTask = async (taskId) => {
+    if (!taskId) return;
+    const ok = window.confirm("Delete this task?");
+    if (!ok) return;
+    const toastId = showLoading("Deleting task...");
+    try {
+      await deleteTask(taskId, token);
+      showSuccess("Task deleted");
+      setTasks((prev) => prev.filter((t) => (t._id || t.id) !== taskId));
+    } catch (e) {
+      showError(e?.response?.data?.message || e?.message || "Failed to delete task");
+    } finally {
+      dismissToast(toastId);
+    }
+  };
+
+  // Status controls removed
+  const openStatusModal = async (task) => {
+    if (!isAdmin) {
+      showError("Admins only: not authorized to view task statuses");
+      return;
+    }
+    const tId = task?._id || task?.id;
+    if (!tId) return;
+    setStatusTaskTitle(task?.title || "Task");
+    setStatusModalOpen(true);
+    setStatusLoading(true);
+    setStatusError("");
+    try {
+      const [summary, statuses] = await Promise.all([
+        getTaskSummary(tId, token).catch((e) => { throw e; }),
+        getTaskStatuses(tId, token).catch((e) => { throw e; }),
+      ]);
+      setStatusSummary(summary || { total: 0, submitted: 0, completed: 0, pending: 0, graded: 0 });
+      setTaskStatuses(Array.isArray(statuses) ? statuses : []);
+    } catch (e) {
+      const msg = e?.response?.data?.message || e?.message || "Failed to load task statuses";
+      setStatusError(msg);
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  const submitTaskForm = async (e) => {
+    e.preventDefault();
+    const title = (taskForm.title || "").trim();
+    if (!title) {
+      showError("Title is required");
+      return;
+    }
+    const payload = {
+      title,
+      description: (taskForm.description || "").trim(),
+      dueDate: taskForm.dueDate ? new Date(taskForm.dueDate).toISOString() : undefined,
+    };
+    const toastId = showLoading(editingTaskId ? "Updating task..." : "Creating task...");
+    try {
+      if (editingTaskId) {
+        await updateTask(editingTaskId, payload, token);
+        showSuccess("Task updated");
+      } else {
+        await createBatchTask(batchId, payload, token);
+        showSuccess("Task created");
+      }
+      setTaskModalOpen(false);
+      setEditingTaskId(null);
+      // refresh list
+      const list = await listBatchTasks(batchId, token).catch(() => []);
+      setTasks(Array.isArray(list) ? list : []);
+    } catch (e) {
+      showError(e?.response?.data?.message || e?.message || "Failed to submit task");
+    } finally {
+      dismissToast(toastId);
+    }
+  };
 
   // Open Add Student modal and load admin-created students with role=Student
   const onAddStudent = async () => {
@@ -2521,6 +2660,45 @@ export default function EditPage() {
     } else {
       setCalendarDate((prev) => new Date(prev.getFullYear(), prev.getMonth() + 1, 1));
     }
+  };
+
+  // Live class event click handling (open link if not expired)
+  const normalizeLink = (url) => {
+    const s = String(url || "").trim();
+    if (!s) return "";
+    // 1) Extract first explicit URL
+    const urlMatch = s.match(/https?:\/\/[\w\-._~:?#\[\]@!$&'()*+,;=%/]+/i);
+    if (urlMatch) return urlMatch[0];
+    // 2) Extract known meeting domains even without protocol
+    const domainMatch = s.match(/(?:meet\.google\.com|zoom\.us|teams\.microsoft\.com|webex\.com)[^\s,]*/i);
+    if (domainMatch) {
+      const val = domainMatch[0].replace(/^\/+/, "");
+      return /^https?:\/\//i.test(val) ? val : `https://${val}`;
+    }
+    // 3) Extract Google Meet code pattern (xxx-xxxx-xxx) if present
+    const meetCode = s.match(/\b([a-z]{3}-[a-z]{4}-[a-z]{3})\b/i);
+    if (meetCode) {
+      return `https://meet.google.com/${meetCode[1]}`;
+    }
+    // 4) Fallback: if starts like a domain, prefix https
+    if (/^([\w-]+\.)+[\w-]+(\/[^\s]*)?$/i.test(s)) return `https://${s}`;
+    return ""; // could not infer a safe link
+  };
+
+  const handleEventClick = (ev) => {
+    if (!ev) return;
+    const st = ev?._st ? ev._st : ev?.startTime ? new Date(ev.startTime) : null;
+    const isPast = st ? (!isSameDay(st, today) && st.getTime() < Date.now()) : false;
+    const link = normalizeLink(ev?.link || "");
+    if (!link) {
+      showError("No class link available.");
+      return;
+    }
+    if (isPast) {
+      showError("This class link has expired.");
+      return;
+    }
+    window.open(link, "_blank", "noopener");
   };
 
   // Course functions
@@ -2873,15 +3051,39 @@ export default function EditPage() {
                               const maxShow = 3;
                               return (
                                 <div className="day-events">
-                                  {evs.slice(0, maxShow).map((ev) => (
-                                    <div 
-                                      key={(ev._id || ev.id || ev.startTime) + "-m"} 
-                                      className="event-chip"
-                                      title={ev.title || "Live Class"}
-                                    >
-                                      {ev.title || "Live Class"}
-                                    </div>
-                                  ))}
+                                  {evs.slice(0, maxShow).map((ev) => {
+                                    const st = ev?.startTime ? new Date(ev.startTime) : null;
+                                    const isPast = st ? (st.getTime() < Date.now() && !isSameDay(st, today)) : false;
+                                    return (
+                                      <div 
+                                        key={(ev._id || ev.id || ev.startTime) + "-m"} 
+                                        className="event-chip"
+                                        onClick={(e) => { e.stopPropagation(); handleEventClick(ev); }}
+                                        title={ev.title || "Live Class"}
+                                        style={{ display: "flex", alignItems: "center", gap: 6, cursor: "pointer" }}
+                                      >
+                                        <span>{ev.title || "Live Class"}</span>
+                                        {isPast && (
+                                          <span
+                                            style={{
+                                              marginLeft: 6,
+                                              background: "#DCFCE7",
+                                              color: "#166534",
+                                              border: "1px solid #86efac",
+                                              borderRadius: 999,
+                                              padding: "1px 6px",
+                                              fontSize: 10,
+                                              fontWeight: 700,
+                                              lineHeight: 1.4,
+                                              whiteSpace: "nowrap",
+                                            }}
+                                          >
+                                            Done
+                                          </span>
+                                        )}
+                                      </div>
+                                    );
+                                  })}
                                   {evs.length > maxShow && (
                                     <div className="more-events">+{evs.length - maxShow} more</div>
                                   )}
@@ -2917,14 +3119,40 @@ export default function EditPage() {
                     if (evs.length === 0) return null;
                     return (
                       <div className="day-events-list">
-                        {evs.map((ev) => (
-                          <div key={(ev._id || ev.id || ev.startTime) + "-d"} className="event-item">
-                            <span className="event-time">
-                              {ev._st.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                            </span>
-                            <span className="event-title">{ev.title || "Live Class"}</span>
-                          </div>
-                        ))}
+                        {evs.map((ev) => {
+                          const isPast = ev?._st ? (ev._st.getTime() < Date.now() && !isSameDay(ev._st, today)) : false;
+                          return (
+                            <div 
+                              key={(ev._id || ev.id || ev.startTime) + "-d"} 
+                              className="event-item" 
+                              onClick={() => handleEventClick(ev)}
+                              style={{ display: "flex", alignItems: "center", gap: 8, cursor: "pointer" }}
+                            >
+                              <span className="event-time">
+                                {ev._st.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                              <span className="event-title">{ev.title || "Live Class"}</span>
+                              {isPast && (
+                                <span
+                                  style={{
+                                    marginLeft: 6,
+                                    background: "#DCFCE7",
+                                    color: "#166534",
+                                    border: "1px solid #86efac",
+                                    borderRadius: 999,
+                                    padding: "2px 8px",
+                                    fontSize: 11,
+                                    fontWeight: 700,
+                                    lineHeight: 1.4,
+                                    whiteSpace: "nowrap",
+                                  }}
+                                >
+                                  Done
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })}
                       </div>
                     );
                   })()}
@@ -2943,6 +3171,293 @@ export default function EditPage() {
                   </div>
                 </div>
               )}
+            </div>
+          )}
+
+          {/* Global Task Statuses Modal (for Performance tab and others) */}
+          {statusModalOpen && activeTab !== "task" && (
+            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 60 }}>
+              <div style={{ background: "#fff", width: "min(900px, 96vw)", borderRadius: 12, border: `1px solid ${BORDER_COLOR}`, boxShadow: MODAL_SHADOW }}>
+                <div style={{ padding: 16, borderBottom: `1px solid ${BORDER_COLOR}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                  <h3 style={{ margin: 0, color: TEXT_DARK }}>Task Statuses • {statusTaskTitle}</h3>
+                  <button onClick={() => setStatusModalOpen(false)} style={{ background: "transparent", border: "none", fontSize: 18, cursor: "pointer" }}>✕</button>
+                </div>
+                <div style={{ padding: 16 }}>
+                  {/* Summary Cards */}
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 12, marginBottom: 12 }}>
+                    {[
+                      { label: "Total", value: statusSummary.total },
+                      { label: "Submitted", value: statusSummary.submitted },
+                      { label: "Pending", value: statusSummary.pending },
+                      { label: "Completed", value: statusSummary.completed },
+                      { label: "Graded", value: statusSummary.graded },
+                    ].map((card) => (
+                      <div key={card.label} style={{ background: BG_LIGHT, border: `1px solid ${BORDER_COLOR}`, borderRadius: 10, padding: 12, textAlign: "center" }}>
+                        <div style={{ color: TEXT_LIGHT, fontSize: 12 }}>{card.label}</div>
+                        <div style={{ color: TEXT_DARK, fontWeight: 700, fontSize: 18 }}>{Number(card.value ?? 0)}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Error/Loading */}
+                  {statusLoading ? (
+                    <div style={{ color: TEXT_LIGHT }}>Loading statuses...</div>
+                  ) : statusError ? (
+                    <div style={{ color: "#ef4444" }}>{statusError}</div>
+                  ) : (
+                    <div style={{ overflowX: "auto" }}>
+                      <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                        <thead>
+                          <tr style={{ background: "#f9fafb" }}>
+                            <th style={{ textAlign: "left", padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>Student</th>
+                            <th style={{ textAlign: "left", padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>Email</th>
+                            <th style={{ textAlign: "left", padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>Status</th>
+                            <th style={{ textAlign: "left", padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>Submitted At</th>
+                            <th style={{ textAlign: "left", padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>Score</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {(Array.isArray(taskStatuses) ? taskStatuses : []).length === 0 ? (
+                            <tr>
+                              <td colSpan="5" style={{ padding: 16, color: TEXT_LIGHT, textAlign: "center" }}>No data</td>
+                            </tr>
+                          ) : (
+                            taskStatuses.map((s, idx) => (
+                              <tr key={(s.student?._id || idx) + "-status"}>
+                                <td style={{ padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>
+                                  {(s.student?.firstName || "") + " " + (s.student?.lastName || "")}
+                                </td>
+                                <td style={{ padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>{s.student?.email || "-"}</td>
+                                <td style={{ padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>
+                                  <span style={{
+                                    background: s.status === "completed" ? "#dcfce7" : "#fee2e2",
+                                    color: s.status === "completed" ? "#166534" : "#991b1b",
+                                    borderRadius: 999,
+                                    padding: "2px 8px",
+                                    fontSize: 12,
+                                    fontWeight: 700,
+                                  }}>{(s.status || "").toUpperCase()}</span>
+                                </td>
+                                <td style={{ padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>
+                                  {s.submittedAt ? new Date(s.submittedAt).toLocaleString() : "-"}
+                                </td>
+                                <td style={{ padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>
+                                  {typeof s.score === "number" ? s.score : "-"}
+                                </td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+                <div style={{ padding: 16, borderTop: `1px solid ${BORDER_COLOR}`, display: "flex", justifyContent: "flex-end" }}>
+                  <button onClick={() => setStatusModalOpen(false)} style={{ background: "#e5e7eb", border: `1px solid ${BORDER_COLOR}`, padding: "0.45rem 0.9rem", borderRadius: 8, cursor: "pointer" }}>Close</button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Task Tab Section */}
+          {activeTab === "task" && (
+            <div className="task-tab-section" style={{ marginTop: 16 }}>
+              {/* Toolbar */}
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+                <div style={{ color: TEXT_LIGHT }}>
+                  {tasksLoading ? "Loading tasks..." : `${tasks.length} task${tasks.length === 1 ? "" : "s"}`}
+                  {tasksError && <span style={{ color: "#ef4444", marginLeft: 8 }}>• {tasksError}</span>}
+                </div>
+                <button onClick={openCreateTaskModal} style={{ backgroundColor: "#16a34a", color: "#fff", border: "none", padding: "0.45rem 0.9rem", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>
+                  Add Task
+                </button>
+              </div>
+
+              {/* Tasks table */}
+              <div style={{ overflowX: "auto" }}>
+                <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                  <thead>
+                    <tr style={{ background: "#f9fafb" }}>
+                      <th style={{ textAlign: "left", padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>Title</th>
+                      <th style={{ textAlign: "left", padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>Description</th>
+                      <th style={{ textAlign: "left", padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>Due</th>
+                      <th style={{ textAlign: "right", padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {tasks.length === 0 ? (
+                      <tr>
+                        <td colSpan="4" style={{ padding: 16, color: TEXT_LIGHT, textAlign: "center" }}>
+                          {tasksLoading ? "Loading..." : "No tasks yet"}
+                        </td>
+                      </tr>
+                    ) : (
+                      tasks.map((t) => {
+                        const id = t._id || t.id;
+                        return (
+                          <tr key={id}>
+                            <td style={{ padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>{t.title}</td>
+                            <td style={{ padding: 10, borderBottom: `1px solid ${BORDER_COLOR}`, maxWidth: 420, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={t.description}>
+                              {t.description || "-"}
+                            </td>
+                            <td style={{ padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>
+                              {t.dueDate ? new Date(t.dueDate).toLocaleString() : "-"}
+                            </td>
+                            <td style={{ padding: 10, borderBottom: `1px solid ${BORDER_COLOR}`, textAlign: "right" }}>
+                              <button onClick={() => openEditTaskModal(t)} style={{ background: "#e5e7eb", border: `1px solid ${BORDER_COLOR}`, padding: "6px 10px", borderRadius: 6, cursor: "pointer", marginRight: 8 }}>Edit</button>
+                              <button onClick={() => handleDeleteTask(id)} style={{ background: "#ef4444", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 6, cursor: "pointer" }}>Delete</button>
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Create/Edit Task Modal */}
+              {taskModalOpen && (
+                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 50 }}>
+                  <div style={{ background: "#fff", width: "min(720px, 96vw)", borderRadius: 12, border: `1px solid ${BORDER_COLOR}` }}>
+                    <div style={{ padding: 16, borderBottom: `1px solid ${BORDER_COLOR}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <h3 style={{ margin: 0, color: TEXT_DARK }}>{editingTaskId ? "Edit Task" : "Create Task"}</h3>
+                      <button onClick={() => setTaskModalOpen(false)} style={{ background: "transparent", border: "none", fontSize: 18, cursor: "pointer" }}>✕</button>
+                    </div>
+                    <form onSubmit={submitTaskForm} style={{ padding: 16 }}>
+                      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
+                        <div>
+                          <label style={{ display: "block", fontSize: 12, color: TEXT_LIGHT, marginBottom: 6 }}>Title</label>
+                          <input value={taskForm.title} onChange={(e) => setTaskForm((f) => ({ ...f, title: e.target.value }))} placeholder="Task title" style={{ width: "100%", padding: 10, border: `1px solid ${BORDER_COLOR}`, borderRadius: 8 }} />
+                        </div>
+                        <div>
+                          <label style={{ display: "block", fontSize: 12, color: TEXT_LIGHT, marginBottom: 6 }}>Due Date</label>
+                          <input type="datetime-local" value={taskForm.dueDate} onChange={(e) => setTaskForm((f) => ({ ...f, dueDate: e.target.value }))} style={{ width: "100%", padding: 10, border: `1px solid ${BORDER_COLOR}`, borderRadius: 8 }} />
+                        </div>
+                        <div style={{ gridColumn: "1 / -1" }}>
+                          <label style={{ display: "block", fontSize: 12, color: TEXT_LIGHT, marginBottom: 6 }}>Description</label>
+                          <textarea value={taskForm.description} onChange={(e) => setTaskForm((f) => ({ ...f, description: e.target.value }))} placeholder="Task description" rows="4" style={{ width: "100%", padding: 10, border: `1px solid ${BORDER_COLOR}`, borderRadius: 8, resize: "vertical" }} />
+                        </div>
+                      </div>
+                      <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
+                        <button type="button" onClick={() => setTaskModalOpen(false)} style={{ background: "#e5e7eb", border: `1px solid ${BORDER_COLOR}`, padding: "0.45rem 0.9rem", borderRadius: 8, cursor: "pointer" }}>Cancel</button>
+                        <button type="submit" style={{ background: "#2563eb", color: "#fff", border: "none", padding: "0.45rem 0.9rem", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>{editingTaskId ? "Update" : "Create"}</button>
+                      </div>
+                    </form>
+                  </div>
+                </div>
+              )}
+
+              {/* Task Statuses Modal */}
+              {statusModalOpen && (
+                <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 60 }}>
+                  <div style={{ background: "#fff", width: "min(900px, 96vw)", borderRadius: 12, border: `1px solid ${BORDER_COLOR}`, boxShadow: MODAL_SHADOW }}>
+                    <div style={{ padding: 16, borderBottom: `1px solid ${BORDER_COLOR}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                      <h3 style={{ margin: 0, color: TEXT_DARK }}>Task Statuses • {statusTaskTitle}</h3>
+                      <button onClick={() => setStatusModalOpen(false)} style={{ background: "transparent", border: "none", fontSize: 18, cursor: "pointer" }}>✕</button>
+                    </div>
+                    <div style={{ padding: 16 }}>
+                      {/* Summary Cards */}
+                      <div style={{ display: "grid", gridTemplateColumns: "repeat(5, minmax(0,1fr))", gap: 12, marginBottom: 12 }}>
+                        {[
+                          { label: "Total", value: statusSummary.total },
+                          { label: "Submitted", value: statusSummary.submitted },
+                          { label: "Pending", value: statusSummary.pending },
+                          { label: "Completed", value: statusSummary.completed },
+                          { label: "Graded", value: statusSummary.graded },
+                        ].map((card) => (
+                          <div key={card.label} style={{ background: BG_LIGHT, border: `1px solid ${BORDER_COLOR}`, borderRadius: 10, padding: 12, textAlign: "center" }}>
+                            <div style={{ color: TEXT_LIGHT, fontSize: 12 }}>{card.label}</div>
+                            <div style={{ color: TEXT_DARK, fontWeight: 700, fontSize: 18 }}>{Number(card.value ?? 0)}</div>
+                          </div>
+                        ))}
+                      </div>
+
+                      {/* Error/Loading */}
+                      {statusLoading ? (
+                        <div style={{ padding: 12, color: TEXT_LIGHT }}>Loading...</div>
+                      ) : statusError ? (
+                        <div style={{ padding: 12, color: "#ef4444" }}>{statusError}</div>
+                      ) : (
+                        <div style={{ overflowX: "auto" }}>
+                          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+                            <thead>
+                              <tr style={{ background: "#f9fafb" }}>
+                                <th style={{ textAlign: "left", padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>Student</th>
+                                <th style={{ textAlign: "left", padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>Email</th>
+                                <th style={{ textAlign: "left", padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>Status</th>
+                                <th style={{ textAlign: "left", padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>Submitted At</th>
+                                <th style={{ textAlign: "left", padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>Score</th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {taskStatuses.length === 0 ? (
+                                <tr>
+                                  <td colSpan="5" style={{ padding: 16, color: TEXT_LIGHT, textAlign: "center" }}>No students found</td>
+                                </tr>
+                              ) : (
+                                taskStatuses.map((row, idx) => {
+                                  const name = `${row?.student?.firstName || ""} ${row?.student?.lastName || ""}`.trim() || (row?.student?.name || "-")
+                                  const email = row?.student?.email || "-"
+                                  const status = row?.status || "pending"
+                                  const submittedAt = row?.submittedAt ? new Date(row.submittedAt).toLocaleString() : "-"
+                                  const score = (typeof row?.score === "number") ? row.score : "-"
+                                  return (
+                                    <tr key={row?.student?._id || idx}>
+                                      <td style={{ padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>{name}</td>
+                                      <td style={{ padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>{email}</td>
+                                      <td style={{ padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>{status}</td>
+                                      <td style={{ padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>{submittedAt}</td>
+                                      <td style={{ padding: 10, borderBottom: `1px solid ${BORDER_COLOR}` }}>{score}</td>
+                                    </tr>
+                                  )
+                                })
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ padding: 16, borderTop: `1px solid ${BORDER_COLOR}`, display: "flex", justifyContent: "flex-end" }}>
+                      <button onClick={() => setStatusModalOpen(false)} style={{ background: "#e5e7eb", border: `1px solid ${BORDER_COLOR}`, padding: "0.45rem 0.9rem", borderRadius: 8, cursor: "pointer" }}>Close</button>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Performance Tab Section */}
+          {(activeTab === "performance" || activeTab === "attendance") && (
+            <div className="performance-tab-section" style={{ marginTop: 16 }}>
+              <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
+                <label style={{ color: TEXT_LIGHT, fontSize: 14 }}>Select Task:</label>
+                <select
+                  value={selectedAttendanceTaskId}
+                  onChange={(e) => setSelectedAttendanceTaskId(e.target.value)}
+                  style={{ padding: 8, border: `1px solid ${BORDER_COLOR}`, borderRadius: 8 }}
+                >
+                  <option value="">-- Choose a task --</option>
+                  {(Array.isArray(tasks) ? tasks : []).map((t) => (
+                    <option key={t._id || t.id} value={String(t._id || t.id)}>
+                      {t.title}
+                    </option>
+                  ))}
+                </select>
+                <button
+                  onClick={() => {
+                    const t = (tasks || []).find((x) => String(x._id || x.id) === String(selectedAttendanceTaskId));
+                    if (!t) { showError("Please select a task"); return; }
+                    openStatusModal(t);
+                  }}
+                  style={{ background: ED_TEAL, color: "#fff", border: "none", padding: "0.45rem 0.9rem", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}
+                >
+                  View Task Statuses
+                </button>
+              </div>
+
+              <div style={{ color: TEXT_LIGHT, fontSize: 13 }}>
+                Use this to quickly view per-student submission status for a selected task as part of performance tracking.
+              </div>
             </div>
           )}
 

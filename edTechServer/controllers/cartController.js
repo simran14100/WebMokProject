@@ -33,11 +33,22 @@ exports.getCartDetails = async (req, res) => {
       });
     }
 
-    // Calculate total
-    let total = 0;
-    cart.items.forEach((item) => {
-      total += item.course.price * item.quantity;
-    });
+    // Clean up any items where the referenced course no longer exists
+    const validItems = cart.items.filter((item) => item.course);
+    if (validItems.length !== cart.items.length) {
+      cart.items = validItems;
+      try {
+        await cart.save();
+      } catch (e) {
+        console.warn("Failed to persist cart cleanup:", e?.message || e);
+      }
+    }
+
+    // Calculate total safely (prefer stored item.price, fallback to populated course.price)
+    const total = cart.items.reduce((sum, item) => {
+      const price = typeof item.price === 'number' ? item.price : (item.course?.price || 0);
+      return sum + price * (item.quantity || 0);
+    }, 0);
 
     return res.status(200).json({
       success: true,

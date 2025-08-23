@@ -5,6 +5,7 @@ import authReducer from './slices/authSlice';
 import profileReducer from './slices/profileSlice';
 import cartReducer from './slices/cartSlice';
 import courseReducer from './slices/courseSlice';
+import viewCourseReducer from './slices/viewCourseSlice';
 
 // Configure persist for auth
 const authPersistConfig = {
@@ -38,6 +39,7 @@ export const store = configureStore({
     profile: persistedProfileReducer,
     cart: persistedCartReducer,
     course: courseReducer,
+    viewCourse: viewCourseReducer,
   },
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({

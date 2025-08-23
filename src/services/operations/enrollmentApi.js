@@ -27,7 +27,8 @@ function loadScript(src) {
 }
 
 // Buy the Enrollment
-export async function buyEnrollment(token, user, navigate, dispatch) {
+// Optional returnTo: path to navigate after successful enrollment payment
+export async function buyEnrollment(token, user, navigate, dispatch, returnTo = null) {
   const toastId = showLoading("Loading...")
   try {
     // Loading the script of Razorpay SDK
@@ -65,7 +66,7 @@ export async function buyEnrollment(token, user, navigate, dispatch) {
     // Opening the Razorpay SDK
     console.log('Frontend Razorpay Key (before opening Razorpay):', process.env.REACT_APP_RAZORPAY_KEY);
     const options = {
-      key: process.env.REACT_APP_RAZORPAY_KEY || "rzp_test_XZrJHQ4hfoi9FU",
+      key: process.env.REACT_APP_RAZORPAY_KEY,
       currency: orderData.currency,
       amount: orderData.amount * 100, // Convert to paise and ensure it's a number
       order_id: orderData.orderId,
@@ -76,7 +77,7 @@ export async function buyEnrollment(token, user, navigate, dispatch) {
         email: user.email,
       },
       handler: function (response) {
-        verifyEnrollmentPayment(response, token, navigate, dispatch)
+        verifyEnrollmentPayment(response, token, navigate, dispatch, returnTo)
       },
     }
     console.log('Razorpay options.key:', options.key);
@@ -99,7 +100,7 @@ export async function buyEnrollment(token, user, navigate, dispatch) {
 }
 
 // Verify the Enrollment Payment
-async function verifyEnrollmentPayment(bodyData, token, navigate, dispatch) {
+async function verifyEnrollmentPayment(bodyData, token, navigate, dispatch, returnTo = null) {
   const toastId = showLoading("Verifying Payment...")
   try {
     const response = await apiConnector(
@@ -120,7 +121,11 @@ async function verifyEnrollmentPayment(bodyData, token, navigate, dispatch) {
 
     showSuccess("Enrollment Payment Successful! You can now access all courses.")
     dispatch(setUser(backendData.data))
-    navigate("/dashboard")
+    if (returnTo) {
+      navigate(returnTo)
+    } else {
+      navigate("/dashboard/my-profile")
+    }
   } catch (error) {
     console.log("ENROLLMENT PAYMENT VERIFY ERROR............", error)
     showError("Could Not Verify Payment.")

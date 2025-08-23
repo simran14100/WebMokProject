@@ -22,9 +22,13 @@ const { createBatch, listBatches, exportBatches, getBatchById, updateBatch, dele
 const { createAdminReview, deleteReview } = require("../controllers/RatingAndReview");
 const { createUserType, listUserTypes } = require("../controllers/UserType");
 const { createMeetEvent } = require("../controllers/GoogleCalendar");
+// Notifications
+const { createNotification, listNotifications, deleteNotification } = require("../controllers/Notification");
 
 // Import middleware
 const { auth, isAdminLevel, isAdmin } = require("../middlewares/auth");
+// Import Task controllers
+const { listBatchTasks, createBatchTask, updateTask, deleteTask, getTaskStatuses, getTaskSummary } = require("../controllers/Task");
 
 // ********************************************************************************************************
 //                                      Admin Dashboard routes
@@ -131,6 +135,22 @@ router.post("/batches/:batchId/courses", auth, isAdminLevel, addCourseToBatch);
 router.delete("/batches/:batchId/courses/:courseId", auth, isAdminLevel, removeCourseFromBatch);
 
 // ***********************************
+// Batch Tasks management (Admin only)
+// ***********************************
+// List tasks for a batch
+router.get("/batches/:batchId/tasks", auth, isAdminLevel, listBatchTasks);
+// Create task for a batch
+router.post("/batches/:batchId/tasks", auth, isAdminLevel, createBatchTask);
+// Update a task
+router.put("/tasks/:taskId", auth, isAdminLevel, updateTask);
+// Delete a task
+router.delete("/tasks/:taskId", auth, isAdminLevel, deleteTask);
+// Task per-student statuses (Option A: completed=submitted)
+router.get("/tasks/:taskId/statuses", auth, isAdminLevel, getTaskStatuses);
+// Task summary counts
+router.get("/tasks/:taskId/summary", auth, isAdminLevel, getTaskSummary);
+
+// ***********************************
 // Batch Live Classes (Admin only)
 // ***********************************
 // Create a live class for a batch
@@ -146,5 +166,12 @@ router.delete("/reviews/:reviewId", auth, isAdminLevel, deleteReview);
 // Google Calendar - Create Meet link (Admin only)
 // ***********************************
 router.post("/calendar/create-meet", auth, isAdmin, createMeetEvent);
+
+// ***********************************
+// Admin Notifications (Admin-level)
+// ***********************************
+router.post("/notifications", auth, isAdminLevel, createNotification);
+router.get("/notifications", auth, isAdminLevel, listNotifications);
+router.delete("/notifications/:id", auth, isAdminLevel, deleteNotification);
 
 module.exports = router;

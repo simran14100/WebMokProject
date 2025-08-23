@@ -5,12 +5,13 @@ import { useParams } from "react-router-dom"
 import {
   getFullDetailsOfCourse,
 } from "../../../services/operations/courseDetailsAPI"
-import { setCourse, setEditCourse } from "../../../store/slices/courseSlice"
+import { setCourse, setEditCourse, setStep } from "../../../store/slices/courseSlice"
 import RenderSteps from "../AddCourse/RenderSteps"
 
 export default function EditCourse() {
   const dispatch = useDispatch()
-  const { id } = useParams()
+  const { id, courseId } = useParams()
+  const resolvedId = id || courseId
   const { course } = useSelector((state) => state.course)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState(null)
@@ -18,7 +19,7 @@ export default function EditCourse() {
 
   useEffect(() => {
     ;(async () => {
-      if (!id || !token) {
+      if (!resolvedId || !token) {
         setError('Missing course ID or authentication token')
         return
       }
@@ -27,7 +28,7 @@ export default function EditCourse() {
       setError(null)
       
       try {
-        const result = await getFullDetailsOfCourse(id, token)
+        const result = await getFullDetailsOfCourse(resolvedId, token)
         console.log("EditCourse - Full result:", result)
         console.log("EditCourse - Course details:", result?.data?.courseDetails)
         console.log("EditCourse - Instructions:", result?.data?.courseDetails?.instructions)
@@ -35,6 +36,8 @@ export default function EditCourse() {
         if (result?.data?.courseDetails) {
           dispatch(setEditCourse(true))
           dispatch(setCourse(result.data.courseDetails))
+          // Optionally land directly on Builder step when entering edit flow
+          // dispatch(setStep(2))
         } else {
           setError('Course not found or failed to load')
         }
@@ -46,7 +49,7 @@ export default function EditCourse() {
       }
     })()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, token])
+  }, [resolvedId, token])
 
   if (loading) {
     return (

@@ -22,17 +22,9 @@ exports.getRazorpayKey = async (req, res) => {
 };
 exports.capturePayment = async (req, res) => {
   try {
-    const { courses , amount } = req.body;
+    const { courses } = req.body;
     const userId = req.user.id;
 
-   // Validate amount is provided
-    if (!amount || isNaN(amount)) {
-      return res.status(400).json({
-        success: false,
-        message: "Invalid amount provided"
-      });
-    }
-    
     // Ensure courses is an array
     if (!Array.isArray(courses)) {
       return res.status(400).json({ 

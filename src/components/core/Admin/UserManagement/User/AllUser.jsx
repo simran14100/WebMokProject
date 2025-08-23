@@ -308,9 +308,10 @@ export default function AllUsers() {
       <style jsx>{`
         .all-users-container {
           max-width: 1400px;
-          margin: 0 auto;
+          
+          margin-left:-60px;
           padding: 32px 24px;
-          padding-left: ${SIDEBAR_WIDTH + 32}px;
+          padding-left: ${SIDEBAR_WIDTH + 22}px;
         }
 
         .page-title {

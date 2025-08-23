@@ -32,7 +32,8 @@ exports.updateCourseProgress = async (req, res) => {
     } else {
       // If course progress exists, check if the subsection is already completed
       if (courseProgress.completedVideos.includes(subsectionId)) {
-        return res.status(400).json({ error: "Subsection already completed" })
+        // Idempotent response: already completed is OK
+        return res.status(200).json({ success: true, message: "Subsection already completed" })
       }
 
       // Push the subsection into the completedVideos array
@@ -42,7 +43,7 @@ exports.updateCourseProgress = async (req, res) => {
     // Save the updated course progress
     await courseProgress.save()
 
-    return res.status(200).json({ message: "Course progress updated" })
+    return res.status(200).json({ success: true, message: "Course progress updated" })
   } catch (error) {
     console.error(error)
     return res.status(500).json({ error: "Internal server error" })

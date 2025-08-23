@@ -24,6 +24,7 @@ import {
   VscFileSubmodule,
   VscCalendar,
   VscGraph,
+  VscBell,
 } from "react-icons/vsc";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
@@ -45,6 +46,12 @@ const getSidebarLinks = (user) => {
         name: "Dashboard",
         path: "/admin/dashboard",
         icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} />,
+      },
+      {
+        id: 12,
+        name: "Notifications",
+        path: "/admin/notifications",
+        icon: <VscBell style={{ fontSize: 20, color: ED_TEAL }} />,
       },
       // CONTENT MANAGEMENT - Section Header
       {
@@ -130,6 +137,7 @@ const getSidebarLinks = (user) => {
           { name: "All Users", path: "/admin/all-users" }
         ]
       },
+      
       {
         id: 13,
         name: "User Type",
@@ -301,24 +309,37 @@ const getSidebarLinks = (user) => {
     },
     {
       id: 2,
+      name: "Notifications",
+      path: "/dashboard/notifications",
+      icon: <VscBell style={{ fontSize: 20, color: ED_TEAL }} />,
+    },
+    {
+      id: 3,
       name: "Enrolled Courses",
       path: "/dashboard/enrolled-courses",
       icon: <VscLibrary style={{ fontSize: 20, color: ED_TEAL }} />,
     },
     {
-      id: 3,
+      id: 4,
       name: "Live Classes",
       path: "/dashboard/live-classes",
       icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} />,
     },
     {
-      id: 4,
+      id: 5,
+      name: "Assignments",
+      path: "/dashboard/assignments",
+      icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} />,
+    },
+    
+    {
+      id: 6,
       name: "Cart",
       path: "/dashboard/cart",
       icon: <VscBriefcase style={{ fontSize: 20, color: ED_TEAL }} />,
     },
     {
-      id: 5,
+      id: 7,
       name: "Settings",
       path: "/dashboard/settings",
       icon: <VscGear style={{ fontSize: 20, color: ED_TEAL }} />,

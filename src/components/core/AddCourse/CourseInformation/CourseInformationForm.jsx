@@ -214,6 +214,16 @@ export default function CourseInformationForm() {
 
   // Fetch categories on component mount
   useEffect(() => {
+    // Ensure RHF knows about these fields before any setValue calls
+    try {
+      if (typeof register === 'function') {
+        register('courseCategory');
+        register('courseSubCategory');
+      }
+    } catch (e) {
+      console.warn('Register fallback failed (non-blocking):', e);
+    }
+
     const getCategories = async () => {
       setLoading(true);
       const categories = await fetchCourseCategories();
@@ -238,13 +248,14 @@ export default function CourseInformationForm() {
   // Effect to handle subcategory selection when subcategories change
   useEffect(() => {
     if (initialSubCategoryIdRef.current && courseSubCategories.length > 0) {
+      const targetId = String(initialSubCategoryIdRef.current);
       const subCategoryExists = courseSubCategories.some(
-        subCat => subCat._id === initialSubCategoryIdRef.current || subCat === initialSubCategoryIdRef.current
+        (subCat) => String(subCat._id || subCat) === targetId
       );
       
       if (subCategoryExists) {
-        console.log('Setting subcategory from effect:', initialSubCategoryIdRef.current);
-        setValue('courseSubCategory', initialSubCategoryIdRef.current, {
+        console.log('Setting subcategory from effect:', targetId);
+        setValue('courseSubCategory', targetId, {
           shouldValidate: true,
           shouldDirty: false
         });
@@ -272,14 +283,16 @@ export default function CourseInformationForm() {
         console.log('Categories loaded:', categories);
         
         // Get category and subcategory info with better debugging
-        const categoryId = course.category?._id || course.category || '';
-        const subCategoryId = course.subCategory?._id || course.subCategory || '';
+        const rawCategory = course.category ?? course.Category ?? course.categoryId ?? course.CategoryId;
+        const rawSubCategory = course.subCategory ?? course.subcategory ?? course.subCategoryId ?? course.subcategoryId ?? course.sub_category ?? course.sub_category_id;
+        const categoryId = String((rawCategory && (rawCategory._id || rawCategory.id)) || rawCategory || '');
+        const subCategoryId = String((rawSubCategory && (rawSubCategory._id || rawSubCategory.id)) || rawSubCategory || '');
         
         console.log('=== COURSE DATA ===');
         console.log('Full course object:', course);
         console.log('Category ID:', categoryId);
         console.log('Subcategory ID:', subCategoryId);
-        console.log('Subcategory object:', course.subCategory);
+        console.log('Subcategory object (raw):', rawSubCategory);
         
         // 2. Set basic form values
         const initialValues = {
@@ -317,23 +330,80 @@ export default function CourseInformationForm() {
           if (!isMounted) return;
           
           console.log('Subcategories loaded:', subCategories);
-          setCourseSubCategories(subCategories);
-          lastFetchedCategoryRef.current = selectedCategory;
+          // If API returned empty or missing the saved subcategory, inject it so UI can display current value
+          let finalSubs = subCategories;
+          if (
+            editCourse && subCategoryId && (
+              !Array.isArray(subCategories) || subCategories.length === 0 ||
+              !subCategories.some((s) => String(s._id || s) === String(subCategoryId))
+            )
+          ) {
+            const injected = {
+              _id: String(subCategoryId),
+              name: course?.subCategory?.name || 'Current Subcategory',
+            };
+            console.warn('Injecting current subcategory into options:', injected);
+            finalSubs = [injected, ...(Array.isArray(subCategories) ? subCategories : [])];
+          }
+          setCourseSubCategories(finalSubs);
+          // Ensure value is applied after options update
+          Promise.resolve().then(() => {
+            if (subCategoryId) {
+              const currentVal = String(watch('courseSubCategory') || '');
+              if (currentVal !== String(subCategoryId)) {
+                console.log('Force-setting subcategory after options render:', subCategoryId);
+                setValue('courseSubCategory', String(subCategoryId), {
+                  shouldValidate: true,
+                  shouldDirty: false,
+                });
+              }
+            }
+          });
+          // Track the category ID we fetched for, not the watched field which may be stale
+          lastFetchedCategoryRef.current = categoryId;
           
           // Set the subcategory if it exists in the loaded subcategories
           if (subCategoryId) {
-            const subCategoryExists = subCategories.some(
-              subCat => subCat._id === subCategoryId || subCat === subCategoryId
+            const subCategoryExists = finalSubs.some(
+              (subCat) => String(subCat._id || subCat.id || subCat) === String(subCategoryId)
             );
             
             if (subCategoryExists) {
               console.log('Setting subcategory:', subCategoryId);
-              setValue('courseSubCategory', subCategoryId, { 
+              setValue('courseSubCategory', String(subCategoryId), { 
                 shouldValidate: true,
                 shouldDirty: false 
               });
             } else {
               console.warn(`Subcategory ${subCategoryId} not found in loaded subcategories`);
+            }
+          } else if (editCourse) {
+            // Try to infer by name if ID is missing
+            const savedName = course?.subCategory?.name || course?.subcategory?.name || course?.subCategoryName || course?.subcategoryName || '';
+            if (savedName) {
+              const match = finalSubs.find((s) => (s.name || String(s))?.toLowerCase() === String(savedName).toLowerCase());
+              if (match) {
+                const idToSet = String(match._id || match.id || match);
+                console.log('Resolved subcategory by name, setting ID:', { savedName, idToSet });
+                setValue('courseSubCategory', idToSet, {
+                  shouldValidate: true,
+                  shouldDirty: false,
+                });
+                initialSubCategoryIdRef.current = idToSet;
+                subCategoryIdRef.current = idToSet;
+              } else {
+                console.warn('Could not resolve subcategory by name:', savedName);
+              }
+            } else if (finalSubs && finalSubs.length > 0) {
+              // As a last resort in edit mode, pick the first available subcategory
+              const fallbackId = String(finalSubs[0]._id || finalSubs[0].id || finalSubs[0]);
+              console.warn('No saved subcategory ID/name found. Auto-selecting first option:', fallbackId);
+              setValue('courseSubCategory', fallbackId, {
+                shouldValidate: true,
+                shouldDirty: false,
+              });
+              initialSubCategoryIdRef.current = fallbackId;
+              subCategoryIdRef.current = fallbackId;
             }
           }
         }
@@ -431,8 +501,9 @@ export default function CourseInformationForm() {
 
   // Store the initial subcategory ID when the component mounts or course changes
   useEffect(() => {
-    if (editCourse && course?.subCategory) {
-      const subCategoryId = course.subCategory?._id || course.subCategory;
+    if (editCourse) {
+      const rawSubCategory = course?.subCategory ?? course?.subcategory ?? course?.subCategoryId ?? course?.subcategoryId ?? course?.sub_category ?? course?.sub_category_id;
+      const subCategoryId = String((rawSubCategory && (rawSubCategory._id || rawSubCategory.id)) || rawSubCategory || '');
       console.log('Initial subcategory ID from course:', subCategoryId);
       subCategoryIdRef.current = subCategoryId;
       initialSubCategoryIdRef.current = subCategoryId;
@@ -465,37 +536,48 @@ export default function CourseInformationForm() {
           // Handle different response structures
           const subCategories = Array.isArray(response) ? response : (response?.data || []);
           
-          console.log('Setting subcategories:', subCategories);
-          setCourseSubCategories(subCategories);
+          // Inject saved subcategory if missing so UI can display it in edit mode
+          const savedId = String(subCategoryIdRef.current || watch('courseSubCategory') || '');
+          let finalSubs = subCategories;
+          if (
+            editCourse && savedId && (
+              !Array.isArray(subCategories) || subCategories.length === 0 ||
+              !subCategories.some((s) => String(s._id || s) === savedId)
+            )
+          ) {
+            const injected = {
+              _id: savedId,
+              name: course?.subCategory?.name || 'Current Subcategory',
+            };
+            console.warn('Injecting current subcategory into options (category change):', injected);
+            finalSubs = [injected, ...(Array.isArray(subCategories) ? subCategories : [])];
+          }
           
-          // If we're in edit mode and have a subcategory, ensure it's set
-          const subCategoryId = subCategoryIdRef.current || watch('courseSubCategory');
+          console.log('Setting subcategories:', finalSubs);
+          setCourseSubCategories(finalSubs);
           
-          if (subCategoryId) {
-            console.log('Attempting to set subcategory:', subCategoryId);
-            
-            // Find the matching subcategory
-            const matchingSubCategory = subCategories.find(
-              subCat => (subCat._id === subCategoryId || subCat === subCategoryId)
-            );
-            
-            if (matchingSubCategory) {
-              const idToSet = matchingSubCategory._id || matchingSubCategory;
-              console.log('Found matching subcategory, setting value to:', idToSet);
-              
-              // Use setTimeout to ensure this runs after the state update
-              // Only update if value actually differs
-              const currentVal = watch('courseSubCategory');
-              if (currentVal !== idToSet) {
-                setValue('courseSubCategory', idToSet, { 
+          // Ensure value is applied after options update
+          Promise.resolve().then(() => {
+            if (savedId) {
+              const currentVal = String(watch('courseSubCategory') || '');
+              if (currentVal !== savedId) {
+                console.log('Force-setting subcategory after options render (category change):', savedId);
+                setValue('courseSubCategory', savedId, { 
                   shouldValidate: true,
                   shouldDirty: false 
                 });
               }
-            } else {
-              console.warn(`Subcategory ${subCategoryId} not found in loaded subcategories`);
+            } else if (editCourse && Array.isArray(finalSubs) && finalSubs.length > 0) {
+              const fallbackId = String(finalSubs[0]._id || finalSubs[0].id || finalSubs[0]);
+              console.warn('No saved subcategory during category change. Auto-selecting first option:', fallbackId);
+              setValue('courseSubCategory', fallbackId, {
+                shouldValidate: true,
+                shouldDirty: false,
+              });
+              initialSubCategoryIdRef.current = fallbackId;
+              subCategoryIdRef.current = fallbackId;
             }
-          }
+          });
         } catch (error) {
           console.error('Error fetching subcategories:', error);
           toast.error('Failed to load subcategories');
@@ -594,10 +676,7 @@ export default function CourseInformationForm() {
       return;
     }
 
-    // For creation flow, optimistically move to Step 2 after basic validation
-    if (!editCourse) {
-      dispatch(setStep(2));
-    }
+    // Do not move to Step 2 yet; wait for API success so we have course._id
 
     setLoading(true);
     
@@ -679,6 +758,13 @@ export default function CourseInformationForm() {
       console.log('API Response:', result);
       
       if (result) {
+        // Ensure result is a valid course object
+        if (!result._id) {
+          console.error('Course create/edit returned without _id:', result);
+          toast.error('Course not saved. Please try again.');
+          return;
+        }
+
         // Update Redux store with the course data
         dispatch(setCourse(result));
 
@@ -688,8 +774,7 @@ export default function CourseInformationForm() {
             : 'Course created successfully!'
         );
 
-        // Move to next step for both create and edit flows (no navigation here)
-        // If we already advanced optimistically for create, this keeps step at 2; for edit, advance now
+        // Move to next step only after success
         dispatch(setStep(2));
       }
     } catch (error) {
@@ -951,9 +1036,9 @@ export default function CourseInformationForm() {
                 setCourseSubCategories([]);
               }
             }}
-            ref={register('courseCategory', { 
+            {...register('courseCategory', { 
               required: 'Category is required'
-            }).ref}
+            })}
           >
             <option value="" disabled>Choose a Category</option>
             {courseCategories.map((category) => (
@@ -971,6 +1056,13 @@ export default function CourseInformationForm() {
           <label style={formStyles.label} htmlFor="courseSubCategory">
             Course Subcategory <span style={{ color: '#e53e3e' }}>*</span>
           </label>
+          {(() => {
+            const watchedVal = watch('courseSubCategory');
+            const computedSubValue = String(watchedVal || initialSubCategoryIdRef.current || '');
+            if (process.env.NODE_ENV !== 'production') {
+              console.log('Subcategory select computed value:', { watchedVal, initialRef: initialSubCategoryIdRef.current, computedSubValue });
+            }
+            return (
           <select
             id="courseSubCategory"
             style={{
@@ -980,8 +1072,8 @@ export default function CourseInformationForm() {
               transition: 'border-color 0.2s ease, box-shadow 0.2s ease',
               opacity: courseSubCategories.length > 0 ? 1 : 0.7
             }}
-            disabled={!watch('courseCategory') || loading}
-            value={watch('courseSubCategory') || ''}
+            disabled={(loading) || (!watch('courseCategory') && !editCourse)}
+            value={computedSubValue}
             onChange={(e) => {
               const value = e.target.value;
               console.log('Subcategory changed to:', value);
@@ -993,14 +1085,18 @@ export default function CourseInformationForm() {
             onBlur={() => {
               trigger('courseSubCategory');
             }}
-            ref={register('courseSubCategory', { 
+            {...register('courseSubCategory', { 
               required: 'Subcategory is required',
               validate: (value) => {
                 const isValid = !!value;
-                return isValid || 'Please select a subcategory';
+                if (!isValid) return 'Please select a subcategory';
+                // Ensure selected value exists in the available options
+                const exists = courseSubCategories.some(
+                  (subCat) => String(subCat._id || subCat) === String(value)
+                );
+                return exists || 'Selected subcategory is not valid for the chosen category';
               }
-            }).ref}
-            required
+            })}
           >
             <option value="">
               {!watch('courseCategory') 
@@ -1012,9 +1108,9 @@ export default function CourseInformationForm() {
                     : 'Select a subcategory'}
             </option>
             {courseSubCategories.map((subCategory) => {
-              const subCategoryId = subCategory._id || subCategory;
+              const subCategoryId = String(subCategory._id || subCategory);
               const name = subCategory.name || subCategory;
-              const isSelected = watch('courseSubCategory') === subCategoryId;
+              const isSelected = String(computedSubValue) === subCategoryId;
               
               console.log('Subcategory option:', { id: subCategoryId, name, isSelected });
               
@@ -1028,6 +1124,8 @@ export default function CourseInformationForm() {
               );
             })}
           </select>
+            )
+          })()}
           {errors.courseSubCategory && (
             <p style={formStyles.error}>{errors.courseSubCategory.message}</p>
           )}

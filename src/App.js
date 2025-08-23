@@ -33,10 +33,15 @@ import Cart from './pages/Cart';
 import ActiveCourses from './pages/ActiveCourses';
 import MyCourses from './pages/MyCourses';
 import LiveClasses from './pages/LiveClasses';
+import Assignments from './pages/Assignments';
+import AssignmentDetail from './pages/AssignmentDetail';
+import AdminNotifications from './pages/AdminNotifications';
+import Notifications from './pages/Notifications';
 
 
 import EditCourse from './components/core/EditCourse';
 import CourseViewer from './pages/CourseViewer';
+import ViewCourse from './pages/ViewCourse';
 import CourseDetails from './pages/CourseDetails';
 import Checkout from './pages/Checkout';
 import CreateCategory from './components/core/Admin/Category/createCategory';
@@ -54,6 +59,7 @@ import CreateStudentsLanding from './components/core/Admin/StudentManagement/Cre
 import BulkUploadStudents from './components/core/Admin/StudentManagement/BulkUploadStudents';
 import CreateUserType from './components/core/Admin/UserManagement/UserType/CreateUserType';
 import AllUserTypes from './components/core/Admin/UserManagement/UserType/AllUserTypes';
+import AdminMyCourses from './pages/AdminMyCourses';
 
 
 
@@ -100,6 +106,11 @@ function AppRoutes() {
       <Route path="/courses/:courseId" element={<CourseDetails />} />
       <Route path="/enrollment-payment" element={<EnrollmentPayment />} />
       <Route path="/course/:courseId" element={<CourseViewer />} />
+      <Route path="/course/:courseId/:sectionId/:subsectionId" element={<CourseViewer />} />
+
+      {/* Alternate routes to keep legacy ViewCourse page accessible */}
+      <Route path="/viewcourse/:courseId" element={<ViewCourse />} />
+      <Route path="/viewcourse/:courseId/:sectionId/:subsectionId" element={<ViewCourse />} />
 
       {/* Dashboard Routes - Common for all authenticated users */}
       <Route path="/dashboard" element={
@@ -113,8 +124,12 @@ function AppRoutes() {
         {/* Student Routes */}
         {user?.accountType === ACCOUNT_TYPE.STUDENT && (
           <>
+            <Route path="my-courses" element={<MyCourses />} />
             <Route path="enrolled-courses" element={<ActiveCourses />} />
             <Route path="live-classes" element={<LiveClasses />} />
+            <Route path="assignments" element={<Assignments />} />
+            <Route path="assignments/:taskId" element={<AssignmentDetail />} />
+            <Route path="notifications" element={<Notifications />} />
             <Route path="cart" element={<Cart />} />
             <Route path="cart/checkout" element={<Checkout />} />
           </>
@@ -137,6 +152,11 @@ function AppRoutes() {
           <Route path="/admin/dashboard" element={
             <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/notifications" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+              <AdminNotifications />
             </ProtectedRoute>
           } />
           
@@ -168,6 +188,16 @@ function AppRoutes() {
           <Route path="/admin/course/create" element={
             <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
               <CreateCourse />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/course/edit/:courseId" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+              <EditCourse />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/my-courses" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+              <AdminMyCourses />
             </ProtectedRoute>
           } />
           <Route path="/admin/course/scromCourse" element={

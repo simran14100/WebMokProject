@@ -551,8 +551,34 @@ const Navbar = () => {
                             <i className="fa-solid fa-user" style={{ marginRight: '8px', width: '16px' }}></i>
                             My Profile
                           </Link>
+
+                          {(user.accountType === 'Instructor' || user.accountType === 'Admin') && (
+                            <Link 
+                              to="/admin/my-courses"
+                              style={{
+                                display: 'block',
+                                padding: '10px 16px',
+                                color: '#191A1F',
+                                textDecoration: 'none',
+                                fontSize: '14px',
+                                transition: 'all 0.3s ease'
+                              }}
+                              onMouseEnter={(e) => {
+                                e.target.style.backgroundColor = '#f8f9fa';
+                                e.target.style.color = '#07A698';
+                              }}
+                              onMouseLeave={(e) => {
+                                e.target.style.backgroundColor = 'transparent';
+                                e.target.style.color = '#191A1F';
+                              }}
+                              onClick={() => setIsProfileDropdownOpen(false)}
+                            >
+                              <i className="fa-solid fa-book-open" style={{ marginRight: '8px', width: '16px' }}></i>
+                              My Courses
+                            </Link>
+                          )}
                           
-                          {user.accountType === 'Student' && (
+                          {user.accountType === 'Student' && user?.createdByAdmin && (
                             <>
                               <Link 
                                 to="/dashboard/my-courses"
@@ -628,56 +654,60 @@ const Navbar = () => {
                                 <i className="fa-solid fa-chalkboard-teacher" style={{ marginRight: '8px', width: '16px' }}></i>
                                 Admin Dashboard
                               </Link>
-                              <Link 
-                                to="/admin/courses"
-                                style={{
-                                  display: 'block',
-                                  padding: '10px 16px',
-                                  color: '#191A1F',
-                                  textDecoration: 'none',
-                                  fontSize: '14px',
-                                  transition: 'all 0.3s ease'
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.target.style.backgroundColor = '#f8f9fa';
-                                  e.target.style.color = '#07A698';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.target.style.backgroundColor = 'transparent';
-                                  e.target.style.color = '#191A1F';
-                                }}
-                                onClick={() => setIsProfileDropdownOpen(false)}
-                              >
-                                <i className="fa-solid fa-book" style={{ marginRight: '8px', width: '16px' }}></i>
-                                Manage Courses
-                              </Link>
-                              <Link 
-                                to="/admin/add-course"
-                                style={{
-                                  display: 'block',
-                                  padding: '10px 16px',
-                                  color: '#191A1F',
-                                  textDecoration: 'none',
-                                  fontSize: '14px',
-                                  transition: 'all 0.3s ease'
-                                }}
-                                onMouseEnter={(e) => {
-                                  e.target.style.backgroundColor = '#f8f9fa';
-                                  e.target.style.color = '#07A698';
-                                }}
-                                onMouseLeave={(e) => {
-                                  e.target.style.backgroundColor = 'transparent';
-                                  e.target.style.color = '#191A1F';
-                                }}
-                                onClick={() => setIsProfileDropdownOpen(false)}
-                              >
-                                <i className="fa-solid fa-plus" style={{ marginRight: '8px', width: '16px' }}></i>
-                                Add Course
-                              </Link>
+                              {user.accountType === 'Instructor' && (
+                                <>
+                                  <Link 
+                                    to="/admin/courses"
+                                    style={{
+                                      display: 'block',
+                                      padding: '10px 16px',
+                                      color: '#191A1F',
+                                      textDecoration: 'none',
+                                      fontSize: '14px',
+                                      transition: 'all 0.3s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.target.style.backgroundColor = '#f8f9fa';
+                                      e.target.style.color = '#07A698';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.target.style.backgroundColor = 'transparent';
+                                      e.target.style.color = '#191A1F';
+                                    }}
+                                    onClick={() => setIsProfileDropdownOpen(false)}
+                                  >
+                                    <i className="fa-solid fa-book" style={{ marginRight: '8px', width: '16px' }}></i>
+                                    Manage Courses
+                                  </Link>
+                                  <Link 
+                                    to="/admin/add-course"
+                                    style={{
+                                      display: 'block',
+                                      padding: '10px 16px',
+                                      color: '#191A1F',
+                                      textDecoration: 'none',
+                                      fontSize: '14px',
+                                      transition: 'all 0.3s ease'
+                                    }}
+                                    onMouseEnter={(e) => {
+                                      e.target.style.backgroundColor = '#f8f9fa';
+                                      e.target.style.color = '#07A698';
+                                    }}
+                                    onMouseLeave={(e) => {
+                                      e.target.style.backgroundColor = 'transparent';
+                                      e.target.style.color = '#191A1F';
+                                    }}
+                                    onClick={() => setIsProfileDropdownOpen(false)}
+                                  >
+                                    <i className="fa-solid fa-plus" style={{ marginRight: '8px', width: '16px' }}></i>
+                                    Add Course
+                                  </Link>
+                                </>
+                              )}
                             </>
                           )}
                           
-                          {(user.accountType === 'Admin' || user.accountType === 'Instructor' || user.accountType === 'Super Admin' || user.accountType === 'Staff') && (
+                          {(user.accountType === 'Instructor' || user.accountType === 'Super Admin' || user.accountType === 'Staff') && (
                             <>
                               <Link 
                                 to="/admin/users"

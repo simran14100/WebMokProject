@@ -1,9 +1,11 @@
 
 
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "react-hot-toast";
 import { apiConnector } from "../services/apiConnector";
 import { profile } from "../services/apis";
+import DashboardLayout from "../components/common/DashboardLayout";
 
 function formatDateKey(date) {
   const y = date.getFullYear();
@@ -31,6 +33,15 @@ function addDays(date, n) {
   return d;
 }
 
+// Day view helpers
+function isSameDay(a, b) {
+  return (
+    a.getFullYear() === b.getFullYear() &&
+    a.getMonth() === b.getMonth() &&
+    a.getDate() === b.getDate()
+  );
+}
+
 export default function LiveClasses() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -42,6 +53,10 @@ export default function LiveClasses() {
     return now;
   });
   const [selectedDate, setSelectedDate] = useState(() => new Date(new Date().setHours(0,0,0,0)));
+  const [now, setNow] = useState(() => new Date());
+  const [rowHeight, setRowHeight] = useState(40);
+  const [rowBaseOffset, setRowBaseOffset] = useState(0);
+  const gridRef = useRef(null);
 
   useEffect(() => {
     let mounted = true;
@@ -65,6 +80,36 @@ export default function LiveClasses() {
     };
   }, []);
 
+  // Tick every second for current time line
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+
+  // Measure actual row height and base offset to position the time line accurately
+  useEffect(() => {
+    const measure = () => {
+      if (!gridRef.current) return;
+      const rows = gridRef.current.querySelectorAll('.time-row');
+      if (!rows || rows.length === 0) return;
+      const firstRow = rows[0];
+      const rowRect = firstRow.getBoundingClientRect();
+      const gridRect = gridRef.current.getBoundingClientRect();
+      let computedHour = rowRect.height;
+      if (rows.length > 1) {
+        const secondRect = rows[1].getBoundingClientRect();
+        const dy = secondRect.top - rowRect.top;
+        if (dy > 0) computedHour = dy; // account for borders/margins
+      }
+      const base = Math.max(0, rowRect.top - gridRect.top);
+      if (computedHour && Math.abs(computedHour - rowHeight) > 0.5) setRowHeight(computedHour);
+      if (Math.abs(base - rowBaseOffset) > 0.5) setRowBaseOffset(base);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, [rowHeight, rowBaseOffset]);
+
   const eventsByDate = useMemo(() => {
     const map = {};
     for (const e of events) {
@@ -80,13 +125,27 @@ export default function LiveClasses() {
 
   const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
-  const openLink = (link) => {
-    if (!link) return;
+  const openLink = (raw) => {
+    const s = String(raw || "").trim();
+    if (!s) return;
     try {
-      window.open(link, "_blank", "noopener,noreferrer");
-    } catch (e) {
-      // no-op
-    }
+      // 1) explicit URL
+      const urlMatch = s.match(/https?:\/\/[\w\-._~:?#\[\]@!$&'()*+,;=%/]+/i);
+      let target = urlMatch ? urlMatch[0] : "";
+      // 2) known meeting domains
+      if (!target) {
+        const domainMatch = s.match(/(?:meet\.google\.com|zoom\.us|teams\.microsoft\.com|webex\.com)[^\s,]*/i);
+        if (domainMatch) target = domainMatch[0].replace(/^\/+/, "");
+      }
+      // 3) Google Meet code
+      if (!target) {
+        const meetCode = s.match(/\b([a-z]{3}-[a-z]{4}-[a-z]{3})\b/i);
+        if (meetCode) target = `meet.google.com/${meetCode[1]}`;
+      }
+      if (!target) return;
+      if (!/^https?:\/\//i.test(target)) target = `https://${target}`;
+      window.open(target, "_blank", "noopener,noreferrer");
+    } catch {}
   };
 
   const DayCell = ({ date }) => {
@@ -97,7 +156,27 @@ export default function LiveClasses() {
     const maxShow = 3;
     const cellClass = `day-cell ${isSelected ? "selected" : ""} ${inMonth ? "current-month" : "other-month"}`;
     return (
-      <div className={cellClass} onClick={() => setSelectedDate(new Date(date))}>
+      <div
+        className={cellClass}
+        onClick={() => {
+          if (dayEvents.length === 1) {
+            const ev = dayEvents[0];
+            const isPast = ev.date.getTime() < Date.now() && !isSameDay(ev.date, new Date());
+            const l = ev.link;
+            if (isPast) {
+              try { toast.error("This class link has expired."); } catch {}
+              return;
+            }
+            if (l) {
+              openLink(l);
+              return;
+            }
+          }
+          // Multiple events or no valid/usable link: go to day view for details
+          setSelectedDate(new Date(date));
+          setCalendarView("day");
+        }}
+      >
         <div className="day-number">{String(date.getDate()).padStart(2, "0")}</div>
         {dayEvents.length > 0 && (
           <div className="day-events">
@@ -108,16 +187,36 @@ export default function LiveClasses() {
                 title={ev.title || "Live Class"}
                 onClick={(e) => {
                   e.stopPropagation();
-                  openLink(ev.link);
+                  const isPast = ev.date.getTime() < Date.now() && !isSameDay(ev.date, new Date());
+                  if (isPast) {
+                    try { toast.error("This class link has expired."); } catch {}
+                    return;
+                  }
+                  const l = ev.link;
+                  if (l) openLink(l);
                 }}
                 role="button"
                 tabIndex={0}
               >
-                {ev.title || "Live Class"}
+                <span>{ev.title || "Live Class"}</span>
+                {ev.date.getTime() < Date.now() && !isSameDay(ev.date, new Date()) && (
+                  <span className="status-badge done">Done</span>
+                )}
               </div>
             ))}
             {dayEvents.length > maxShow && (
-              <div className="more-events">+{dayEvents.length - maxShow} more</div>
+              <div
+                className="more-events"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setSelectedDate(new Date(date));
+                  setCalendarView("day");
+                }}
+                role="button"
+                tabIndex={0}
+              >
+                +{dayEvents.length - maxShow} more
+              </div>
             )}
           </div>
         )}
@@ -143,15 +242,32 @@ export default function LiveClasses() {
             {list.map((ev) => (
               <div key={ev.id} className="flex items-center justify-between p-3 border rounded">
                 <div className="flex items-center gap-3">
-                  <span className="text-xs text-gray-500 min-w-[64px]">
-                    {ev.date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  <span className="text-xs text-gray-500 min-w-[84px]">
+                    {ev.date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                   </span>
                   <div>
                     <div className="font-medium text-gray-800">{ev.title || "Live Class"}</div>
                     <div className="text-xs text-gray-500">{ev.batchName}</div>
                   </div>
                 </div>
-                <button className="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700" onClick={() => openLink(ev.link)}>Join</button>
+                <div className="flex items-center gap-2">
+                  {ev.date.getTime() < Date.now() && !isSameDay(ev.date, new Date()) && (
+                    <span className="status-badge done">Done</span>
+                  )}
+                  <button
+                    className="px-3 py-1.5 rounded bg-emerald-600 text-white hover:bg-emerald-700 disabled:opacity-60"
+                    onClick={() => {
+                      const isPast = ev.date.getTime() < Date.now() && !isSameDay(ev.date, new Date());
+                      if (isPast) {
+                        try { toast.error("This class link has expired."); } catch {}
+                        return;
+                      }
+                      openLink(ev.link);
+                    }}
+                  >
+                    Join
+                  </button>
+                </div>
               </div>
             ))}
           </div>
@@ -195,8 +311,10 @@ export default function LiveClasses() {
   const monthLabel = (d) => d.toLocaleDateString(undefined, { month: "long", year: "numeric" });
 
   return (
+    <DashboardLayout>
     <div className="page-wrap">
-      <h1 className="text-2xl font-semibold mb-4 text-center">Live Classes</h1>
+      <h1 className="text-2xl font-semibold mb-4 text-center "
+      >Live Classes</h1>
 
       <div className="live-classes-section">
         {/* Toolbar */}
@@ -251,7 +369,7 @@ export default function LiveClasses() {
                 <div className="day-events-list">
                   {list.map((ev) => (
                     <div key={ev.id} className="event-item">
-                      <span className="event-time">{ev.date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                      <span className="event-time">{ev.date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}</span>
                       <span className="event-title">{ev.title || "Live Class"}</span>
                       <button className="secondary-button small" onClick={() => openLink(ev.link)}>Join</button>
                     </div>
@@ -259,7 +377,17 @@ export default function LiveClasses() {
                 </div>
               );
             })()}
-            <div className="time-grid">
+            <div className="time-grid" ref={gridRef}>
+              {isSameDay(selectedDate, now) && (
+                (() => {
+                  const midnight = new Date(now);
+                  midnight.setHours(0, 0, 0, 0);
+                  const elapsedMs = now.getTime() - midnight.getTime();
+                  const hoursFloat = elapsedMs / 3600000; // hours since local midnight
+                  const offset = rowBaseOffset + hoursFloat * rowHeight;
+                  return <div className="current-time-line" style={{ top: `${offset}px` }}><span className="current-time-dot" /></div>;
+                })()
+              )}
               {Array.from({ length: 24 }, (_, h) => (
                 <div key={h} className="time-row">
                   <div className="time-label">{`${String(h).padStart(2, "0")}:00`}</div>
@@ -275,7 +403,7 @@ export default function LiveClasses() {
       </div>
 
       <style jsx>{`
-        .page-wrap { max-width: 1100px; margin: 0 auto; padding: 16px; }
+        .page-wrap { width: 100%; max-width: 80%; margin: 0 auto; padding: 10px; padding-top: 0; padding-left: 50px; margin-top: -32px; }
         .live-classes-section { min-height: 300px; }
         .calendar-toolbar { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
         .calendar-nav-buttons { display:flex; gap:8px; }
@@ -299,6 +427,8 @@ export default function LiveClasses() {
         .event-chip { font-size:12px; background:#eef2ff; color:#3730a3; border-radius:6px; padding:2px 6px; margin:4px 0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; width:100%; text-align:left; border:none; }
         .event-chip:hover { filter:brightness(0.95); }
         .more-events { font-size:12px; color:#6b7280; padding-left:4px; }
+        .status-badge { display:inline-block; margin-left:6px; font-size:10px; padding:1px 6px; border-radius:9999px; border:1px solid #e5e7eb; color:#374151; background:#f9fafb; }
+        .status-badge.done { color:#065f46; border-color:#a7f3d0; background:#d1fae5; }
         .day-view { border:1px solid #e5e7eb; border-radius:8px; background:#fff; overflow:hidden; }
         .day-header { display:flex; justify-content:space-between; align-items:center; padding:0.75rem 1rem; border-bottom:1px solid #e5e7eb; }
         .day-title { font-weight:700; color:#1f2937; }
@@ -307,9 +437,12 @@ export default function LiveClasses() {
         .event-time { font-size:12px; color:#6b7280; min-width:64px; }
         .event-title { font-size:14px; color:#1f2937; font-weight:600; flex:1; }
         .time-grid { border-top:1px solid #e5e7eb; }
+        .time-grid { position:relative; }
         .time-row { display:grid; grid-template-columns:80px 1fr; }
         .time-label { padding:0.5rem; border-right:1px solid #e5e7eb; color:#6b7280; text-align:right; }
         .time-slot { min-height:40px; border-bottom:1px solid #e5e7eb; }
+        .current-time-line { position:absolute; left:0; right:0; height:0; border-top:2px solid #22c55e; z-index:2; }
+        .current-time-dot { position:absolute; left:80px; width:8px; height:8px; background:#22c55e; border-radius:9999px; top:-4px; }
         .loading-state { margin-top:12px; color:#6b7280; }
         .error-state { margin-top:12px; color:#ef4444; }
         button { padding:8px 16px; border-radius:6px; font-weight:500; cursor:pointer; transition:all 120ms ease; border:1px solid transparent; }
@@ -319,5 +452,6 @@ export default function LiveClasses() {
         .small { padding:4px 8px; font-size:12px; }
       `}</style>
     </div>
+    </DashboardLayout>
   );
 }

@@ -1,12 +1,13 @@
 // import React, { useState, useEffect } from 'react';
 // import { useDispatch, useSelector } from 'react-redux';
-// import { useNavigate } from 'react-router-dom';
-// import { toast } from 'react-hot-toast';
+// import { useNavigate, useLocation } from 'react-router-dom';
+// import { showError } from '../utils/toast';
 // import { FaSpinner, FaCheckCircle, FaTimesCircle, FaLock } from 'react-icons/fa';
 // import { buyEnrollment } from '../services/operations/enrollmentApi';
 
 // const EnrollmentPayment = () => {
 //   const navigate = useNavigate();
+//   const routerLocation = useLocation();
 //   const dispatch = useDispatch();
 //   const { user } = useSelector((state) => state.profile);
 //   const { token } = useSelector((state) => state.auth);
@@ -183,7 +184,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { showError } from '../utils/toast';
 import { FaSpinner, FaCheckCircle, FaTimesCircle, FaLock } from 'react-icons/fa';
 import { buyEnrollment } from '../services/operations/enrollmentApi';
@@ -201,6 +202,7 @@ const WARNING_YELLOW = "#f59e0b";
 
 const EnrollmentPayment = () => {
   const navigate = useNavigate();
+  const routerLocation = useLocation();
   const dispatch = useDispatch();
   const { user } = useSelector((state) => state.profile);
   const { token } = useSelector((state) => state.auth);
@@ -230,9 +232,9 @@ const EnrollmentPayment = () => {
     try {
       setLoading(true);
       setPaymentStatus('processing');
-      await buyEnrollment(token, user, navigate, dispatch);
+      const returnTo = routerLocation?.state?.returnTo || null;
+      await buyEnrollment(token, user, navigate, dispatch, returnTo);
       setPaymentStatus('success');
-      setTimeout(() => navigate('/dashboard'), 2000);
     } catch (error) {
       setPaymentStatus('failed');
       console.error("ENROLLMENT PAYMENT ERROR:", error);
@@ -536,7 +538,7 @@ const EnrollmentPayment = () => {
                   fontWeight: '600',
                   cursor: 'pointer'
                 }}
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/dashboard/my-profile')}
               >
                 Go to Dashboard
               </button>

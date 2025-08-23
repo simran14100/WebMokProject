@@ -31,6 +31,13 @@ const {
   REMOVE_COURSE_FROM_BATCH_API,
   // Live Classes
   ADD_LIVE_CLASS_TO_BATCH_API,
+  // Tasks
+  LIST_BATCH_TASKS_API,
+  CREATE_BATCH_TASK_API,
+  UPDATE_TASK_API,
+  DELETE_TASK_API,
+  GET_TASK_STATUSES_API,
+  GET_TASK_SUMMARY_API,
   // Admin Reviews
   CREATE_ADMIN_REVIEW_API,
   // Google Calendar integration
@@ -119,6 +126,143 @@ export async function addTempStudentToBatch(batchId, { name, email, phone, enrol
   }
 }
 
+// Fetch per-student task statuses for a task (Admin only)
+export async function getTaskStatuses(taskId, token) {
+  try {
+    const response = await apiConnector(
+      "GET",
+      `${GET_TASK_STATUSES_API}/${taskId}/statuses`,
+      {},
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to fetch task statuses")
+    }
+    const payload = response.data?.data
+    return Array.isArray(payload) ? payload : []
+  } catch (error) {
+    console.log("GET TASK STATUSES ERROR............", error)
+    showError(error.response?.data?.message || error.message || "Failed to fetch task statuses")
+    throw error
+  }
+}
+
+// Fetch task summary counts (Admin only)
+export async function getTaskSummary(taskId, token) {
+  try {
+    const response = await apiConnector(
+      "GET",
+      `${GET_TASK_SUMMARY_API}/${taskId}/summary`,
+      {},
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to fetch task summary")
+    }
+    const payload = response.data?.data
+    return payload || { total: 0, submitted: 0, completed: 0, pending: 0, graded: 0 }
+  } catch (error) {
+    console.log("GET TASK SUMMARY ERROR............", error)
+    showError(error.response?.data?.message || error.message || "Failed to fetch task summary")
+    throw error
+  }
+}
+
+// =========================
+// Batch Tasks management
+// =========================
+// List tasks for a batch
+export async function listBatchTasks(batchId, token) {
+  try {
+    const response = await apiConnector(
+      "GET",
+      `${LIST_BATCH_TASKS_API}/${batchId}/tasks`,
+      {},
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to fetch tasks")
+    }
+    const payload = response.data?.data
+    return Array.isArray(payload) ? payload : []
+  } catch (error) {
+    console.log("LIST BATCH TASKS ERROR............", error)
+    showError(error.response?.data?.message || error.message || "Failed to fetch tasks")
+    throw error
+  }
+}
+
+// Create a task for a batch
+export async function createBatchTask(batchId, { title, description = "", dueDate = null, assignedTo = null }, token) {
+  const toastId = showLoading("Creating task...")
+  try {
+    const response = await apiConnector(
+      "POST",
+      `${CREATE_BATCH_TASK_API}/${batchId}/tasks`,
+      { title, description, dueDate, assignedTo },
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to create task")
+    }
+    showSuccess("Task created")
+    return response.data?.data
+  } catch (error) {
+    console.log("CREATE BATCH TASK ERROR............", error)
+    showError(error.response?.data?.message || error.message || "Failed to create task")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+// Update a task
+export async function updateTask(taskId, updates, token) {
+  const toastId = showLoading("Updating task...")
+  try {
+    const response = await apiConnector(
+      "PUT",
+      `${UPDATE_TASK_API}/${taskId}`,
+      updates,
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to update task")
+    }
+    showSuccess("Task updated")
+    return response.data?.data
+  } catch (error) {
+    console.log("UPDATE TASK ERROR............", error)
+    showError(error.response?.data?.message || error.message || "Failed to update task")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+// Delete a task
+export async function deleteTask(taskId, token) {
+  const toastId = showLoading("Deleting task...")
+  try {
+    const response = await apiConnector(
+      "DELETE",
+      `${DELETE_TASK_API}/${taskId}`,
+      null,
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to delete task")
+    }
+    showSuccess("Task deleted")
+    return true
+  } catch (error) {
+    console.log("DELETE TASK ERROR............", error)
+    showError(error.response?.data?.message || error.message || "Failed to delete task")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
 // Remove a temp student from a batch
 export async function removeTempStudentFromBatch(batchId, tempId, token) {
   const toastId = showLoading("Removing student...")

@@ -369,27 +369,34 @@ export default function CourseBuilderForm() {
       showError("Section name cannot be empty");
       return;
     }
+    // Ensure we have a course id before attempting to create/update a section
+    if (!course?._id) {
+      showError("Course not initialized. Please save basic course details first.");
+      console.warn("[CourseBuilderForm] Missing course._id. Current course state:", course);
+      return;
+    }
     
     setLoading(true);
     try {
       let result;
       if (editSectionName) {
+        const payload = {
+          sectionName: data.sectionName.trim(),
+          sectionId: editSectionName,
+          courseId: course._id,
+        };
+        console.log("[CourseBuilderForm] updateSection payload:", payload);
         result = await updateSection(
-          {
-            sectionName: data.sectionName.trim(),
-            sectionId: editSectionName,
-            courseId: course._id,
-          },
+          payload,
           token
         );
       } else {
-        result = await createSection(
-          {
-            sectionName: data.sectionName.trim(),
-            courseId: course._id,
-          },
-          token
-        );
+        const payload = {
+          sectionName: data.sectionName.trim(),
+          courseId: course._id,
+        };
+        console.log("[CourseBuilderForm] createSection payload:", payload);
+        result = await createSection(payload, token);
       }
       
       if (result) {

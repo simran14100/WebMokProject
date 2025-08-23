@@ -13,6 +13,7 @@ const {
   getFullCourseDetails,
   editCourse,
   getInstructorCourses,
+  getAdminCourses,
   deleteCourse,
 } = require("../controllers/Course")
 
@@ -84,6 +85,9 @@ router.get("/getInstructorCourses", auth, (req, res, next) => {
     });
   }
 }, getInstructorCourses);
+
+// Get courses created by the logged-in Admin/SuperAdmin only
+router.get("/getAdminCourses", auth, isAdminOrSuperAdmin, getAdminCourses)
 
 // Delete course (Admin only for now, could be expanded to course owners)
 router.delete("/deleteCourse", auth, isAdminLevel, deleteCourse)
@@ -175,7 +179,7 @@ router.get("/getAllCourses", getAllCourses)
 router.post("/getCourseDetails", getCourseDetails)
 router.post("/getFullCourseDetails", getFullCourseDetails)
 // To Update Course Progress
-router.post("/updateCourseProgress", auth, isStudent, isAdminLevel, updateCourseProgress)
+router.post("/updateCourseProgress", auth, isStudent, updateCourseProgress)
 // To get Course Progress
 // router.post("/getProgressPercentage", auth, isStudent, getProgressPercentage)
 // Delete a Course

@@ -9,6 +9,11 @@ const {
   getEnrolledCourses,
   instructorDashboard,
   getStudentLiveClasses,
+  getStudentBatchCourses,
+  getStudentAssignments,
+  getStudentAssignmentDetail,
+  submitAssignment,
+  getStudentNotifications,
 } = require("../controllers/Profile")
 
 // ********************************************************************************************************
@@ -24,5 +29,15 @@ router.put("/updateDisplayPicture", auth, updateDisplayPicture)
 router.get("/instructorDashboard", auth, isInstructor, instructorDashboard)
 // Live classes for a student (Student authenticated)
 router.get("/live-classes", auth, getStudentLiveClasses)
+// Courses assigned via batches for a student
+router.get("/batch-courses", auth, getStudentBatchCourses)
+
+// Assignments (Student authenticated)
+router.get("/assignments", auth, getStudentAssignments)
+router.get("/assignments/:taskId", auth, getStudentAssignmentDetail)
+router.post("/assignments/:taskId/submit", auth, submitAssignment)
+
+// Notifications (Student authenticated)
+router.get("/notifications", auth, getStudentNotifications)
 
 module.exports = router

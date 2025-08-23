@@ -1087,7 +1087,7 @@ const ED_TEAL_DARK = '#059a8c';
 
   if (!user?.enrollmentFeePaid) {
     showError('Please complete enrollment fee payment');
-    navigate('/enrollment-payment');
+    navigate('/enrollment-payment', { state: { returnTo: '/checkout' } });
     return;
   }
 
@@ -1133,10 +1133,7 @@ const ED_TEAL_DARK = '#059a8c';
     const paymentResponse = await apiConnector(
       "POST",
       "/api/v1/payment/capturePayment",
-      { courses: courseIds ,
-        amount: totalAmount // Send calculated total amount
-
-      },
+      { courses: courseIds },
       {
         Authorization: `Bearer ${token}`
       }

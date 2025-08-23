@@ -1,4 +1,5 @@
 // import React, { useState, useEffect } from "react";
+import { useSelector } from "react-redux";
 // import DashboardLayout from "../../../common/DashboardLayout";
 // import { toast } from "react-hot-toast";
 // import { getAllCourses } from "../../../../services/operations/courseDetailsAPI";
@@ -344,6 +345,7 @@ export default function AllCourses() {
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [entriesToShow, setEntriesToShow] = useState(10);
+  const { user } = useSelector((state) => state.profile);
 
   useEffect(() => {
     const fetchCourses = async () => {
@@ -479,6 +481,14 @@ export default function AllCourses() {
                     <div className="course-rating">
                       <i className="fa-sharp fa-solid fa-star"></i>
                       <span>4.7</span>
+                      <Link
+                        to={user?.accountType === 'Instructor' ? `/instructor/edit-course/${course._id}` : `/admin/course/edit/${course._id}`}
+                        className="ml-2 text-[#07A698] hover:text-[#059a8c]"
+                        title="Edit Course"
+                        aria-label={`Edit ${course.courseName}`}
+                      >
+                        <i className="fa-regular fa-pen-to-square"></i>
+                      </Link>
                     </div>
                   </div>
                   
@@ -725,7 +735,7 @@ export default function AllCourses() {
           .course-rating {
             display: flex;
             align-items: center;
-            gap: 5px;
+            gap: 10px;
             color: #FFD700;
             font-size: 14px;
           }
