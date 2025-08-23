@@ -37,6 +37,23 @@ const ED_TEAL_DARK = "#059a8c";
 const BORDER = "#e0e0e0";
 const TEXT_DARK = "#191A1F";
 
+// Helper: detect if current user is a student created by admin
+const isAdminCreatedStudent = (user) => {
+  if (!user) return false;
+  // Common flags we may receive from backend
+  const flags = [
+    user.createdByAdmin,
+    user.adminCreated,
+    user.isAdminCreated,
+    user.created_by_admin,
+  ];
+  if (flags.some(Boolean)) return true;
+  // Creator/source fields
+  const by = (user.createdBy || user.created_by || user.meta?.createdBy || user.meta?.creator || '').toString().toLowerCase();
+  const src = (user.source || user.signupSource || user.signup_source || '').toString().toLowerCase();
+  return by === 'admin' || by === 'administrator' || src === 'admin' || src === 'administrator';
+};
+
 const getSidebarLinks = (user) => {
   // Admin UI for Admin
   if (user?.accountType === 'Admin') {
@@ -300,7 +317,7 @@ const getSidebarLinks = (user) => {
   }
 
   // Student links (default)
-  return [
+  const studentLinks = [
     {
       id: 1,
       name: "My Profile",
@@ -325,12 +342,13 @@ const getSidebarLinks = (user) => {
       path: "/dashboard/live-classes",
       icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} />,
     },
-    {
+    // Assignments appears only for students created by admin
+    ...(isAdminCreatedStudent(user) ? [{
       id: 5,
       name: "Assignments",
       path: "/dashboard/assignments",
       icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} />,
-    },
+    }] : []),
     
     {
       id: 6,
@@ -345,6 +363,8 @@ const getSidebarLinks = (user) => {
       icon: <VscGear style={{ fontSize: 20, color: ED_TEAL }} />,
     }
   ];
+
+  return studentLinks;
 };
 
 export default function Sidebar({ isMobile = false, isOpen = true, onClose = () => {} }) {
