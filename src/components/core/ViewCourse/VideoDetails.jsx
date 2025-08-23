@@ -477,82 +477,105 @@ const VideoDetails = () => {
             <BigPlayButton position="center" />
             {/* Render When Video Ends */}
             {videoEnded && (
-              <div
-                style={{
-                  backgroundImage:
-                    "linear-gradient(to top, rgb(0, 0, 0), rgba(0,0,0,0.7), rgba(0,0,0,0.5), rgba(0,0,0,0.1))",
-                }}
-                className="full absolute inset-0 z-[100] grid h-full place-content-center font-inter"
-              >
-                {!completedLectures.includes(subsectionId) && (
-                  <IconBtn
-                    disabled={loading}
-                    onclick={() => handleLectureCompletion()}
-                    text={!loading ? "Mark As Completed" : "Loading..."}
-                    customClasses="text-xl max-w-max px-4 mx-auto"
-                    style={{ backgroundColor: ED_TEAL, borderColor: ED_TEAL_DARK }}
-                  />
-                )}
-                <IconBtn
-                  disabled={loading}
-                  onclick={() => setIsReviewOpen(true)}
-                  text="Add Review"
-                  customClasses="text-xl max-w-max px-4 mx-auto mt-2"
-                  style={{ backgroundColor: 'transparent', border: `2px solid ${ED_TEAL}`, color: ED_TEAL }}
-                />
-                <IconBtn
-                  disabled={loading}
-                  onclick={() => {
-                    if (playerRef?.current) {
-                      // set the current time of the video to 0
-                      playerRef?.current?.seek(0);
-                      setVideoEnded(false);
-                    }
-                  }}
-                  text="Rewatch"
-                  customClasses="text-xl max-w-max px-4 mx-auto mt-2"
-                  style={{ backgroundColor: 'transparent', border: `2px solid ${WHITE}`, color: WHITE }}
-                />
-                <div className="mt-10 flex min-w-[250px] justify-center gap-x-4 text-xl">
-                  {!isFirstVideo() && (
-                    <button
-                      disabled={loading}
-                      onClick={goToPrevVideo}
-                      className="blackButton"
-                      style={{
-                        backgroundColor: ED_TEAL,
-                        border: `1px solid ${ED_TEAL_DARK}`,
-                        padding: '10px 20px',
-                        borderRadius: '6px',
-                        fontWeight: '500',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        opacity: loading ? 0.7 : 1
-                      }}
-                    >
-                      Prev
-                    </button>
-                  )}
-                  {canGoNext() && (
-                    <button
-                      disabled={loading}
-                      onClick={goToNextVideo}
-                      className="blackButton"
-                      style={{
-                        backgroundColor: ED_TEAL,
-                        border: `1px solid ${ED_TEAL_DARK}`,
-                        padding: '10px 20px',
-                        borderRadius: '6px',
-                        fontWeight: '500',
-                        cursor: loading ? 'not-allowed' : 'pointer',
-                        opacity: loading ? 0.7 : 1
-                      }}
-                    >
-                      Next
-                    </button>
-                  )}
-                </div>
-              </div>
-            )}
+  <div
+    style={{
+      position: "absolute",
+      inset: "0",
+      zIndex: 100,
+      display: "grid",
+      height: "100%",
+      placeContent: "center",
+      fontFamily: "Inter, sans-serif",
+      backgroundImage:
+        "linear-gradient(to top, rgb(0,0,0), rgba(0,0,0,0.7), rgba(0,0,0,0.5), rgba(0,0,0,0.1))",
+    }}
+  >
+    <div style={{ display: "flex", flexDirection: "column", gap: "12px", alignItems: "center" }}>
+      {!completedLectures.includes(subsectionId) && (
+        <IconBtn
+          disabled={loading}
+          onclick={() => handleLectureCompletion()}
+          text={!loading ? "Mark As Completed" : "Loading..."}
+          style={{
+            backgroundColor: '#07A698', // steel blue
+            border: "1px solid #315f7d",
+            color: "#fff",
+            fontSize: "16px",
+            padding: "10px 20px",
+            borderRadius: "6px",
+            fontWeight: "500",
+            cursor: loading ? "not-allowed" : "pointer",
+            opacity: loading ? 0.7 : 1,
+          }}
+        />
+      )}
+
+      <IconBtn
+        disabled={loading}
+        onclick={() => {
+          if (playerRef?.current) {
+            playerRef?.current?.seek(0);
+            setVideoEnded(false);
+          }
+        }}
+        text="Rewatch"
+        style={{
+          backgroundColor: '#07A698',
+          border: "1px solid #315f7d",
+          color: "#fff",
+          fontSize: "16px",
+          padding: "10px 20px",
+          borderRadius: "6px",
+          fontWeight: "500",
+          cursor: loading ? "not-allowed" : "pointer",
+          opacity: loading ? 0.7 : 1,
+        }}
+      />
+
+      <div style={{ display: "flex", gap: "12px", marginTop: "20px" }}>
+        {!isFirstVideo() && (
+          <button
+            disabled={loading}
+            onClick={goToPrevVideo}
+            style={{
+              backgroundColor: '#07A698',
+              border: "1px solid #315f7d",
+              color: "#fff",
+              padding: "10px 20px",
+              borderRadius: "6px",
+              fontWeight: "500",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 1,
+            }}
+          >
+            Prev
+          </button>
+        )}
+
+        {canGoNext() && (
+          <button
+            disabled={loading}
+            onClick={goToNextVideo}
+            style={{
+              backgroundColor: '#07A698',
+              border: "1px solid #315f7d",
+              color: "#fff",
+              padding: "10px 20px",
+              borderRadius: "6px",
+              fontWeight: "500",
+              cursor: loading ? "not-allowed" : "pointer",
+              opacity: loading ? 0.7 : 1,
+            }}
+          >
+            Next
+          </button>
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
+
           </Player>
         )}
       </ScreenshotProtection>

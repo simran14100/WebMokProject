@@ -3176,7 +3176,7 @@ export default function EditPage() {
 
           {/* Global Task Statuses Modal (for Performance tab and others) */}
           {statusModalOpen && activeTab !== "task" && (
-            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 60 }}>
+            <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", padding: 16, zIndex: 60 , marginLeft:"220px"}}>
               <div style={{ background: "#fff", width: "min(900px, 96vw)", borderRadius: 12, border: `1px solid ${BORDER_COLOR}`, boxShadow: MODAL_SHADOW }}>
                 <div style={{ padding: 16, borderBottom: `1px solid ${BORDER_COLOR}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                   <h3 style={{ margin: 0, color: TEXT_DARK }}>Task Statuses • {statusTaskTitle}</h3>
@@ -3253,7 +3253,7 @@ export default function EditPage() {
                   )}
                 </div>
                 <div style={{ padding: 16, borderTop: `1px solid ${BORDER_COLOR}`, display: "flex", justifyContent: "flex-end" }}>
-                  <button onClick={() => setStatusModalOpen(false)} style={{ background: "#e5e7eb", border: `1px solid ${BORDER_COLOR}`, padding: "0.45rem 0.9rem", borderRadius: 8, cursor: "pointer" }}>Close</button>
+                  <button onClick={() => setStatusModalOpen(false)} style={{ background: "#e5e7eb",color:ED_TEAL,  border: `1px solid ${BORDER_COLOR}`, padding: "0.45rem 0.9rem", borderRadius: 8, cursor: "pointer" }}>Close</button>
                 </div>
               </div>
             </div>
@@ -3268,7 +3268,8 @@ export default function EditPage() {
                   {tasksLoading ? "Loading tasks..." : `${tasks.length} task${tasks.length === 1 ? "" : "s"}`}
                   {tasksError && <span style={{ color: "#ef4444", marginLeft: 8 }}>• {tasksError}</span>}
                 </div>
-                <button onClick={openCreateTaskModal} style={{ backgroundColor: "#16a34a", color: "#fff", border: "none", padding: "0.45rem 0.9rem", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>
+                <button onClick={openCreateTaskModal} style={{ backgroundColor: "#07A698", color: "#fff", border: "none", padding: "0.45rem 0.9rem", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>
+            
                   Add Task
                 </button>
               </div>
@@ -3304,7 +3305,7 @@ export default function EditPage() {
                               {t.dueDate ? new Date(t.dueDate).toLocaleString() : "-"}
                             </td>
                             <td style={{ padding: 10, borderBottom: `1px solid ${BORDER_COLOR}`, textAlign: "right" }}>
-                              <button onClick={() => openEditTaskModal(t)} style={{ background: "#e5e7eb", border: `1px solid ${BORDER_COLOR}`, padding: "6px 10px", borderRadius: 6, cursor: "pointer", marginRight: 8 }}>Edit</button>
+                              <button onClick={() => openEditTaskModal(t)} style={{ background: "#e5e7eb", color:ED_TEAL,  border: `1px solid ${BORDER_COLOR}`, padding: "6px 10px", borderRadius: 6, cursor: "pointer", marginRight: 8 }}>Edit</button>
                               <button onClick={() => handleDeleteTask(id)} style={{ background: "#ef4444", color: "#fff", border: "none", padding: "6px 10px", borderRadius: 6, cursor: "pointer" }}>Delete</button>
                             </td>
                           </tr>
@@ -3339,7 +3340,7 @@ export default function EditPage() {
                         </div>
                       </div>
                       <div style={{ display: "flex", justifyContent: "flex-end", gap: 8, marginTop: 16 }}>
-                        <button type="button" onClick={() => setTaskModalOpen(false)} style={{ background: "#e5e7eb", border: `1px solid ${BORDER_COLOR}`, padding: "0.45rem 0.9rem", borderRadius: 8, cursor: "pointer" }}>Cancel</button>
+                        <button type="button" onClick={() => setTaskModalOpen(false)} style={{ background: "#e5e7eb", color:ED_TEAL , border: `1px solid ${BORDER_COLOR}`, padding: "0.45rem 0.9rem", borderRadius: 8, cursor: "pointer" }}>Cancel</button>
                         <button type="submit" style={{ background: "#2563eb", color: "#fff", border: "none", padding: "0.45rem 0.9rem", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}>{editingTaskId ? "Update" : "Create"}</button>
                       </div>
                     </form>
@@ -3428,38 +3429,116 @@ export default function EditPage() {
 
           {/* Performance Tab Section */}
           {(activeTab === "performance" || activeTab === "attendance") && (
-            <div className="performance-tab-section" style={{ marginTop: 16 }}>
-              <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
-                <label style={{ color: TEXT_LIGHT, fontSize: 14 }}>Select Task:</label>
-                <select
-                  value={selectedAttendanceTaskId}
-                  onChange={(e) => setSelectedAttendanceTaskId(e.target.value)}
-                  style={{ padding: 8, border: `1px solid ${BORDER_COLOR}`, borderRadius: 8 }}
-                >
-                  <option value="">-- Choose a task --</option>
-                  {(Array.isArray(tasks) ? tasks : []).map((t) => (
-                    <option key={t._id || t.id} value={String(t._id || t.id)}>
-                      {t.title}
-                    </option>
-                  ))}
-                </select>
-                <button
-                  onClick={() => {
-                    const t = (tasks || []).find((x) => String(x._id || x.id) === String(selectedAttendanceTaskId));
-                    if (!t) { showError("Please select a task"); return; }
-                    openStatusModal(t);
-                  }}
-                  style={{ background: ED_TEAL, color: "#fff", border: "none", padding: "0.45rem 0.9rem", borderRadius: 8, cursor: "pointer", fontWeight: 600 }}
-                >
-                  View Task Statuses
-                </button>
-              </div>
+  <div
+    className="performance-tab-section"
+    style={{
+      marginTop: 20,
+      padding: 16,
+      background: "#fff",
+      border: `1px solid ${BORDER_COLOR}`,
+      borderRadius: 12,
+      boxShadow: "0 2px 6px rgba(0,0,0,0.05)",
+    }}
+  >
+    <div
+      style={{
+        display: "flex",
+        gap: 16,
+        alignItems: "center",
+        marginBottom: 14,
+      }}
+    >
+      <label
+        style={{
+          color: TEXT_LIGHT,
+          fontSize: 14,
+          fontWeight: 500,
+          minWidth: 90,
+        }}
+      >
+        Select Task:
+      </label>
 
-              <div style={{ color: TEXT_LIGHT, fontSize: 13 }}>
-                Use this to quickly view per-student submission status for a selected task as part of performance tracking.
-              </div>
-            </div>
-          )}
+      <select
+        value={selectedAttendanceTaskId}
+        onChange={(e) => setSelectedAttendanceTaskId(e.target.value)}
+        style={{
+          padding: "8px 12px",
+          border: `1px solid ${BORDER_COLOR}`,
+          borderRadius: 8,
+          fontSize: 14,
+          outline: "none",
+          transition: "0.2s",
+          flex: "1",
+          background: "#f9fafb",
+          color: "#333",
+        }}
+        onFocus={(e) =>
+          (e.target.style.border = `1px solid ${ED_TEAL}`)
+        }
+        onBlur={(e) =>
+          (e.target.style.border = `1px solid ${BORDER_COLOR}`)
+        }
+      >
+        <option value="">-- Choose a task --</option>
+        {(Array.isArray(tasks) ? tasks : []).map((t) => (
+          <option key={t._id || t.id} value={String(t._id || t.id)}>
+            {t.title}
+          </option>
+        ))}
+      </select>
+
+      <button
+        onClick={() => {
+          const t = (tasks || []).find(
+            (x) => String(x._id || x.id) === String(selectedAttendanceTaskId)
+          );
+          if (!t) {
+            showError("Please select a task");
+            return;
+          }
+          openStatusModal(t);
+        }}
+        style={{
+          background: ED_TEAL,
+          color: "#fff",
+          border: "none",
+          padding: "8px 16px",
+          borderRadius: 8,
+          cursor: "pointer",
+          fontWeight: 600,
+          fontSize: 14,
+          boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+          transition: "0.2s",
+        }}
+        onMouseEnter={(e) =>
+          (e.currentTarget.style.background = "#059481")
+        }
+        onMouseLeave={(e) =>
+          (e.currentTarget.style.background = ED_TEAL)
+        }
+      >
+        View Task Statuses
+      </button>
+    </div>
+
+    <div
+      style={{
+        color: TEXT_LIGHT,
+        fontSize: 13,
+        lineHeight: 1.5,
+        background: "#f9fafb",
+        padding: "10px 12px",
+        borderRadius: 8,
+        border: `1px dashed ${BORDER_COLOR}`,
+      }}
+    >
+      Use this to quickly view per-student submission status for a selected task
+      as part of performance tracking.
+    </div>
+  </div>
+)}
+
 
           {/* Create Live Class Modal */}
           {showLiveClassModal && (

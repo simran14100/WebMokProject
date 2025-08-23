@@ -9,11 +9,13 @@ import pageHeaderShape3 from '../assets/img/shapes/page-header-shape-3.png';
 import { Link } from "react-router-dom";
 import pageHeaderBg from '../assets/img/bg-img/page-header-bg.png';
 
-const TAWKTO_GREEN = '#009e5c';
-const TAWKTO_GREEN_DARK = '#007a44';
-const BORDER = '#e0e0e0';
-const TEXT_DARK = '#222';
 
+
+const ED_TEAL = '#07A698';
+const ED_TEAL_DARK = '#059a8c';
+
+const BORDER = '#e0e0e0';
+const TEXT_DARK = '#191A1F';
 
 
 
@@ -26,92 +28,187 @@ const EdCareTemplate = () => {
     
 
       {/* Page Header */}
-            <section style={{ 
-              position: 'relative', 
-              padding: '120px 0', 
-              overflow: 'hidden',
-             
+      <section style={{ 
+      position: 'relative', 
+      padding: '160px 0 110px', 
+      overflow: 'hidden',
+      backgroundImage: `url(${pageHeaderBg})`,
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      marginTop: '8rem'
+    }}>
+      {/* Background Overlay */}
+      <div style={{ 
+        position: 'absolute', 
+        inset: 0, 
+        backgroundColor: 'rgba(255, 255, 255, 0.5)',
+        backdropFilter: 'blur(1px)'
+      }}></div>
+      
+      {/* Decorative Elements */}
+      <div style={{ position: 'absolute', inset: 0 }}>
+        {/* Orange Triangle */}
+        <div style={{ 
+          position: 'absolute', 
+          top: '50px', 
+          left: '80px',
+          width: '0',
+          height: '0',
+          borderLeft: '20px solid transparent',
+          borderRight: '20px solid transparent',
+          borderBottom: '35px solid #f59e0b',
+          transform: 'rotate(35deg)',
+          opacity: 0.9,
+          zIndex: 3
+        }}></div>
+        
+        {/* Dashed Circle */}
+        <div style={{ 
+          position: 'absolute', 
+          top: '20px', 
+          left: '20px',
+          width: '100px',
+          height: '100px',
+          border: '2px dashed #9ca3af',
+          borderRadius: '50%',
+          opacity: 0.6,
+          zIndex: 10
+        }}></div>
+        
+        {/* Green Circles Pattern on Right */}
+        <div style={{ 
+          position: 'absolute', 
+          top: '30px', 
+          right: '150px',
+          width: '60px',
+          height: '60px',
+          background: `linear-gradient(135deg, ${ED_TEAL}, ${ED_TEAL_DARK})`,
+          borderRadius: '50%',
+          opacity: 0.8,
+          zIndex: 3
+        }}></div>
+        
+        <div style={{ 
+          position: 'absolute', 
+          top: '100px', 
+          right: '80px',
+          width: '90px',
+          height: '90px',
+          background: `linear-gradient(135deg, ${ED_TEAL}, ${ED_TEAL_DARK})`,
+          borderRadius: '50%',
+          opacity: 0.5,
+          zIndex: 2
+        }}></div>
+        
+        <div style={{ 
+          position: 'absolute', 
+          bottom: '20px', 
+          right: '200px',
+          width: '40px',
+          height: '40px',
+          background: ED_TEAL,
+          borderRadius: '50%',
+          opacity: 0.7,
+          zIndex: 3
+        }}></div>
+        
+        {/* Diagonal Stripes Pattern on Far Right */}
+        <div style={{ 
+          position: 'absolute', 
+          top: '0', 
+          right: '0',
+          width: '150px',
+          height: '100%',
+          background: `repeating-linear-gradient(
+            45deg,
+            transparent,
+            transparent 6px,
+            ${ED_TEAL} 6px,
+            ${ED_TEAL} 9px
+          )`,
+          opacity: 0.15,
+          zIndex: 1
+        }}></div>
+      </div>
+      
+      {/* Content Container */}
+      <div style={{ 
+        position: 'relative', 
+        maxWidth: '1280px', 
+        margin: '0 auto', 
+        padding: '0 16px',
+        zIndex: 2
+      }}>
+        <div style={{ 
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          minHeight: '120px',
+          gap: '12px'
+        }}>
+          {/* Main Title */}
+          <h1 style={{ 
+            fontSize: '48px', 
+            fontWeight: '800', 
+            color: '#1f2937', 
+            margin: 0,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '16px'
+          }}>
+            Contact Us
+            <span style={{ 
+              display: 'inline-block',
+              width: '12px',
+              height: '12px',
+              backgroundColor: ED_TEAL,
+              borderRadius: '50%',
+              marginLeft: '8px'
+            }}></span>
+          </h1>
+          
+          {/* Breadcrumb Navigation */}
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '8px', 
+            color: '#6b7280',
+            fontSize: '16px',
+            fontWeight: '500'
+          }}>
+            <span style={{ 
+              color: '#6b7280', 
+              textDecoration: 'none',
+              transition: 'color 0.3s',
+              cursor: 'pointer'
             }}>
-              {/* Background Image */}
-              <div style={{ 
-                position: 'absolute', 
-                inset: 0, 
-                backgroundImage: `url(${pageHeaderBg})`,
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                backgroundRepeat: 'no-repeat',
-                
-              }}></div>
-              <div style={{ 
-                position: 'absolute', 
-                inset: 0, 
-                backgroundColor: 'black', 
-                opacity: 0.4 
-              }}></div>
-              
-              {/* Background Shapes */}
-              <div style={{ position: 'absolute', inset: 0 }}>
-                <div style={{ 
-                  position: 'absolute', 
-                  top: '40px', 
-                  left: '40px', 
-                  opacity: 0.1 
-                }}>
-                  <img src={pageHeaderShape1} alt="shape" style={{ width: '80px', height: '80px' }} />
-                </div>
-                <div style={{ 
-                  position: 'absolute', 
-                  top: '80px', 
-                  right: '80px', 
-                  opacity: 0.1 
-                }}>
-                  <img src={pageHeaderShape2} alt="shape" style={{ width: '64px', height: '64px' }} />
-                </div>
-                <div style={{ 
-                  position: 'absolute', 
-                  bottom: '40px', 
-                  left: '25%', 
-                  opacity: 0.1 
-                }}>
-                  <img src={pageHeaderShape3} alt="shape" style={{ width: '48px', height: '48px' }} />
-                </div>
-              </div>
-              
-              <div style={{ 
-                position: 'relative', 
-                maxWidth: '1280px', 
-                margin: '0 auto', 
-                padding: '0 16px' 
-              }}>
-                <div style={{ textAlign: 'center' }}>
-                  <h1 style={{ 
-                    fontSize: '48px', 
-                    fontWeight: 'bold', 
-                    color: 'white', 
-                    marginBottom: '16px' 
-                  }}>
-                    Contact Us
-                  </h1>
-                  <div style={{ 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    gap: '8px', 
-                    color: 'white' 
-                  }}>
-                    <Link to="/" style={{ 
-                      color: 'white', 
-                      textDecoration: 'none',
-                      transition: 'color 0.3s'
-                    }}>
-                      Contact
-                    </Link>
-                    <span style={{ color: '#e6fcf5' }}>/</span>
-                    <span style={{ color: '#e6fcf5' }}>Contact Us</span>
-                  </div>
-                </div>
-              </div>
-            </section>
+              Home
+            </span>
+            <span style={{
+              color: ED_TEAL,
+              fontWeight: '600'
+            }}>/</span>
+            <span style={{ 
+              color: ED_TEAL,
+              fontWeight: '600'
+            }}>
+              Contact
+            </span>
+          </div>
+        </div>
+      </div>
+      
+      {/* Bottom subtle border */}
+      <div style={{
+        position: 'absolute',
+        bottom: '0',
+        left: '0',
+        right: '0',
+        height: '1px',
+        background: 'linear-gradient(to right, transparent, #e5e7eb, transparent)'
+      }}></div>
+    </section>
 
       {/* Contact Section */}
       {/* <section style={{ padding: '80px 0' }}>

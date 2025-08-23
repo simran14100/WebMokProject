@@ -552,7 +552,7 @@ const Navbar = () => {
                             My Profile
                           </Link>
 
-                          {(user.accountType === 'Instructor' || user.accountType === 'Admin') && (
+                          {/* {(user.accountType === 'Instructor' || user.accountType === 'Admin') && (
                             <Link 
                               to="/admin/my-courses"
                               style={{
@@ -577,7 +577,7 @@ const Navbar = () => {
                               My Courses
                             </Link>
                           )}
-                          
+                           */}
                           {user.accountType === 'Student' && user?.createdByAdmin && (
                             <>
                               <Link 

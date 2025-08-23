@@ -376,7 +376,15 @@ export default function AllCourses() {
     if (name.includes(term)) return 1;
     return 0;
   };
-  const displayedCourses = [...courses]
+  // If the logged-in user is an Instructor, only show their courses
+  const filteredCourses = user?.accountType === 'Instructor'
+    ? (courses || []).filter((c) => {
+        const instructorId = c?.instructor?._id || c?.instructor?.id || c?.instructor;
+        return instructorId && user?._id && String(instructorId) === String(user._id);
+      })
+    : courses;
+
+  const displayedCourses = [...(filteredCourses || [])]
     .map((c, i) => ({ c, i, s: score(c) }))
     .sort((a, b) => (b.s - a.s) || (a.i - b.i))
     .map(({ c }) => c);

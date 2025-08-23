@@ -15,6 +15,8 @@ const ProfileDropDown = ({ mobile = false }) => {
     const dropdownRef = useRef(null);
     const location = useLocation();
     const isAdminLike = [ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN].includes(user?.accountType);
+    // Show "My Courses" only for Super Admin (hide for Instructor and Admin)
+    // const showMyCourses = user?.accountType === ACCOUNT_TYPE.SUPER_ADMIN;
 
     // Close dropdown when clicking outside
     useEffect(() => {
@@ -102,7 +104,7 @@ const ProfileDropDown = ({ mobile = false }) => {
                         <VscDashboard className="text-lg" />
                         <span>Dashboard</span>
                     </Link>
-                    {isAdminLike && (
+                    {showMyCourses && (
                         <Link
                             to="/admin/my-courses"
                             className="flex items-center gap-3 px-4 py-3 text-richblack-100 hover:bg-richblack-700 hover:text-yellow-25 rounded-lg transition-all duration-300 font-medium"
@@ -177,7 +179,7 @@ const ProfileDropDown = ({ mobile = false }) => {
                             <VscDashboard className="text-lg text-[#009e5c] group-hover:text-[#007a44]" />
                             <span>Dashboard</span>
                         </Link>
-                        {isAdminLike && (
+                        {showMyCourses && (
                             <Link
                                 to="/admin/my-courses"
                                 className="flex items-center gap-3 px-4 py-3 text-sm text-gray-800 hover:bg-[#f9fefb] hover:text-[#007a44] transition-all duration-300 font-medium rounded-lg"
