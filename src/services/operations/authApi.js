@@ -57,7 +57,8 @@ export function signUp(
   password,
   confirmPassword,
   otp,
-  navigate
+  navigate,
+  userTypeName
 ) {
   return async (dispatch) => {
     const toastId = showLoading("Loading...")
@@ -71,6 +72,7 @@ export function signUp(
         password,
         confirmPassword,
         otp,
+        userTypeName,
       })
 
       console.log("SIGNUP API RESPONSE............", response)

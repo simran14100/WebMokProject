@@ -1,6 +1,6 @@
 import { showLoading, showSuccess, showError, dismissToast } from "../../utils/toast"
 import { apiConnector } from "../apiConnector"
-import { admin } from "../apis"
+import { admin, coursework as courseworkApi } from "../apis"
 
 const {
   GET_REGISTERED_USERS_API,
@@ -10,6 +10,7 @@ const {
   GET_ALL_INSTRUCTORS_API,
   GET_DASHBOARD_STATS_API,
   UPDATE_USER_STATUS_API,
+  GET_PHD_ENROLLED_STUDENTS_API,
   CREATE_BATCH_API,
   LIST_BATCHES_API,
   EXPORT_BATCHES_API,
@@ -42,6 +43,8 @@ const {
   CREATE_ADMIN_REVIEW_API,
   // Google Calendar integration
   CREATE_MEET_LINK_API,
+  // PhD enrollment-only students
+  GET_PHD_ENROLLMENT_PAID_STUDENTS_API,
   // Bulk students
   STUDENTS_TEMPLATE_API,
   BULK_UPLOAD_STUDENTS_API,
@@ -72,6 +75,314 @@ export async function getRegisteredUsers(token, { page = 1, limit = 10, role = "
     console.log("GET REGISTERED USERS ERROR............", error)
     showError("Failed to fetch registered users")
     throw error
+  }
+}
+
+// Coursework Results helpers
+export async function listCourseworkResults({ page = 1, limit = 10, search = "" } = {}, token) {
+  try {
+    const response = await apiConnector(
+      "GET",
+      courseworkApi.LIST_RESULTS_API,
+      {},
+      { Authorization: `Bearer ${token}` },
+      { params: { page, limit, search } }
+    )
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to fetch results")
+    }
+    return response.data.data || { items: [], meta: { total: 0, page, limit } }
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to fetch results")
+    throw error
+  }
+}
+
+export async function createCourseworkResult(payload, token) {
+  const toastId = showLoading("Creating result...")
+  try {
+    const response = await apiConnector(
+      "POST",
+      courseworkApi.CREATE_RESULT_API,
+      payload,
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) throw new Error(response.data?.message || "Failed to create result")
+    showSuccess("Result created")
+    return response.data.data
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to create result")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+export async function updateCourseworkResult(id, payload, token) {
+  const toastId = showLoading("Updating result...")
+  try {
+    const response = await apiConnector(
+      "PUT",
+      `${courseworkApi.UPDATE_RESULT_API}/${id}`,
+      payload,
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) throw new Error(response.data?.message || "Failed to update result")
+    showSuccess("Result updated")
+    return response.data.data
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to update result")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+export async function deleteCourseworkResult(id, token) {
+  const toastId = showLoading("Deleting result...")
+  try {
+    const response = await apiConnector(
+      "DELETE",
+      `${courseworkApi.DELETE_RESULT_API}/${id}`,
+      {},
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) throw new Error(response.data?.message || "Failed to delete result")
+    showSuccess("Result deleted")
+    return true
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to delete result")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+export async function toggleCourseworkResult(id, token) {
+  const toastId = showLoading("Updating...")
+  try {
+    const response = await apiConnector(
+      "PATCH",
+      `${courseworkApi.TOGGLE_RESULT_API}/${id}/toggle`,
+      {},
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) throw new Error(response.data?.message || "Failed to toggle")
+    showSuccess("Updated")
+    return response.data.data
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to toggle")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+// Coursework Slots helpers
+export async function listCourseworkSlots({ page = 1, limit = 10, search = "" } = {}, token) {
+  try {
+    const response = await apiConnector(
+      "GET",
+      courseworkApi.LIST_SLOTS_API,
+      {},
+      { Authorization: `Bearer ${token}` },
+      { params: { page, limit, search } }
+    )
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to fetch slots")
+    }
+    return response.data.data || { items: [], meta: { total: 0, page, limit } }
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to fetch slots")
+    throw error
+  }
+}
+
+export async function createCourseworkSlot(payload, token) {
+  const toastId = showLoading("Creating slot...")
+  try {
+    const response = await apiConnector(
+      "POST",
+      courseworkApi.CREATE_SLOT_API,
+      payload,
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) throw new Error(response.data?.message || "Failed to create slot")
+    showSuccess("Slot created")
+    return response.data.data
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to create slot")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+// Coursework Papers helpers
+export async function listCourseworkPapers({ page = 1, limit = 10, search = "" } = {}, token) {
+  try {
+    const response = await apiConnector(
+      "GET",
+      courseworkApi.LIST_PAPERS_API,
+      {},
+      { Authorization: `Bearer ${token}` },
+      { params: { page, limit, search } }
+    )
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to fetch papers")
+    }
+    return response.data.data || { items: [], meta: { total: 0, page, limit } }
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to fetch papers")
+    throw error
+  }
+}
+
+export async function createCourseworkPaper(payload, token) {
+  const toastId = showLoading("Creating paper...")
+  try {
+    const response = await apiConnector(
+      "POST",
+      courseworkApi.CREATE_PAPER_API,
+      payload,
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to create paper")
+    }
+    showSuccess("Paper created")
+    return response.data.data
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to create paper")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+export async function updateCourseworkPaper(id, payload, token) {
+  const toastId = showLoading("Updating paper...")
+  try {
+    const response = await apiConnector(
+      "PUT",
+      `${courseworkApi.UPDATE_PAPER_API}/${id}`,
+      payload,
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to update paper")
+    }
+    showSuccess("Paper updated")
+    return response.data.data
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to update paper")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+export async function deleteCourseworkPaper(id, token) {
+  const toastId = showLoading("Deleting paper...")
+  try {
+    const response = await apiConnector(
+      "DELETE",
+      `${courseworkApi.DELETE_PAPER_API}/${id}`,
+      {},
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to delete paper")
+    }
+    showSuccess("Paper deleted")
+    return true
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to delete paper")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+export async function toggleCourseworkPaper(id, token) {
+  const toastId = showLoading("Updating...")
+  try {
+    const response = await apiConnector(
+      "PATCH",
+      `${courseworkApi.TOGGLE_PAPER_API}/${id}/toggle`,
+      {},
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to toggle")
+    }
+    showSuccess("Updated")
+    return response.data.data
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to toggle")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+export async function updateCourseworkSlot(id, payload, token) {
+  const toastId = showLoading("Updating slot...")
+  try {
+    const response = await apiConnector(
+      "PUT",
+      `${courseworkApi.UPDATE_SLOT_API}/${id}`,
+      payload,
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) throw new Error(response.data?.message || "Failed to update slot")
+    showSuccess("Slot updated")
+    return response.data.data
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to update slot")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+export async function deleteCourseworkSlot(id, token) {
+  const toastId = showLoading("Deleting slot...")
+  try {
+    const response = await apiConnector(
+      "DELETE",
+      `${courseworkApi.DELETE_SLOT_API}/${id}`,
+      {},
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) throw new Error(response.data?.message || "Failed to delete slot")
+    showSuccess("Slot deleted")
+    return true
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to delete slot")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+export async function toggleCourseworkSlot(id, token) {
+  const toastId = showLoading("Updating...")
+  try {
+    const response = await apiConnector(
+      "PATCH",
+      `${courseworkApi.TOGGLE_SLOT_API}/${id}/toggle`,
+      {},
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) throw new Error(response.data?.message || "Failed to toggle")
+    showSuccess("Updated")
+    return response.data.data
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to toggle")
+    throw error
+  } finally {
+    dismissToast(toastId)
   }
 }
 
@@ -120,6 +431,50 @@ export async function addTempStudentToBatch(batchId, { name, email, phone, enrol
   } catch (error) {
     console.log("ADD TEMP STUDENT ERROR............", error)
     showError(error.response?.data?.message || error.message || "Failed to add student to batch")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+// =========================
+// Coursework (PhD Admin)
+// =========================
+export async function getCourseworkImages(token) {
+  try {
+    const response = await apiConnector(
+      "GET",
+      courseworkApi.GET_IMAGES_API,
+      {},
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to fetch coursework images")
+    }
+    return response.data?.data || { image1Url: "", image2Url: "", image3Url: "" }
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to fetch coursework images")
+    throw error
+  }
+}
+
+export async function updateCourseworkImages({ image1Url = "", image2Url = "", image3Url = "" }, token) {
+  const toastId = showLoading("Saving images...")
+  try {
+    const response = await apiConnector(
+      "PUT",
+      courseworkApi.UPDATE_IMAGES_API,
+      { image1Url, image2Url, image3Url },
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to update coursework images")
+    }
+    showSuccess("Images updated")
+    return response.data?.data
+  } catch (error) {
+    console.log("UPDATE COURSEWORK IMAGES ERROR............", error)
+    showError(error.response?.data?.message || error.message || "Failed to update coursework images")
     throw error
   } finally {
     dismissToast(toastId)
@@ -860,7 +1215,7 @@ export async function createStudent({ name, email, phone, password, confirmPassw
 }
 
 // Get enrolled students
-export async function getEnrolledStudents(token) {
+export async function getEnrolledStudents(token, { page = 1, limit = 10, search = "" } = {}) {
   try {
     const response = await apiConnector(
       "GET",
@@ -868,7 +1223,8 @@ export async function getEnrolledStudents(token) {
       {},
       {
         Authorization: `Bearer ${token}`,
-      }
+      },
+      { params: { page, limit, search } }
     )
 
     console.log("GET ENROLLED STUDENTS RESPONSE............", response)
@@ -877,12 +1233,73 @@ export async function getEnrolledStudents(token) {
       throw new Error(response.data?.message || "Failed to fetch enrolled students")
     }
 
-    const payload = response.data?.data
-    // Return a flat array for convenience
-    return Array.isArray(payload?.enrolledStudents) ? payload.enrolledStudents : (Array.isArray(payload) ? payload : [])
+    // Prefer pagination payload if provided by backend
+    const data = response.data?.data
+    const items = Array.isArray(data?.enrolledStudents)
+      ? data.enrolledStudents
+      : (Array.isArray(data) ? data : [])
+    const meta = data?.meta || null
+
+    return { items, meta }
   } catch (error) {
     console.log("GET ENROLLED STUDENTS ERROR............", error)
-    showError("Failed to fetch enrolled students")
+    showError(error.response?.data?.message || error.message || "Failed to fetch enrolled students")
+    throw error
+  }
+}
+
+// Get PhD-enrolled students (paid enrollment fee, paymentStatus Completed, userType PhD)
+export async function getPhdEnrolledStudents(token, { page = 1, limit = 10, search = "" } = {}) {
+  try {
+    const response = await apiConnector(
+      "GET",
+      GET_PHD_ENROLLED_STUDENTS_API,
+      {},
+      {
+        Authorization: `Bearer ${token}`,
+      },
+      { params: { page, limit, search } }
+    )
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to fetch PhD enrolled students")
+    }
+
+    const data = response.data?.data
+    const items = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : [])
+    const meta = data?.meta || null
+
+    return { items, meta }
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to fetch PhD enrolled students")
+    throw error
+  }
+}
+
+// Get PhD students who paid enrollment fee (no course-fee requirement)
+export async function getPhdEnrollmentPaidStudents(token, { page = 1, limit = 10, search = "" } = {}) {
+  try {
+    const response = await apiConnector(
+      "GET",
+      GET_PHD_ENROLLMENT_PAID_STUDENTS_API,
+      {},
+      {
+        Authorization: `Bearer ${token}`,
+      },
+      { params: { page, limit, search } }
+    )
+
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to fetch PhD enrollment-paid students")
+    }
+
+    const data = response.data?.data
+    const items = Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : [])
+    const meta = data?.meta || null
+
+    return { items, meta }
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to fetch PhD enrollment-paid students")
     throw error
   }
 }

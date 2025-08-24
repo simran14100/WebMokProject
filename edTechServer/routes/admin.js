@@ -5,6 +5,8 @@ const router = express.Router();
 const {
     getRegisteredUsers,
     getEnrolledStudents,
+    getPhdEnrolledStudents,
+    getPhdEnrollmentPaidStudents,
     getAllInstructors,
     getInstructorById,
     getPendingInstructors,
@@ -39,6 +41,9 @@ router.get("/registered-users", auth, isAdminLevel, getRegisteredUsers);
 
 // Get enrolled students (students who have paid enrollment fee)
 router.get("/enrolled-students", auth, isAdminLevel, getEnrolledStudents);
+// Get PhD enrolled students (enrollment + course fee) and PhD enrollment-paid only
+router.get("/phd-enrolled-students", auth, isAdminLevel, getPhdEnrolledStudents);
+router.get("/phd-enrollment-paid-students", auth, isAdminLevel, getPhdEnrollmentPaidStudents);
 
 // Get all approved instructors (public route)
 router.get("/all-instructors", getAllInstructors);

@@ -79,6 +79,8 @@ export const enrollment = {
 export const admin = {
     GET_REGISTERED_USERS_API: "/api/v1/admin/registered-users",
     GET_ENROLLED_STUDENTS_API: "/api/v1/admin/enrolled-students",
+    GET_PHD_ENROLLED_STUDENTS_API: "/api/v1/admin/phd-enrolled-students",
+    GET_PHD_ENROLLMENT_PAID_STUDENTS_API: "/api/v1/admin/phd-enrollment-paid-students",
     GET_PENDING_INSTRUCTORS_API: "/api/v1/admin/pending-instructors",
     APPROVE_INSTRUCTOR_API: "/api/v1/admin/approve-instructor",
     GET_ALL_INSTRUCTORS_API: "/api/v1/admin/all-instructors",
@@ -167,4 +169,27 @@ export const cart = {
   REMOVE_FROM_CART_API: "/api/v1/cart/remove",
   CLEAR_CART_API: "/api/v1/cart/clear",
  GET_CART_COUNT_API: "api/v1/cart/count"  // Add this new endpoint
+};
+
+// Coursework (PhD Admin)
+export const coursework = {
+  GET_IMAGES_API: "/api/v1/coursework/images",
+  UPDATE_IMAGES_API: "/api/v1/coursework/images",
+  LIST_SLOTS_API: "/api/v1/coursework/slots",
+  CREATE_SLOT_API: "/api/v1/coursework/slots",
+  UPDATE_SLOT_API: "/api/v1/coursework/slots", // use `${...}/${id}`
+  DELETE_SLOT_API: "/api/v1/coursework/slots", // use `${...}/${id}`
+  TOGGLE_SLOT_API: "/api/v1/coursework/slots", // use `${...}/${id}/toggle`
+  // Papers
+  LIST_PAPERS_API: "/api/v1/coursework/papers",
+  CREATE_PAPER_API: "/api/v1/coursework/papers",
+  UPDATE_PAPER_API: "/api/v1/coursework/papers", // use `${...}/${id}`
+  DELETE_PAPER_API: "/api/v1/coursework/papers", // use `${...}/${id}`
+  TOGGLE_PAPER_API: "/api/v1/coursework/papers", // use `${...}/${id}/toggle`
+  // Results
+  LIST_RESULTS_API: "/api/v1/coursework/results",
+  CREATE_RESULT_API: "/api/v1/coursework/results",
+  UPDATE_RESULT_API: "/api/v1/coursework/results", // use `${...}/${id}`
+  DELETE_RESULT_API: "/api/v1/coursework/results", // use `${...}/${id}`
+  TOGGLE_RESULT_API: "/api/v1/coursework/results", // use `${...}/${id}/toggle`
 };

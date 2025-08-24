@@ -60,6 +60,21 @@ import BulkUploadStudents from './components/core/Admin/StudentManagement/BulkUp
 import CreateUserType from './components/core/Admin/UserManagement/UserType/CreateUserType';
 import AllUserTypes from './components/core/Admin/UserManagement/UserType/AllUserTypes';
 import AdminMyCourses from './pages/AdminMyCourses';
+import UniversityDashboard from './pages/UniversityDashboard';
+import PhDAdminLayout from './components/common/PhDAdminLayout';
+import PhDSessionManagement from './components/core/SuperAdmin/PhDSessionManagement';
+import DepartmentManagement from './components/core/SuperAdmin/DepartmentManagement';
+import SubjectManagement from './components/core/SuperAdmin/SubjectManagement';
+import NewApplications from './components/core/SuperAdmin/NewApplications';
+import ProEnrolled from './components/core/SuperAdmin/ProEnrolled';
+import PaidFee from './components/core/SuperAdmin/PaidFee';
+// import Coursework from './components/core/SuperAdmin/Coursework';
+import CourseworkPapers from './components/core/SuperAdmin/CourseworkPapers';
+import CourseworkSlot from './components/core/SuperAdmin/CourseworkSlot';
+import CourseworkDatesheet from './components/core/SuperAdmin/CourseworkDatesheet';
+import CourseworkResults from './components/core/SuperAdmin/CourseworkResults';
+import StudentReports from './components/core/SuperAdmin/StudentReports';
+import GuideManagement from './components/core/SuperAdmin/GuideManagement';
 
 
 
@@ -101,6 +116,36 @@ function AppRoutes() {
       <Route path="/contact" element={<Contact />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      {/* SuperAdmin only - University entry points */}
+      <Route path="/university-dashboard" element={
+        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.SUPER_ADMIN]}>
+          <UniversityDashboard />
+        </ProtectedRoute>
+      } />
+      <Route path="/phd-admin" element={
+        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.SUPER_ADMIN]}>
+          <PhDAdminLayout />
+        </ProtectedRoute>
+      }>
+        <Route index element={<PhDSessionManagement />} />
+        <Route path="session-management" element={<PhDSessionManagement />} />
+        <Route path="department" element={<DepartmentManagement />} />
+        <Route path="subject-management" element={<SubjectManagement />} />
+        <Route path="subjects" element={<SubjectManagement />} />
+        <Route path="applications" element={<NewApplications />} />
+        <Route path="pro-enrolled" element={<ProEnrolled />} />
+        <Route path="paid-fee" element={<PaidFee />} />
+        {/* Redirect base Coursework to Papers to avoid ambiguity */}
+        <Route path="coursework" element={<Navigate to="coursework/papers" replace />} />
+        {/* Explicit route for Coursework images admin */}
+        {/* <Route path="coursework/images" element={<Coursework />} /> */}
+        <Route path="coursework/slot" element={<CourseworkSlot />} />
+        <Route path="coursework/papers" element={<CourseworkPapers />} />
+        <Route path="coursework/datesheet" element={<CourseworkDatesheet />} />
+        <Route path="coursework/results" element={<CourseworkResults />} />
+        <Route path="student-reports" element={<StudentReports />} />
+        <Route path="guides" element={<GuideManagement />} />
+      </Route>
       <Route path="/category/:categoryId" element={<Category />} />
       <Route path="/catalog/:catalogName" element={<Catalog />} />
       <Route path="/courses/:courseId" element={<CourseDetails />} />
@@ -146,89 +191,89 @@ function AppRoutes() {
         )}
       </Route>
 
-      {/* Admin Routes (Admin + Instructor) */}
-      {(user?.accountType === ACCOUNT_TYPE.ADMIN || user?.accountType === ACCOUNT_TYPE.INSTRUCTOR) && (
+      {/* Admin Routes (Admin + Instructor + SuperAdmin) */}
+      {(user?.accountType === ACCOUNT_TYPE.ADMIN || user?.accountType === ACCOUNT_TYPE.INSTRUCTOR || user?.accountType === ACCOUNT_TYPE.SUPER_ADMIN) && (
         <>
           <Route path="/admin/dashboard" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <AdminDashboard />
             </ProtectedRoute>
           } />
           <Route path="/admin/notifications" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <AdminNotifications />
             </ProtectedRoute>
           } />
           
           {/* Category Management */}
           <Route path="/admin/categories/create" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <CreateCategory />
             </ProtectedRoute>
           } />
           <Route path="/admin/categories/allCategories" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <AllCategories />
             </ProtectedRoute>
           } />
           
           {/* Sub Category Management */}
           <Route path="/admin/subcategories/create" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <SubCategory />
             </ProtectedRoute>
           } />
           <Route path="/admin/subcategories/allSubCategories" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <AllSubCategory />
             </ProtectedRoute>
           } />
           
           {/* Course Management */}
           <Route path="/admin/course/create" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <CreateCourse />
             </ProtectedRoute>
           } />
           <Route path="/admin/course/edit/:courseId" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <EditCourse />
             </ProtectedRoute>
           } />
           <Route path="/admin/my-courses" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <AdminMyCourses />
             </ProtectedRoute>
           } />
           <Route path="/admin/course/scromCourse" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <div>Create Scrom Course Page</div>
             </ProtectedRoute>
           } />
           <Route path="/admin/course/allScromCourses" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <div>All Scrom Courses Page</div>
             </ProtectedRoute>
           } />
           <Route path="/admin/course/allCourses" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
              <AllCourse />
             </ProtectedRoute>
           } />
           
           {/* Batch Management */}
           <Route path="/admin/batches/create" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <CreateBatch />
             </ProtectedRoute>
           } />
           <Route path="/admin/batches" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <AllBatches />
             </ProtectedRoute>
           } />
           <Route path="/admin/batches/:batchId/edit" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <EditPage />
             </ProtectedRoute>
           } />
@@ -240,45 +285,45 @@ function AppRoutes() {
             </ProtectedRoute>
           } /> */}
           <Route path="/admin/students/create" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <CreateStudentsLanding />
             </ProtectedRoute>
           } />
           <Route path="/admin/students/create/single" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <CreateStudent />
             </ProtectedRoute>
           } />
           <Route path="/admin/students/create/multiple" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <BulkUploadStudents />
             </ProtectedRoute>
           } />
           <Route path="/admin/students" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <EnrolledStudents />
             </ProtectedRoute>
           } />
           
           {/* User Management */}
           <Route path="/admin/users/create" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <NewUser/>
             </ProtectedRoute>
           } />
           <Route path="/admin/user-types/create" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <CreateUserType />
             </ProtectedRoute>
           } />
           <Route path="/admin/user-types" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <AllUserTypes />
             </ProtectedRoute>
           } />
           <Route path="/admin/users" element={<Navigate to="/admin/all-users" replace />} />
           <Route path="/admin/all-users" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR]}>
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <AllUsers />
             </ProtectedRoute>
           } />

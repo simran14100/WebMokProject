@@ -21,6 +21,11 @@ const installmentRoutes = require("./routes/installments");
 const videoRoutes = require("./routes/Video");
 const cartRoutes = require("./routes/cart");
 const googleRoutes = require("./routes/google");
+const sessionRoutes = require("./routes/session");
+const courseworkRoutes = require("./routes/coursework");
+const departmentRoutes = require("./routes/department");
+const subjectRoutes = require("./routes/subject");
+const enquiryRoutes = require("./routes/enquiry");
 
 
 const database = require("./config/database");
@@ -88,8 +93,14 @@ app.use("/api/v1/enrollment", enrollmentRoutes);
 app.use("/api/v1/admission", admissionRoutes);
 app.use("/api/v1/installments", installmentRoutes);
 app.use("/api/v1/video", videoRoutes);
+app.use("/api/v1/guide", require("./routes/guide"));
 app.use("/api/v1/cart", cartRoutes);
 app.use("/api/v1/google", googleRoutes);
+app.use("/api/v1/session", sessionRoutes);
+app.use("/api/v1/coursework", courseworkRoutes);
+app.use("/api/v1/department", departmentRoutes);
+app.use("/api/v1/subject", subjectRoutes);
+app.use("/api/v1/enquiry", enquiryRoutes);
 
 // Testing the server
 app.get("/", (req, res) => {

@@ -106,6 +106,128 @@ exports.getEnrolledStudents = async (req, res) => {
     }
 };
 
+// Get PhD students who have completed enrollment fee AND at least one confirmed course fee
+exports.getPhdEnrolledStudents = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search } = req.query;
+
+        // Resolve PhD userType id (create if not exists to be robust)
+        let phdType = await UserType.findOne({ name: 'PhD' });
+        if (!phdType) {
+            phdType = await UserType.create({ name: 'PhD', description: 'Doctoral program' });
+        }
+
+        // Students must be PhD, have enrollment fee completed, and have at least one confirmed course payment
+        const baseFilter = {
+            accountType: 'Student',
+            enrollmentFeePaid: true,
+            paymentStatus: 'Completed',
+            userType: phdType._id,
+        };
+
+        // Optional search by name/email
+        if (search) {
+            baseFilter.$or = [
+                { firstName: { $regex: search, $options: 'i' } },
+                { lastName: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } },
+            ];
+        }
+
+        // Find students who have at least one Confirmed AdmissionConfirmation (course fee paid)
+        const confirmedStudentIds = await AdmissionConfirmation.distinct('student', { status: 'Confirmed' });
+
+        const filter = {
+            ...baseFilter,
+            _id: { $in: confirmedStudentIds.length ? confirmedStudentIds : [null] },
+        };
+
+        const [items, total] = await Promise.all([
+            User.find(filter)
+                .populate('additionalDetails')
+                .populate('userType')
+                .select('-password -token -resetPasswordExpires')
+                .sort({ 'paymentDetails.paidAt': -1, createdAt: -1 })
+                .limit(Number(limit))
+                .skip((Number(page) - 1) * Number(limit))
+                .exec(),
+            User.countDocuments(filter),
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                items,
+                meta: {
+                    total,
+                    page: Number(page),
+                    limit: Number(limit),
+                    totalPages: Math.ceil(total / Number(limit || 1)) || 1,
+                },
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching PhD enrolled students:', error);
+        return res.status(500).json({ success: false, message: 'Failed to fetch PhD enrolled students', error: error.message });
+    }
+};
+
+// Get PhD students who have paid ONLY the enrollment fee (no course fee requirement)
+exports.getPhdEnrollmentPaidStudents = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search } = req.query;
+
+        // Resolve PhD userType id (create if not exists)
+        let phdType = await UserType.findOne({ name: 'PhD' });
+        if (!phdType) {
+            phdType = await UserType.create({ name: 'PhD', description: 'Doctoral program' });
+        }
+
+        const filter = {
+            accountType: 'Student',
+            enrollmentFeePaid: true,
+            paymentStatus: 'Completed',
+            userType: phdType._id,
+        };
+
+        if (search) {
+            filter.$or = [
+                { firstName: { $regex: search, $options: 'i' } },
+                { lastName: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } },
+            ];
+        }
+
+        const [items, total] = await Promise.all([
+            User.find(filter)
+                .populate('additionalDetails')
+                .populate('userType')
+                .select('-password -token -resetPasswordExpires')
+                .sort({ 'paymentDetails.paidAt': -1, createdAt: -1 })
+                .limit(Number(limit))
+                .skip((Number(page) - 1) * Number(limit))
+                .exec(),
+            User.countDocuments(filter),
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                items,
+                meta: {
+                    total,
+                    page: Number(page),
+                    limit: Number(limit),
+                    totalPages: Math.ceil(total / Number(limit || 1)) || 1,
+                },
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching PhD students with enrollment fee paid:', error);
+        return res.status(500).json({ success: false, message: 'Failed to fetch PhD enrollment-paid students', error: error.message });
+    }
+};
+
 // Get all approved instructors
 exports.getAllInstructors = async (req, res) => {
     try {

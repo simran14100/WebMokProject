@@ -629,8 +629,33 @@ const Navbar = () => {
                             </>
                           )}
                           
-                          {(user.accountType === 'Instructor' || user.accountType === 'Admin') && (
+                          {(user.accountType === 'Instructor' || user.accountType === 'Admin' || user.accountType === 'SuperAdmin') && (
                             <>
+                              {user.accountType === 'SuperAdmin' && (
+                                <Link 
+                                  to="/university-dashboard"
+                                  style={{
+                                    display: 'block',
+                                    padding: '10px 16px',
+                                    color: '#191A1F',
+                                    textDecoration: 'none',
+                                    fontSize: '14px',
+                                    transition: 'all 0.3s ease'
+                                  }}
+                                  onMouseEnter={(e) => {
+                                    e.target.style.backgroundColor = '#f8f9fa';
+                                    e.target.style.color = '#07A698';
+                                  }}
+                                  onMouseLeave={(e) => {
+                                    e.target.style.backgroundColor = 'transparent';
+                                    e.target.style.color = '#191A1F';
+                                  }}
+                                  onClick={() => setIsProfileDropdownOpen(false)}
+                                >
+                                  <i className="fa-solid fa-building-columns" style={{ marginRight: '8px', width: '16px' }}></i>
+                                  University Dashboard
+                                </Link>
+                              )}
                               <Link 
                                 to="/admin/dashboard"
                                 style={{

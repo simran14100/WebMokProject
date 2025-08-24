@@ -1,9 +1,11 @@
 const User = require('../models/User');
+const UserType = require('../models/UserType');
 const otpGenerator= require('otp-generator');
 const OTP = require('../models/OTP');
 const jwt = require('jsonwebtoken');
 const mailSender = require("../utils/mailSender")
 const { passwordUpdated } = require("../mail/templates/passwordUpdate")
+const emailVerificationTemplate = require("../mail/templates/emailVerificationTemplate");
 const bcrypt = require("bcrypt")
 const Profile = require("../models/Profile")
 
@@ -62,10 +64,19 @@ exports.sendotp = async (req, res) => {
       const savedOtp = await OTP.findById(otpBody._id);
       console.log("Verification - Saved OTP from DB:", savedOtp);
       
+      // Attempt to send OTP via email
+      try {
+        const html = emailVerificationTemplate(otp);
+        await mailSender(email, "Verify your email", html);
+        console.log("OTP email dispatch attempted for:", email);
+      } catch (mailErr) {
+        console.log("Failed to send OTP email:", mailErr?.message || mailErr);
+        // Do not fail the request if email sending has issues; client may still verify OTP from alternate channels
+      }
+
       res.status(200).json({
         success: true,
-        message: `OTP Sent Successfully`,
-        otp,
+        message: `OTP sent successfully to your email address`,
       })
     } catch (error) {
       console.log("=== SEND OTP ERROR ===");
@@ -88,7 +99,9 @@ exports.signup = async (req, res) => {
         confirmPassword,
         accountType,
         contactNumber,
-        otp
+        otp,
+        // New optional field to specialize Student into UG, PG, Institute, etc.
+        userTypeName
        
       } = req.body
       // Check if All Details are there or not
@@ -168,6 +181,24 @@ exports.signup = async (req, res) => {
         about: null,
         contactNumber: null,
       })
+
+      // Resolve userType if provided. We support canonical options: UG, PG, Institute.
+      // If the provided userTypeName does not exist, we create it on the fly.
+      let resolvedUserTypeId = null;
+      try {
+        if (userTypeName && typeof userTypeName === 'string' && userTypeName.trim().length > 0) {
+          const canonical = userTypeName.trim();
+          let existing = await UserType.findOne({ name: canonical });
+          if (!existing) {
+            existing = await UserType.create({ name: canonical });
+          }
+          resolvedUserTypeId = existing?._id || null;
+        }
+      } catch (err) {
+        // Do not fail signup due to userType issues; proceed without userType
+        console.log('UserType resolution error:', err?.message || err);
+      }
+
       const user = await User.create({
         firstName,
         lastName,
@@ -179,6 +210,7 @@ exports.signup = async (req, res) => {
         enrollmentFeePaid: enrollmentFeePaid,
         paymentStatus: paymentStatus,
         additionalDetails: profileDetails._id,
+        userType: resolvedUserTypeId,
         image:`https://api.dicebear.com/5.x/initials/svg?seed=${firstName} ${lastName}`,
       })
   

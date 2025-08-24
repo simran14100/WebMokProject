@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 import { Outlet } from 'react-router-dom';
 
-export default function AdminLayout() {
+export default function PhDAdminLayout() {
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -23,8 +23,7 @@ export default function AdminLayout() {
 
   return (
     <div className="bg-white flex">
-      <Sidebar isMobile={isMobile} isOpen={isSidebarOpen || !isMobile} onClose={() => setIsSidebarOpen(false)} />
-      {/* No floating hamburger: Navbar controls sidebar via events */}
+      <Sidebar variant="phd" isMobile={isMobile} isOpen={isSidebarOpen || !isMobile} onClose={() => setIsSidebarOpen(false)} />
       <div className="flex-1 pt-[120px] p-8" style={{ marginLeft: isMobile ? 0 : 260 }}>
         <Outlet />
       </div>

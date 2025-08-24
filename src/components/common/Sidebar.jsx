@@ -54,9 +54,39 @@ const isAdminCreatedStudent = (user) => {
   return by === 'admin' || by === 'administrator' || src === 'admin' || src === 'administrator';
 };
 
-const getSidebarLinks = (user) => {
-  // Admin UI for Admin
-  if (user?.accountType === 'Admin') {
+const getSidebarLinks = (user, variant = 'default') => {
+  // PhD Admin sidebar for SuperAdmin
+  if (variant === 'phd' && (user?.accountType === 'SuperAdmin' || user?.accountType === 'Admin')) {
+    return [
+      // { id: 1, name: 'Dashboard', path: '/phd-admin', icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 2, name: 'Session Management', path: '/phd-admin/session-management', icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 3, name: 'Department Management', path: '/phd-admin/department', icon: <VscOrganization style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 4, name: 'Subject Management', path: '/phd-admin/subjects', icon: <VscBook style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 5, name: 'New Applications', path: '/phd-admin/applications', icon: <VscFiles style={{ fontSize: 20, color: ED_TEAL }} /> },
+      // { id: 6, name: 'Entrance', path: '/phd-admin/entrance', icon: <VscHome style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 7, name: 'Pro Enrolled Students', path: '/phd-admin/pro-enrolled', icon: <VscPerson style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 8, name: 'Paid Fee', path: '/phd-admin/paid-fee', icon: <VscGift style={{ fontSize: 20, color: ED_TEAL }} /> },
+      {
+        id: 9,
+        name: 'Coursework',
+        icon: <VscLibrary style={{ fontSize: 20, color: ED_TEAL }} />,
+        subLinks: [
+          { name: 'Coursework Slot', path: '/phd-admin/coursework/slot' },
+          { name: 'Coursework Papers', path: '/phd-admin/coursework/papers' },
+          { name: 'Coursework Datesheet', path: '/phd-admin/coursework/datesheet' },
+          { name: 'Exam Result', path: '/phd-admin/coursework/results' },
+        ],
+      },
+      // { id: 10, name: 'Enrolled Students', path: '/phd-admin/enrolled-students', icon: <VscMortarBoard style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 11, name: 'Student Report', path: '/phd-admin/student-reports', icon: <VscGraph style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 12, name: 'Guide Management', path: '/phd-admin/guides', icon: <VscPerson style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 13, name: 'RAC Members', path: '/phd-admin/rac-members', icon: <VscListSelection style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 14, name: 'External Experts', path: '/phd-admin/experts', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 15, name: 'Users Management', path: '/phd-admin/users', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+    ];
+  }
+  // Admin UI for Admin & SuperAdmin
+  if (user?.accountType === 'Admin' || user?.accountType === 'SuperAdmin') {
     return [
       {
         id: 1,
@@ -367,7 +397,7 @@ const getSidebarLinks = (user) => {
   return studentLinks;
 };
 
-export default function Sidebar({ isMobile = false, isOpen = true, onClose = () => {} }) {
+export default function Sidebar({ isMobile = false, isOpen = true, onClose = () => {}, variant = 'default' }) {
   const { user, loading: profileLoading } = useSelector((state) => state.profile);
   const { loading: authLoading } = useSelector((state) => state.auth);
   const dispatch = useDispatch();
@@ -580,7 +610,7 @@ export default function Sidebar({ isMobile = false, isOpen = true, onClose = () 
         top: 110,
         height: 'calc(100vh - 110px)',
         paddingTop: "180px",
-        width: 220,
+        width: 260,
         display: 'flex',
         flexDirection: 'column',
         borderRight: `1px solid rgba(0,0,0,0.1)`,
@@ -589,6 +619,7 @@ export default function Sidebar({ isMobile = false, isOpen = true, onClose = () 
         zIndex: 20001,
         boxShadow: '0 8px 32px rgba(0,0,0,0.08), 0 4px 16px rgba(0,0,0,0.04)',
         overflowY: 'auto',
+        overflowX: 'auto',
         // slide-in on mobile
         transform: isMobile ? (isOpen ? 'translateX(0)' : 'translateX(-100%)') : 'none',
         transition: isMobile ? 'transform 0.3s ease' : 'none',
@@ -623,7 +654,7 @@ export default function Sidebar({ isMobile = false, isOpen = true, onClose = () 
           paddingTop: 16,
           paddingBottom: 16
         }}>
-          {getSidebarLinks(user).map(link => renderSidebarItem(link))}
+          {getSidebarLinks(user, variant).map(link => renderSidebarItem(link))}
         </div>
         
         <div style={{ 
