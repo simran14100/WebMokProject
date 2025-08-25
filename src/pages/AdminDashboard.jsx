@@ -725,7 +725,7 @@ const AdminDashboard = () => {
   <style jsx>{`
     .admin-container {
       max-width: 1200px;
-      margin-left: 0; /* mobile: no sidebar offset */
+      margin-right : -3rem; /* mobile: no sidebar offset */
       padding: 0 16px;
       overflow-x: hidden;
       margin-top: 20px; /* mobile top spacing */

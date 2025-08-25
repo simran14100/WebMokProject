@@ -83,7 +83,11 @@ const getSidebarLinks = (user, variant = 'default') => {
       { id: 13, name: 'RAC Members', path: '/phd-admin/rac-members', icon: <VscListSelection style={{ fontSize: 20, color: ED_TEAL }} /> },
       { id: 14, name: 'External Experts', path: '/phd-admin/experts', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
       { id: 15, name: 'Users Management', path: '/phd-admin/users', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 15, name: 'Final Data', path: '/phd-admin/final-data', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 15, name: 'Honorary Registration', path: '/phd-admin/honorary', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+    
     ];
+
   }
   // Admin UI for Admin & SuperAdmin
   if (user?.accountType === 'Admin' || user?.accountType === 'SuperAdmin') {

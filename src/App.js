@@ -75,8 +75,10 @@ import CourseworkDatesheet from './components/core/SuperAdmin/CourseworkDateshee
 import CourseworkResults from './components/core/SuperAdmin/CourseworkResults';
 import StudentReports from './components/core/SuperAdmin/StudentReports';
 import GuideManagement from './components/core/SuperAdmin/GuideManagement';
-
-
+import RacMembers from './components/core/SuperAdmin/RacMembers';
+import ExternalExperts from './components/core/SuperAdmin/ExternalExperts';
+import FinalData from './components/core/SuperAdmin/FinalData';
+import UsersManagement from './components/core/SuperAdmin/UsersManagement';
 
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
@@ -145,6 +147,12 @@ function AppRoutes() {
         <Route path="coursework/results" element={<CourseworkResults />} />
         <Route path="student-reports" element={<StudentReports />} />
         <Route path="guides" element={<GuideManagement />} />
+        <Route path="rac-members" element={<RacMembers />} />
+        <Route path="external-experts" element={<ExternalExperts />} />
+        {/* Alias route to support /phd-admin/experts */}
+        <Route path="experts" element={<ExternalExperts />} />
+        <Route path="final-data" element={<FinalData />} />
+        <Route path="users" element={<UsersManagement />} />
       </Route>
       <Route path="/category/:categoryId" element={<Category />} />
       <Route path="/catalog/:catalogName" element={<Catalog />} />

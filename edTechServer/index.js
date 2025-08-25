@@ -25,6 +25,7 @@ const sessionRoutes = require("./routes/session");
 const courseworkRoutes = require("./routes/coursework");
 const departmentRoutes = require("./routes/department");
 const subjectRoutes = require("./routes/subject");
+const superAdminRoutes = require("./routes/superAdmin");
 const enquiryRoutes = require("./routes/enquiry");
 
 
@@ -101,6 +102,9 @@ app.use("/api/v1/coursework", courseworkRoutes);
 app.use("/api/v1/department", departmentRoutes);
 app.use("/api/v1/subject", subjectRoutes);
 app.use("/api/v1/enquiry", enquiryRoutes);
+app.use("/api/v1/rac-members", require("./routes/racMember"));
+app.use("/api/v1/external-experts", require("./routes/externalExpert"));
+app.use("/api/v1/super-admin", superAdminRoutes);
 
 // Testing the server
 app.get("/", (req, res) => {

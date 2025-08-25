@@ -5,6 +5,11 @@ export const categories = {
     CATEGORY_PAGE_DETAILS_API: "/api/v1/course/categoryPageDetails",
 };
 
+// Super Admin specific endpoints (separate from generic admin controller)
+export const superAdmin = {
+    CREATE_USER_API: "/api/v1/super-admin/create-user",
+};
+
 export const auth = {
     SENDOTP_API: "/api/v1/auth/sendotp",
     SIGNUP_API: "/api/v1/auth/signup",
