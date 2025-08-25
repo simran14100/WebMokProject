@@ -105,23 +105,23 @@ export default function ProEnrolled() {
     <div style={{ paddingLeft: '8px', paddingRight: '8px', marginTop: '14rem' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: 600, color: '#334155' }}>PhD Enrollment-Fee Paid Students</h1>
+        <h1 style={{ fontSize: '20px', fontWeight: 600, color: '#191A1F', marginLeft: '100px'}}>PhD Enrollment-Fee Paid Students</h1>
       </div>
 
       {/* Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <button onClick={copyTable} style={{ padding: '6px 10px', borderRadius: 6, background: '#475569', color: 'white' }}>Copy</button>
-        <button onClick={exportCSV} style={{ padding: '6px 10px', borderRadius: 6, background: '#475569', color: 'white' }}>CSV</button>
-        <button onClick={printTable} style={{ padding: '6px 10px', borderRadius: 6, background: '#475569', color: 'white' }}>Print</button>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 , marginLeft: '100px'}}>
+        <button onClick={copyTable} style={{ padding: '6px 10px', borderRadius: 6, background: '#07A698', color: 'white' }}>Copy</button>
+        <button onClick={exportCSV} style={{ padding: '6px 10px', borderRadius: 6, background: '#07A698', color: 'white' }}>CSV</button>
+        <button onClick={printTable} style={{ padding: '6px 10px', borderRadius: 6, background: '#07A698', color: 'white' }}>Print</button>
+        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 , marginRight: '30px' }}>
           <label style={{ color: '#334155', fontSize: 14 }}>Search:</label>
           <input value={query} onChange={(e) => { setPage(1); setQuery(e.target.value); }} placeholder="Name/Email/Phone" style={{ border: '1px solid #cbd5e1', borderRadius: 6, padding: '8px 10px' }} />
         </div>
       </div>
 
       {/* Table */}
-      <div style={{ backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 3fr 3fr 2.5fr 2fr 2fr', backgroundColor: '#1f2937', color: 'white', fontSize: '14px', fontWeight: 500, padding: '12px 16px' }}>
+      <div style={{ backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', overflow: 'hidden' , marginLeft: '100px' , width: '90%' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 3fr 3fr 2.5fr 2fr 2fr', backgroundColor: '#07A698', color: 'white', fontSize: '14px', fontWeight: 500, padding: '12px 16px' }}>
           <div>Action</div>
           <div>Date</div>
           <div>Name</div>
@@ -154,10 +154,10 @@ export default function ProEnrolled() {
       </div>
 
       {/* Pagination */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-        <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} style={{ padding: '6px 10px', borderRadius: 6, background: page <= 1 ? '#cbd5e1' : '#2563eb', color: 'white' }}>Previous</button>
-        <span style={{ padding: '6px 10px', borderRadius: 6, background: '#2563eb', color: 'white' }}>{page}</span>
-        <button disabled={items.length < PAGE_SIZE && !hasMore(meta, items)} onClick={() => setPage(p => p + 1)} style={{ padding: '6px 10px', borderRadius: 6, background: '#2563eb', color: 'white' }}>Next</button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 12  , marginRight: '30px'}}>
+        <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} style={{ padding: '6px 10px', borderRadius: 6, background: page <= 1 ? '#cbd5e1' : '#07A698', color: 'white' }}>Previous</button>
+        <span style={{ padding: '6px 10px', borderRadius: 6, background: '#07A698', color: 'white' }}>{page}</span>
+        <button disabled={items.length < PAGE_SIZE && !hasMore(meta, items)} onClick={() => setPage(p => p + 1)} style={{ padding: '6px 10px', borderRadius: 6, background: '#07A698', color: 'white' }}>Next</button>
       </div>
 
       {/* View Modal */}

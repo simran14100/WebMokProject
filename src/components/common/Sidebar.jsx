@@ -444,7 +444,7 @@ export default function Sidebar({ isMobile = false, isOpen = true, onClose = () 
           marginTop: depth === 0 ? 32 : 20,
           marginBottom: 16,
           color: ED_TEAL,
-          fontWeight: 700,
+          fontWeight: (user?.accountType === 'SuperAdmin') ? 600 : 700,
           fontSize: 12,
           textTransform: "uppercase",
           letterSpacing: 1.2,
@@ -500,7 +500,9 @@ export default function Sidebar({ isMobile = false, isOpen = true, onClose = () 
             border: "none",
             borderRadius: depth === 0 ? 10 : 8,
             color: depth === 0 ? TEXT_DARK : "rgba(0,0,0,0.75)",
-            fontWeight: depth === 0 ? 600 : 500,
+            fontWeight: (user?.accountType === 'SuperAdmin')
+              ? (depth === 0 ? 500 : 400)
+              : (depth === 0 ? 600 : 500),
             fontSize: depth === 0 ? 15 : 14,
             cursor: "pointer",
             transition: "all 0.3s cubic-bezier(0.4, 0, 0.2, 1)",
@@ -690,7 +692,7 @@ export default function Sidebar({ isMobile = false, isOpen = true, onClose = () 
             style={{
               padding: "14px 16px",
               fontSize: 15,
-              fontWeight: 600,
+              fontWeight: (user?.accountType === 'SuperAdmin') ? 500 : 600,
               color: "#dc3545",
               background: "linear-gradient(135deg, rgba(220,53,69,0.05) 0%, rgba(220,53,69,0.08) 100%)",
               border: "1px solid rgba(220,53,69,0.2)",

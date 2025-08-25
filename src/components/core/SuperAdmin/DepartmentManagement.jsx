@@ -106,10 +106,10 @@ export default function DepartmentManagement() {
     <div style={{ paddingLeft: '8px', paddingRight: '8px', marginTop: '14rem' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: 600, color: '#334155' }}>Department Management</h1>
+        <h1 style={{ fontSize: '20px', fontWeight: 600, color: '#191A1F' , marginLeft:"130px" }}>Department Management</h1>
         <button
           onClick={openAdd}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'white', fontSize: '14px', fontWeight: 500, padding: '8px 12px', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)', backgroundColor: ED_TEAL }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: 'white', fontSize: '14px', fontWeight: 500, padding: '8px 12px', borderRadius: '6px', boxShadow: '0 1px 2px rgba(0,0,0,0.1)', backgroundColor: ED_TEAL , marginRight:"120px" }}
           onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = ED_TEAL_DARK)}
           onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = ED_TEAL)}
         >
@@ -118,9 +118,9 @@ export default function DepartmentManagement() {
       </div>
 
       {/* Table Card */}
-      <div style={{ backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+      <div style={{ backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', overflow: 'hidden' , width:"80%" , marginLeft:"130px"   }}>
         {/* Table Header */}
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 6fr 2fr', backgroundColor: '#1f2937', color: 'white', fontSize: '14px', fontWeight: 500, padding: '12px 16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 6fr 2fr', backgroundColor: '#07A698', color: 'white', fontSize: '14px', fontWeight: 500, padding: '12px 16px' }}>
           <div>Action</div>
           <div>Department</div>
           <div>Status</div>

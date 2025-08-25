@@ -7,6 +7,10 @@ import { showSuccess, showError, showLoading, dismissToast } from '../../../util
 
 const PAGE_SIZE = 10;
 
+
+const BORDER = '#e0e0e0';
+const TEXT_DARK = '#191A1F';
+
 export default function NewApplications() {
   const [items, setItems] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -133,102 +137,199 @@ export default function NewApplications() {
   };
 
   return (
-    <div style={{ paddingLeft: '8px', paddingRight: '8px', marginTop: '14rem' }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: 600, color: '#334155' }}>New Applications</h1>
-      </div>
-
-      {/* Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <button onClick={copyTable} style={{ padding: '6px 10px', borderRadius: 6, background: '#475569', color: 'white' }}>Copy</button>
-        <button onClick={exportCSV} style={{ padding: '6px 10px', borderRadius: 6, background: '#475569', color: 'white' }}>CSV</button>
-        <button onClick={printTable} style={{ padding: '6px 10px', borderRadius: 6, background: '#475569', color: 'white' }}>Print</button>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ color: '#334155', fontSize: 14 }}>Status:</label>
-          <select value={status} onChange={(e) => { setPage(1); setStatus(e.target.value); }} style={{ border: '1px solid #cbd5e1', borderRadius: 6, padding: '8px 10px' }}>
-            <option>New</option>
-            <option>Processed</option>
-            <option>Converted</option>
-          </select>
-          <label style={{ color: '#334155', fontSize: 14 }}>School:</label>
-          <select value={department} onChange={(e) => { setPage(1); setDepartment(e.target.value); }} style={{ border: '1px solid #cbd5e1', borderRadius: 6, padding: '8px 10px' }}>
-            <option value="">All</option>
-            {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-          </select>
-          <label style={{ color: '#334155', fontSize: 14 }}>Search:</label>
-          <input value={query} onChange={(e) => { setPage(1); setQuery(e.target.value); }} placeholder="Name/Email/Phone" style={{ border: '1px solid #cbd5e1', borderRadius: 6, padding: '8px 10px' }} />
-        </div>
-      </div>
-
-      {/* Table */}
-      <div style={{ backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 3fr 3fr 3fr 2fr 2fr 2fr', backgroundColor: '#1f2937', color: 'white', fontSize: '14px', fontWeight: 500, padding: '12px 16px' }}>
-          <div>Action</div>
-          <div>Date</div>
-          <div>School</div>
-          <div>Applicant</div>
-          <div>Email</div>
-          <div>Phone</div>
-          <div>Status</div>
-        </div>
-        <div>
-          {items.map((i) => (
-            <div key={i.id} style={{ display: 'grid', gridTemplateColumns: '1.5fr 3fr 3fr 3fr 2fr 2fr 2fr', alignItems: 'center', padding: '12px 16px', backgroundColor: 'white', borderBottom: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                <button
-                  style={{ padding: '8px', borderRadius: '6px', border: `1px solid ${ED_TEAL}`, fontSize: '13px', color: ED_TEAL, backgroundColor: 'white', transition: 'all 0.2s' }}
-                  onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = ED_TEAL; e.currentTarget.style.color = 'white'; }}
-                  onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.color = ED_TEAL; }}
-                  onClick={() => setViewId(i.id)}
-                  title="View"
-                >
-                  <FiEye />
-                </button>
-              </div>
-              <div style={{ color: '#334155' }}>{formatDate(i.createdAt)}</div>
-              <div style={{ color: '#334155' }}>{i.departmentName}</div>
-              <div style={{ color: '#334155' }}>{i.name}</div>
-              <div style={{ color: '#334155' }}>{i.email}</div>
-              <div style={{ color: '#334155' }}>{i.phone}</div>
-              <div style={{ color: '#334155' }}>{i.status}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-
-      {/* Pagination */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-        <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} style={{ padding: '6px 10px', borderRadius: 6, background: page <= 1 ? '#cbd5e1' : '#2563eb', color: 'white' }}>Previous</button>
-        <span style={{ padding: '6px 10px', borderRadius: 6, background: '#2563eb', color: 'white' }}>{page}</span>
-        <button disabled={items.length < PAGE_SIZE} onClick={() => setPage(p => p + 1)} style={{ padding: '6px 10px', borderRadius: 6, background: '#2563eb', color: 'white' }}>Next</button>
-      </div>
-
-      {/* View Modal */}
-      {viewItem && (
-        <div style={{ position: 'fixed', inset: 0, zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ position: 'absolute', inset: 0, backgroundColor: 'rgba(0,0,0,0.3)' }} onClick={() => setViewId(null)} />
-          <div style={{ position: 'relative', backgroundColor: 'white', width: '95%', maxWidth: 700, borderRadius: 8, boxShadow: '0 2px 8px rgba(0,0,0,0.2)', padding: 20 }}>
-            <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 12 }}>Enquiry Details</h3>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <Field label="Date" value={formatDate(viewItem.createdAt)} />
-              <Field label="School" value={viewItem.departmentName} />
-              <Field label="Name" value={viewItem.name} />
-              <Field label="Email" value={viewItem.email} />
-              <Field label="Phone" value={viewItem.phone} />
-              <Field label="Status" value={viewItem.status} />
-              <div style={{ gridColumn: '1 / -1' }}>
-                <div style={{ fontSize: 12, color: '#64748b', marginBottom: 4 }}>Message</div>
-                <div style={{ border: '1px solid #e2e8f0', borderRadius: 6, padding: '10px 12px', minHeight: 80, whiteSpace: 'pre-wrap', color: '#334155' }}>{viewItem.message || '-'}</div>
-              </div>
-            </div>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
-              <button onClick={() => setViewId(null)} style={{ padding: '8px 16px', borderRadius: 6, color: 'white', backgroundColor: ED_TEAL }} onMouseEnter={(e)=> e.currentTarget.style.backgroundColor = ED_TEAL_DARK} onMouseLeave={(e)=> e.currentTarget.style.backgroundColor = ED_TEAL}>Close</button>
-            </div>
-          </div>
-        </div>
-      )}
+    <div style={{ padding: '1rem', marginTop: '14rem' }}>
+    {/* Header */}
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+      <h1 style={{ fontSize: '22px', fontWeight: 600, color: TEXT_DARK , marginLeft: '100px'}}>New Applications</h1>
     </div>
+  
+    {/* Toolbar */}
+    <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 12 , marginLeft: '100px'}}>
+      {[
+        { label: 'Copy', action: copyTable },
+        { label: 'CSV', action: exportCSV },
+        { label: 'Print', action: printTable },
+      ].map(btn => (
+        <button
+          key={btn.label}
+          onClick={btn.action}
+          style={{
+            padding: '8px 14px',
+            borderRadius: 6,
+            background: ED_TEAL,
+            color: 'white',
+            fontWeight: 500,
+            border: `1px solid ${ED_TEAL}`,
+            transition: 'all 0.2s',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.backgroundColor = ED_TEAL_DARK)}
+          onMouseLeave={e => (e.currentTarget.style.backgroundColor = ED_TEAL)}
+        >
+          {btn.label}
+        </button>
+      ))}
+  
+      <div style={{ marginLeft: 'auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8 , marginRight: '30px'}}>
+        <label style={{ color: TEXT_DARK, fontSize: 14 }}>Status:</label>
+        <select
+          value={status}
+          onChange={(e) => { setPage(1); setStatus(e.target.value); }}
+          style={{
+            border: `1px solid ${BORDER}`,
+            borderRadius: 6,
+            padding: '8px 10px',
+            minWidth: 120,
+          }}
+        >
+          <option>New</option>
+          <option>Processed</option>
+          <option>Converted</option>
+        </select>
+  
+        <label style={{ color: TEXT_DARK, fontSize: 14 }}>School:</label>
+        <select
+          value={department}
+          onChange={(e) => { setPage(1); setDepartment(e.target.value); }}
+          style={{
+            border: `1px solid ${BORDER}`,
+            borderRadius: 6,
+            padding: '8px 10px',
+            minWidth: 150,
+          }}
+        >
+          <option value="">All</option>
+          {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
+        </select>
+  
+        <label style={{ color: TEXT_DARK, fontSize: 14 }}>Search:</label>
+        <input
+          value={query}
+          onChange={(e) => { setPage(1); setQuery(e.target.value); }}
+          placeholder="Name/Email/Phone"
+          style={{
+            border: `1px solid ${BORDER}`,
+            borderRadius: 6,
+            padding: '8px 10px',
+            minWidth: 200,
+          }}
+        />
+      </div>
+    </div>
+  
+    {/* Table */}
+    <div
+      style={{
+        backgroundColor: '#fff',
+        borderRadius: '10px',
+        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+        border: `1px solid ${BORDER}`,
+        overflow: 'hidden',
+        width: '90%',
+        marginLeft: '100px',
+      }}
+    >
+      {/* Header */}
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '1.2fr 2fr 2fr 2fr 2fr 2fr 1.5fr',
+          backgroundColor: ED_TEAL,
+          color: 'white',
+          fontSize: '14px',
+          fontWeight: 600,
+          padding: '12px 16px',
+        }}
+      >
+        <div>Action</div>
+        <div>Date</div>
+        <div>School</div>
+        <div>Applicant</div>
+        <div>Email</div>
+        <div>Phone</div>
+        <div>Status</div>
+      </div>
+  
+      {/* Rows */}
+      <div>
+        {items.map((i, idx) => (
+          <div
+            key={i.id}
+            style={{
+              display: 'grid',
+              gridTemplateColumns: '1.2fr 2fr 2fr 2fr 2fr 2fr 1.5fr',
+              alignItems: 'center',
+              padding: '12px 16px',
+              backgroundColor: idx % 2 === 0 ? '#fafafa' : 'white',
+              borderBottom: `1px solid ${BORDER}`,
+              fontSize: '14px',
+              color: TEXT_DARK,
+            }}
+          >
+            {/* Action Button */}
+            <div>
+              <button
+                style={{
+                  padding: '6px 8px',
+                  borderRadius: '6px',
+                  border: `1px solid ${ED_TEAL}`,
+                  fontSize: '13px',
+                  color: ED_TEAL,
+                  backgroundColor: 'white',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = ED_TEAL; e.currentTarget.style.color = 'white'; }}
+                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.color = ED_TEAL; }}
+                onClick={() => setViewId(i.id)}
+                title="View"
+              >
+                <FiEye />
+              </button>
+            </div>
+            <div>{formatDate(i.createdAt)}</div>
+            <div>{i.departmentName}</div>
+            <div>{i.name}</div>
+            <div>{i.email}</div>
+            <div>{i.phone}</div>
+            <div>{i.status}</div>
+          </div>
+        ))}
+      </div>
+    </div>
+  
+    {/* Pagination */}
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 12 , marginRight: '30px' }}>
+      <button
+        disabled={page <= 1}
+        onClick={() => setPage(p => Math.max(1, p - 1))}
+        style={{
+          padding: '6px 12px',
+          borderRadius: 6,
+          background: page <= 1 ? '#cbd5e1' : ED_TEAL,
+          color: 'white',
+          fontWeight: 500,
+        }}
+      >
+        Previous
+      </button>
+      <span style={{ padding: '6px 12px', borderRadius: 6, background: ED_TEAL, color: 'white', fontWeight: 500 }}>
+        {page}
+      </span>
+      <button
+        disabled={items.length < PAGE_SIZE}
+        onClick={() => setPage(p => p + 1)}
+        style={{
+          padding: '6px 12px',
+          borderRadius: 6,
+          background: items.length < PAGE_SIZE ? '#cbd5e1' : ED_TEAL,
+          color: 'white',
+          fontWeight: 500,
+        }}
+      >
+        Next
+      </button>
+    </div>
+  </div>
+  
   );
 }
 

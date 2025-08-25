@@ -101,12 +101,31 @@ export default function CourseworkDatesheet() {
     await fetchData()
   }
 
-  // Styles
-  const page = { padding: 16 , marginTop:"6rem" }
-  const card = { background: '#f1f5f9', padding: 16, borderRadius: 8, marginTop: '6rem' }
+  // Styles (standardized)
+  const ED_TEAL = '#14b8a6'
+  const ED_TEAL_DARK = '#0f766e'
+  const BORDER = '#e5e7eb'
+  const TEXT_DARK = '#334155'
+
+  const page = { padding: 16, marginTop: '6rem' }
+  const card = {
+    background: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    border: `1px solid ${BORDER}`,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
+  }
   const header = { display: 'flex', alignItems: 'center', justifyContent: 'space-between' }
-  const title = { fontSize: 18, fontWeight: 700, color: '#334155' }
-  const button = { background: '#2563eb', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 6, cursor: 'pointer' }
+  const title = { fontSize: 20, fontWeight: 600, color: TEXT_DARK }
+  const button = {
+    background: ED_TEAL,
+    color: '#fff',
+    border: `1px solid ${ED_TEAL}`,
+    padding: '8px 12px',
+    borderRadius: 8,
+    cursor: 'pointer',
+    transition: 'background 0.2s ease',
+  }
 
   const exportHeaders = ["", "Action", "Paper Code", "Paper Name", "Exam Date", "Start Time", "End Time", "Venue"]
 
@@ -175,18 +194,18 @@ export default function CourseworkDatesheet() {
           <div style={title}>Coursework Datesheet</div>
           <button style={button} onClick={onAdd}>Add Datesheet</button>
         </div>
-        <div style={{ height: 1, background: '#cbd5e1', marginTop: 8, marginBottom: 12 }} />
+        <div style={{ height: 1, background: BORDER, marginTop: 8, marginBottom: 12 }} />
 
         {/* Toolbar + Search */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
           <div style={{ display: 'flex', gap: 8 }}>
-            <button onClick={copyToClipboard} style={{ background: '#64748b', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}>Copy</button>
-            <button onClick={downloadCSV} style={{ background: '#1f2937', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}>CSV</button>
-            <button onClick={printTable} style={{ background: '#374151', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}>Print</button>
+            <button onClick={copyToClipboard} style={{ ...button, padding: '6px 12px' }} onMouseOver={(e)=>e.currentTarget.style.background=ED_TEAL_DARK} onMouseOut={(e)=>e.currentTarget.style.background=ED_TEAL}>Copy</button>
+            <button onClick={downloadCSV} style={{ ...button, padding: '6px 12px' }} onMouseOver={(e)=>e.currentTarget.style.background=ED_TEAL_DARK} onMouseOut={(e)=>e.currentTarget.style.background=ED_TEAL}>CSV</button>
+            <button onClick={printTable} style={{ ...button, padding: '6px 12px' }} onMouseOver={(e)=>e.currentTarget.style.background=ED_TEAL_DARK} onMouseOut={(e)=>e.currentTarget.style.background=ED_TEAL}>Print</button>
           </div>
           <div>
             <label style={{ color: '#475569', fontSize: 13, marginRight: 8 }}>Search:</label>
-            <input value={search} onChange={(e) => setSearch(e.target.value)} style={{ padding: 8, border: '1px solid #cbd5e1', borderRadius: 6 }} />
+            <input value={search} onChange={(e) => setSearch(e.target.value)} style={{ padding: 8, border: `1px solid ${BORDER}`, borderRadius: 8 }} />
           </div>
         </div>
 
@@ -194,18 +213,18 @@ export default function CourseworkDatesheet() {
         {loading ? (
           <div style={{ color: '#475569' }}>Loading...</div>
         ) : (
-          <div style={{ background: '#fff', borderRadius: 8, overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+          <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', border: `1px solid ${BORDER}`, boxShadow: '0 2px 8px rgba(0,0,0,0.05)' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr>
-                  <th style={{ background: '#1f2937', color: '#fff', padding: '10px', textAlign: 'left' }}>↑↓</th>
-                  <th style={{ background: '#1f2937', color: '#fff', padding: '10px', textAlign: 'left' }}>Action ↑↓</th>
-                  <th style={{ background: '#1f2937', color: '#fff', padding: '10px', textAlign: 'left' }}>Paper Code ↑↓</th>
-                  <th style={{ background: '#1f2937', color: '#fff', padding: '10px', textAlign: 'left' }}>Paper Name ↑↓</th>
-                  <th style={{ background: '#1f2937', color: '#fff', padding: '10px', textAlign: 'left' }}>Exam Date ↑↓</th>
-                  <th style={{ background: '#1f2937', color: '#fff', padding: '10px', textAlign: 'left' }}>Start Time ↑↓</th>
-                  <th style={{ background: '#1f2937', color: '#fff', padding: '10px', textAlign: 'left' }}>End Time ↑↓</th>
-                  <th style={{ background: '#1f2937', color: '#fff', padding: '10px', textAlign: 'left' }}>Venue ↑↓</th>
+                  <th style={{ background: '#0f172a', color: '#fff', padding: '10px', textAlign: 'left' }}>↑↓</th>
+                  <th style={{ background: '#0f172a', color: '#fff', padding: '10px', textAlign: 'left' }}>Action ↑↓</th>
+                  <th style={{ background: '#0f172a', color: '#fff', padding: '10px', textAlign: 'left' }}>Paper Code ↑↓</th>
+                  <th style={{ background: '#0f172a', color: '#fff', padding: '10px', textAlign: 'left' }}>Paper Name ↑↓</th>
+                  <th style={{ background: '#0f172a', color: '#fff', padding: '10px', textAlign: 'left' }}>Exam Date ↑↓</th>
+                  <th style={{ background: '#0f172a', color: '#fff', padding: '10px', textAlign: 'left' }}>Start Time ↑↓</th>
+                  <th style={{ background: '#0f172a', color: '#fff', padding: '10px', textAlign: 'left' }}>End Time ↑↓</th>
+                  <th style={{ background: '#0f172a', color: '#fff', padding: '10px', textAlign: 'left' }}>Venue ↑↓</th>
                 </tr>
               </thead>
               <tbody>
@@ -214,14 +233,14 @@ export default function CourseworkDatesheet() {
                     <td colSpan={8} style={{ padding: 12, color: '#475569' }}>No Record Found</td>
                   </tr>
                 ) : (
-                  items.map((row) => (
-                    <tr key={row._id} style={{ borderTop: '1px solid #e5e7eb' }}>
+                  items.map((row, idx) => (
+                    <tr key={row._id} style={{ borderTop: `1px solid ${BORDER}`, background: idx % 2 ? '#f8fafc' : '#fff' }}>
                       <td style={{ padding: '10px' }}>
                         <input type="checkbox" checked={!!row.isActive} onChange={() => onToggleActive(row)} />
                       </td>
                       <td style={{ padding: '10px' }}>
-                        <button title="Edit" onClick={() => onEdit(row)} style={{ background: '#64748b', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer', marginRight: 6 }}>✎</button>
-                        <button title="Delete" onClick={() => onDelete(row)} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer' }}>🗑</button>
+                        <button title="Edit" onClick={() => onEdit(row)} style={{ ...button, padding: '6px 10px', marginRight: 6 }} onMouseOver={(e)=>e.currentTarget.style.background=ED_TEAL_DARK} onMouseOut={(e)=>e.currentTarget.style.background=ED_TEAL}>✎</button>
+                        <button title="Delete" onClick={() => onDelete(row)} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: 8, cursor: 'pointer' }}>🗑</button>
                       </td>
                       <td style={{ padding: '10px' }}>{row.paperCode}</td>
                       <td style={{ padding: '10px' }}>{row.paperName}</td>
@@ -235,14 +254,14 @@ export default function CourseworkDatesheet() {
               </tbody>
             </table>
             {/* Footer */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 10, borderTop: '1px solid #e5e7eb' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 10, borderTop: `1px solid ${BORDER}` }}>
               <div style={{ color: '#475569', fontSize: 12 }}>
                 Showing {(items.length === 0) ? 0 : ((meta.page - 1) * meta.limit + 1)} to {(meta.page - 1) * meta.limit + items.length} of {meta.total} entries
               </div>
               <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-                <button disabled={meta.page <= 1} onClick={() => fetchData(meta.page - 1)} style={{ background: '#e5e7eb', padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', opacity: meta.page <= 1 ? 0.6 : 1 }}>Previous</button>
-                <div style={{ background: '#2563eb', color: '#fff', padding: '6px 10px', borderRadius: 6 }}>{meta.page}</div>
-                <button disabled={(meta.page * meta.limit) >= meta.total} onClick={() => fetchData(meta.page + 1)} style={{ background: '#e5e7eb', padding: '6px 10px', borderRadius: 6, border: 'none', cursor: 'pointer', opacity: (meta.page * meta.limit) >= meta.total ? 0.6 : 1 }}>Next</button>
+                <button disabled={meta.page <= 1} onClick={() => fetchData(meta.page - 1)} style={{ background: '#f1f5f9', padding: '6px 10px', borderRadius: 8, border: `1px solid ${BORDER}`, cursor: 'pointer', opacity: meta.page <= 1 ? 0.6 : 1 }}>Previous</button>
+                <div style={{ background: ED_TEAL, color: '#fff', padding: '6px 10px', borderRadius: 8, border: `1px solid ${ED_TEAL}` }}>{meta.page}</div>
+                <button disabled={(meta.page * meta.limit) >= meta.total} onClick={() => fetchData(meta.page + 1)} style={{ background: '#f1f5f9', padding: '6px 10px', borderRadius: 8, border: `1px solid ${BORDER}`, cursor: 'pointer', opacity: (meta.page * meta.limit) >= meta.total ? 0.6 : 1 }}>Next</button>
               </div>
             </div>
           </div>

@@ -79,6 +79,7 @@ import RacMembers from './components/core/SuperAdmin/RacMembers';
 import ExternalExperts from './components/core/SuperAdmin/ExternalExperts';
 import FinalData from './components/core/SuperAdmin/FinalData';
 import UsersManagement from './components/core/SuperAdmin/UsersManagement';
+import HonoraryApplications from './components/core/SuperAdmin/HonoraryApplications';
 
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
@@ -153,6 +154,7 @@ function AppRoutes() {
         <Route path="experts" element={<ExternalExperts />} />
         <Route path="final-data" element={<FinalData />} />
         <Route path="users" element={<UsersManagement />} />
+        <Route path="honorary" element={<HonoraryApplications />} />
       </Route>
       <Route path="/category/:categoryId" element={<Category />} />
       <Route path="/catalog/:catalogName" element={<Catalog />} />

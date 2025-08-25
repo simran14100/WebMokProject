@@ -168,23 +168,39 @@ export default function CourseworkSlot() {
 
   const totalPages = useMemo(() => Math.max(1, Math.ceil((meta.total || 0) / (meta.limit || 10))), [meta])
 
-  // Styles
-  const card = { background: '#f1f5f9', padding: 16, borderRadius: 8, marginTop: '6rem' }
-  const header = { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }
-  const title = { fontSize: 18, fontWeight: 700, color: '#334155' }
-  const button = { background: '#3b82f6', color: '#fff', border: 'none', padding: '8px 12px', borderRadius: 6, cursor: 'pointer' }
+  // Styles (standardized)
+  const ED_TEAL = '#14b8a6'
+  const ED_TEAL_DARK = '#0f766e'
+  const BORDER = '#e5e7eb'
+  const TEXT_DARK = '#334155'
+
+  const page = { padding: 16, marginTop: '6rem' }
+  const card = {
+    background: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    border: `1px solid ${BORDER}`,
+    boxShadow: '0 4px 12px rgba(0,0,0,0.06)'
+  }
+  const header = { display: 'flex', alignItems: 'center', justifyContent: 'space-between' }
+  const title = { fontSize: 20, fontWeight: 600, color: TEXT_DARK }
+  const button = {
+    background: ED_TEAL,
+    color: '#fff',
+    border: `1px solid ${ED_TEAL}`,
+    padding: '8px 12px',
+    borderRadius: 8,
+    cursor: 'pointer',
+    transition: 'background 0.2s ease',
+  }
   const toolbarBtn = { background: '#64748b', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: 6, cursor: 'pointer', marginRight: 8 }
   const tableWrap = { background: '#fff', borderRadius: 8, overflow: 'hidden', border: '1px solid #e2e8f0' }
   const tableHead = { background: '#111827', color: '#fff' }
   const th = { padding: '10px 12px', borderRight: '1px solid #334155', fontWeight: 600, fontSize: 14, textAlign: 'left' }
   const td = { padding: '10px 12px', borderRight: '1px solid #e2e8f0', color: '#111827', fontSize: 14 }
-  const actionIcon = { background: '#e2e8f0', width: 28, height: 28, borderRadius: 14, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', marginRight: 8 }
-  const searchBox = { padding: 6, borderRadius: 6, border: '1px solid #cbd5e1', outline: 'none' }
-  const pagerBtn = { padding: '6px 10px', border: '1px solid #cbd5e1', background: '#f8fafc', borderRadius: 6, cursor: 'pointer' }
-  const pagerActive = { ...pagerBtn, background: '#2563eb', color: '#fff', borderColor: '#2563eb' }
 
   return (
-    <div style={{ padding: 16 }}>
+    <div style={page}>
       <div style={card}>
         <div style={header}>
           <div style={title}>Coursework Slot Management</div>
@@ -202,66 +218,64 @@ export default function CourseworkSlot() {
               value={search}
               onChange={(e) => { setSearch(e.target.value); fetchData(1, meta.limit, e.target.value) }}
               placeholder="Search by name"
-              style={searchBox}
+              style={{ padding: 8, border: `1px solid ${BORDER}`, borderRadius: 8 }}
             />
           </div>
         </div>
 
         <div style={tableWrap}>
           <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-            <thead style={tableHead}>
+            <thead>
               <tr>
-                <th style={th}>⇅</th>
-                <th style={th}>Action</th>
-                <th style={th}>Slot Name</th>
-                <th style={th}>Start Date</th>
-                <th style={th}>Late Fee Date</th>
-                <th style={{ ...th, borderRight: 'none' }}>Late Fee</th>
+                <th style={{ background: '#0f172a', color: '#fff', padding: '10px', textAlign: 'left' }}>↑↓</th>
+                <th style={{ background: '#0f172a', color: '#fff', padding: '10px', textAlign: 'left' }}>Action ↑↓</th>
+                <th style={{ background: '#0f172a', color: '#fff', padding: '10px', textAlign: 'left' }}>Slot Name ↑↓</th>
+                <th style={{ background: '#0f172a', color: '#fff', padding: '10px', textAlign: 'left' }}>Start Date ↑↓</th>
+                <th style={{ background: '#0f172a', color: '#fff', padding: '10px', textAlign: 'left' }}>Late Fee Date ↑↓</th>
+                <th style={{ background: '#0f172a', color: '#fff', padding: '10px', textAlign: 'left' }}>Late Fee ↑↓</th>
               </tr>
             </thead>
             <tbody>
-              {loading ? (
-                <tr><td colSpan={6} style={{ ...td, textAlign: 'center' }}>Loading...</td></tr>
-              ) : items.length === 0 ? (
-                <tr><td colSpan={6} style={{ ...td, textAlign: 'center' }}>No data</td></tr>
+              {items.length === 0 ? (
+                <tr>
+                  <td colSpan={6} style={{ padding: 12, color: '#475569' }}>No Record Found</td>
+                </tr>
               ) : (
-                items.map((row) => (
-                  <tr key={row._id} style={{ borderTop: '1px solid #e2e8f0' }}>
-                    <td style={td}><input type="checkbox" checked={!!row.isActive} onChange={() => onToggle(row)} /></td>
-                    <td style={td}>
-                      <span title="Edit" style={actionIcon} onClick={() => onEdit(row)}>✏️</span>
-                      <span title="Toggle" style={actionIcon} onClick={() => onToggle(row)}>🔔</span>
-                      <span title="Delete" style={actionIcon} onClick={() => onDelete(row)}>🗑️</span>
+                items.map((row, idx) => (
+                  <tr key={row._id} style={{ borderTop: `1px solid ${BORDER}`, background: idx % 2 ? '#f8fafc' : '#fff' }}>
+                    <td style={{ padding: '10px' }}>
+                      <input type="checkbox" checked={!!row.isActive} onChange={() => onToggle(row)} />
                     </td>
-                    <td style={td}>{row.name}</td>
-                    <td style={td}>{formatDate(row.startDate)}</td>
-                    <td style={td}>{formatDate(row.lateFeeDate)}</td>
-                    <td style={{ ...td, borderRight: 'none' }}>{row.lateFee}</td>
+                    <td style={{ padding: '10px' }}>
+                      <button title="Edit" onClick={() => onEdit(row)} style={{ ...button, padding: '6px 10px', marginRight: 6 }} onMouseOver={(e)=>e.currentTarget.style.background=ED_TEAL_DARK} onMouseOut={(e)=>e.currentTarget.style.background=ED_TEAL}>✎</button>
+                      <button title="Delete" onClick={() => onDelete(row)} style={{ background: '#ef4444', color: '#fff', border: 'none', padding: '6px 10px', borderRadius: 8, cursor: 'pointer' }}>🗑</button>
+                    </td>
+                    <td style={{ padding: '10px' }}>{row.name}</td>
+                    <td style={{ padding: '10px' }}>{formatDate(row.startDate)}</td>
+                    <td style={{ padding: '10px' }}>{formatDate(row.lateFeeDate)}</td>
+                    <td style={{ padding: '10px' }}>{row.lateFee}</td>
                   </tr>
                 ))
               )}
             </tbody>
           </table>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: 8 }}>
-          <div style={{ color: '#475569' }}>Showing {(items.length ? ((meta.page - 1) * meta.limit + 1) : 0)} to {((meta.page - 1) * meta.limit) + items.length} of {meta.total} entries</div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button style={pagerBtn} disabled={meta.page <= 1} onClick={() => fetchData(meta.page - 1)}>
-              Previous
-            </button>
-            <div style={pagerActive}>{meta.page}</div>
-            <button style={pagerBtn} disabled={meta.page >= totalPages} onClick={() => fetchData(meta.page + 1)}>
-              Next
-            </button>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 10, borderTop: `1px solid ${BORDER}` }}>
+            <div style={{ color: '#475569', fontSize: 12 }}>
+              Showing {(items.length === 0) ? 0 : ((meta.page - 1) * meta.limit + 1)} to {(meta.page - 1) * meta.limit + items.length} of {meta.total} entries
+            </div>
+            <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+              <button disabled={meta.page <= 1} onClick={() => fetchData(meta.page - 1)} style={{ background: '#f1f5f9', padding: '6px 10px', borderRadius: 8, border: `1px solid ${BORDER}`, cursor: 'pointer', opacity: meta.page <= 1 ? 0.6 : 1 }}>Previous</button>
+              <div style={{ background: ED_TEAL, color: '#fff', padding: '6px 10px', borderRadius: 8, border: `1px solid ${ED_TEAL}` }}>{meta.page}</div>
+              <button disabled={(meta.page * meta.limit) >= meta.total} onClick={() => fetchData(meta.page + 1)} style={{ background: '#f1f5f9', padding: '6px 10px', borderRadius: 8, border: `1px solid ${BORDER}`, cursor: 'pointer', opacity: (meta.page * meta.limit) >= meta.total ? 0.6 : 1 }}>Next</button>
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Modal */}
       {showModal && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.35)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50 }}>
-          <div style={{ background: '#fff', width: 720, borderRadius: 8, padding: 16, boxShadow: '0 10px 25px rgba(0,0,0,0.15)' }}>
+          <div style={{ height: 1, background: BORDER, marginTop: 8, marginBottom: 12 }} />
+          <div style={{ background: '#fff', borderRadius: 12, overflow: 'hidden', border: `1px solid ${BORDER}`, boxShadow: '0 10px 25px rgba(0,0,0,0.15)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
               <div style={{ fontWeight: 700, color: '#334155', fontSize: 16 }}>{editing ? 'Edit Slot' : 'Add New Slot'}</div>
               <div style={{ cursor: 'pointer', color: '#64748b', fontWeight: 700 }} onClick={() => setShowModal(false)}>×</div>
@@ -269,7 +283,7 @@ export default function CourseworkSlot() {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
               <label style={{ display: 'grid', rowGap: 6 }}>
                 <span style={{ color: '#475569', fontSize: 13 }}>Coursework Slot Name</span>
-                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={{ padding: 10, borderRadius: 6, border: '1px solid #cbd5e1', outline: 'none' }} />
+                <input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} style={{ padding: 8, border: `1px solid ${BORDER}`, borderRadius: 8 }} />
               </label>
               <label style={{ display: 'grid', rowGap: 6 }}>
                 <span style={{ color: '#475569', fontSize: 13 }}>Start Date</span>
@@ -290,7 +304,7 @@ export default function CourseworkSlot() {
             </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
               <button style={{ background: '#64748b', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 8, cursor: 'pointer' }} onClick={() => setShowModal(false)}>Cancel</button>
-              <button style={{ background: '#2563eb', color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 8, cursor: 'pointer' }} onClick={onSave}>{editing ? 'Update' : 'Submit'}</button>
+              <button style={{ background: ED_TEAL, color: '#fff', border: 'none', padding: '8px 14px', borderRadius: 8, cursor: 'pointer' }} onClick={onSave}>{editing ? 'Update' : 'Submit'}</button>
             </div>
           </div>
         </div>

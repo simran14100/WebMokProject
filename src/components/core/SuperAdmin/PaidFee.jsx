@@ -6,6 +6,8 @@ import { ED_TEAL, ED_TEAL_DARK } from '../../../utils/theme';
 import { showSuccess, showError, showLoading, dismissToast } from '../../../utils/toast';
 
 const PAGE_SIZE = 10;
+const BORDER = '#e0e0e0';
+const TEXT_DARK = '#191A1F';
 
 export default function PaidFee() {
   const { token } = useSelector((state) => state.auth);
@@ -102,26 +104,77 @@ export default function PaidFee() {
   };
 
   return (
-    <div style={{ paddingLeft: '8px', paddingRight: '8px', marginTop: '14rem' }}>
+    <div style={{ padding: '1rem', marginTop: '14rem' }}>
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <h1 style={{ fontSize: '20px', fontWeight: 600, color: '#334155' }}>Paid Fee (PhD)</h1>
+        <h1 style={{ fontSize: '22px', fontWeight: 600, color: TEXT_DARK, marginLeft: '100px' }}>Paid Fee (PhD)</h1>
       </div>
 
       {/* Toolbar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
-        <button onClick={copyTable} style={{ padding: '6px 10px', borderRadius: 6, background: '#475569', color: 'white' }}>Copy</button>
-        <button onClick={exportCSV} style={{ padding: '6px 10px', borderRadius: 6, background: '#475569', color: 'white' }}>CSV</button>
-        <button onClick={printTable} style={{ padding: '6px 10px', borderRadius: 6, background: '#475569', color: 'white' }}>Print</button>
-        <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8 }}>
-          <label style={{ color: '#334155', fontSize: 14 }}>Search:</label>
-          <input value={query} onChange={(e) => { setPage(1); setQuery(e.target.value); }} placeholder="Name/Email/Phone" style={{ border: '1px solid #cbd5e1', borderRadius: 6, padding: '8px 10px' }} />
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 12, marginLeft: '100px' }}>
+        {[
+          { label: 'Copy', action: copyTable },
+          { label: 'CSV', action: exportCSV },
+          { label: 'Print', action: printTable },
+        ].map(btn => (
+          <button
+            key={btn.label}
+            onClick={btn.action}
+            style={{
+              padding: '8px 14px',
+              borderRadius: 6,
+              background: ED_TEAL,
+              color: 'white',
+              fontWeight: 500,
+              border: `1px solid ${ED_TEAL}`,
+              transition: 'all 0.2s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = ED_TEAL_DARK)}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = ED_TEAL)}
+          >
+            {btn.label}
+          </button>
+        ))}
+
+        <div style={{ marginLeft: 'auto', display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginRight: '30px' }}>
+          <label style={{ color: TEXT_DARK, fontSize: 14 }}>Search:</label>
+          <input
+            value={query}
+            onChange={(e) => { setPage(1); setQuery(e.target.value); }}
+            placeholder="Name/Email/Phone"
+            style={{
+              border: `1px solid ${BORDER}`,
+              borderRadius: 6,
+              padding: '8px 10px',
+              minWidth: 220,
+            }}
+          />
         </div>
       </div>
 
       {/* Table */}
-      <div style={{ backgroundColor: 'rgba(255,255,255,0.8)', borderRadius: '8px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 3fr 3fr 2.5fr 2fr 2fr', backgroundColor: '#1f2937', color: 'white', fontSize: '14px', fontWeight: 500, padding: '12px 16px' }}>
+      <div
+        style={{
+          backgroundColor: '#fff',
+          borderRadius: '10px',
+          boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+          border: `1px solid ${BORDER}`,
+          overflow: 'hidden',
+          width: '90%',
+          marginLeft: '100px',
+        }}
+      >
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: '1.2fr 2fr 2fr 2fr 2fr 2fr',
+            backgroundColor: ED_TEAL,
+            color: 'white',
+            fontSize: '14px',
+            fontWeight: 600,
+            padding: '12px 16px',
+          }}
+        >
           <div>Action</div>
           <div>Date</div>
           <div>Name</div>
@@ -130,11 +183,31 @@ export default function PaidFee() {
           <div>Status</div>
         </div>
         <div>
-          {items.map((i) => (
-            <div key={i._id} style={{ display: 'grid', gridTemplateColumns: '1.5fr 3fr 3fr 2.5fr 2fr 2fr', alignItems: 'center', padding: '12px 16px', backgroundColor: 'white', borderBottom: '1px solid #e2e8f0' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {items.map((i, idx) => (
+            <div
+              key={i._id}
+              style={{
+                display: 'grid',
+                gridTemplateColumns: '1.2fr 2fr 2fr 2fr 2fr 2fr',
+                alignItems: 'center',
+                padding: '12px 16px',
+                backgroundColor: idx % 2 === 0 ? '#fafafa' : 'white',
+                borderBottom: `1px solid ${BORDER}`,
+                fontSize: '14px',
+                color: TEXT_DARK,
+              }}
+            >
+              <div>
                 <button
-                  style={{ padding: '8px', borderRadius: '6px', border: `1px solid ${ED_TEAL}`, fontSize: '13px', color: ED_TEAL, backgroundColor: 'white', transition: 'all 0.2s' }}
+                  style={{
+                    padding: '6px 8px',
+                    borderRadius: '6px',
+                    border: `1px solid ${ED_TEAL}`,
+                    fontSize: '13px',
+                    color: ED_TEAL,
+                    backgroundColor: 'white',
+                    transition: 'all 0.2s',
+                  }}
                   onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = ED_TEAL; e.currentTarget.style.color = 'white'; }}
                   onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.color = ED_TEAL; }}
                   onClick={() => setViewId(i._id)}
@@ -143,21 +216,47 @@ export default function PaidFee() {
                   <FiEye />
                 </button>
               </div>
-              <div style={{ color: '#334155' }}>{formatDate(i?.paymentDetails?.createdAt || i?.createdAt)}</div>
-              <div style={{ color: '#334155' }}>{fullName(i)}</div>
-              <div style={{ color: '#334155' }}>{i?.email}</div>
-              <div style={{ color: '#334155' }}>{i?.phoneNumber}</div>
-              <div style={{ color: '#334155' }}>{i?.paymentStatus || '-'}</div>
+              <div>{formatDate(i?.paymentDetails?.createdAt || i?.createdAt)}</div>
+              <div>{fullName(i)}</div>
+              <div>{i?.email}</div>
+              <div>{i?.phoneNumber}</div>
+              <div>{i?.paymentStatus || '-'}</div>
             </div>
           ))}
         </div>
       </div>
 
       {/* Pagination */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 12 }}>
-        <button disabled={page <= 1} onClick={() => setPage(p => Math.max(1, p - 1))} style={{ padding: '6px 10px', borderRadius: 6, background: page <= 1 ? '#cbd5e1' : '#2563eb', color: 'white' }}>Previous</button>
-        <span style={{ padding: '6px 10px', borderRadius: 6, background: '#2563eb', color: 'white' }}>{page}</span>
-        <button disabled={items.length < PAGE_SIZE && !hasMore(meta, items)} onClick={() => setPage(p => p + 1)} style={{ padding: '6px 10px', borderRadius: 6, background: '#2563eb', color: 'white' }}>Next</button>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 12, marginRight: '30px' }}>
+        <button
+          disabled={page <= 1}
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+          style={{
+            padding: '6px 12px',
+            borderRadius: 6,
+            background: page <= 1 ? '#cbd5e1' : ED_TEAL,
+            color: 'white',
+            fontWeight: 500,
+          }}
+        >
+          Previous
+        </button>
+        <span style={{ padding: '6px 12px', borderRadius: 6, background: ED_TEAL, color: 'white', fontWeight: 500 }}>
+          {page}
+        </span>
+        <button
+          disabled={items.length < PAGE_SIZE && !hasMore(meta, items)}
+          onClick={() => setPage(p => p + 1)}
+          style={{
+            padding: '6px 12px',
+            borderRadius: 6,
+            background: items.length < PAGE_SIZE && !hasMore(meta, items) ? '#cbd5e1' : ED_TEAL,
+            color: 'white',
+            fontWeight: 500,
+          }}
+        >
+          Next
+        </button>
       </div>
 
       {/* View Modal */}
