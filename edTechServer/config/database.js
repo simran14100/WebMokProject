@@ -10,7 +10,7 @@ exports.connect = () => {
     // directConnection: false,        // keep default; set true if using mongodb://<host>:27017
   };
 
-  mongoose
+  return mongoose
     .connect(MONGODB_URL, options)
     .then(() => {
       console.log(`DB Connection Success`);
@@ -22,5 +22,7 @@ exports.connect = () => {
       if (NODE_ENV === "production") {
         process.exit(1);
       }
+      // Re-throw so callers can handle failures if needed
+      throw err;
     });
 };

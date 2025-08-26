@@ -57,6 +57,56 @@ exports.getRegisteredUsers = async (req, res) => {
     }
 };
 
+// List students enrolled in courses (UG/PG or others) - separate from UG/PG enrollment list
+// Optional query: courseId to filter by a specific course
+exports.getCourseStudents = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search, courseId } = req.query;
+
+        const filter = {
+            accountType: 'Student',
+            // must have at least one course
+            ...(courseId ? { courses: courseId } : { courses: { $exists: true, $not: { $size: 0 } } }),
+        };
+
+        if (search) {
+            filter.$or = [
+                { firstName: { $regex: search, $options: 'i' } },
+                { lastName: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } },
+            ];
+        }
+
+        const [items, total] = await Promise.all([
+            User.find(filter)
+                .populate('additionalDetails')
+                .populate('courses')
+                .select('-password -token -resetPasswordExpires')
+                .sort({ createdAt: -1 })
+                .limit(Number(limit))
+                .skip((Number(page) - 1) * Number(limit))
+                .exec(),
+            User.countDocuments(filter),
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                items,
+                meta: {
+                    total,
+                    page: Number(page),
+                    limit: Number(limit),
+                    totalPages: Math.ceil(total / Number(limit || 1)) || 1,
+                },
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching course-enrolled students:', error);
+        return res.status(500).json({ success: false, message: 'Failed to fetch course-enrolled students', error: error.message });
+    }
+};
+
 // Get enrolled students (students who have paid enrollment fee)
 exports.getEnrolledStudents = async (req, res) => {
     try {
@@ -103,6 +153,65 @@ exports.getEnrolledStudents = async (req, res) => {
             message: 'Failed to fetch enrolled students',
             error: error.message
         });
+    }
+};
+
+// Get UG/PG enrolled students (exclude PhD by userType)
+exports.getUgpgEnrolledStudents = async (req, res) => {
+    try {
+        const { page = 1, limit = 10, search } = req.query;
+
+        // Find PhD userType id (if exists)
+        const phdType = await UserType.findOne({ name: 'PhD' });
+
+        // Collect UG/PG course IDs via tag (set when creating School)
+        const ugpgCourses = await Course.find({ tag: { $in: ['UGPG'] } }).select('_id');
+        const ugpgCourseIds = ugpgCourses.map(c => c._id);
+
+        const filter = {
+            accountType: 'Student',
+            enrollmentFeePaid: true,
+            paymentStatus: 'Completed',
+            // must be enrolled in at least one UG/PG course
+            ...(ugpgCourseIds.length ? { courses: { $in: ugpgCourseIds } } : { courses: { $in: [] } }),
+            ...(phdType ? { $or: [ { userType: { $exists: false } }, { userType: null }, { userType: { $ne: phdType._id } } ] } : {}),
+        };
+
+        if (search) {
+            filter.$or = [
+                { firstName: { $regex: search, $options: 'i' } },
+                { lastName: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } }
+            ];
+        }
+
+        const [items, total] = await Promise.all([
+            User.find(filter)
+                .populate('additionalDetails')
+                .populate('courses')
+                .select('-password -token -resetPasswordExpires')
+                .sort({ 'paymentDetails.paidAt': -1, createdAt: -1 })
+                .limit(Number(limit))
+                .skip((Number(page) - 1) * Number(limit))
+                .exec(),
+            User.countDocuments(filter),
+        ]);
+
+        return res.status(200).json({
+            success: true,
+            data: {
+                items,
+                meta: {
+                    total,
+                    page: Number(page),
+                    limit: Number(limit),
+                    totalPages: Math.ceil(total / Number(limit || 1)) || 1,
+                },
+            },
+        });
+    } catch (error) {
+        console.error('Error fetching UG/PG enrolled students:', error);
+        return res.status(500).json({ success: false, message: 'Failed to fetch UG/PG enrolled students', error: error.message });
     }
 };
 

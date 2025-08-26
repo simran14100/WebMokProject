@@ -7,6 +7,8 @@ const {
     getEnrolledStudents,
     getPhdEnrolledStudents,
     getPhdEnrollmentPaidStudents,
+    getUgpgEnrolledStudents,
+    getCourseStudents,
     getAllInstructors,
     getInstructorById,
     getPendingInstructors,
@@ -41,6 +43,10 @@ router.get("/registered-users", auth, isAdminLevel, getRegisteredUsers);
 
 // Get enrolled students (students who have paid enrollment fee)
 router.get("/enrolled-students", auth, isAdminLevel, getEnrolledStudents);
+// Get UG/PG enrolled students (non-PhD)
+router.get("/ugpg-enrolled-students", auth, isAdminLevel, getUgpgEnrolledStudents);
+// Get course-enrolled students (optional filter by ?courseId=...)
+router.get("/course-students", auth, isAdminLevel, getCourseStudents);
 // Get PhD enrolled students (enrollment + course fee) and PhD enrollment-paid only
 router.get("/phd-enrolled-students", auth, isAdminLevel, getPhdEnrolledStudents);
 router.get("/phd-enrollment-paid-students", auth, isAdminLevel, getPhdEnrollmentPaidStudents);

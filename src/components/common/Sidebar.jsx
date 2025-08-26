@@ -95,8 +95,31 @@ const getSidebarLinks = (user, variant = 'default') => {
     return [
       { id: 100, name: 'MAIN', isHeader: true, icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
       { id: 101, name: 'Dashboard', path: '/ugpg-admin', icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
-      { id: 102, name: 'Settings', path: '/ugpg-admin/settings', icon: <VscGear style={{ fontSize: 20, color: ED_TEAL }} /> },
-      { id: 103, name: 'Academic', path: '/ugpg-admin/academic', icon: <VscBook style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { 
+        id: 102, 
+        name: 'Settings', 
+        icon: <VscGear style={{ fontSize: 20, color: ED_TEAL }} />, 
+        subLinks: [
+          { name: 'Users', path: '/ugpg-admin/settings/users', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'School', path: '/ugpg-admin/settings/school', icon: <VscOrganization style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Languages', path: '/ugpg-admin/settings/languages', icon: <VscBook style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'States', path: '/ugpg-admin/settings/states', icon: <VscListTree style={{ fontSize: 20, color: ED_TEAL }} /> },
+          // 
+        ]
+      },
+      { 
+        id: 103, 
+        name: 'Academic', 
+        icon: <VscBook style={{ fontSize: 20, color: ED_TEAL }} />,
+        subLinks: [
+          { name: 'Academic Session', path: '/ugpg-admin/academic/session', icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Exam Session', path: '/ugpg-admin/academic/exam-session', icon: <VscListSelection style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Courses Type', path: '/ugpg-admin/academic/course-types', icon: <VscListFlat style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Courses', path: '/ugpg-admin/academic/courses', icon: <VscBook style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Streams', path: '/ugpg-admin/academic/streams', icon: <VscFiles style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Subjects/Papers', path: '/ugpg-admin/academic/subjects-papers', icon: <VscLibrary style={{ fontSize: 20, color: ED_TEAL }} /> },
+        ]
+      },
 
       { id: 200, name: 'STUDENTS', isHeader: true, icon: <VscMortarBoard style={{ fontSize: 20, color: ED_TEAL }} /> },
       { id: 201, name: 'Front Desk', path: '/ugpg-admin/front-desk', icon: <VscHome style={{ fontSize: 20, color: ED_TEAL }} /> },

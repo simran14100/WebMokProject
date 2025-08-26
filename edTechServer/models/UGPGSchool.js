@@ -1,6 +1,6 @@
 const mongoose = require("mongoose");
 
-const DepartmentSchema = new mongoose.Schema(
+const UGPGSchoolSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, unique: true, trim: true },
     shortcode: { type: String, trim: true },
@@ -10,4 +10,4 @@ const DepartmentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-module.exports = mongoose.model("Department", DepartmentSchema);
+module.exports = mongoose.model("UGPGSchool", UGPGSchoolSchema);

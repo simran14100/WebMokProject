@@ -22,11 +22,18 @@ const videoRoutes = require("./routes/Video");
 const cartRoutes = require("./routes/cart");
 const googleRoutes = require("./routes/google");
 const sessionRoutes = require("./routes/session");
+const ugpgSessionRoutes = require("./routes/ugpgSession");
+const phdSessionRoutes = require("./routes/phdSession");
+const ugpgExamSessionRoutes = require("./routes/ugpgExamSession");
 const courseworkRoutes = require("./routes/coursework");
+const ugpgSchoolRoutes = require("./routes/ugpgSchool");
 const departmentRoutes = require("./routes/department");
 const subjectRoutes = require("./routes/subject");
+const ugpgCourseRoutes = require("./routes/ugpgCourse");
+const ugpgSubjectRoutes = require("./routes/ugpgSubject");
 const superAdminRoutes = require("./routes/superAdmin");
 const enquiryRoutes = require("./routes/enquiry");
+const languageRoutes = require("./routes/language");
 
 
 const database = require("./config/database");
@@ -45,8 +52,17 @@ const PORT = process.env.PORT || 4000;
 
 
 
-// Connecting to database
-database.connect();
+// Connecting to database and start server after successful connection
+database
+  .connect()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`App is listening at ${PORT}`);
+    });
+  })
+  .catch(() => {
+    console.error("Server not started due to DB connection failure");
+  });
  
 // Middlewares
 app.use(express.json());
@@ -97,14 +113,21 @@ app.use("/api/v1/video", videoRoutes);
 app.use("/api/v1/guide", require("./routes/guide"));
 app.use("/api/v1/cart", cartRoutes);
 app.use("/api/v1/google", googleRoutes);
-app.use("/api/v1/session", sessionRoutes);
+app.use("/api/v1/session", sessionRoutes); // legacy/general
+app.use("/api/v1/ugpg-session", ugpgSessionRoutes);
+app.use("/api/v1/phd-session", phdSessionRoutes);
+app.use("/api/v1/ugpg-exam-session", ugpgExamSessionRoutes);
 app.use("/api/v1/coursework", courseworkRoutes);
 app.use("/api/v1/department", departmentRoutes);
+app.use("/api/v1/ugpg-school", ugpgSchoolRoutes);
 app.use("/api/v1/subject", subjectRoutes);
+app.use("/api/v1/ugpg-subject", ugpgSubjectRoutes);
+app.use("/api/v1/ugpg-course", ugpgCourseRoutes);
 app.use("/api/v1/enquiry", enquiryRoutes);
 app.use("/api/v1/rac-members", require("./routes/racMember"));
 app.use("/api/v1/external-experts", require("./routes/externalExpert"));
 app.use("/api/v1/super-admin", superAdminRoutes);
+app.use("/api/v1/language", languageRoutes);
 
 // Testing the server
 app.get("/", (req, res) => {
@@ -114,13 +137,6 @@ app.get("/", (req, res) => {
 	});
 });
 
-// Listening to the server
-app.listen(PORT, () => {
-	console.log(`App is listening at ${PORT}`);
-});
+// Note: server starts inside database.connect().then()
 
-// Connecting to database
-database.connect();
-console.log('Backend Razorpay Key:', process.env.RAZORPAY_KEY_ID);
 // End of code.
-//mongodb+srv://simmijha1410:3e1RpwhtiA9hfzB8@cluster0.1kc31.mongodb.net/studyNotation"//

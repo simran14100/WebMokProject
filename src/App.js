@@ -87,10 +87,21 @@ import Sidebar from './components/common/Sidebar';
 import UGPGDashboard from './components/core/UGPGAdmin/Dashboard';
 import UGPGSettings from './components/core/UGPGAdmin/Settings';
 import UGPGAcademic from './components/core/UGPGAdmin/Academic';
+import AcademicSession from './components/core/UGPGAdmin/Academic/AcademicSession';
+import ExamSession from './components/core/UGPGAdmin/Academic/ExamSession';
+import CourseTypes from './components/core/UGPGAdmin/Academic/CourseTypes';
+import Courses from './components/core/UGPGAdmin/Academic/Courses';
+import Streams from './components/core/UGPGAdmin/Academic/Streams';
+import SubjectsPapers from './components/core/UGPGAdmin/Academic/SubjectsPapers';
 import UGPGFrontDesk from './components/core/UGPGAdmin/FrontDesk';
 import UGPGAdmissions from './components/core/UGPGAdmin/Admissions';
 import UGPGFee from './components/core/UGPGAdmin/Fee';
 import UGPGAccounts from './components/core/UGPGAdmin/Accounts';
+import UGPGSettingsUsers from './components/core/UGPGAdmin/Settings/Users';
+import UGPGSettingsSchool from './components/core/UGPGAdmin/Settings/School';
+import UGPGSettingsLanguages from './components/core/UGPGAdmin/Settings/Languages';
+import UGPGSettingsStates from './components/core/UGPGAdmin/Settings/States';
+import UGPGSettingsCities from './components/core/UGPGAdmin/Settings/Cities';
 
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
@@ -172,7 +183,18 @@ function AppRoutes() {
       }>
         <Route index element={<UGPGDashboard />} />
         <Route path="settings" element={<UGPGSettings />} />
+        <Route path="settings/users" element={<UGPGSettingsUsers />} />
+        <Route path="settings/school" element={<UGPGSettingsSchool />} />
+        <Route path="settings/languages" element={<UGPGSettingsLanguages />} />
+        <Route path="settings/states" element={<UGPGSettingsStates />} />
+        <Route path="settings/cities" element={<UGPGSettingsCities />} />
         <Route path="academic" element={<UGPGAcademic />} />
+        <Route path="academic/session" element={<AcademicSession />} />
+        <Route path="academic/exam-session" element={<ExamSession />} />
+        <Route path="academic/course-types" element={<CourseTypes />} />
+        <Route path="academic/courses" element={<Courses />} />
+        <Route path="academic/streams" element={<Streams />} />
+        <Route path="academic/subjects-papers" element={<SubjectsPapers />} />
         <Route path="front-desk" element={<UGPGFrontDesk />} />
         <Route path="admissions" element={<UGPGAdmissions />} />
         <Route path="fee" element={<UGPGFee />} />
