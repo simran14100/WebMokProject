@@ -89,6 +89,24 @@ const getSidebarLinks = (user, variant = 'default') => {
     ];
 
   }
+
+  // UG/PG Admin sidebar for SuperAdmin (centralized here)
+  if (variant === 'ugpg' && (user?.accountType === 'SuperAdmin')) {
+    return [
+      { id: 100, name: 'MAIN', isHeader: true, icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 101, name: 'Dashboard', path: '/ugpg-admin', icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 102, name: 'Settings', path: '/ugpg-admin/settings', icon: <VscGear style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 103, name: 'Academic', path: '/ugpg-admin/academic', icon: <VscBook style={{ fontSize: 20, color: ED_TEAL }} /> },
+
+      { id: 200, name: 'STUDENTS', isHeader: true, icon: <VscMortarBoard style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 201, name: 'Front Desk', path: '/ugpg-admin/front-desk', icon: <VscHome style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 202, name: 'Admissions', path: '/ugpg-admin/admissions', icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
+
+      { id: 300, name: 'ACCOUNTS', isHeader: true, icon: <VscBriefcase style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 301, name: 'Fee', path: '/ugpg-admin/fee', icon: <VscGift style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 302, name: 'Accounts', path: '/ugpg-admin/accounts', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+    ];
+  }
   // Admin UI for Admin & SuperAdmin
   if (user?.accountType === 'Admin' || user?.accountType === 'SuperAdmin') {
     return [

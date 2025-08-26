@@ -65,7 +65,7 @@ export default function UniversityDashboard() {
         >
           {/* UG/PG Button */}
           <button
-            onClick={() => navigate("/admin/dashboard")}
+            onClick={() => navigate("/ugpg-admin")}
             style={{
               padding: "1rem 2rem",
               borderRadius: "0.75rem",

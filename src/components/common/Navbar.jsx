@@ -268,7 +268,10 @@ const Navbar = () => {
                                zIndex: 9999,
                                marginTop: '10px',
                                padding: '8px 0',
-                               listStyle: 'none'
+                               listStyle: 'none',
+                               maxHeight: '300px',
+                               overflowY: 'auto',
+                               WebkitOverflowScrolling: 'touch'
                              }}>
                                {isLoadingCategories ? (
                                  <div style={{

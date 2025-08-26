@@ -1,5 +1,6 @@
 import "./App.css";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
+import React, { useEffect, useState } from 'react';
 import { Provider, useSelector } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import store, { persistor } from './store';
@@ -80,6 +81,16 @@ import ExternalExperts from './components/core/SuperAdmin/ExternalExperts';
 import FinalData from './components/core/SuperAdmin/FinalData';
 import UsersManagement from './components/core/SuperAdmin/UsersManagement';
 import HonoraryApplications from './components/core/SuperAdmin/HonoraryApplications';
+// Sidebar centralized with variants
+import Sidebar from './components/common/Sidebar';
+// UG/PG SuperAdmin pages
+import UGPGDashboard from './components/core/UGPGAdmin/Dashboard';
+import UGPGSettings from './components/core/UGPGAdmin/Settings';
+import UGPGAcademic from './components/core/UGPGAdmin/Academic';
+import UGPGFrontDesk from './components/core/UGPGAdmin/FrontDesk';
+import UGPGAdmissions from './components/core/UGPGAdmin/Admissions';
+import UGPGFee from './components/core/UGPGAdmin/Fee';
+import UGPGAccounts from './components/core/UGPGAdmin/Accounts';
 
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
@@ -111,6 +122,34 @@ function ProtectedRoute({ children, allowedRoles }) {
 function AppRoutes() {
   const { user } = useSelector((state) => state.profile);
   
+  // Inline layout to use centralized Sidebar with UG/PG variant
+  const UGPGInlineLayout = () => {
+    const [isMobile, setIsMobile] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+    useEffect(() => {
+      const check = () => setIsMobile(window.innerWidth <= 1024);
+      check();
+      window.addEventListener('resize', check);
+      const openHandler = () => setIsSidebarOpen(true);
+      const toggleHandler = () => setIsSidebarOpen(prev => !prev);
+      window.addEventListener('dashboard:openSidebar', openHandler);
+      window.addEventListener('dashboard:toggleSidebar', toggleHandler);
+      return () => {
+        window.removeEventListener('resize', check);
+        window.removeEventListener('dashboard:openSidebar', openHandler);
+        window.removeEventListener('dashboard:toggleSidebar', toggleHandler);
+      };
+    }, []);
+    return (
+      <div className="bg-white flex">
+        <Sidebar variant="ugpg" isMobile={isMobile} isOpen={isSidebarOpen || !isMobile} onClose={() => setIsSidebarOpen(false)} />
+        <div className="flex-1 pt-[120px] p-8" style={{ marginLeft: isMobile ? 0 : 260 }}>
+          <Outlet />
+        </div>
+      </div>
+    );
+  };
+  
   return (
     <Routes>
       {/* Public Routes */}
@@ -125,6 +164,20 @@ function AppRoutes() {
           <UniversityDashboard />
         </ProtectedRoute>
       } />
+      {/* UG/PG Admin (SuperAdmin only) */}
+      <Route path="/ugpg-admin" element={
+        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.SUPER_ADMIN]}>
+          <UGPGInlineLayout />
+        </ProtectedRoute>
+      }>
+        <Route index element={<UGPGDashboard />} />
+        <Route path="settings" element={<UGPGSettings />} />
+        <Route path="academic" element={<UGPGAcademic />} />
+        <Route path="front-desk" element={<UGPGFrontDesk />} />
+        <Route path="admissions" element={<UGPGAdmissions />} />
+        <Route path="fee" element={<UGPGFee />} />
+        <Route path="accounts" element={<UGPGAccounts />} />
+      </Route>
       <Route path="/phd-admin" element={
         <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.SUPER_ADMIN]}>
           <PhDAdminLayout />

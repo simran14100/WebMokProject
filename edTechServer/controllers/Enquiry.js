@@ -40,6 +40,8 @@ exports.getEnquiries = async (req, res) => {
         { name: regex },
         { email: regex },
         { phone: regex },
+        { source: regex },
+        { message: regex },
       ];
     }
 

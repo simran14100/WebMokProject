@@ -64,15 +64,7 @@ exports.sendotp = async (req, res) => {
       const savedOtp = await OTP.findById(otpBody._id);
       console.log("Verification - Saved OTP from DB:", savedOtp);
       
-      // Attempt to send OTP via email
-      try {
-        const html = emailVerificationTemplate(otp);
-        await mailSender(email, "Verify your email", html);
-        console.log("OTP email dispatch attempted for:", email);
-      } catch (mailErr) {
-        console.log("Failed to send OTP email:", mailErr?.message || mailErr);
-        // Do not fail the request if email sending has issues; client may still verify OTP from alternate channels
-      }
+      // Note: Email is sent by the OTP model pre-save hook to avoid duplicate sends here.
 
       res.status(200).json({
         success: true,
