@@ -69,8 +69,15 @@ const MeetingTypes = () => {
 
   const showModal = (meetingType = null) => {
     setEditingMeetingType(meetingType);
+    const defaultValues = {
+      isActive: true,
+      duration: 30,
+      color: '#1890ff' // Default color
+    };
+    
     if (meetingType) {
       form.setFieldsValue({
+        ...defaultValues,
         name: meetingType.name,
         description: meetingType.description || '',
         duration: meetingType.duration,
@@ -78,7 +85,7 @@ const MeetingTypes = () => {
       });
     } else {
       form.resetFields();
-      form.setFieldsValue({ isActive: true, duration: 30 });
+      form.setFieldsValue(defaultValues);
     }
     setIsModalVisible(true);
   };
@@ -94,10 +101,11 @@ const MeetingTypes = () => {
       const values = await form.validateFields();
       const meetingTypeData = {
         name: values.name,
-        description: values.description || undefined,
+        description: values.description || '',
         duration: parseInt(values.duration),
         isActive: values.isActive !== false,
-        createdBy: user._id // Add the user ID who is creating the meeting type
+        color: '#1890ff', // Default color since we removed the color picker
+        createdBy: user._id
       };
 
       if (editingMeetingType) {
@@ -114,8 +122,15 @@ const MeetingTypes = () => {
     } catch (error) {
       if (error.errorFields) return;
       console.error('Error saving meeting type:', error);
-      const errorMessage = error.response?.data?.message || 'Failed to save meeting type';
-      toast.error(typeof errorMessage === 'string' ? errorMessage : 'An error occurred');
+      
+      // Handle validation errors from server
+      if (error.response?.data?.errors) {
+        const errorMessages = error.response.data.errors.map(err => err.msg || err.message);
+        toast.error(`Validation error: ${errorMessages.join(', ')}`);
+      } else {
+        const errorMessage = error.response?.data?.message || 'Failed to save meeting type';
+        toast.error(typeof errorMessage === 'string' ? errorMessage : 'An error occurred');
+      }
     }
   };
 
