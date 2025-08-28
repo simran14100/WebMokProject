@@ -102,6 +102,17 @@ import UGPGSettingsSchool from './components/core/UGPGAdmin/Settings/School';
 import UGPGSettingsLanguages from './components/core/UGPGAdmin/Settings/Languages';
 import UGPGSettingsStates from './components/core/UGPGAdmin/Settings/States';
 import UGPGSettingsCities from './components/core/UGPGAdmin/Settings/Cities';
+// UG/PG Front Desk sub-pages
+import VisitorLogs from './components/core/UGPGAdmin/FrontDesk/VisitorLogs';
+import PhoneLogs from './components/core/UGPGAdmin/FrontDesk/PhoneLogs';
+import Grievances from './components/core/UGPGAdmin/FrontDesk/Grievances';
+import PostalExchange from './components/core/UGPGAdmin/FrontDesk/PostalExchange';
+import VisitPurpose from './components/core/UGPGAdmin/FrontDesk/VisitPurpose';
+import EnquirySource from './components/core/UGPGAdmin/FrontDesk/EnquirySource';
+import EnquiryReferences from './components/core/UGPGAdmin/FrontDesk/EnquiryReferences';
+import GrievanceTypes from './components/core/UGPGAdmin/FrontDesk/GrievanceTypes';
+import PostalTypes from './components/core/UGPGAdmin/FrontDesk/PostalTypes';
+import MeetingTypes from './components/core/UGPGAdmin/FrontDesk/MeetingTypes';
 
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
@@ -196,6 +207,16 @@ function AppRoutes() {
         <Route path="academic/streams" element={<Streams />} />
         <Route path="academic/subjects-papers" element={<SubjectsPapers />} />
         <Route path="front-desk" element={<UGPGFrontDesk />} />
+        <Route path="front-desk/visitor-logs" element={<VisitorLogs />} />
+        <Route path="front-desk/phone-logs" element={<PhoneLogs />} />
+        <Route path="front-desk/grievances" element={<Grievances />} />
+        <Route path="front-desk/postal-exchange" element={<PostalExchange />} />
+        <Route path="front-desk/visit-purpose" element={<VisitPurpose />} />
+        <Route path="front-desk/enquiry-source" element={<EnquirySource />} />
+        <Route path="front-desk/enquiry-references" element={<EnquiryReferences />} />
+        <Route path="front-desk/grievance-types" element={<GrievanceTypes />} />
+        <Route path="front-desk/postal-types" element={<PostalTypes />} />
+        <Route path="front-desk/meeting-types" element={<MeetingTypes />} />
         <Route path="admissions" element={<UGPGAdmissions />} />
         <Route path="fee" element={<UGPGFee />} />
         <Route path="accounts" element={<UGPGAccounts />} />

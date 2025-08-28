@@ -34,6 +34,8 @@ const ugpgSubjectRoutes = require("./routes/ugpgSubject");
 const superAdminRoutes = require("./routes/superAdmin");
 const enquiryRoutes = require("./routes/enquiry");
 const languageRoutes = require("./routes/language");
+const ugpgVisitorLogRoutes = require("./routes/ugpgVisitorLog");
+const visitPurposeRoutes = require("./routes/visitPurpose");
 
 
 const database = require("./config/database");
@@ -128,6 +130,9 @@ app.use("/api/v1/rac-members", require("./routes/racMember"));
 app.use("/api/v1/external-experts", require("./routes/externalExpert"));
 app.use("/api/v1/super-admin", superAdminRoutes);
 app.use("/api/v1/language", languageRoutes);
+// Visitor logs route (UG/PG)
+app.use("/api/v1/ugpg-visitor-log", ugpgVisitorLogRoutes);
+app.use("/api/v1/visit-purposes", visitPurposeRoutes);
 
 // Testing the server
 app.get("/", (req, res) => {
