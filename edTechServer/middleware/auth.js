@@ -53,6 +53,11 @@ exports.protect = async (req, res, next) => {
       throw new Error('User not found');
     }
     
+    // Include accountType from the token in the user object
+    if (decoded.accountType) {
+      req.user.accountType = decoded.accountType;
+    }
+    
     next();
   } catch (err) {
     console.error('Auth middleware error:', err);
@@ -85,13 +90,15 @@ exports.authorize = (...roles) => {
       });
     }
     
-    // Use accountType instead of role
-    const userRole = req.user.accountType;
+    // Get accountType from user document or token
+    const userRole = req.user.accountType || (req.user._doc && req.user._doc.accountType);
     
-    if (!userRole || !roles.includes(userRole)) {
+    if (!userRole || !roles.some(role => role.toLowerCase() === userRole.toLowerCase())) {
       return res.status(403).json({
         success: false,
-        message: `User role '${userRole || 'undefined'}' is not authorized to access this route.`
+        message: `User role '${userRole || 'undefined'}' is not authorized to access this route.`,
+        userRoles: roles,
+        userAccountType: userRole
       });
     }
     

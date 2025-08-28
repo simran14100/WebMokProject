@@ -51,6 +51,17 @@ axiosInstance.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       console.log('Setting Authorization header with token');
+      
+      // Debug: Log token payload
+      try {
+        const tokenParts = token.split('.');
+        if (tokenParts.length === 3) {
+          const payload = JSON.parse(atob(tokenParts[1]));
+          console.log('JWT Token payload:', payload);
+        }
+      } catch (e) {
+        console.error('Error decoding JWT token:', e);
+      }
     } else {
       console.warn('No token found for API request');
     }

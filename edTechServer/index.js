@@ -17,6 +17,7 @@ const contactUsRoute = require("./routes/Contact");
 const adminRoutes = require("./routes/admin");
 const enrollmentRoutes = require("./routes/enrollment");
 const admissionRoutes = require("./routes/admission");
+const enquiryReferenceRoutes = require("./routes/enquiryReferenceRoutes");
 const installmentRoutes = require("./routes/installments");
 const videoRoutes = require("./routes/Video");
 const cartRoutes = require("./routes/cart");
@@ -32,10 +33,13 @@ const subjectRoutes = require("./routes/subject");
 const ugpgCourseRoutes = require("./routes/ugpgCourse");
 const ugpgSubjectRoutes = require("./routes/ugpgSubject");
 const superAdminRoutes = require("./routes/superAdmin");
-const enquiryRoutes = require("./routes/enquiry");
+
 const languageRoutes = require("./routes/language");
 const ugpgVisitorLogRoutes = require("./routes/ugpgVisitorLog");
 const visitPurposeRoutes = require("./routes/visitPurpose");
+const honoraryEnquiryRoutes = require("./routes/honoraryEnquiryRoutes");
+
+const meetingTypeRoutes = require("./routes/meetingTypeRoutes");
 
 
 const database = require("./config/database");
@@ -125,14 +129,18 @@ app.use("/api/v1/ugpg-school", ugpgSchoolRoutes);
 app.use("/api/v1/subject", subjectRoutes);
 app.use("/api/v1/ugpg-subject", ugpgSubjectRoutes);
 app.use("/api/v1/ugpg-course", ugpgCourseRoutes);
-app.use("/api/v1/enquiry", enquiryRoutes);
+
 app.use("/api/v1/rac-members", require("./routes/racMember"));
 app.use("/api/v1/external-experts", require("./routes/externalExpert"));
-app.use("/api/v1/super-admin", superAdminRoutes);
+
 app.use("/api/v1/language", languageRoutes);
+app.use("/api/v1/enquiry-references", enquiryReferenceRoutes);
 // Visitor logs route (UG/PG)
 app.use("/api/v1/ugpg-visitor-log", ugpgVisitorLogRoutes);
 app.use("/api/v1/visit-purposes", visitPurposeRoutes);
+app.use("/api/v1/enquiry", honoraryEnquiryRoutes);
+
+app.use("/api/v1/meeting-types", meetingTypeRoutes);
 
 // Testing the server
 app.get("/", (req, res) => {

@@ -159,14 +159,47 @@ export const contact = {
     CONTACT_US_API: "/api/v1/reach/contact",
 };
 
+// Meeting endpoints
+export const meetingEndpoints = {
+    GET_ALL_MEETINGS: "/api/v1/meetings",
+    GET_TODAYS_MEETINGS: "/api/v1/meetings/today",
+    GET_MEETING_BY_ID: "/api/v1/meetings", // + /:id
+    CREATE_MEETING: "/api/v1/meetings",
+    UPDATE_MEETING: "/api/v1/meetings", // + /:id
+    DELETE_MEETING: "/api/v1/meetings", // + /:id
+};
+
+// Meeting Type endpoints
+export const meetingTypeEndpoints = {
+    GET_ALL_MEETING_TYPES: "/api/v1/meeting-types",
+    GET_ACTIVE_MEETING_TYPES: "/api/v1/meeting-types/active",
+    GET_MEETING_TYPE_BY_ID: "/api/v1/meeting-types", // + /:id
+    CREATE_MEETING_TYPE: "/api/v1/meeting-types",
+    UPDATE_MEETING_TYPE: "/api/v1/meeting-types", // + /:id
+    DELETE_MEETING_TYPE: "/api/v1/meeting-types", // + /:id
+};
+
 export const videoProtection = {
     GET_PROTECTED_VIDEO_STREAM: "/api/v1/video/stream",
     GET_VIDEO_SERVE: "/api/v1/video/serve",
     TRACK_VIDEO_PROGRESS: "/api/v1/video/progress",
     GET_VIDEO_ANALYTICS: "/api/v1/video/analytics",
-}; 
+};
+
+// Enquiry API endpoints
+export const ENQUIRY_API = {
+    GET_ENQUIRIES: "/api/v1/enquiry",
+    GET_ENQUIRY_BY_ID: (id) => `/api/v1/enquiry/${id}`,
+    CREATE_ENQUIRY: "/api/v1/enquiry",
+    UPDATE_ENQUIRY: (id) => `/api/v1/enquiry/${id}`,
+    DELETE_ENQUIRY: (id) => `/api/v1/enquiry/${id}`,
+    GET_SOURCES: "/api/v1/enquiry/sources",
+};
 
 // src/services/apis.js
+// Enquiry Reference API endpoints
+export const ENQUIRY_REFERENCE_API = "/api/v1/enquiry-references";
+
 export const cart = {
   GET_CART_DETAILS_API: "/api/v1/cart",
   ADD_TO_CART_API: "/api/v1/cart/add",
