@@ -11,13 +11,16 @@ const app = express();
 const userRoutes = require("./routes/user");
 const profileRoutes = require("./routes/profile");
 const courseRoutes = require("./routes/Course");
+const universityRoutes = require("./routes/university.routes");
 const subCategoryRoutes = require("./routes/SubCategory");
 const paymentRoutes = require("./routes/Payments");
 const contactUsRoute = require("./routes/Contact");
 const adminRoutes = require("./routes/admin");
 const enrollmentRoutes = require("./routes/enrollment");
 const admissionRoutes = require("./routes/admission");
-const enquiryReferenceRoutes = require("./routes/enquiryReferenceRoutes");
+const admissionEnquiryRoutes = require("./routes/admissionEnquiryRoutes");
+// Temporarily disabled due to missing validators
+// const enquiryReferenceRoutes = require("./routes/enquiryReferenceRoutes");
 const installmentRoutes = require("./routes/installments");
 const videoRoutes = require("./routes/Video");
 const cartRoutes = require("./routes/cart");
@@ -58,13 +61,25 @@ const PORT = process.env.PORT || 4000;
 
 
 
-// Connecting to database and start server after successful connection
-database
-  .connect()
+// Function to start the server
+const startServer = (port) => {
+  const server = app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  }).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`Port ${port} is in use, trying port ${Number(port) + 1}...`);
+      startServer(Number(port) + 1);
+    } else {
+      console.error('Server error:', err);
+      process.exit(1);
+    }
+  });
+};
+
+// Connect to database and start server
+database.connect()
   .then(() => {
-    app.listen(PORT, () => {
-      console.log(`App is listening at ${PORT}`);
-    });
+    startServer(PORT);
   })
   .catch(() => {
     console.error("Server not started due to DB connection failure");
@@ -75,12 +90,50 @@ app.use(express.json());
 app.use(cookieParser());
 
 
-app.use(
-	cors({
-		origin: "*",
-		credentials: true,
-	})
-);
+// CORS configuration
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:4000',
+  'http://localhost:4001',
+  'http://127.0.0.1:3000',
+  'http://127.0.0.1:4000',
+  'http://127.0.0.1:4001',
+  // Add other allowed origins as needed
+];
+
+const corsOptions = {
+  origin: function (origin, callback) {
+    // Allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+    
+    // Log allowed origins for debugging
+    console.log('Allowed origins:', allowedOrigins);
+    console.log('Request origin:', origin);
+    
+    const msg = `The CORS policy for this site does not allow access from the specified origin: ${origin}`;
+    console.error(msg);
+    return callback(new Error(msg), false);
+  },
+  credentials: true,
+  allowedHeaders: [
+    'Content-Type', 
+    'Authorization', 
+    'X-Requested-With',
+    'X-Skip-Interceptor'
+  ],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
+  exposedHeaders: ['Content-Range', 'X-Content-Range'],
+  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+};
+
+app.use(cors(corsOptions));
+
+// Handle preflight requests
+app.options('*', cors(corsOptions));
 
 // Configure a cross-platform temporary directory for uploads
 const uploadTmpDir = path.join(os.tmpdir(), "webmok-uploads");
@@ -104,16 +157,18 @@ app.use(
 cloudinaryConnect();
 
 
-// Setting up routes
+// Mount the routes
 app.use("/api/v1/auth", userRoutes);
 app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/course", courseRoutes);
-app.use("/api/v1/subCategory", subCategoryRoutes);
+app.use("/api/v1/university", universityRoutes);
+app.use("/api/v1/sub-category", subCategoryRoutes);
 app.use("/api/v1/payment", paymentRoutes);
-app.use("/api/v1/reach", contactUsRoute);
+app.use("/api/v1/contact", contactUsRoute);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/enrollment", enrollmentRoutes);
 app.use("/api/v1/admission", admissionRoutes);
+app.use("/api/v1/admission/enquiries", admissionEnquiryRoutes);
 app.use("/api/v1/installments", installmentRoutes);
 app.use("/api/v1/video", videoRoutes);
 app.use("/api/v1/guide", require("./routes/guide"));
@@ -134,13 +189,17 @@ app.use("/api/v1/rac-members", require("./routes/racMember"));
 app.use("/api/v1/external-experts", require("./routes/externalExpert"));
 
 app.use("/api/v1/language", languageRoutes);
-app.use("/api/v1/enquiry-references", enquiryReferenceRoutes);
+// Enquiry references routes
+app.use("/api/v1/enquiry-references", require("./routes/enquiryReferenceRoutes"));
 // Visitor logs route (UG/PG)
 app.use("/api/v1/ugpg-visitor-log", ugpgVisitorLogRoutes);
 app.use("/api/v1/visit-purposes", visitPurposeRoutes);
 app.use("/api/v1/enquiry", honoraryEnquiryRoutes);
 
 app.use("/api/v1/meeting-types", meetingTypeRoutes);
+
+// University routes
+app.use("/api/v1/university", universityRoutes);
 
 // Testing the server
 app.get("/", (req, res) => {
@@ -150,6 +209,17 @@ app.get("/", (req, res) => {
 	});
 });
 
-// Note: server starts inside database.connect().then()
+// Start the server after database connection is established
+
+database.connect()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server is running on port ${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error('Failed to connect to the database:', error);
+    process.exit(1);
+  });
 
 // End of code.
