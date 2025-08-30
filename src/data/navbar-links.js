@@ -11,6 +11,10 @@ export const NavbarLinks = [
         title: "Contact",
         path: "/contact",
     },
+    {
+        title: "University",
+        path: "/university",
+    },
 ];
 
 // Role-based navigation links that will be added dynamically

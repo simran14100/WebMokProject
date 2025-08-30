@@ -91,10 +91,7 @@ exports.signup = async (req, res) => {
         confirmPassword,
         accountType,
         contactNumber,
-        otp,
-        // New optional field to specialize Student into UG, PG, Institute, etc.
-        userTypeName
-       
+        otp
       } = req.body
       // Check if All Details are there or not
       if (
@@ -174,22 +171,7 @@ exports.signup = async (req, res) => {
         contactNumber: null,
       })
 
-      // Resolve userType if provided. We support canonical options: UG, PG, Institute.
-      // If the provided userTypeName does not exist, we create it on the fly.
-      let resolvedUserTypeId = null;
-      try {
-        if (userTypeName && typeof userTypeName === 'string' && userTypeName.trim().length > 0) {
-          const canonical = userTypeName.trim();
-          let existing = await UserType.findOne({ name: canonical });
-          if (!existing) {
-            existing = await UserType.create({ name: canonical });
-          }
-          resolvedUserTypeId = existing?._id || null;
-        }
-      } catch (err) {
-        // Do not fail signup due to userType issues; proceed without userType
-        console.log('UserType resolution error:', err?.message || err);
-      }
+      // User type is no longer used in signup
 
       const user = await User.create({
         firstName,
@@ -202,7 +184,6 @@ exports.signup = async (req, res) => {
         enrollmentFeePaid: enrollmentFeePaid,
         paymentStatus: paymentStatus,
         additionalDetails: profileDetails._id,
-        userType: resolvedUserTypeId,
         image:`https://api.dicebear.com/5.x/initials/svg?seed=${firstName} ${lastName}`,
       })
   

@@ -8,7 +8,7 @@ dotenv.config();
 
 
 // This function is used as middleware to authenticate user requests
-exports.auth = async (req, res, next) => {
+exports.auth = exports.protect = async (req, res, next) => {
 	try {
 		// Extracting JWT from request cookies, body or header
 	// 	const token =
@@ -284,4 +284,27 @@ exports.isAdminOrSuperAdmin = async (req, res, next) => {
 			.status(500)
 			.json({ success: false, message: `User Role Can't be Verified` });
 	}
+};
+
+// Role-based access control middleware
+exports.authorize = (...roles) => {
+  return (req, res, next) => {
+    if (!req.user) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required',
+      });
+    }
+
+    if (!roles.includes(req.user.accountType)) {
+      return res.status(403).json({
+        success: false,
+        message: `User role ${req.user.accountType} is not authorized to access this route`,
+        requiredRoles: roles,
+        userRole: req.user.accountType
+      });
+    }
+
+    next();
+  };
 };

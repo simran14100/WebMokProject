@@ -1,7 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const { body, param } = require('express-validator');
-const { protect, isAdmin, isSuperAdmin, isAdminLevel } = require('../middleware/auth');
+const { protect, isAdmin, isSuperAdmin, isAdminLevel } = require('../middlewares/auth');
+const { validate } = require('../middlewares/validate');
 const {
     createMeetingType,
     getMeetingTypes,
@@ -42,11 +43,11 @@ router.get(
 router.post(
     '/',
     checkAdminAccess,
-    [
+    validate([
         body('name', 'Name is required').notEmpty(),
         body('duration', 'Duration is required').isInt({ min: 5 }),
         body('color', 'Valid color is required').matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
-    ],
+    ]),
     createMeetingType
 );
 
@@ -54,9 +55,9 @@ router.post(
 router.get(
     '/:id',
     checkAdminAccess,
-    [
+    validate([
         param('id', 'Invalid meeting type ID').isMongoId()
-    ],
+    ]),
     getMeetingTypeById
 );
 
@@ -64,12 +65,12 @@ router.get(
 router.put(
     '/:id',
     checkAdminAccess,
-    [
+    validate([
         param('id', 'Invalid meeting type ID').isMongoId(),
         body('name', 'Name is required').optional().notEmpty(),
         body('duration', 'Duration must be at least 5 minutes').optional().isInt({ min: 5 }),
         body('color', 'Valid color is required').optional().matches(/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/)
-    ],
+    ]),
     updateMeetingType
 );
 
@@ -86,9 +87,9 @@ router.delete(
             message: 'Access denied. Requires admin or super admin privileges.'
         });
     },
-    [
+    validate([
         param('id', 'Invalid meeting type ID').isMongoId()
-    ],
+    ]),
     deleteMeetingType
 );
 

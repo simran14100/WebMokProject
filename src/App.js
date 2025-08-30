@@ -61,7 +61,6 @@ import BulkUploadStudents from './components/core/Admin/StudentManagement/BulkUp
 import CreateUserType from './components/core/Admin/UserManagement/UserType/CreateUserType';
 import AllUserTypes from './components/core/Admin/UserManagement/UserType/AllUserTypes';
 import AdminMyCourses from './pages/AdminMyCourses';
-import UniversityDashboard from './pages/UniversityDashboard';
 import PhDAdminLayout from './components/common/PhDAdminLayout';
 import PhDSessionManagement from './components/core/SuperAdmin/PhDSessionManagement';
 import DepartmentManagement from './components/core/SuperAdmin/DepartmentManagement';
@@ -113,6 +112,9 @@ import EnquiryReferences from './components/core/UGPGAdmin/FrontDesk/EnquiryRefe
 import GrievanceTypes from './components/core/UGPGAdmin/FrontDesk/GrievanceTypes';
 import PostalTypes from './components/core/UGPGAdmin/FrontDesk/PostalTypes';
 import MeetingTypes from './components/core/UGPGAdmin/FrontDesk/MeetingTypes';
+import University from "./pages/University";
+import UniversityDashboard from "./pages/UniversityDashboard";
+import UniversityRoute from "./components/common/UniversityRoute";
 
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
@@ -180,12 +182,21 @@ function AppRoutes() {
       <Route path="/contact" element={<Contact />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-      {/* SuperAdmin only - University entry points */}
-      <Route path="/university-dashboard" element={
-        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.SUPER_ADMIN]}>
-          <UniversityDashboard />
-        </ProtectedRoute>
-      } />
+      {/* University Routes */}
+      <Route path="/university" element={<University />} />
+      
+      {/* University Dashboard */}
+      <Route 
+        path="/university-dashboard" 
+        element={
+          <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.SUPER_ADMIN, 'UG Student', 'PG Student', 'PhD Student']}>
+            <UniversityDashboard />
+          </ProtectedRoute>
+        } 
+      />
+      
+      {/* Redirect old university dashboard route */}
+      <Route path="/university/dashboard" element={<Navigate to="/university-dashboard" replace />} />
       {/* UG/PG Admin (SuperAdmin only) */}
       <Route path="/ugpg-admin" element={
         <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.SUPER_ADMIN]}>

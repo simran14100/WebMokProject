@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { protect, authorize } = require('../middleware/auth');
+const { protect, authorize } = require('../middlewares/auth');
 const {
   getAllEnquiryReferences,
   getEnquiryReferenceById,
@@ -11,14 +11,14 @@ const {
 const {
   enquiryReferenceValidationRules,
   idValidationRules
-} = require('../middleware/validators/enquiryReference');
-const { validate } = require('../middleware/validate');
+} = require('../middlewares/validators/enquiryReference');
+const { validate } = require('../middlewares/validate');
 
 // Apply auth middleware to all routes
 router.use(protect);
 
 // Apply role check for admin, frontdesk, and superAdmin
-router.use(authorize('admin', 'frontdesk', 'superAdmin'));
+router.use(authorize('Admin', 'FrontDesk', 'SuperAdmin'));
 
 // Routes
 router

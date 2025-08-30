@@ -113,7 +113,7 @@ export default function UniversityDashboard() {
               e.currentTarget.style.transform = "translateY(-2px)";
               e.currentTarget.style.boxShadow =
                 "0 10px 24px rgba(37,99,235,0.18)";
-            }}
+            }} 
             onMouseOut={(e) => {
               e.currentTarget.style.transform = "translateY(0)";
               e.currentTarget.style.boxShadow =

@@ -9,6 +9,15 @@ import { isUserLoggingOut } from "../utils/sessionFlags";
 
 export const axiosInstance = axios.create({
   baseURL: process.env.REACT_APP_BASE_URL || "http://localhost:4000",
+  withCredentials: true, // This is important for sending cookies with requests
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+  // Enable CORS credentials
+  crossDomain: true,
+  // Increase timeout
+  timeout: 30000, // 30 seconds
 });
 
 // Track if we're currently refreshing the token
@@ -30,6 +39,11 @@ const processQueue = (error, token = null) => {
 // Add request interceptor to include Authorization header
 axiosInstance.interceptors.request.use(
   (config) => {
+    // Skip for auth routes
+    if (config.url.includes('/auth/')) {
+      return config;
+    }
+    
     // First try to get token from Redux store
     let token = store.getState()?.auth?.token;
     
@@ -39,7 +53,7 @@ axiosInstance.interceptors.request.use(
       if (persistedAuth) {
         try {
           const parsedAuth = JSON.parse(persistedAuth);
-          token = JSON.parse(parsedAuth.token);
+          token = JSON.parse(parsedAuth.token || 'null');
           console.log('Retrieved token from localStorage:', token);
         } catch (error) {
           console.error('Error parsing persisted auth:', error);
@@ -80,6 +94,11 @@ axiosInstance.interceptors.response.use(
     return response;
   },
   async (error) => {
+    // Skip interceptor if the request has the skip header
+    if (error.config?.headers?.['X-Skip-Interceptor'] === 'true') {
+      return Promise.reject(error);
+    }
+    
     // If user initiated a logout, don't run 401 logic or show toasts
     try {
       if (typeof isUserLoggingOut === 'function' && isUserLoggingOut()) {
@@ -114,7 +133,8 @@ axiosInstance.interceptors.response.use(
         store.dispatch(logoutAction());
         store.dispatch(clearUser());
         showError("Session expired. Please login again.");
-        window.location.href = "/login";
+        // Redirect to university login instead of regular login
+        window.location.href = "/university/login";
         return Promise.reject(error);
       }
 
@@ -146,8 +166,8 @@ axiosInstance.interceptors.response.use(
         // Show notification to user
         showError("Session expired. Please login again.");
         
-        // Redirect to login page
-        window.location.href = "/login";
+        // Redirect to university login page
+        window.location.href = "/university/login";
       }
     }
     
@@ -180,13 +200,61 @@ axiosInstance.interceptors.response.use(
 //     throw error;
 //   }
 // };
-export const apiConnector = (method, url, bodyData, headers, params) => {
-  return axiosInstance({
-    method: `${method}`,
-    url: `${url}`,
-    data: bodyData ? bodyData : null,
-    headers: headers ? headers : null,
-    params: params?.params ? params.params : params || null,
-    responseType: params?.responseType ? params.responseType : undefined,
+export const apiConnector = (method, url, bodyData = null, headers = {}, params = null) => {
+  console.log('API Request:', { method, url, bodyData, headers, params });
+  
+  // Get token from Redux store or localStorage
+  const getToken = () => {
+    try {
+      // First try to get from Redux store
+      const state = store.getState();
+      if (state?.auth?.token) {
+        return state.auth.token;
+      }
+      
+      // Then try to get from localStorage
+      const persistedAuth = localStorage.getItem('persist:auth');
+      if (persistedAuth) {
+        const parsedAuth = JSON.parse(persistedAuth);
+        if (parsedAuth.token) {
+          return JSON.parse(parsedAuth.token);
+        }
+      }
+    } catch (error) {
+      console.error('Error getting token:', error);
+    }
+    return null;
+  };
+
+  const token = getToken();
+  
+  // Prepare request config
+  const config = {
+    method: method.toLowerCase(),
+    url: url,
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...headers
+    },
+    withCredentials: true
+  };
+  
+  // Add request data if present
+  if (bodyData) {
+    config.data = bodyData;
+  }
+  
+  // Add query parameters if present
+  if (params) {
+    config.params = params;
+  }
+  
+  console.log('Sending API request with config:', {
+    ...config,
+    headers: { ...config.headers, Authorization: config.headers.Authorization ? 'Bearer [TOKEN]' : 'None' }
   });
+  
+  return axiosInstance(config);
 };

@@ -9157,6 +9157,32 @@ START: Page Header CSS
 }
 
 /* !END:  Page Header CSS */
+/* Social Buttons */
+.social-btn {
+  background: none;
+  border: none;
+  color: inherit;
+  padding: 8px;
+  margin: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s ease;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+}
+
+.social-btn:hover {
+  background: rgba(0, 0, 0, 0.1);
+  transform: translateY(-2px);
+}
+
+.social-btn i {
+  font-size: 16px;
+}
+
 /**----------------------------------------
 START: Sponsor CSS
 ----------------------------------------*/

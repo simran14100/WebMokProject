@@ -46,6 +46,11 @@ const userSchema = new mongoose.Schema({
       type: Boolean,
       default: true,
     },
+    programType: {
+      type: String,
+      enum: ["UG", "PG", "PhD"],
+      default: null
+    },
     // Flag to indicate the user was created by an Admin flow (single-create or bulk-upload)
     createdByAdmin: {
       type: Boolean,

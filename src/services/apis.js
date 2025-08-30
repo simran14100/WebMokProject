@@ -13,6 +13,10 @@ export const superAdmin = {
 export const auth = {
     SENDOTP_API: "/api/v1/auth/sendotp",
     SIGNUP_API: "/api/v1/auth/signup",
+    UNIVERSITY_SIGNUP_API: "/api/v1/university/signup",
+    UNIVERSITY_LOGIN_API: "/api/v1/university/login",
+    GET_CURRENT_USER_API: "/api/v1/university/me",
+    UPDATE_PROGRAM_API: "/api/v1/university/update-program",
     LOGIN_API: "/api/v1/auth/login",
     RESETPASSTOKEN_API: "/api/v1/auth/reset-password-token",
     RESETPASSWORD_API: "/api/v1/auth/reset-password",
@@ -196,7 +200,15 @@ export const ENQUIRY_API = {
     GET_SOURCES: "/api/v1/enquiry/sources",
 };
 
-// src/services/apis.js
+// Admission Enquiry API endpoints
+export const admissionEnquiryEndpoints = {
+  GET_ALL_ENQUIRIES_API: "/api/v1/admission/enquiries",
+  GET_ALL_ENQUIRIES_API: "/api/v1/admission/enquiries",
+  GET_ENQUIRY_BY_ID: (id) => `/api/v1/admission/enquiries/${id}`,
+  UPDATE_ENQUIRY_STATUS: (id) => `/api/v1/admission/enquiries/${id}/status`,
+  DELETE_ENQUIRY: (id) => `/api/v1/admission/enquiries/${id}`,
+};
+
 // Enquiry Reference API endpoints
 export const ENQUIRY_REFERENCE_API = "/api/v1/enquiry-references";
 

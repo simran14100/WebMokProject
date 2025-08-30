@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout as logoutAction } from '../../store/slices/authSlice';
@@ -6,15 +6,11 @@ import { clearUser } from '../../store/slices/profileSlice';
 import { clearCart } from '../../store/slices/cartSlice';
 import { logout } from '../../services/operations/authApi';
 import { fetchCourseCategories } from '../../services/operations/courseDetailsAPI';
-import { motion, AnimatePresence } from 'framer-motion';
-
- // Navbar.jsx
 import { getCartCount } from "../../services/operations/cartApi";
 
 
 const Navbar = () => {
   const { user } = useSelector((state) => state.profile);
-  const { cart } = useSelector((state) => state.cart);
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
@@ -377,7 +373,31 @@ const Navbar = () => {
                         e.target.style.color = '#191A1F';
                         e.target.style.transform = 'translateY(0)';
                       }}>
-                        Contact
+                       Contact
+                      </Link>
+                    </li>
+                    <li>
+                      <Link to="/university" style={{ 
+                        textDecoration: 'none', 
+                        color: '#191A1F', 
+                        fontWeight: '600',
+                        fontSize: '18px',
+                        fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important',
+                        letterSpacing: '0.5px',
+                        transition: 'all 0.3s ease',
+                        position: 'relative',
+                        padding: '8px 0',
+                        textTransform:'none'
+                      }}
+                      onMouseEnter={(e) => {
+                        e.target.style.color = '#07A698';
+                        e.target.style.transform = 'translateY(-1px)';
+                      }}
+                      onMouseLeave={(e) => {
+                        e.target.style.color = '#191A1F';
+                        e.target.style.transform = 'translateY(0)';
+                      }}>
+                       University
                       </Link>
                     </li>
                    
@@ -653,7 +673,12 @@ const Navbar = () => {
                                     e.target.style.backgroundColor = 'transparent';
                                     e.target.style.color = '#191A1F';
                                   }}
-                                  onClick={() => setIsProfileDropdownOpen(false)}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    setIsProfileDropdownOpen(false);
+                                    // Use window.location to force a full page reload
+                                    window.location.href = '/university-dashboard';
+                                  }}
                                 >
                                   <i className="fa-solid fa-building-columns" style={{ marginRight: '8px', width: '16px' }}></i>
                                   University Dashboard
@@ -960,6 +985,7 @@ const Navbar = () => {
               <li><Link to="/about" onClick={() => setIsMobileMenuOpen(false)}>About</Link></li>
               <li><Link to="/blog" onClick={() => setIsMobileMenuOpen(false)}>Blog</Link></li>
               <li><Link to="/contact" onClick={() => setIsMobileMenuOpen(false)}>Contact</Link></li>
+              <li><Link to="/university" onClick={() => setIsMobileMenuOpen(false)}>University</Link></li>
               {user ? (
                 <>
                   <li><Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link></li>

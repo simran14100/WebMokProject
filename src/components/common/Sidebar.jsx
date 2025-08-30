@@ -18,7 +18,10 @@ import {
   VscMortarBoard,
   VscBriefcase,
   VscListSelection,
+  VscListUnordered,
+  VscHistory,
   VscAdd,
+  VscVerified,
   VscHome,
   VscPerson,
   VscFileSubmodule,
@@ -139,7 +142,19 @@ const getSidebarLinks = (user, variant = 'default') => {
           { name: 'Meeting Types', path: '/ugpg-admin/front-desk/meeting-types', icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} /> },
         ]
       },
-      { id: 202, name: 'Admissions', path: '/ugpg-admin/admissions', icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { 
+        id: 202, 
+        name: 'Admissions', 
+        icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} />,
+        subLinks: [
+          { name: 'Admission Enquiries', path: '/ugpg-admin/admissions/enquiries', icon: <VscListUnordered style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Follow Up', path: '/ugpg-admin/admissions/follow-up', icon: <VscHistory style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'New Registration', path: '/ugpg-admin/admissions/new-registration', icon: <VscAdd style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Verification', path: '/ugpg-admin/admissions/verification', icon: <VscVerified style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Registered Students', path: '/ugpg-admin/admissions/registered', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Enrolled Students', path: '/ugpg-admin/admissions/enrolled', icon: <VscOrganization style={{ fontSize: 20, color: ED_TEAL }} /> },
+        ]
+      },
 
       { id: 300, name: 'ACCOUNTS', isHeader: true, icon: <VscBriefcase style={{ fontSize: 20, color: ED_TEAL }} /> },
       { id: 301, name: 'Fee', path: '/ugpg-admin/fee', icon: <VscGift style={{ fontSize: 20, color: ED_TEAL }} /> },

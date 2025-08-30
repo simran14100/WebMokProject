@@ -17,13 +17,6 @@ const accountTypes = [
   { value: 'Staff', label: 'Staff' },
 ];
 
-// New: Supported User Types for specialization under Student
-const userTypes = [
-  { value: 'UG', label: 'UG' },
-  { value: 'PG', label: 'PG' },
-  { value: 'Institute', label: 'Institute' },
-];
-
 const validateEmail = (email) => {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 };
@@ -37,7 +30,6 @@ const Signup = () => {
     email: '',
     phone: '',
     accountType: 'Student',
-    userTypeName: 'UG',
     password: '',
     confirmPassword: '',
     otp: '',
@@ -81,8 +73,7 @@ const Signup = () => {
       email: form.email.trim(),
       password: form.password,
       confirmPassword: form.confirmPassword,
-      otp: form.otp.trim(),
-      userTypeName: form.userTypeName.trim(),
+      otp: form.otp.trim()
     };
     try {
       console.log("Signup payload:", payload);
@@ -94,8 +85,7 @@ const Signup = () => {
         payload.password,
         payload.confirmPassword,
         payload.otp,
-        navigate,
-        payload.userTypeName
+        navigate
       ));
     } catch (err) {
       setError('Signup failed. Please try again.');
@@ -497,56 +487,6 @@ const Signup = () => {
             >
               {accountTypes.map((type) => (
                 <option key={type.value} value={type.value}>{type.label}</option>
-              ))}
-            </select>
-          </div>
-
-          {/* User Type Field (UG, PG, Institute) */}
-          <div style={{ marginBottom: '25px' }}>
-            <label htmlFor="userTypeName" style={{ 
-              color: TEXT_DARK, 
-              fontWeight: '600', 
-              display: 'block', 
-              marginBottom: '8px',
-              fontSize: '14px',
-              textTransform: 'uppercase',
-              letterSpacing: '0.5px'
-            }}>
-              User Type
-            </label>
-            <select
-              id="userTypeName"
-              name="userTypeName"
-              value={form.userTypeName}
-              onChange={handleChange}
-              required
-              style={{ 
-                width: '100%', 
-                padding: '15px 18px', 
-                border: '2px solid #e0e0e0', 
-                borderRadius: '12px', 
-                background: '#f8f9fa', 
-                color: TEXT_DARK, 
-                outline: 'none', 
-                fontSize: '16px', 
-                fontWeight: '500', 
-                transition: 'all 0.3s ease',
-                boxSizing: 'border-box',
-                cursor: 'pointer'
-              }}
-              onFocus={e => {
-                e.target.style.border = `2px solid ${ED_TEAL}`;
-                e.target.style.background = '#ffffff';
-                e.target.style.boxShadow = `0 0 0 3px rgba(7, 166, 152, 0.1)`;
-              }}
-              onBlur={e => {
-                e.target.style.border = '2px solid #e0e0e0';
-                e.target.style.background = '#f8f9fa';
-                e.target.style.boxShadow = 'none';
-              }}
-            >
-              {userTypes.map((t) => (
-                <option key={t.value} value={t.value}>{t.label}</option>
               ))}
             </select>
           </div>

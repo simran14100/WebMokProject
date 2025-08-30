@@ -10,18 +10,19 @@ const validate = (validations) => {
       return next();
     }
 
+    // Format errors to return as an array of error messages
+    const formattedErrors = errors.array().map(err => ({
+      field: err.param,
+      message: err.msg,
+      value: err.value
+    }));
+
     return res.status(400).json({
       success: false,
       message: 'Validation failed',
-      errors: errors.array().map(err => ({
-        field: err.param,
-        message: err.msg,
-        value: err.value
-      }))
+      errors: formattedErrors
     });
   };
 };
 
-module.exports = {
-  validate
-};
+module.exports = { validate };
