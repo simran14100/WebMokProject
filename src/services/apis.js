@@ -203,7 +203,6 @@ export const ENQUIRY_API = {
 // Admission Enquiry API endpoints
 export const admissionEnquiryEndpoints = {
   GET_ALL_ENQUIRIES_API: "/api/v1/admission/enquiries",
-  GET_ALL_ENQUIRIES_API: "/api/v1/admission/enquiries",
   GET_ENQUIRY_BY_ID: (id) => `/api/v1/admission/enquiries/${id}`,
   UPDATE_ENQUIRY_STATUS: (id) => `/api/v1/admission/enquiries/${id}/status`,
   DELETE_ENQUIRY: (id) => `/api/v1/admission/enquiries/${id}`,

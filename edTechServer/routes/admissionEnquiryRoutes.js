@@ -8,18 +8,19 @@ const {
 } = require('../controllers/AdmissionEnquiryController');
 const { protect, authorize } = require('../middlewares/auth');
 
-// Protect all routes with authentication and authorization
+// Protect all routes with authentication
 router.use(protect);
-router.use(authorize('admin', 'superadmin'));
 
+// Routes for admin and superadmin
 router.route('/')
-  .get(getAllAdmissionEnquiries);
+  .get(authorize('admin', 'superadmin'), getAllAdmissionEnquiries);
 
 router.route('/:id')
-  .get(getAdmissionEnquiry)
-  .delete(deleteEnquiry);
+  .get(authorize('admin', 'superadmin'), getAdmissionEnquiry)
+  .delete(authorize('admin', 'superadmin'), deleteEnquiry);
 
 router.route('/:id/status')
-  .put(updateEnquiryStatus);
+  .put(authorize('admin', 'superadmin'), updateEnquiryStatus);
 
+// Export the router
 module.exports = router;

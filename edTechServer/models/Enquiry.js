@@ -12,6 +12,10 @@ const enquirySchema = new mongoose.Schema(
       required: [true, 'Last name is required'],
       trim: true,
     },
+    fatherName: {
+      type: String,
+      trim: true,
+    },
     email: {
       type: String,
       required: [true, 'Email is required'],
@@ -19,10 +23,21 @@ const enquirySchema = new mongoose.Schema(
         /^\w+([\.-]?\w+)*@\w+([\.-]?\w+)*(\.\w{2,3})+$/,
         'Please add a valid email',
       ],
+      trim: true,
+      lowercase: true,
     },
     phone: {
       type: String,
       required: [true, 'Phone number is required'],
+      trim: true,
+    },
+    qualification: {
+      type: String,
+      trim: true,
+    },
+    address: {
+      type: String,
+      trim: true,
     },
     course: {
       type: mongoose.Schema.ObjectId,
@@ -34,19 +49,10 @@ const enquirySchema = new mongoose.Schema(
       enum: ['new', 'contacted', 'follow up', 'converted', 'rejected'],
       default: 'new',
     },
-    notes: [
-      {
-        text: String,
-        createdBy: {
-          type: mongoose.Schema.ObjectId,
-          ref: 'User',
-        },
-        createdAt: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
+    notes: {
+      type: String,
+      trim: true,
+    },
     source: {
       type: String,
       enum: ['website', 'phone', 'email', 'walkin', 'other'],

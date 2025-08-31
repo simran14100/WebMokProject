@@ -1,11 +1,17 @@
-// Account Types for the 5-role system
+// Account Types - must match the backend's User model enum values
 export const ACCOUNT_TYPE = {
     STUDENT: "Student",
-    INSTRUCTOR: "Instructor", 
+    INSTRUCTOR: "Instructor",
     ADMIN: "Admin",
-    SUPER_ADMIN: "SuperAdmin",
-    STAFF: "Staff",
-    CONTENT_MANAGER: "Content-management",
+    SUPER_ADMIN: "SuperAdmin",  // Note the capital 'S' and 'A'
+    CONTENT_MANAGER: "Content-management"
+};
+
+// Student program types - for role-based access
+export const PROGRAM_TYPE = {
+    UG: "UG",
+    PG: "PG",
+    PHD: "PhD"
 };
 
 // API Endpoints

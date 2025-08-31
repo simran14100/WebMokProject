@@ -86,6 +86,7 @@ import Sidebar from './components/common/Sidebar';
 import UGPGDashboard from './components/core/UGPGAdmin/Dashboard';
 import UGPGSettings from './components/core/UGPGAdmin/Settings';
 import UGPGAcademic from './components/core/UGPGAdmin/Academic';
+import AdmissionEnquiry from './pages/SuperAdmin/AdmissionEnquiry';
 import AcademicSession from './components/core/UGPGAdmin/Academic/AcademicSession';
 import ExamSession from './components/core/UGPGAdmin/Academic/ExamSession';
 import CourseTypes from './components/core/UGPGAdmin/Academic/CourseTypes';
@@ -124,22 +125,33 @@ debugLocalStorage();
 // Protected Route Component
 function ProtectedRoute({ children, allowedRoles }) {
   const { user } = useSelector((state) => state.profile);
+  const authState = useSelector((state) => state.auth);
+  
+  // Debug logging
+  console.log('ProtectedRoute - User:', user);
+  console.log('ProtectedRoute - Auth State:', authState);
+  console.log('ProtectedRoute - Allowed Roles:', allowedRoles);
   
   if (!user) {
+    console.log('ProtectedRoute - No user found, redirecting to login');
     return <Login />;
   }
   
   if (allowedRoles && !allowedRoles.includes(user.accountType)) {
+    console.log('ProtectedRoute - User role not allowed:', user.accountType);
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center">
           <h2 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h2>
           <p className="text-gray-600">You don't have permission to access this page.</p>
+          <p className="text-sm text-gray-500 mt-2">Your role: {user.accountType || 'Unknown'}</p>
+          <p className="text-sm text-gray-500">Required roles: {allowedRoles.join(', ')}</p>
         </div>
       </div>
     );
   }
   
+  console.log('ProtectedRoute - Access granted');
   return children;
 }
 
@@ -189,7 +201,11 @@ function AppRoutes() {
       <Route 
         path="/university-dashboard" 
         element={
-          <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.SUPER_ADMIN, 'UG Student', 'PG Student', 'PhD Student']}>
+          <ProtectedRoute allowedRoles={[
+            ACCOUNT_TYPE.SUPER_ADMIN, 
+            ACCOUNT_TYPE.ADMIN,
+            ACCOUNT_TYPE.STUDENT  // Students will be further filtered by program type in the component
+          ]}>
             <UniversityDashboard />
           </ProtectedRoute>
         } 
@@ -218,6 +234,9 @@ function AppRoutes() {
         <Route path="academic/streams" element={<Streams />} />
         <Route path="academic/subjects-papers" element={<SubjectsPapers />} />
         <Route path="front-desk" element={<UGPGFrontDesk />} />
+        <Route path="admissions" element={<UGPGAdmissions />}>
+          <Route path="enquiries" element={<AdmissionEnquiry />} />
+        </Route>
         <Route path="front-desk/visitor-logs" element={<VisitorLogs />} />
         <Route path="front-desk/phone-logs" element={<PhoneLogs />} />
         <Route path="front-desk/grievances" element={<Grievances />} />
@@ -228,7 +247,6 @@ function AppRoutes() {
         <Route path="front-desk/grievance-types" element={<GrievanceTypes />} />
         <Route path="front-desk/postal-types" element={<PostalTypes />} />
         <Route path="front-desk/meeting-types" element={<MeetingTypes />} />
-        <Route path="admissions" element={<UGPGAdmissions />} />
         <Route path="fee" element={<UGPGFee />} />
         <Route path="accounts" element={<UGPGAccounts />} />
       </Route>

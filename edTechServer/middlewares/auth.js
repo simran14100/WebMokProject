@@ -286,25 +286,45 @@ exports.isAdminOrSuperAdmin = async (req, res, next) => {
 	}
 };
 
-// Role-based access control middleware
+/**
+ * Role-based access control middleware
+ * Checks if the user has any of the allowed roles
+ * @param {...string} roles - Roles that are allowed to access the route
+ * @returns {Function} Express middleware function
+ */
 exports.authorize = (...roles) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required',
-      });
+      return next(
+        new ErrorResponse('Not authorized to access this route', 401)
+      );
     }
 
-    if (!roles.includes(req.user.accountType)) {
+    // Check role from header if present (for superadmin access)
+    const headerRole = req.headers['x-user-role'];
+    const userRole = headerRole || req.user.accountType || req.user.role;
+    
+    // Normalize roles for case-insensitive comparison
+    const normalizedUserRole = userRole.toLowerCase();
+    const normalizedAllowedRoles = roles.map(role => role.toLowerCase());
+
+    if (!normalizedAllowedRoles.includes(normalizedUserRole)) {
       return res.status(403).json({
         success: false,
-        message: `User role ${req.user.accountType} is not authorized to access this route`,
+        message: `User role '${userRole}' is not authorized to access this route`,
         requiredRoles: roles,
-        userRole: req.user.accountType
+        userRole: userRole
       });
     }
-
+    
+    // Update the user role in the request if it came from header
+    if (headerRole) {
+      req.user.role = headerRole;
+    } else {
+      // Ensure role is set from accountType if not set
+      req.user.role = req.user.role || req.user.accountType;
+    }
+    
     next();
   };
 };

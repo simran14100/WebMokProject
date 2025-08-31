@@ -1,6 +1,6 @@
 import { apiConnector } from '../apiConnector';
 import { admissionEnquiryEndpoints } from '../apis';
-import { toast } from '../../utils/toast';
+import { showError, showSuccess } from '../../utils/toast';
 
 const {
   GET_ALL_ENQUIRIES_API,
@@ -9,8 +9,14 @@ const {
   DELETE_ENQUIRY_API,
 } = admissionEnquiryEndpoints;
 
-// Get all admission enquiries
-export const getAllAdmissionEnquiries = async (params, token) => {
+/**
+ * Get all admission enquiries with optional filtering and pagination
+ * @param {Object} params - Query parameters for filtering and pagination
+ * @param {string} token - Authentication token
+ * @param {Object} headers - Additional headers to include in the request
+ * @returns {Promise<Object>} Response data containing enquiries and pagination info
+ */
+export const getAllAdmissionEnquiries = async (params, token, headers = {}) => {
   try {
     const response = await apiConnector(
       'GET',
@@ -18,18 +24,21 @@ export const getAllAdmissionEnquiries = async (params, token) => {
       null,
       {
         Authorization: `Bearer ${token}`,
+        ...headers, // Include any additional headers
       },
-      params
+      params // Query parameters
     );
 
-    if (!response.data.success) {
-      throw new Error(response.data.message || 'Failed to fetch admission enquiries');
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || 'Failed to fetch admission enquiries');
     }
 
     return response.data;
   } catch (error) {
     console.error('GET ALL ADMISSION ENQUIRIES ERROR............', error);
-    throw error;
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch admission enquiries';
+    showError(errorMessage);
+    throw new Error(errorMessage);
   }
 };
 
@@ -72,12 +81,13 @@ export const updateEnquiryStatus = async (enquiryId, statusData, token) => {
       throw new Error(response.data.message || 'Failed to update enquiry status');
     }
 
-    toast.showSuccess('Enquiry status updated successfully');
+    showSuccess('Enquiry status updated successfully');
     return response.data;
   } catch (error) {
     console.error('UPDATE ENQUIRY STATUS ERROR............', error);
-    toast.showError(error.message || 'Failed to update enquiry status');
-    throw error;
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to update enquiry status';
+    showError(errorMessage);
+    throw new Error(errorMessage);
   }
 };
 
@@ -97,11 +107,12 @@ export const deleteAdmissionEnquiry = async (enquiryId, token) => {
       throw new Error(response.data.message || 'Failed to delete enquiry');
     }
 
-    toast.showSuccess('Enquiry deleted successfully');
+    showSuccess('Enquiry deleted successfully');
     return response.data;
   } catch (error) {
     console.error('DELETE ENQUIRY ERROR............', error);
-    toast.showError(error.message || 'Failed to delete enquiry');
-    throw error;
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to delete enquiry';
+    showError(errorMessage);
+    throw new Error(errorMessage);
   }
 };

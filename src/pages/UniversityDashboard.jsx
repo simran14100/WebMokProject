@@ -1,9 +1,36 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { ACCOUNT_TYPE, PROGRAM_TYPE } from "../utils/constants";
 
 export default function UniversityDashboard() {
   const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const { user } = useSelector((state) => state.profile);
+  const { token } = useSelector((state) => state.auth);
+
+  // Check if user has access based on program type
+  useEffect(() => {
+    if (!user) return;
+    
+    // SuperAdmin and Admin have full access
+    if ([ACCOUNT_TYPE.SUPER_ADMIN, ACCOUNT_TYPE.ADMIN].includes(user.accountType)) {
+      return;
+    }
+    
+    // Students must have a program type
+    if (user.accountType === ACCOUNT_TYPE.STUDENT && !user.programType) {
+      console.error("Student account missing program type");
+      // Redirect to profile or show error
+      navigate("/my-profile");
+      return;
+    }
+    
+    // You can add additional access control here based on programType
+    // For example, if you want to restrict certain dashboards to certain programs
+    
+  }, [user, navigate, dispatch, token]);
 
   return (
     <div
