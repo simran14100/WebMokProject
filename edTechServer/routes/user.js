@@ -9,6 +9,9 @@ const {
   changePassword,
   sendotp,
   refreshToken,
+  checkUserExists,
+  logout,
+  verifySession
 } = require("../controllers/Auth")
 const {
   resetPasswordToken,
@@ -23,6 +26,12 @@ const { auth } = require("../middlewares/auth")
 //                                      Authentication routes
 // ********************************************************************************************************
 
+// Check if user exists by email
+router.post("/check-email", checkUserExists)
+
+// Verify user session
+router.get("/verify-session", auth, verifySession)
+
 // Route for user login
 router.post("/login", login)
 
@@ -34,6 +43,9 @@ router.post("/sendotp", sendotp)
 
 // Route for refreshing token
 router.post("/refresh-token", auth, refreshToken)
+
+// Route for user logout
+router.post("/logout", auth, logout)
 
 // Route for Changing the password
 router.post("/changepassword", auth, changePassword)

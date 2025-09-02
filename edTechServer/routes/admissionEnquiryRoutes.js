@@ -5,6 +5,7 @@ const {
   getAdmissionEnquiry,
   updateEnquiryStatus,
   deleteEnquiry,
+  getEnquiriesByProgramType
 } = require('../controllers/AdmissionEnquiryController');
 const { protect, authorize } = require('../middlewares/auth');
 
@@ -14,6 +15,10 @@ router.use(protect);
 // Routes for admin and superadmin
 router.route('/')
   .get(authorize('admin', 'superadmin'), getAllAdmissionEnquiries);
+
+// Get enquiries by program type (UG/PG)
+router.route('/program/:programType')
+  .get(authorize('admin', 'superadmin'), getEnquiriesByProgramType);
 
 router.route('/:id')
   .get(authorize('admin', 'superadmin'), getAdmissionEnquiry)

@@ -12,21 +12,21 @@ const University = () => {
       title: 'Undergraduate (UG)',
       description: 'Pursuing Bachelor\'s degree',
       icon: <FaGraduationCap className="program-icon" />,
-      path: '/university/signup?program=UG'
+      path: '/signup?program=UG&redirect=/university/enrollment?program=UG'
     },
     {
       id: 'PG',
       title: 'Postgraduate (PG)',
       description: 'Pursuing Master\'s degree',
       icon: <FaUserGraduate className="program-icon" />,
-      path: '/university/signup?program=PG'
+      path: '/signup?program=PG&redirect=/university/enrollment?program=PG'
     },
     {
       id: 'PhD',
       title: 'Doctoral (PhD)',
       description: 'Pursuing Doctoral degree',
       icon: <FaUserTie className="program-icon" />,
-      path: '/university/signup?program=PhD'
+      path: '/signup?program=PhD&redirect=/university/enrollment?program=PhD'
     }
   ];
 
@@ -55,7 +55,7 @@ const University = () => {
 
       <div className="auth-links">
         <span>Already have an account? </span>
-        <Link to="/university/login">Log in here</Link>
+        <Link to="/login?redirect=/university">Log in here</Link>
       </div>
     </div>
   );

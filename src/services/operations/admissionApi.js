@@ -1,6 +1,6 @@
 import { showSuccess, showError, showLoading, dismissToast } from "../../utils/toast"
 import { apiConnector } from "../apiConnector"
-import { admission } from "../apis"
+import { admission, admissionEnquiryEndpoints } from "../apis"
 
 const {
   GET_ALL_CONFIRMATIONS_API,
@@ -143,7 +143,35 @@ export async function getAdmissionStats(token) {
     return response.data
   } catch (error) {
     console.log("GET ADMISSION STATS ERROR............", error)
-    showError("Failed to fetch admission stats")
+    showError("Failed to fetch admission statistics")
     throw error
+  }
+}
+
+// Create a new admission enquiry
+export async function createAdmissionEnquiry(enquiryData, token) {
+  const toastId = showLoading("Submitting your enquiry...");
+  try {
+    const response = await apiConnector(
+      "POST",
+      admissionEnquiryEndpoints.CREATE_ENQUIRY,
+      enquiryData,
+      token ? { Authorization: `Bearer ${token}` } : {}
+    );
+
+    console.log("CREATE ADMISSION ENQUIRY RESPONSE............", response);
+
+    if (!response.success) {
+      throw new Error(response.message || "Failed to submit enquiry");
+    }
+
+    showSuccess("Enquiry submitted successfully!");
+    return response;
+  } catch (error) {
+    console.error("CREATE ADMISSION ENQUIRY ERROR............", error);
+    showError(error.message || "Failed to submit enquiry. Please try again.");
+    throw error;
+  } finally {
+    dismissToast(toastId);
   }
 }

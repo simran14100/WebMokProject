@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { login } from '../services/operations/authApi';
 import Logo from '../assets/img/logo/logo-1.png';
 
@@ -10,43 +10,64 @@ const ED_TEAL_DARK = '#059a8c';
 const BORDER = '#e0e0e0';
 const TEXT_DARK = '#191A1F';
 
-const Login = () => {
+const Login = ({ isUniversity = false }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
+  
+  // Get redirect path from URL query params
+  const searchParams = new URLSearchParams(location.search);
+  // For students, always default to /dashboard/my-profile
+  const defaultPath = isUniversity ? '/university' : '/dashboard/my-profile';
+  const redirectPath = searchParams.get('redirect') || defaultPath;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true
-      
-    );
-    setError(null);
+    setError('');
+    setLoading(true);
+
     try {
-      await dispatch(login(email, password, navigate));
+      // Handle login with redirect path
+      await dispatch(login(email, password, redirectPath));
+      
+      // If login is successful, the login function will handle the navigation
+      // No need to do anything else here
     } catch (err) {
-      setError('Login failed. Please check your credentials and try again.');
+      console.error('Login error:', err);
+      if (err.code === 'ERR_NETWORK') {
+        setError('Unable to connect to the server. Please check your internet connection.');
+      } else if (err.response?.status === 401) {
+        setError('Invalid email or password. Please try again.');
+      } else if (err.response?.status === 404) {
+        setError('No account found with this email. Please sign up first.');
+      } else {
+        setError(err.message || 'An error occurred during login. Please try again.');
+      }
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (
     <div style={{ 
       minHeight: '100vh', 
-      background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)', 
+      background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center', 
       padding: '2rem',
       paddingTop: '8rem',
       marginTop:'4rem',
-      fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
+      fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
+      transition: 'background 0.3s ease'
     }}>
       <div style={{ 
         background: '#fff', 
-        border: '1px solid #e0e0e0', 
+        border: `2px solid ${BORDER}`, 
         borderRadius: '20px', 
         boxShadow: '0 20px 60px rgba(0, 0, 0, 0.1)', 
         padding: '50px', 
@@ -71,13 +92,27 @@ const Login = () => {
         <div style={{ textAlign: 'center', marginBottom: '30px' }}>
           <img src={Logo} alt="EdCare Logo" style={{ height: '50px', marginBottom: '20px' }} />
           <h2 style={{ 
-            color: TEXT_DARK, 
+            fontSize: '2rem', 
             fontWeight: '700', 
-            fontSize: '32px', 
-            marginBottom: '10px',
-            letterSpacing: '-0.5px'
+            color: TEXT_DARK, 
+            marginBottom: '1.5rem',
+            textAlign: 'center',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '0.5rem'
           }}>
             Welcome Back
+            <span style={{
+              fontSize: '0.9rem',
+              fontWeight: 'normal',
+              color: '#666',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}>
+              Platform Login
+            </span>
           </h2>
           <p style={{ 
             color: '#666', 
@@ -277,20 +312,29 @@ const Login = () => {
               {' '}and{' '}
               <span style={{ color: ED_TEAL, fontWeight: '600', cursor: 'pointer' }}>Privacy Policy</span>.
             </p>
-            <p>
-              Don't have an account?{' '}
-              <Link to="/signup" style={{ 
-                color: ED_TEAL, 
-                fontWeight: '600', 
-                textDecoration: 'none',
-                transition: 'color 0.3s ease'
-              }}
-              onMouseOver={e => e.target.style.color = ED_TEAL_DARK}
-              onMouseOut={e => e.target.style.color = ED_TEAL}
+            <div style={{ textAlign: 'center', marginTop: '20px' }}>
+              <p style={{ color: '#666', marginBottom: '10px' }}>Don't have an account?{' '}
+                <Link 
+                  to={`/signup${location.search}`} 
+                  style={{ color: ED_TEAL, textDecoration: 'none', fontWeight: '600' }}
+                >
+                  Sign up
+                </Link>
+              </p>
+              <Link 
+                to="/forgot-password" 
+                style={{ 
+                  color: ED_TEAL, 
+                  textDecoration: 'none', 
+                  fontWeight: '500', 
+                  fontSize: '0.9rem' 
+                }}
+                onMouseOver={e => (e.target.style.color = ED_TEAL_DARK)}
+                onMouseOut={e => (e.target.style.color = ED_TEAL)}
               >
-                Sign up here
+                Forgot password?
               </Link>
-            </p>
+            </div>
           </div>
         </form>
       </div>

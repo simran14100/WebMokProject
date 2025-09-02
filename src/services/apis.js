@@ -13,11 +13,8 @@ export const superAdmin = {
 export const auth = {
     SENDOTP_API: "/api/v1/auth/sendotp",
     SIGNUP_API: "/api/v1/auth/signup",
-    UNIVERSITY_SIGNUP_API: "/api/v1/university/signup",
-    UNIVERSITY_LOGIN_API: "/api/v1/university/login",
-    GET_CURRENT_USER_API: "/api/v1/university/me",
-    UPDATE_PROGRAM_API: "/api/v1/university/update-program",
     LOGIN_API: "/api/v1/auth/login",
+    LOGOUT_API: "/api/v1/auth/logout",
     RESETPASSTOKEN_API: "/api/v1/auth/reset-password-token",
     RESETPASSWORD_API: "/api/v1/auth/reset-password",
     REFRESH_TOKEN_API: "/api/v1/auth/refresh-token",
@@ -79,10 +76,26 @@ export const payment = {
     SEND_PAYMENT_SUCCESS_EMAIL_API: "/api/v1/payment/sendPaymentSuccessEmail",
 };
 
+// Enrollment API endpoints
 export const enrollment = {
+    // Payment related
     CREATE_ENROLLMENT_ORDER_API: "/api/v1/enrollment/create-order",
     VERIFY_ENROLLMENT_PAYMENT_API: "/api/v1/enrollment/verify-payment",
-    GET_ENROLLMENT_STATUS_API: "/api/v1/enrollment/status",
+    
+    // Enrollment management
+    CHECK_ENROLLMENT: "/api/v1/enrollment/status",  // Updated to use the new endpoint
+    CREATE_ENQUIRY: "/api/v1/enrollment/enquiry",
+    GET_ENROLLMENT_STATUS: "/api/v1/enrollment/status",
+    
+    // Program selection and admission
+    CREATE_BASIC_ENQUIRY: "/api/v1/enrollment/select-program",
+    SUBMIT_DETAILED_ENQUIRY: "/api/v1/enrollment/submit-enquiry",
+    GET_ENROLLMENT_DETAILS: "/api/v1/enrollment/details",
+    
+    // Admin endpoints
+    GET_ALL_ENROLLMENTS: "/api/v1/admin/enrollments",
+    UPDATE_ENROLLMENT_STATUS: (id) => `/api/v1/admin/enrollments/${id}/status`,
+    GET_ENROLLMENT_BY_ID: (id) => `/api/v1/admin/enrollments/${id}`
 };
 
 export const admin = {
@@ -201,11 +214,27 @@ export const ENQUIRY_API = {
 };
 
 // Admission Enquiry API endpoints
+export const admissionEnquiry = {
+  // Get all admission enquiries with optional filters
+  GET_ALL_ENQUIRIES: "/api/v1/admission-enquiries",
+  // Get enquiries by program type (UG/PG/PHD)
+  GET_ENQUIRIES_BY_PROGRAM: "/api/v1/admission-enquiries/program",
+  // Get single enquiry by ID
+  GET_ENQUIRY_BY_ID: (id) => `/api/v1/admission-enquiries/${id}`,
+  // Update enquiry status
+  UPDATE_ENQUIRY_STATUS: (id) => `/api/v1/admission-enquiries/${id}/status`,
+  // Delete an enquiry
+  DELETE_ENQUIRY: (id) => `/api/v1/admission-enquiries/${id}`,
+  // Create a new enquiry (public endpoint)
+  CREATE_ENQUIRY: "/api/v1/admission-enquiries"
+};
+
+// Legacy export for backward compatibility
 export const admissionEnquiryEndpoints = {
-  GET_ALL_ENQUIRIES_API: "/api/v1/admission/enquiries",
-  GET_ENQUIRY_BY_ID: (id) => `/api/v1/admission/enquiries/${id}`,
-  UPDATE_ENQUIRY_STATUS: (id) => `/api/v1/admission/enquiries/${id}/status`,
-  DELETE_ENQUIRY: (id) => `/api/v1/admission/enquiries/${id}`,
+  GET_ALL_ENQUIRIES_API: "/api/v1/admission-enquiries",
+  GET_ENQUIRY_BY_ID: (id) => `/api/v1/admission-enquiries/${id}`,
+  UPDATE_ENQUIRY_STATUS: (id) => `/api/v1/admission-enquiries/${id}/status`,
+  DELETE_ENQUIRY: (id) => `/api/v1/admission-enquiries/${id}`,
 };
 
 // Enquiry Reference API endpoints

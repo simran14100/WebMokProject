@@ -38,7 +38,8 @@ import Assignments from './pages/Assignments';
 import AssignmentDetail from './pages/AssignmentDetail';
 import AdminNotifications from './pages/AdminNotifications';
 import Notifications from './pages/Notifications';
-
+import EnrollmentStatus from './pages/University/EnrollmentStatus';
+import AdmissionEnquiryForm from './components/AdmissionEnquiryForm';
 
 import EditCourse from './components/core/EditCourse';
 import CourseViewer from './pages/CourseViewer';
@@ -80,6 +81,7 @@ import ExternalExperts from './components/core/SuperAdmin/ExternalExperts';
 import FinalData from './components/core/SuperAdmin/FinalData';
 import UsersManagement from './components/core/SuperAdmin/UsersManagement';
 import HonoraryApplications from './components/core/SuperAdmin/HonoraryApplications';
+import AdmissionEnquiries from './pages/admin/AdmissionEnquiries';
 // Sidebar centralized with variants
 import Sidebar from './components/common/Sidebar';
 // UG/PG SuperAdmin pages
@@ -113,9 +115,9 @@ import EnquiryReferences from './components/core/UGPGAdmin/FrontDesk/EnquiryRefe
 import GrievanceTypes from './components/core/UGPGAdmin/FrontDesk/GrievanceTypes';
 import PostalTypes from './components/core/UGPGAdmin/FrontDesk/PostalTypes';
 import MeetingTypes from './components/core/UGPGAdmin/FrontDesk/MeetingTypes';
-import University from "./pages/University";
+import ProgramSelection from "./pages/University/ProgramSelection";
 import UniversityDashboard from "./pages/UniversityDashboard";
-import UniversityRoute from "./components/common/UniversityRoute";
+import { withEnrollmentVerification } from "./middleware/enrollmentMiddleware";
 
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
@@ -195,24 +197,45 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       {/* University Routes */}
-      <Route path="/university" element={<University />} />
+      <Route path="/university" element={<ProgramSelection />} />
+      <Route path="/university-dashboard" element={
+        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.SUPER_ADMIN, ACCOUNT_TYPE.ADMIN]}>
+          <UniversityDashboard />
+        </ProtectedRoute>
+      } />
       
-      {/* University Dashboard */}
-      <Route 
-        path="/university-dashboard" 
-        element={
-          <ProtectedRoute allowedRoles={[
-            ACCOUNT_TYPE.SUPER_ADMIN, 
-            ACCOUNT_TYPE.ADMIN,
-            ACCOUNT_TYPE.STUDENT  // Students will be further filtered by program type in the component
-          ]}>
-            <UniversityDashboard />
-          </ProtectedRoute>
-        } 
-      />
+      {/* Admission Enquiry - Public route */}
+      <Route path="/admission-enquiry" element={<AdmissionEnquiry />} />
       
-      {/* Redirect old university dashboard route */}
-      <Route path="/university/dashboard" element={<Navigate to="/university-dashboard" replace />} />
+      {/* Admission Enquiry Form */}
+      <Route path="/dashboard/AdmissionenquiryForm" element={<AdmissionEnquiryForm />} />
+      
+      {/* Enrollment Status Routes */}
+      <Route path="/university/enrollment" element={
+        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
+          <EnrollmentStatus />
+        </ProtectedRoute>
+      } />
+      <Route path="/university/enrollment/pending" element={
+        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
+          <EnrollmentStatus />
+        </ProtectedRoute>
+      } />
+      <Route path="/university/enrollment/rejected" element={
+        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
+          <EnrollmentStatus />
+        </ProtectedRoute>
+      } />
+      <Route path="/university/enrollment/approved" element={
+        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
+          <EnrollmentStatus />
+        </ProtectedRoute>
+      } />
+      
+      
+      
+      {/* Redirect old dashboard route */}
+      <Route path="/university-dashboard" element={<Navigate to="/university/dashboard" replace />} />
       {/* UG/PG Admin (SuperAdmin only) */}
       <Route path="/ugpg-admin" element={
         <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.SUPER_ADMIN]}>
@@ -226,6 +249,7 @@ function AppRoutes() {
         <Route path="settings/languages" element={<UGPGSettingsLanguages />} />
         <Route path="settings/states" element={<UGPGSettingsStates />} />
         <Route path="settings/cities" element={<UGPGSettingsCities />} />
+        <Route path="admissions/enquiries" element={<AdmissionEnquiries />} />
         <Route path="academic" element={<UGPGAcademic />} />
         <Route path="academic/session" element={<AcademicSession />} />
         <Route path="academic/exam-session" element={<ExamSession />} />

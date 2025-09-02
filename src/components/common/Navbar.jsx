@@ -676,7 +676,6 @@ const Navbar = () => {
                                   onClick={(e) => {
                                     e.preventDefault();
                                     setIsProfileDropdownOpen(false);
-                                    // Use window.location to force a full page reload
                                     window.location.href = '/university-dashboard';
                                   }}
                                 >

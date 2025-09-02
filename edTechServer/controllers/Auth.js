@@ -11,6 +11,75 @@ const Profile = require("../models/Profile")
 
 require('dotenv').config();
 
+// Verify user session by checking token and database
+// This is a protected route that requires a valid JWT token
+exports.verifySession = async (req, res) => {
+    try {
+        // The auth middleware has already verified the token and attached the user to req.user
+        const userId = req.user.id;
+        
+        // Find the user in the database
+        const user = await User.findById(userId).select('-password').lean();
+        
+        if (!user) {
+            return res.status(401).json({
+                success: false,
+                message: 'User not found',
+                isAuthenticated: false
+            });
+        }
+        
+        // Return user data without sensitive information
+        const { password, resetPasswordExpires, resetPasswordToken, ...userData } = user;
+        
+        return res.status(200).json({
+            success: true,
+            isAuthenticated: true,
+            user: userData
+        });
+        
+    } catch (error) {
+        console.error('Session verification error:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error verifying session',
+            error: error.message,
+            isAuthenticated: false
+        });
+    }
+};
+
+// Check if user exists by email
+exports.checkUserExists = async (req, res) => {
+    try {
+        const { email } = req.query;
+        
+        if (!email) {
+            return res.status(400).json({
+                success: false,
+                message: 'Email is required',
+            });
+        }
+
+        // Check if user exists
+        const user = await User.findOne({ email }, { email: 1 });
+        
+        return res.status(200).json({
+            success: true,
+            exists: !!user,
+            message: user ? 'User found' : 'User not found',
+        });
+    } catch (error) {
+        console.error('Error checking user existence:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Error checking user existence',
+            error: error.message,
+        });
+    }
+};
+
+
 //send otp
 exports.sendotp = async (req, res) => {
     try {
@@ -489,6 +558,39 @@ exports.refreshToken = async (req, res) => {
     return res.status(500).json({
       success: false,
       message: "Failed to refresh token",
+    });
+  }
+};
+
+// Logout controller
+exports.logout = async (req, res) => {
+  try {
+    // Clear the HTTP-only cookie
+    res.clearCookie('token', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+    });
+
+    // Clear the refresh token cookie
+    res.clearCookie('refreshToken', {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      path: '/',
+    });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Logged out successfully',
+    });
+  } catch (error) {
+    console.error('Error during logout:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error during logout',
+      error: error.message,
     });
   }
 };

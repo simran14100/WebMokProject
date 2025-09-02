@@ -11,12 +11,12 @@ const app = express();
 const userRoutes = require("./routes/user");
 const profileRoutes = require("./routes/profile");
 const courseRoutes = require("./routes/Course");
-const universityRoutes = require("./routes/university.routes");
 const subCategoryRoutes = require("./routes/SubCategory");
 const paymentRoutes = require("./routes/Payments");
 const contactUsRoute = require("./routes/Contact");
 const adminRoutes = require("./routes/admin");
 const enrollmentRoutes = require("./routes/enrollment");
+const enrollmentManagementRoutes = require("./routes/enrollmentManagement");
 const admissionRoutes = require("./routes/admission");
 const admissionEnquiryRoutes = require("./routes/admissionEnquiryRoutes");
 // Temporarily disabled due to missing validators
@@ -85,34 +85,26 @@ database.connect()
     console.error("Server not started due to DB connection failure");
   });
  
-// Middlewares
-app.use(express.json());
-app.use(cookieParser());
-
-
-// CORS configuration
-const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:4000',
-  'http://localhost:4001',
-  'http://127.0.0.1:3000',
-  'http://127.0.0.1:4000',
-  'http://127.0.0.1:4001',
-  // Add other allowed origins as needed
-];
-
+// CORS Configuration
 const corsOptions = {
   origin: function (origin, callback) {
-    // Allow requests with no origin (like mobile apps or curl requests)
-    if (!origin) return callback(null, true);
-    
-    if (allowedOrigins.includes(origin)) {
+    // In development, allow all origins for easier testing
+    if (process.env.NODE_ENV !== 'production') {
       return callback(null, true);
     }
     
-    // Log allowed origins for debugging
-    console.log('Allowed origins:', allowedOrigins);
-    console.log('Request origin:', origin);
+    // In production, restrict to specific origins
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://127.0.0.1:3000',
+      'http://localhost:4000',
+      'http://127.0.0.1:4000',
+      // Add your production domains here
+    ];
+    
+    if (!origin || allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
     
     const msg = `The CORS policy for this site does not allow access from the specified origin: ${origin}`;
     console.error(msg);
@@ -120,20 +112,57 @@ const corsOptions = {
   },
   credentials: true,
   allowedHeaders: [
-    'Content-Type', 
-    'Authorization', 
+    'Content-Type',
+    'Authorization',
     'X-Requested-With',
-    'X-Skip-Interceptor'
+    'X-Skip-Interceptor',
+    'skipauth',
+    'withCredentials',
+    'Access-Control-Allow-Credentials',
+    'timeout',
+    'signal',
+    'headers',
+    'x-api-key',
+    'x-client-version',
+    'x-app-version',
+    'x-platform',
+    'x-device-id',
+    'x-device-type',
+    'x-auth-token',
+    'x-requested-with',
+    'x-csrf-token',
+    'x-forwarded-for',
+    'x-forwarded-proto',
+    'x-forwarded-port'
   ],
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-  exposedHeaders: ['Content-Range', 'X-Content-Range'],
-  optionsSuccessStatus: 200 // Some legacy browsers (IE11, various SmartTVs) choke on 204
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+  exposedHeaders: [
+    'Content-Range', 
+    'X-Content-Range',
+    'Set-Cookie',
+    'Access-Control-Allow-Credentials'
+  ],
+  optionsSuccessStatus: 200
 };
 
+// Apply CORS middleware
 app.use(cors(corsOptions));
 
 // Handle preflight requests
 app.options('*', cors(corsOptions));
+
+// Middlewares
+app.use(express.json());
+app.use(cookieParser());
+
+// Set CORS headers for all responses
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, withCredentials, skipauth, X-Skip-Interceptor');
+  next();
+});
 
 // Configure a cross-platform temporary directory for uploads
 const uploadTmpDir = path.join(os.tmpdir(), "webmok-uploads");
@@ -161,12 +190,12 @@ cloudinaryConnect();
 app.use("/api/v1/auth", userRoutes);
 app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/course", courseRoutes);
-app.use("/api/v1/university", universityRoutes);
 app.use("/api/v1/sub-category", subCategoryRoutes);
 app.use("/api/v1/payment", paymentRoutes);
 app.use("/api/v1/contact", contactUsRoute);
 app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/enrollment", enrollmentRoutes);
+app.use("/api/v1/enrollment", enrollmentManagementRoutes);
 app.use("/api/v1/admission", admissionRoutes);
 app.use("/api/v1/admission/enquiries", admissionEnquiryRoutes);
 app.use("/api/v1/installments", installmentRoutes);
@@ -197,9 +226,6 @@ app.use("/api/v1/visit-purposes", visitPurposeRoutes);
 app.use("/api/v1/enquiry", honoraryEnquiryRoutes);
 
 app.use("/api/v1/meeting-types", meetingTypeRoutes);
-
-// University routes
-app.use("/api/v1/university", universityRoutes);
 
 // Testing the server
 app.get("/", (req, res) => {

@@ -51,6 +51,23 @@ const userSchema = new mongoose.Schema({
       enum: ["UG", "PG", "PhD"],
       default: null
     },
+    enrollmentStatus: {
+      type: String,
+      enum: ["Not Enrolled", "Pending", "Approved", "Rejected"],
+      default: "Not Enrolled"
+    },
+    enrollmentDate: {
+      type: Date,
+      default: null
+    },
+    enrollmentApprovalDate: {
+      type: Date,
+      default: null
+    },
+    rejectionReason: {
+      type: String,
+      default: ""
+    },
     // Flag to indicate the user was created by an Admin flow (single-create or bulk-upload)
     createdByAdmin: {
       type: Boolean,

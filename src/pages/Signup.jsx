@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { signUp, sendOtp } from '../services/operations/authApi';
 import Logo from '../assets/img/logo/logo-1.png';
 
@@ -24,6 +24,13 @@ const validateEmail = (email) => {
 const Signup = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Get redirect path and program type from URL query params
+  const searchParams = new URLSearchParams(location.search);
+  const redirectPath = searchParams.get('redirect') || '/dashboard';
+  const programType = searchParams.get('program') || '';
+  
   const [form, setForm] = useState({
     firstName: '',
     lastName: '',
@@ -64,31 +71,43 @@ const Signup = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setError('');
+    
+    if (form.password !== form.confirmPassword) {
+      setError('Passwords do not match');
+      return;
+    }
+    
     setLoading(true);
-    setError(null);
-    const payload = {
-      accountType: form.accountType.trim(),
-      firstName: form.firstName.trim(),
-      lastName: form.lastName.trim(),
-      email: form.email.trim(),
-      password: form.password,
-      confirmPassword: form.confirmPassword,
-      otp: form.otp.trim()
-    };
+    
     try {
-      console.log("Signup payload:", payload);
-      await dispatch(signUp(
-        payload.accountType,
-        payload.firstName,
-        payload.lastName,
-        payload.email,
-        payload.password,
-        payload.confirmPassword,
-        payload.otp,
-        navigate
-      ));
+      // Prepare additional data including program type if present
+      const additionalData = programType ? { programType } : {};
+      
+      // Dispatch the signup action with all required parameters
+      const result = await dispatch(
+        signUp(
+          form.accountType,
+          form.firstName,
+          form.lastName,
+          form.email,
+          form.password,
+          form.confirmPassword,
+          form.otp,
+          additionalData,
+          // Pass a callback that will be called after successful signup
+          (userData) => {
+            // After successful signup, navigate to the redirect path
+            navigate(redirectPath);
+          }
+        )
+      );
+
+      if (result?.error) {
+        setError(result.error);
+      }
     } catch (err) {
-      setError('Signup failed. Please try again.');
+      setError(err.message || 'Signup failed. Please try again.');
     }
     setLoading(false);
   };

@@ -2,6 +2,28 @@ const Enquiry = require('../models/Enquiry');
 const asyncHandler = require('express-async-handler');
 const { default: mongoose } = require('mongoose');
 
+// @desc    Get admission enquiries by program type (UG/PG)
+// @route   GET /api/v1/admission-enquiries/program/:programType
+// @access  Private/Admin
+exports.getEnquiriesByProgramType = asyncHandler(async (req, res, next) => {
+  const { programType } = req.params;
+  
+  // Validate program type
+  if (!['UG', 'PG', 'PHD'].includes(programType.toUpperCase())) {
+    return next(new ErrorResponse('Invalid program type. Must be UG, PG, or PHD', 400));
+  }
+
+  const enquiries = await Enquiry.find({ 
+    programType: programType.toUpperCase() 
+  }).sort({ createdAt: -1 });
+
+  res.status(200).json({
+    success: true,
+    count: enquiries.length,
+    data: enquiries
+  });
+});
+
 // @desc    Get all admission enquiries
 // @route   GET /api/v1/admission/enquiries
 // @access  Private/Admin

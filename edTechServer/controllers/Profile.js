@@ -18,25 +18,44 @@ exports.updateProfile = async (req, res) => {
       about = "",
       contactNumber = "",
       gender = "",
+      programType,
+      email = "",
+      phone = "",
+      fatherName = ""
     } = req.body
+    
     const id = req.user.id
 
-    // Find the profile by id
+    // Find the user and profile
     const userDetails = await User.findById(id)
     const profile = await Profile.findById(userDetails.additionalDetails)
 
+    // Update basic profile fields
+    profile.dateOfBirth = dateOfBirth || profile.dateOfBirth
+    profile.about = about || profile.about
+    profile.contactNumber = contactNumber || profile.contactNumber
+    profile.gender = gender || profile.gender
+
+    // Update user fields
+    userDetails.firstName = firstName || userDetails.firstName
+    userDetails.lastName = lastName || userDetails.lastName
+    userDetails.email = email || userDetails.email
     
+    // Update program type if provided
+    if (programType && ["UG", "PG", "PhD"].includes(programType)) {
+      userDetails.programType = programType
+      
+      // If this is the first time setting program type, set enrollment status to pending
+      if (userDetails.enrollmentStatus === "Not Enrolled") {
+        userDetails.enrollmentStatus = "Pending"
+        userDetails.enrollmentDate = new Date()
+      }
+    }
 
-    // Update the profile fields
-    profile.dateOfBirth = dateOfBirth
-    profile.about = about
-    profile.contactNumber = contactNumber
-    profile.gender = gender
+    // Save both user and profile
+    await Promise.all([userDetails.save(), profile.save()])
 
-    // Save the updated profile
-    await profile.save()
-
-    // Find the updated user details
+    // Get updated user details with populated profile
     const updatedUserDetails = await User.findById(id)
       .populate("additionalDetails")
       .exec()
@@ -44,7 +63,11 @@ exports.updateProfile = async (req, res) => {
     return res.json({
       success: true,
       message: "Profile updated successfully",
-      updatedUserDetails,
+      data: {
+        ...updatedUserDetails._doc,
+        enrollmentStatus: updatedUserDetails.enrollmentStatus,
+        programType: updatedUserDetails.programType
+      }
     })
   } catch (error) {
     console.log(error)
