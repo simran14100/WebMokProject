@@ -40,6 +40,7 @@ import AdminNotifications from './pages/AdminNotifications';
 import Notifications from './pages/Notifications';
 import EnrollmentStatus from './pages/University/EnrollmentStatus';
 import AdmissionEnquiryForm from './components/AdmissionEnquiryForm';
+import NewRegistration from './pages/SuperAdmin/NewRegistration';
 
 import EditCourse from './components/core/EditCourse';
 import CourseViewer from './pages/CourseViewer';
@@ -238,11 +239,12 @@ function AppRoutes() {
       <Route path="/university-dashboard" element={<Navigate to="/university/dashboard" replace />} />
       {/* UG/PG Admin (SuperAdmin only) */}
       <Route path="/ugpg-admin" element={
-        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.SUPER_ADMIN]}>
+        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
           <UGPGInlineLayout />
         </ProtectedRoute>
       }>
         <Route index element={<UGPGDashboard />} />
+        <Route path="admissions/new-registration" element={<NewRegistration />} />
         <Route path="settings" element={<UGPGSettings />} />
         <Route path="settings/users" element={<UGPGSettingsUsers />} />
         <Route path="settings/school" element={<UGPGSettingsSchool />} />
@@ -330,8 +332,9 @@ function AppRoutes() {
             <Route path="my-courses" element={<MyCourses />} />
             <Route path="enrolled-courses" element={<ActiveCourses />} />
             <Route path="live-classes" element={<LiveClasses />} />
-            <Route path="assignments" element={<Assignments />} />
-            <Route path="assignments/:taskId" element={<AssignmentDetail />} />
+            <Route path="enrolled-students" element={<EnrolledStudents />} />
+            <Route path="admission-confirmation" element={<AdmissionConfirmation />} />
+            <Route path="new-registration" element={<NewRegistration />} />
             <Route path="notifications" element={<Notifications />} />
             <Route path="cart" element={<Cart />} />
             <Route path="cart/checkout" element={<Checkout />} />

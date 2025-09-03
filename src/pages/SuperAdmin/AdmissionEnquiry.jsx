@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { 
   Table, Button, Input, Select, Card, Tag, Space, Modal, 
-  message, Tooltip, Dropdown, Row, Col, Typography 
+  message, Tooltip, Dropdown, Row, Col, Typography, Form, DatePicker, Checkbox
 } from 'antd';
 import { 
   SearchOutlined, EyeOutlined, DeleteOutlined, 
@@ -9,13 +9,14 @@ import {
   DownOutlined, CalendarOutlined, BookOutlined,
   HomeOutlined, TeamOutlined, IdcardOutlined,
   EnvironmentOutlined, RiseOutlined, BranchesOutlined,
-  ClockCircleOutlined
+  ClockCircleOutlined, MoreOutlined, CheckCircleOutlined, EditOutlined
 } from '@ant-design/icons';
 import { axiosInstance as apiConnector } from '../../services/apiConnector';
 import { 
   getAllAdmissionEnquiries, 
   deleteAdmissionEnquiry, 
-  updateEnquiryStatus 
+  updateEnquiryStatus,
+  processEnquiryToAdmission 
 } from '../../services/operations/admissionEnquiryApi';
 import { useSelector, useDispatch } from 'react-redux';
 import moment from 'moment';
@@ -47,6 +48,11 @@ const AdmissionEnquiry = () => {
   });
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [isProcessModalVisible, setIsProcessModalVisible] = useState(false);
+  const [processing, setProcessing] = useState(false);
+  const [form] = Form.useForm();
+  const [processingStatus, setProcessingStatus] = useState('contacted');
+  const [processingNotes, setProcessingNotes] = useState('');
   
   const dispatch = useDispatch();
   const { token, user, loading: authLoading } = useSelector((state) => {
@@ -451,33 +457,93 @@ const AdmissionEnquiry = () => {
     { value: 'PHD', label: 'PhD', color: 'orange' }
   ];
 
+  const handleMenuClick = (key, record) => {
+    switch (key) {
+      case 'view':
+        setSelectedEnquiry(record);
+        setIsModalVisible(true);
+        break;
+      case 'process':
+        setSelectedEnquiry(record);
+        setProcessingStatus(record.status || 'contacted');
+        setProcessingNotes(record.notes || '');
+        setIsProcessModalVisible(true);
+        break;
+      case 'delete':
+        handleDeleteEnquiry(record._id);
+        break;
+      default:
+        break;
+    }
+  };
+
+  const handleProcessSubmit = async () => {
+    if (!selectedEnquiry) return;
+    
+    try {
+      await updateEnquiryStatus(
+        selectedEnquiry._id, 
+        { 
+          status: processingStatus,
+          notes: processingNotes 
+        },
+        token
+      );
+      
+      // Refresh the enquiries list
+      fetchEnquiries();
+      message.success('Enquiry processed successfully');
+      setIsProcessModalVisible(false);
+    } catch (error) {
+      console.error('Error processing enquiry:', error);
+      message.error(error.message || 'Failed to process enquiry');
+    }
+  };
+
+  const menuItems = [
+    {
+      key: 'view',
+      label: 'View Details',
+      icon: <EyeOutlined />,
+    },
+    {
+      key: 'process',
+      label: 'Process to Admission',
+      icon: <CheckCircleOutlined />,
+      onClick: (record) => {
+        setSelectedEnquiry(record);
+        setIsProcessModalVisible(true);
+      },
+    },
+    
+    {
+      type: 'divider',
+    },
+    {
+      key: 'delete',
+      label: 'Delete',
+      icon: <DeleteOutlined />,
+      danger: true,
+    },
+  ];
+
   const columns = [
     {
       title: 'Actions',
       key: 'actions',
-      width: 100,
+      width: 80,
       fixed: 'left',
       render: (_, record) => (
-        <Space size="middle">
-          <Tooltip title="View Details">
-            <Button 
-              type="text" 
-              icon={<EyeOutlined style={{ color: '#1890ff' }} />} 
-              onClick={() => {
-                setSelectedEnquiry(record);
-                setIsModalVisible(true);
-              }}
-            />
-          </Tooltip>
-          <Tooltip title="Delete">
-            <Button 
-              type="text" 
-              danger 
-              icon={<DeleteOutlined />} 
-              onClick={() => handleDeleteEnquiry(record._id)}
-            />
-          </Tooltip>
-        </Space>
+        <Dropdown
+          menu={{
+            items: menuItems,
+            onClick: ({ key }) => handleMenuClick(key, record),
+          }}
+          trigger={['click']}
+          placement="bottomRight"
+        >
+          <Button type="text" icon={<MoreOutlined style={{ fontSize: '18px' }} />} />
+        </Dropdown>
       ),
     },
     {
@@ -584,14 +650,25 @@ const AdmissionEnquiry = () => {
       title: 'Address',
       key: 'address',
       width: 200,
-      render: (_, record) => (
-        <div className="space-y-1">
-          <div><EnvironmentOutlined className="mr-2" /> {record.address || 'N/A'}</div>
-          <div className="text-sm text-gray-600">
-            {[record.city, record.state].filter(Boolean).join(', ') || 'N/A'}
+      render: (_, record) => {
+        const address = typeof record.address === 'object' 
+          ? `${record.address.street || ''}, ${record.address.city || ''} ${record.address.state || ''} ${record.address.pincode || ''}`.replace(/\s+/g, ' ').trim()
+          : record.address;
+          
+        const location = [record.city, record.state].filter(Boolean).join(', ') || 
+                       (record.address && record.address.city && record.address.state 
+                         ? `${record.address.city}, ${record.address.state}` 
+                         : 'N/A');
+                          
+        return (
+          <div className="space-y-1">
+            <div><EnvironmentOutlined className="mr-2" /> {address || 'N/A'}</div>
+            <div className="text-sm text-gray-600">
+              {location}
+            </div>
           </div>
-        </div>
-      ),
+        );
+      },
     },
     {
       title: 'Highest Qualification',
@@ -1074,29 +1151,36 @@ const AdmissionEnquiry = () => {
                   <div className="flex items-start">
                     <HomeOutlined className="mr-2 mt-1 text-blue-500 flex-shrink-0" />
                     <div>
-                      <div>{selectedEnquiry.address || 'N/A'}</div>
-                      {(selectedEnquiry.city || selectedEnquiry.state) && (
-                        <div className="text-gray-600">
-                          {[selectedEnquiry.city, selectedEnquiry.state, selectedEnquiry.pincode]
-                            .filter(Boolean).join(', ')}
-                        </div>
+                      {selectedEnquiry.address && typeof selectedEnquiry.address === 'object' ? (
+                        <>
+                          <div>{selectedEnquiry.address.street || 'N/A'}</div>
+                          <div className="text-gray-600">
+                            {[
+                              selectedEnquiry.address.city, 
+                              selectedEnquiry.address.state, 
+                              selectedEnquiry.address.pincode
+                            ].filter(Boolean).join(', ')}
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div>{selectedEnquiry.address || 'N/A'}</div>
+                          {(selectedEnquiry.city || selectedEnquiry.state) && (
+                            <div className="text-gray-600">
+                              {[
+                                selectedEnquiry.city, 
+                                selectedEnquiry.state, 
+                                selectedEnquiry.pincode
+                              ].filter(Boolean).join(', ')}
+                            </div>
+                          )}
+                        </>
                       )}
                     </div>
                   </div>
                 </div>
               </div>
             </div>
-            
-            {(selectedEnquiry.notes || selectedEnquiry.additionalInfo) && (
-              <div className="border-t border-gray-200 pt-4 mt-4">
-                <Text type="secondary" className="block mb-2">
-                  {selectedEnquiry.notes ? 'Additional Notes' : 'Additional Information'}
-                </Text>
-                <div className="p-4 bg-gray-50 rounded-md">
-                  {selectedEnquiry.notes || selectedEnquiry.additionalInfo}
-                </div>
-              </div>
-            )}
             
             <div className="flex justify-between items-center pt-4 border-t border-gray-200">
               <div>
@@ -1120,11 +1204,213 @@ const AdmissionEnquiry = () => {
               <div className="text-right">
                 <Text type="secondary" className="block text-sm">Submitted On</Text>
                 <Text className="font-medium">
-                  {moment(selectedEnquiry.createdAt).format('DD MMM YYYY hh:mm A')}
+                  {selectedEnquiry.createdAt && moment(new Date(selectedEnquiry.createdAt)).isValid() 
+                    ? moment(new Date(selectedEnquiry.createdAt)).format('DD MMM YYYY hh:mm A')
+                    : 'N/A'}
                 </Text>
               </div>
             </div>
           </div>
+        )}
+      </Modal>
+
+      {/* Process Admission Modal */}
+      <Modal
+        title={
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '8px',
+            fontWeight: 600,
+            fontSize: '18px',
+            color: '#1d4ed8'
+          }}>
+            <CheckCircleOutlined style={{ color: '#10b981' }} />
+            <span>Process Admission</span>
+          </div>
+        }
+        open={isProcessModalVisible}
+        onCancel={() => {
+          setIsProcessModalVisible(false);
+          form.resetFields();
+        }}
+        footer={[
+          <Button key="cancel" onClick={() => {
+            setIsProcessModalVisible(false);
+            form.resetFields();
+          }}>
+            Cancel
+          </Button>,
+          <Button 
+            key="process" 
+            type="primary" 
+            loading={processing}
+            onClick={() => form.submit()}
+            style={{ backgroundColor: '#10b981', borderColor: '#10b981' }}
+          >
+            Process Admission
+          </Button>,
+        ]}
+        width={700}
+      >
+        {selectedEnquiry && (
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={async (values) => {
+              try {
+                setProcessing(true);
+                
+                // Prepare the data to send to the backend
+                const admissionData = {
+                  source: values.source,
+                  isScholarship: values.isScholarship || false,
+                  ...(values.isScholarship && { scholarshipType: values.scholarshipType }),
+                  followUpDate: values.followUpDate.format('YYYY-MM-DD'),
+                  notes: values.notes
+                };
+                
+                await processEnquiryToAdmission(selectedEnquiry._id, admissionData, token);
+                
+                message.success('Admission processed successfully');
+                setIsProcessModalVisible(false);
+                form.resetFields();
+                fetchEnquiries(); // Refresh the list
+              } catch (error) {
+                console.error('Error processing admission:', error);
+                message.error(error.message || 'Failed to process admission');
+              } finally {
+                setProcessing(false);
+              }
+            }}
+          >
+            <div className="space-y-6">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-lg font-medium mb-4">Student Information</h3>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item label="Full Name">
+                      <Input value={selectedEnquiry.fullName || `${selectedEnquiry.firstName || ''} ${selectedEnquiry.lastName || ''}`.trim()} disabled />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="Email">
+                      <Input value={selectedEnquiry.email} disabled />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item label="Phone">
+                      <Input value={selectedEnquiry.mobileNumber || selectedEnquiry.phone} disabled />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item label="City">
+                      <Input value={selectedEnquiry.city || 'N/A'} disabled />
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Row gutter={16}>
+                  <Col span={24}>
+                    <Form.Item label="Address">
+                      <Input.TextArea 
+                        value={selectedEnquiry.address || 'N/A'} 
+                        disabled 
+                        autoSize={{ minRows: 2, maxRows: 4 }}
+                      />
+                    </Form.Item>
+                  </Col>
+                </Row>
+              </div>
+
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <h3 className="text-lg font-medium mb-4">Admission Details</h3>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item
+                      name="followUpDate"
+                      label="Follow Up Date"
+                      rules={[{ required: true, message: 'Please select follow up date' }]}
+                    >
+                      <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      name="source"
+                      label="Source"
+                      rules={[{ required: true, message: 'Please select source' }]}
+                    >
+                      <Select placeholder="Select source">
+                        <Option value="website">Website</Option>
+                        <Option value="walkin">Walk-in</Option>
+                        <Option value="reference">Reference</Option>
+                        <Option value="social_media">Social Media</Option>
+                        <Option value="newspaper">Newspaper</Option>
+                        <Option value="other">Other</Option>
+                      </Select>
+                    </Form.Item>
+                  </Col>
+                </Row>
+                <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item
+                      name="isScholarship"
+                      label="Scholarship"
+                      valuePropName="checked"
+                      initialValue={false}
+                    >
+                      <Checkbox>Eligible for Scholarship</Checkbox>
+                    </Form.Item>
+                  </Col>
+                  <Col span={12}>
+                    <Form.Item
+                      noStyle
+                      shouldUpdate={(prevValues, currentValues) => 
+                        prevValues.isScholarship !== currentValues.isScholarship
+                      }
+                    >
+                      {({ getFieldValue }) =>
+                        getFieldValue('isScholarship') ? (
+                          <Form.Item
+                            name="scholarshipType"
+                            label="Scholarship Type"
+                            rules={[{ required: true, message: 'Please select scholarship type' }]}
+                          >
+                            <Select placeholder="Select scholarship type">
+                              <Option value="merit">Merit-based</Option>
+                              <Option value="sports">Sports Quota</Option>
+                              <Option value="minority">Minority</Option>
+                              <Option value="other">Other</Option>
+                            </Select>
+                          </Form.Item>
+                        ) : null
+                      }
+                    </Form.Item>
+                  </Col>
+                </Row>
+                {/* <Row gutter={16}>
+                  <Col span={12}>
+                    <Form.Item
+                      name="fees"
+                      label="Fees (₹)"
+                      rules={[{ required: true, message: 'Please enter fees' }]}
+                    >
+                      <Input type="number" placeholder="Enter fees" />
+                    </Form.Item>
+                  </Col>
+                </Row> */}
+              </div>
+
+              <Form.Item
+                name="notes"
+                label="Additional Notes"
+              >
+                <Input.TextArea rows={4} placeholder="Enter any additional notes" />
+              </Form.Item>
+            </div>
+          </Form>
         )}
       </Modal>
     </div>

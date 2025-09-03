@@ -6,6 +6,7 @@ const {
   GET_ALL_ENQUIRIES,
   GET_ENQUIRY_BY_ID,
   UPDATE_ENQUIRY_STATUS,
+  PROCESS_TO_ADMISSION,
   DELETE_ENQUIRY,
   CREATE_ENQUIRY
 } = admissionEnquiry;
@@ -98,7 +99,7 @@ export const getAdmissionEnquiryById = async (enquiryId, token) => {
 export const updateEnquiryStatus = async (enquiryId, statusData, token) => {
   try {
     const response = await apiConnector(
-      'PATCH',
+      'PUT',
       UPDATE_ENQUIRY_STATUS(enquiryId),
       statusData,
       {
@@ -116,6 +117,33 @@ export const updateEnquiryStatus = async (enquiryId, statusData, token) => {
   } catch (error) {
     console.error('UPDATE ENQUIRY STATUS ERROR............', error);
     const errorMessage = error.response?.data?.message || error.message || 'Failed to update enquiry status';
+    showError(errorMessage);
+    throw new Error(errorMessage);
+  }
+};
+
+// Process enquiry to admission
+export const processEnquiryToAdmission = async (enquiryId, admissionData, token) => {
+  try {
+    const response = await apiConnector(
+      'POST',
+      PROCESS_TO_ADMISSION(enquiryId),
+      admissionData,
+      {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      }
+    );
+
+    if (!response.data.success) {
+      throw new Error(response.data.message || 'Failed to save admission details');
+    }
+
+    showSuccess('Admission details saved successfully');
+    return response.data;
+  } catch (error) {
+    console.error('PROCESS TO ADMISSION ERROR............', error);
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to process to admission';
     showError(errorMessage);
     throw new Error(errorMessage);
   }

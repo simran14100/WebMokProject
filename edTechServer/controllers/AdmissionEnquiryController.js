@@ -341,6 +341,72 @@ exports.getAdmissionEnquiry = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Process enquiry to admission
+// @route   POST /api/v1/admission-enquiries/:id/process-to-admission
+// @access  Private/Admin
+exports.processToAdmission = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { 
+      source, 
+      isScholarship, 
+      scholarshipType, 
+      followUpDate, 
+      notes 
+    } = req.body;
+
+    // Find the enquiry
+    const enquiry = await AdmissionEnquiry.findById(id);
+    if (!enquiry) {
+      return res.status(404).json({
+        success: false,
+        message: 'Enquiry not found',
+      });
+    }
+
+    // Save admission details in a structured format
+    enquiry.admissionDetails = {
+      source,
+      isScholarship: Boolean(isScholarship),
+      ...(isScholarship && { scholarshipType }),
+      followUpDate: new Date(followUpDate),
+      processedAt: new Date(),
+      processedBy: req.user.id
+    };
+
+    // Add notes to the existing notes array or create a new one
+    if (notes) {
+      if (!enquiry.notes) {
+        enquiry.notes = [];
+      }
+      enquiry.notes.push({
+        content: notes,
+        type: 'admission_processing',
+        createdBy: req.user.id,
+        createdAt: new Date()
+      });
+    }
+
+    await enquiry.save();
+
+    res.status(200).json({
+      success: true,
+      message: 'Admission details saved successfully',
+      data: {
+        enquiry,
+        admissionDetails: enquiry.admissionDetails
+      }
+    });
+  } catch (error) {
+    console.error('Error processing to admission:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error processing to admission',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 // @desc    Update admission enquiry status
 // @route   PUT /api/v1/admission-enquiries/:id/status
 // @access  Private/Admin

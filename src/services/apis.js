@@ -215,6 +215,8 @@ export const admissionEnquiry = {
   GET_ENQUIRY_BY_ID: (id) => `/api/v1/admission-enquiries/${id}`,
   // Update enquiry status
   UPDATE_ENQUIRY_STATUS: (id) => `/api/v1/admission-enquiries/${id}/status`,
+  // Process enquiry to admission
+  PROCESS_TO_ADMISSION: (id) => `/api/v1/admission-enquiries/${id}/process-to-admission`,
   // Delete an enquiry
   DELETE_ENQUIRY: (id) => `/api/v1/admission-enquiries/${id}`,
   // Create a new enquiry (public endpoint)

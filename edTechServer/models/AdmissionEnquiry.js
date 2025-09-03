@@ -109,6 +109,36 @@ const admissionEnquirySchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: 'user',
         default: null
+    },
+    
+    // Admission Processing Details
+    admissionDetails: {
+        source: {
+            type: String,
+            trim: true
+        },
+        isScholarship: {
+            type: Boolean,
+            default: false
+        },
+        scholarshipType: {
+            type: String,
+            trim: true
+        },
+        followUpDate: {
+            type: Date
+        },
+        fees: {
+            type: Number,
+            min: 0
+        },
+        processedAt: {
+            type: Date
+        },
+        processedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'user'
+        }
     }
 }, { timestamps: true });
 

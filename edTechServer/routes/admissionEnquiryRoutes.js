@@ -4,6 +4,7 @@ const {
   getAllAdmissionEnquiries,
   getAdmissionEnquiry,
   updateEnquiryStatus,
+  processToAdmission,
   deleteEnquiry,
   getEnquiriesByProgramType,
   createAdmissionEnquiry,
@@ -36,6 +37,10 @@ router.route('/:id')
 // Status update route
 router.route('/:id/status')
   .put(authorize('admin', 'superadmin'), updateEnquiryStatus);
+
+// Process to admission route
+router.route('/:id/process-to-admission')
+  .post(authorize('admin', 'superadmin'), processToAdmission);
 
 // Export the router
 module.exports = router;
