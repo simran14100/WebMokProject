@@ -749,10 +749,12 @@ export const universityLogin = (email, password, navigate = null) => {
 // Get current user data
 export const getCurrentUser = () => {
   return async (dispatch, getState) => {
+    console.log('getCurrentUser called');
     const toastId = showLoading("Loading your profile...");
     dispatch(setLoading(true));
     
     try {
+      console.log('Making API call to get current user...');
       // The token is automatically sent via HTTP-only cookie
       const response = await apiConnector(
         "GET", 
@@ -760,29 +762,30 @@ export const getCurrentUser = () => {
         null, 
         { 
           withCredentials: true, // Important for cookies
-          'X-Skip-Interceptor': 'true' // Skip the interceptor for this request
+          'X-Skip-Interceptor': 'true', // Skip the interceptor for this request
+          'Cache-Control': 'no-cache',
+          'Pragma': 'no-cache'
         }
       );
       
+      console.log('Current user API response:', response);
+      
       if (!response.data.success) {
-        throw new Error(response.data.message || 'Failed to fetch user data');
+        const errorMsg = response.data.message || 'Failed to fetch user data';
+        console.error('API Error:', errorMsg);
+        throw new Error(errorMsg);
       }
       
       const user = response.data.user;
       
       if (!user) {
-        console.warn("No user data received from server");
-        return { 
-          success: false, 
-          message: 'No user data available',
-          shouldLogout: true
-        };
+        const errorMsg = 'No user data received from server';
+        console.warn(errorMsg);
+        throw new Error(errorMsg);
       }
       
       // Generate avatar if no image is provided
-      const userImage = user?.image 
-        ? user.image 
-        : `https://api.dicebear.com/5.x/initials/svg?seed=${user.firstName || ''} ${user.lastName || ''}`.trim();
+      const userImage = user?.image || `https://api.dicebear.com/5.x/initials/svg?seed=${user.firstName || ''} ${user.lastName || ''}`.trim();
       
       const userWithImage = { 
         ...user, 
@@ -791,12 +794,21 @@ export const getCurrentUser = () => {
         firstName: user.firstName || '',
         lastName: user.lastName || '',
         email: user.email || '',
-        role: user.role || 'STUDENT',
-        accountStatus: user.accountStatus || 'ACTIVE'
+        role: (user.role || 'STUDENT').toUpperCase(), // Ensure role is uppercase for consistency
+        accountStatus: user.accountStatus || 'ACTIVE',
+        // Add accountType if not present
+        accountType: user.accountType || (user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase() : 'Student')
       };
+      
+      console.log('Processed user data:', userWithImage);
       
       // Update Redux store with user data
       dispatch(setUser(userWithImage));
+      
+      // Also update profile slice if needed
+      dispatch(updateUser(userWithImage));
+      
+      console.log('User data updated in Redux store');
       
       // Show success message if this wasn't a silent check
       const isSilentCheck = getState()?.auth?.isSilentCheck;

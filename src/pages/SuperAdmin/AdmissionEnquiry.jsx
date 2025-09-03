@@ -7,16 +7,26 @@ import {
   SearchOutlined, EyeOutlined, DeleteOutlined, 
   PhoneOutlined, MailOutlined, UserOutlined, 
   DownOutlined, CalendarOutlined, BookOutlined,
-  HomeOutlined, TeamOutlined, IdcardOutlined
+  HomeOutlined, TeamOutlined, IdcardOutlined,
+  EnvironmentOutlined, RiseOutlined, BranchesOutlined,
+  ClockCircleOutlined
 } from '@ant-design/icons';
+import { axiosInstance as apiConnector } from '../../services/apiConnector';
 import { 
   getAllAdmissionEnquiries, 
   deleteAdmissionEnquiry, 
   updateEnquiryStatus 
 } from '../../services/operations/admissionEnquiryApi';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import moment from 'moment';
-import { isSuperAdmin, hasAdminAccess } from '../../utils/roleUtils';
+import { 
+  isSuperAdmin, 
+  hasAdminAccess, 
+  isAdmin, 
+  isStaff, 
+  isInstructor, 
+  isStudent 
+} from '../../utils/roleUtils';
 import { ACCOUNT_TYPE } from '../../utils/constants';
 
 const { Title, Text } = Typography;
@@ -32,18 +42,420 @@ const AdmissionEnquiry = () => {
   });
   const [filters, setFilters] = useState({ 
     search: '', 
-    status: '' 
+    status: '',
+    programType: '' // No default program type
   });
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
   
-  const { token } = useSelector((state) => state.auth);
+  const dispatch = useDispatch();
+  const { token, user, loading: authLoading } = useSelector((state) => {
+    const authState = state.auth || {};
+    const profileUser = state.profile?.user;
+    
+    // Prefer user from auth state, fallback to profile user
+    const currentUser = authState.user || profileUser;
+    
+    console.log('Redux state updated:', { 
+      auth: authState,
+      profile: state.profile,
+      hasUser: !!currentUser,
+      user: currentUser,
+      loading: authState.loading
+    });
+    
+    return {
+      ...authState,
+      user: currentUser,
+      loading: authState.loading
+    };
+  });
+  
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [authError, setAuthError] = useState(null);
+  
+  // Initialize auth check on component mount
+  useEffect(() => {
+    const initializeAuth = async () => {
+      try {
+        console.log('Initializing auth check...');
+        
+        // If we already have a user, no need to fetch again
+        if (user) {
+          console.log('User already exists in store:', user);
+          setIsInitialized(true);
+          return;
+        }
+        
+        console.log('No user found, fetching current user...');
+        const { getCurrentUser } = await import('../../services/operations/authApi');
+        const result = await dispatch(getCurrentUser());
+        
+        if (result?.payload?.user) {
+          console.log('Successfully loaded user:', result.payload.user);
+        } else {
+          console.warn('No user data in response:', result);
+          setAuthError('Failed to load user data');
+        }
+      } catch (error) {
+        console.error('Error initializing auth:', error);
+        setAuthError(error.message || 'Failed to initialize authentication');
+      } finally {
+        setIsInitialized(true);
+      }
+    };
+    
+    initializeAuth();
+  }, [dispatch]);
+  
+  // Debug user info
+  useEffect(() => {
+    if (user) {
+      console.log('Current user from Redux:', {
+        user,
+        accountType: user?.accountType,
+        role: user?.role,
+        isSuperAdmin: isSuperAdmin(user),
+        hasAdminAccess: hasAdminAccess(user),
+        isAdmin: isAdmin(user)
+      });
+    }
+  }, [user]);
+  
+  // Main function to fetch enquiries with current filters and pagination
+  const fetchEnquiries = async () => {
+    try {
+      console.log('Starting to fetch enquiries...');
+      
+      if (!token) {
+        const errorMsg = 'Authentication token is missing';
+        console.error(errorMsg);
+        throw new Error(errorMsg);
+      }
+      
+    
+      
+      setLoading(true);
+      const { current, pageSize } = pagination;
+      const { search, status, programType } = filters;
+
+      console.log('Current filters:', { search, status, programType });
+      console.log('Pagination:', { current, pageSize });
+
+      try {
+        // Fetch all enquiries using the debug endpoint
+        console.log('Fetching all enquiries using debug endpoint...');
+        const response = await apiConnector({
+          method: 'GET',
+          url: '/api/v1/admission-enquiries/debug',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token && { Authorization: `Bearer ${token}` })
+          }
+        });
+
+        console.log('Debug API Response:', response);
+        
+        if (!response?.data?.success) {
+          throw new Error('Failed to fetch enquiries: Invalid response format');
+        }
+
+        let allEnquiries = response.data.data || [];
+        console.log('Total Enquiries in DB:', allEnquiries.length);
+        
+        if (allEnquiries.length > 0) {
+          console.log('Sample Enquiry:', allEnquiries[0]);
+        } else {
+          console.log('No enquiries found in the database.');
+        }
+
+        // Apply client-side filtering
+        let filteredEnquiries = [...allEnquiries];
+
+        // Apply search filter
+        if (search) {
+          const searchLower = search.toLowerCase();
+          filteredEnquiries = filteredEnquiries.filter(enquiry => 
+            (enquiry.name && enquiry.name.toLowerCase().includes(searchLower)) ||
+            (enquiry.email && enquiry.email.toLowerCase().includes(searchLower)) ||
+            (enquiry.phone && enquiry.phone.includes(search)) ||
+            (enquiry.fatherName && enquiry.fatherName.toLowerCase().includes(searchLower))
+          );
+        }
+
+        // Apply status filter
+        if (status) {
+          filteredEnquiries = filteredEnquiries.filter(enquiry => 
+            enquiry.status && enquiry.status.toLowerCase() === status.toLowerCase()
+          );
+        }
+
+        // Apply program type filter
+        if (programType) {
+          filteredEnquiries = filteredEnquiries.filter(enquiry => 
+            enquiry.programType && enquiry.programType.toUpperCase() === programType.toUpperCase()
+          );
+        }
+
+        // Apply pagination
+        const startIndex = (current - 1) * pageSize;
+        const paginatedEnquiries = filteredEnquiries.slice(startIndex, startIndex + pageSize);
+        
+        // Format the enquiries for the table
+        const formattedEnquiries = paginatedEnquiries.map(enquiry => ({
+          ...enquiry,
+          key: enquiry._id || enquiry.id,
+          fullName: enquiry.name,
+          contact: enquiry.phone,
+          email: enquiry.email,
+          programType: enquiry.programType || 'N/A',
+          status: enquiry.status || 'new',
+          createdAt: enquiry.createdAt ? new Date(enquiry.createdAt).toLocaleDateString() : 'N/A'
+        }));
+        
+        // Update state with the filtered and paginated data
+        setEnquiries(formattedEnquiries);
+        setPagination(prev => ({
+          ...prev,
+          total: filteredEnquiries.length,
+          current: current > Math.ceil(filteredEnquiries.length / pageSize) ? 1 : current,
+          pageSize: pageSize
+        }));
+        
+        // Show success message
+        if (formattedEnquiries.length === 0) {
+          message.info('No enquiries found with the current filters');
+        } else {
+          const showingCount = Math.min(filteredEnquiries.length - startIndex, pageSize);
+          message.success(`Showing ${showingCount} of ${filteredEnquiries.length} filtered enquiries`);
+        }
+        
+      } catch (apiError) {
+        console.error('API Call Error:', {
+          message: apiError.message,
+          stack: apiError.stack,
+          response: apiError.response?.data
+        });
+        
+        const errorMessage = apiError.response?.data?.message || 
+                           apiError.message || 
+                           'An error occurred while fetching enquiries';
+        
+        message.error(errorMessage);
+        
+        if (apiError.response?.status === 401) {
+          console.log('Authentication error, redirecting to login...');
+          // You might want to redirect to login here
+          // navigate('/login');
+        }
+        
+        throw apiError;
+      }
+    } catch (error) {
+      console.error('Error fetching enquiries:', error);
+      message.error(error.message || 'Failed to fetch enquiries');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Function to fetch all enquiries without filters (for debugging)
+  const fetchAllEnquiries = async () => {
+    try {
+      console.log('Fetching all enquiries using debug endpoint...');
+      const response = await apiConnector({
+        method: 'GET',
+        url: '/api/v1/admission-enquiries/debug',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        }
+      });
+      
+      console.log('Debug API Response:', response);
+      
+      if (response?.data?.success) {
+        console.log('Total Enquiries in DB:', response.data.count);
+        if (response.data.data && response.data.data.length > 0) {
+          console.log('Sample Enquiry:', response.data.data[0]);
+        } else {
+          console.log('No enquiries found in the database.');
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching all enquiries:', error);
+    }
+  };
+
+  // Fetch enquiries on component mount and when filters/pagination change
+  useEffect(() => {
+    // Add a small delay to ensure state updates before fetching
+    const timer = setTimeout(() => {
+      fetchEnquiries();
+      // Check for any enquiries in the database (debugging)
+      fetchAllEnquiries();
+    }, 100);
+    
+    return () => clearTimeout(timer);
+  }, [filters, pagination.current, pagination.pageSize]);
+  
+  // Show loading state while initializing
+  if (!isInitialized || authLoading) {
+    return (
+      <div style={{ 
+        display: 'flex', 
+        justifyContent: 'center', 
+        alignItems: 'center', 
+        height: '50vh' 
+      }}>
+        <div className="text-center">
+          <div className="spinner-border text-primary" role="status" style={{ width: '3rem', height: '3rem' }}>
+            <span className="visually-hidden">Loading...</span>
+          </div>
+          <p className="mt-3">Loading your account information...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Handle auth errors
+  if (authError) {
+    return (
+      <div className="container mt-5">
+        <div className="alert alert-danger">
+          <h4>Authentication Error</h4>
+          <p>{authError}</p>
+          <div className="mt-3">
+            <button 
+              className="btn btn-primary me-2"
+              onClick={() => window.location.reload()}
+            >
+              Try Again
+            </button>
+            <button 
+              className="btn btn-outline-secondary"
+              onClick={() => window.location.href = '/login'}
+            >
+              Go to Login
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect to login if not authenticated
+  if (!user) {
+    console.log('No user found, redirecting to login...');
+    // Using a small timeout to ensure the error message is shown before redirect
+    setTimeout(() => {
+      window.location.href = '/login';
+    }, 1000);
+    
+    return (
+      <div className="text-center p-5">
+        <div className="alert alert-warning">
+          <h4>Authentication Required</h4>
+          <p>You need to be logged in to access this page.</p>
+          <p>Redirecting to login page...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  // Check if user has admin or super admin access
+  const checkAdminAccess = () => {
+    console.log('checkAdminAccess called with state:', {
+      isInitialized,
+      authLoading,
+      user: user ? {
+        ...user,
+        role: user.role,
+        accountType: user.accountType,
+        isSuperAdmin: isSuperAdmin(user),
+        hasAdminAccess: hasAdminAccess(user)
+      } : null
+    });
+
+    // If still loading or not initialized, return false but don't show error
+    if (!isInitialized || authLoading) {
+      console.log('Access check: Waiting for initialization or auth to load');
+      return false;
+    }
+    
+    // If no user after loading is complete, show login message
+    if (!user) {
+      const errorMsg = 'No user object found in Redux store';
+      console.error(errorMsg);
+      message.error('Please log in to access this page');
+      return false;
+    }
+    
+    // Check if user has admin access
+    const adminAccess = hasAdminAccess(user);
+    const superAdmin = isSuperAdmin(user);
+    const userRole = user.role || user.accountType;
+    
+    console.log('Admin access check result:', {
+      hasAdminAccess: adminAccess,
+      isSuperAdmin: superAdmin,
+      userRole,
+      accountType: user.accountType
+    });
+    
+    if (!adminAccess && !superAdmin) {
+      console.warn('User does not have admin access:', {
+        userId: user._id,
+        email: user.email,
+        role: userRole,
+        accountType: user.accountType
+      });
+      return false;
+    }
+    
+    console.log('Access granted - User has admin or super admin privileges');
+    return true;
+  };
+
+  // Check admin access after we're sure user is loaded
+  const hasAccess = checkAdminAccess();
+  if (!hasAccess) {
+    return (
+      <div className="container mt-5">
+        <div className="alert alert-danger">
+          <h4>Access Denied</h4>
+          <p>You don't have permission to view this page.</p>
+          <p>Please contact an administrator if you believe this is an error.</p>
+          <div className="mt-3">
+            <button 
+              className="btn btn-primary me-2" 
+              onClick={() => window.location.href = '/dashboard'}
+            >
+              Go to Dashboard
+            </button>
+            <button 
+              className="btn btn-outline-secondary" 
+              onClick={() => window.location.href = '/login'}
+            >
+              Switch Account
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const programTypeOptions = [
+    { value: 'UG', label: 'UG', color: 'blue' },
+    { value: 'PG', label: 'PG', color: 'purple' },
+    { value: 'PHD', label: 'PhD', color: 'orange' }
+  ];
 
   const columns = [
     {
-      title: 'Action',
-      key: 'action',
-      width: 120,
+      title: 'Actions',
+      key: 'actions',
+      width: 100,
       fixed: 'left',
       render: (_, record) => (
         <Space size="middle">
@@ -70,17 +482,65 @@ const AdmissionEnquiry = () => {
     },
     {
       title: 'Name',
-      dataIndex: 'fullName',
-      key: 'fullName',
+      dataIndex: 'name',
+      key: 'name',
       width: 180,
-      sorter: (a, b) => a.fullName?.localeCompare(b.fullName || '') || 0,
-      render: (text, record) => (
+      fixed: 'left',
+      sorter: (a, b) => (a.name || '').localeCompare(b.name || ''),
+      render: (text) => (
         <div className="flex items-center">
           <IdcardOutlined className="mr-2 text-blue-500" />
-          <span>{text || `${record.firstName || ''} ${record.lastName || ''}`.trim() || 'N/A'}</span>
+          <span>{text || 'N/A'}</span>
         </div>
       ),
     },
+    {
+      title: 'Email',
+      dataIndex: 'email',
+      key: 'email',
+      width: 250,
+      render: (email) => (
+        <div className="flex items-center">
+          <MailOutlined className="mr-2 text-blue-500" />
+          <a href={`mailto:${email}`} className="text-blue-600 hover:underline">
+            {email || 'N/A'}
+          </a>
+        </div>
+      ),
+    },
+    {
+      title: 'Phone',
+      dataIndex: 'phone',
+      key: 'phone',
+      width: 150,
+      render: (phone) => (
+        <div className="flex items-center">
+          <PhoneOutlined className="mr-2 text-green-500" />
+          {phone || 'N/A'}
+        </div>
+      ),
+    },
+    {
+      title: 'Program',
+      dataIndex: 'programType',
+      key: 'programType',
+      width: 120,
+      render: (type) => {
+        const program = programTypeOptions.find(p => p.value === type) || {};
+        return (
+          <Tag color={program.color || 'default'}>
+            {program.label || type || 'N/A'}
+          </Tag>
+        );
+      },
+      filters: programTypeOptions.map(p => ({
+        text: p.label,
+        value: p.value
+      })),
+      onFilter: (value, record) => record.programType === value,
+      filterMultiple: false,
+    },
+    
     {
       title: 'Contact',
       key: 'contact',
@@ -95,46 +555,71 @@ const AdmissionEnquiry = () => {
           </div>
           <div className="flex items-center">
             <PhoneOutlined className="mr-2 text-green-500" />
-            {record.mobileNumber || record.phone || 'N/A'}
+            {record.phone || 'N/A'}
           </div>
-        </div>
-      ),
-    },
-    {
-      title: 'Program',
-      dataIndex: 'programType',
-      key: 'programType',
-      width: 150,
-      render: (type) => (
-        <Tag color={type === 'UG' ? 'blue' : type === 'PG' ? 'green' : 'purple'}>
-          {type || 'N/A'}
-        </Tag>
-      ),
-      filters: [
-        { text: 'UG', value: 'UG' },
-        { text: 'PG', value: 'PG' },
-        { text: 'PhD', value: 'PhD' },
-      ],
-      onFilter: (value, record) => record.programType === value,
-    },
-    {
-      title: 'Education',
-      key: 'education',
-      width: 180,
-      render: (_, record) => (
-        <div className="space-y-1">
-          <div className="flex items-center">
-            <BookOutlined className="mr-2 text-blue-500" />
-            <span>{record.lastClass || record.qualification || 'N/A'}</span>
-          </div>
-          {record.boardSchoolName && (
-            <div className="text-xs text-gray-500 truncate" title={record.boardSchoolName}>
-              {record.boardSchoolName}
+          {record.alternateNumber && (
+            <div className="flex items-center text-sm text-gray-500">
+              <PhoneOutlined className="mr-2" />
+              {record.alternateNumber} (Alt)
             </div>
           )}
         </div>
       ),
     },
+    {
+      title: 'Personal Info',
+      key: 'personalInfo',
+      width: 200,
+      render: (_, record) => (
+        <div className="space-y-1">
+          <div><CalendarOutlined className="mr-2" /> 
+            {record.dateOfBirth ? new Date(record.dateOfBirth).toLocaleDateString() : 'N/A'}
+          </div>
+          <div><UserOutlined className="mr-2" /> {record.gender || 'N/A'}</div>
+          <div><TeamOutlined className="mr-2" /> {record.parentName || 'N/A'}</div>
+        </div>
+      ),
+    },
+    {
+      title: 'Address',
+      key: 'address',
+      width: 200,
+      render: (_, record) => (
+        <div className="space-y-1">
+          <div><EnvironmentOutlined className="mr-2" /> {record.address || 'N/A'}</div>
+          <div className="text-sm text-gray-600">
+            {[record.city, record.state].filter(Boolean).join(', ') || 'N/A'}
+          </div>
+        </div>
+      ),
+    },
+    {
+      title: 'Highest Qualification',
+      key: 'academicInfo',
+      width: 250,
+      render: (_, record) => (
+        <div className="space-y-1">
+          <div><BookOutlined className="mr-2" /> {record.lastClass || 'N/A'}</div>
+          <div className="text-sm">{record.boardSchoolName || 'N/A'}</div>
+          {record.percentage && (
+            <div><RiseOutlined className="mr-2" /> {record.percentage}%</div>
+          )}
+        </div>
+      ),
+    },
+    
+    // {
+    //   title: 'Additional Info',
+    //   key: 'additionalInfo',
+    //   width: 200,
+    //   render: (_, record) => (
+    //     <div className="space-y-1">
+    //       <div><CalendarOutlined className="mr-2" /> {record.academicYear || 'N/A'}</div>
+    //       <div><BranchesOutlined className="mr-2" /> {record.stream || 'N/A'}</div>
+    //       <div><ClockCircleOutlined className="mr-2" /> {record.modeOfStudy || 'Day School'}</div>
+    //     </div>
+    //   ),
+    // },
     {
       title: 'Status',
       dataIndex: 'status',
@@ -187,230 +672,253 @@ const AdmissionEnquiry = () => {
       ),
       sorter: (a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0),
     },
-    {
-      title: 'Address',
-      key: 'address',
-      width: 200,
-      render: (_, record) => (
-        <div className="flex items-start">
-          <HomeOutlined className="mr-2 mt-1 text-blue-500 flex-shrink-0" />
-          <div className="truncate">
-            {record.address || 'N/A'}
-            {(record.city || record.state) && (
-              <div className="text-xs text-gray-500">
-                {[record.city, record.state].filter(Boolean).join(', ')}
-              </div>
-            )}
-          </div>
-        </div>
-      ),
-    },
-    {
-      title: 'Email',
-      dataIndex: 'email',
-      key: 'email',
-      width: 200,
-      ellipsis: true,
-      render: (email) => (
-        <div className="flex items-center">
-          <MailOutlined className="mr-1" />
-          {email || 'N/A'}
-        </div>
-      ),
-    },
-    {
-      title: 'Qualification',
-      dataIndex: 'qualification',
-      key: 'qualification',
-      width: 150,
-      render: (qualification) => qualification || 'N/A',
-    },
-    {
-      title: 'Course',
-      dataIndex: 'course',
-      key: 'course',
-      width: 150,
-      render: (course) => course?.name || 'N/A',
-    },
-    {
-      title: 'Address',
-      dataIndex: 'address',
-      key: 'address',
-      width: 200,
-      ellipsis: true,
-      render: (address) => address || 'N/A',
-    },
-  ];
-
-  const { user } = useSelector((state) => state.auth);
-  
-  const checkAdminAccess = () => {
-    if (!hasAdminAccess(user)) {
-      throw new Error('You do not have permission to view admission enquiries');
-    }
-  };
-
-  const fetchEnquiries = async () => {
-    try {
-      if (!token) {
-        throw new Error('Authentication token is missing');
-      }
-
-      // Check if user has admin access
-      checkAdminAccess();
-
-      setLoading(true);
-      const { current, pageSize } = pagination;
-      const { search, status } = filters;
-
-      const params = {
-        page: current,
-        limit: pageSize,
-        ...(search && { search }),
-        ...(status && { status }),
-      };
-
-      console.log('Fetching enquiries with params:', {
-        ...params,
-        token: token ? 'token exists' : 'no token'
-      });
-      
-      // Add role to headers if user is superadmin
-      const headers = isSuperAdmin(user) 
-        ? { 'X-User-Role': ACCOUNT_TYPE.SUPER_ADMIN }
-        : {};
-      
-      const response = await getAllAdmissionEnquiries(params, token, headers);
-      
-      if (response?.data) {
-        setEnquiries(response.data.enquiries || []);
-        setPagination(prev => ({
-          ...prev,
-          total: response.data.total || 0,
-        }));
-      }
-    } catch (error) {
-      console.error('Error fetching enquiries:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch admission enquiries';
-      message.error(errorMessage);
-      
-      // If unauthorized, clear token and redirect to login
-      if (error.response?.status === 401 || error.response?.status === 403) {
-        // You might want to dispatch a logout action here
-        message.error('Session expired. Please login again.');
-        // Redirect to login or handle as needed
-      }
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchEnquiries();
-  }, [pagination.current, pagination.pageSize, filters]);
-
-  const handleTableChange = (pagination) => {
-    setPagination(pagination);
-  };
-
-  const handleSearch = (value) => {
-    setFilters({ ...filters, search: value });
-  };
-
-  const handleStatusFilter = (value) => {
-    setFilters({ ...filters, status: value });
-  };
-
-  const handleDeleteEnquiry = async (id) => {
-    try {
-      await deleteAdmissionEnquiry(id, token);
-      message.success('Enquiry deleted successfully');
-      fetchEnquiries();
-    } catch (error) {
-      console.error('Error deleting enquiry:', error);
-      message.error(error.response?.data?.message || 'Failed to delete enquiry');
-    }
-  };
-
-  const handleUpdateStatus = async (status) => {
-    if (!selectedEnquiry) return;
     
-    try {
-      await updateEnquiryStatus(selectedEnquiry._id, { status }, token);
-      message.success(`Enquiry marked as ${status}`);
+    
+    // {
+    //   title: 'Qualification',
+    //   dataIndex: 'qualification',
+    //   key: 'qualification',
+    //   width: 150,
+    //   render: (qualification) => qualification || 'N/A',
+    // },
+    {
+      title: 'Applying Course',
+      dataIndex: 'graduationCourse',
+      key: 'graduationCourse',
+      width: 150,
+      render: (graduationCourse) => graduationCourse || 'N/A',
+    },
+   
+];
+
+ 
+  // Handle table change (pagination, filters, sorter)
+  const handleTableChange = (newPagination, tableFilters, sorter) => {
+    const newFilters = { ...filters };
+    
+    // Update status filter if changed
+    if (tableFilters.status) {
+      newFilters.status = tableFilters.status[0] || '';
+    }
+    
+    // Update program type filter if changed
+    if (tableFilters.programType) {
+      newFilters.programType = tableFilters.programType[0] || '';
+    }
+    
+    // Update pagination
+    setPagination(prev => ({
+      ...prev,
+      current: newPagination.current,
+      pageSize: newPagination.pageSize
+    }));
+    
+    // Only update filters if they actually changed
+    if (JSON.stringify(newFilters) !== JSON.stringify(filters)) {
+      setFilters(newFilters);
+    }
+    
+    // Add a small delay to ensure state updates before fetching
+    setTimeout(() => {
       fetchEnquiries();
-      setIsModalVisible(false);
+    }, 0);
+  };
+  
+  // Handle status update
+  const handleStatusUpdate = async (enquiryId, newStatus) => {
+    try {
+      await updateEnquiryStatus(enquiryId, { status: newStatus }, token);
+      message.success(`Enquiry marked as ${newStatus}`);
+      fetchEnquiries(); // Refresh the list
     } catch (error) {
       console.error('Error updating status:', error);
-      message.error(error.response?.data?.message || 'Failed to update status');
+      message.error(error.message || 'Failed to update status');
     }
   };
 
-  // Filter out duplicate columns and keep only the enhanced ones
-  const filteredColumns = columns.filter((column, index, self) => {
-    return index === self.findIndex((c) => c.key === column.key);
-  });
+  // Handle filter changes
+  const handleFilterChange = (filterName, value) => {
+    setFilters(prevFilters => ({
+      ...prevFilters,
+      [filterName]: value,
+      ...(filterName === 'programType' && value === '' ? { programType: undefined } : {})
+    }));
+    
+    // Reset to first page when filters change
+    setPagination(prev => ({
+      ...prev,
+      current: 1
+    }));
+  };
 
+  // Handle delete enquiry
+  const handleDeleteEnquiry = async (enquiryId) => {
+    try {
+      await deleteAdmissionEnquiry(enquiryId, token);
+      message.success('Enquiry deleted successfully');
+      fetchEnquiries(); // Refresh the list
+    } catch (error) {
+      console.error('Error deleting enquiry:', error);
+      message.error(error.message || 'Failed to delete enquiry');
+    }
+  };
+
+  // Render the component
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-          <Title level={3} className="m-0">Admission Enquiries</Title>
-          <Text type="secondary">Manage and track all admission enquiries in one place</Text>
-        </div>
-        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
-          <Input
-            placeholder="Search by name, email or phone"
-            prefix={<SearchOutlined />}
-            onChange={(e) => handleSearch(e.target.value)}
-            allowClear
-            className="w-full md:w-64"
+    <div style={{
+      marginTop: '4rem',
+      padding: '0 1rem',
+      maxWidth: '100%',
+      overflowX: 'auto'
+    }}>
+      <Card 
+        style={{
+          marginTop: '8rem',
+          boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)',
+          borderRadius: '0.5rem',
+          overflow: 'hidden',
+          marginBottom: '2rem'
+        }}
+        title={
+          <span style={{
+            fontSize: '1.25rem',
+            fontWeight: 600,
+            color: '#1a365d'
+          }}>
+            Admission Enquiries
+          </span>
+        }
+        extra={
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem',
+            flexWrap: 'wrap'
+          }}>
+            <Input
+              prefix={<SearchOutlined style={{ color: 'rgba(0, 0, 0, 0.25)' }} />}
+              placeholder="Search enquiries..."
+              value={filters.search}
+              onChange={(e) => handleFilterChange('search', e.target.value)}
+              style={{ width: 250 }}
+              allowClear
+            />
+            <Select
+              placeholder="Program Type"
+              style={{ width: 120 }}
+              value={filters.programType}
+              onChange={(value) => handleFilterChange('programType', value)}
+              styles={{
+                popup: {
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                }
+              }}
+            >
+              <Option value="UG">UG</Option>
+              <Option value="PG">PG</Option>
+              <Option value="PHD">PhD</Option>
+            </Select>
+            <Select
+              placeholder="Status"
+              style={{ width: 150 }}
+              value={filters.status}
+              onChange={(value) => handleFilterChange('status', value)}
+              allowClear
+              styles={{
+                popup: {
+                  borderRadius: '8px',
+                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
+                }
+              }}
+            >
+              <Option value="new">New</Option>
+              <Option value="contacted">Contacted</Option>
+              <Option value="follow up">Follow Up</Option>
+              <Option value="admitted">Admitted</Option>
+              <Option value="rejected">Rejected</Option>
+            </Select>
+          </div>
+        }
+      >
+        <div style={{ overflowX: 'auto' }}>
+          <Table
+            columns={columns}
+            dataSource={Array.isArray(enquiries) ? enquiries : []}
+            rowKey="_id"
+            loading={loading}
+            pagination={{
+              ...pagination,
+              showSizeChanger: true,
+              showTotal: (total) => (
+                <span style={{ 
+                  fontSize: '0.875rem',
+                  color: '#4a5568',
+                  marginRight: '1rem'
+                }}>
+                  Total {total} enquiries
+                </span>
+              ),
+              pageSizeOptions: ['10', '20', '50', '100'],
+              style: {
+                margin: '16px 0',
+                padding: '0 16px',
+                display: 'flex',
+                justifyContent: 'flex-end',
+                gap: '8px'
+              },
+              showQuickJumper: true,
+              showSizeChanger: true,
+              size: 'default',
+              position: ['bottomRight']
+            }}
+            onChange={handleTableChange}
+            scroll={{ x: 'max-content' }}
+            style={{
+              width: '100%',
+              border: '1px solid #f0f0f0',
+              borderRadius: '8px',
+              overflow: 'hidden'
+            }}
+            rowClassName={() => 'table-row'}
           />
-          <Select
-            placeholder="Filter by status"
-            allowClear
-            onChange={handleStatusFilter}
-            className="w-full md:w-48"
-          >
-            <Option value="new">New</Option>
-            <Option value="pending">Pending</Option>
-            <Option value="contacted">Contacted</Option>
-            <Option value="follow up">Follow Up</Option>
-            <Option value="admitted">Admitted</Option>
-            <Option value="rejected">Rejected</Option>
-          </Select>
         </div>
-      </div>
-
-      <Card className="shadow-sm">
-        <Table
-          columns={filteredColumns}
-          dataSource={enquiries}
-          rowKey="_id"
-          loading={loading}
-          pagination={{
-            ...pagination,
-            showSizeChanger: true,
-            showTotal: (total) => `Total ${total} enquiries`,
-            pageSizeOptions: ['10', '20', '50', '100'],
-          }}
-          onChange={handleTableChange}
-          scroll={{ x: 1200 }}
-        />
       </Card>
 
       {/* Enquiry Details Modal */}
       <Modal
         title={
-          <div className="flex items-center">
-            <UserOutlined className="mr-2 text-blue-500" />
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            fontSize: '1.25rem',
+            fontWeight: 500
+          }}>
+            <UserOutlined style={{ 
+              color: '#1890ff',
+              marginRight: '8px',
+              fontSize: '1.1em'
+            }} />
             <span>Enquiry Details</span>
           </div>
         }
         open={isModalVisible}
         onCancel={() => setIsModalVisible(false)}
         footer={[
-          <Button key="close" onClick={() => setIsModalVisible(false)}>
+          <Button 
+            key="close" 
+            onClick={() => setIsModalVisible(false)}
+            style={{
+              marginRight: '8px',
+              borderRadius: '4px',
+              padding: '0 16px',
+              height: '32px',
+              fontSize: '14px',
+              border: '1px solid #d9d9d9',
+              background: '#fff',
+              color: 'rgba(0, 0, 0, 0.65)'
+            }}
+          >
             Close
           </Button>,
           selectedEnquiry?.status !== 'admitted' && selectedEnquiry?.status !== 'rejected' && (
@@ -419,34 +927,62 @@ const AdmissionEnquiry = () => {
               menu={{
                 items: [
                   {
+                    key: 'pending',
+                    label: 'Mark as Pending',
+                    onClick: () => handleStatusUpdate(selectedEnquiry._id, 'pending')
+                  },
+                  {
                     key: 'contacted',
                     label: 'Mark as Contacted',
-                    onClick: () => handleUpdateStatus('contacted'),
+                    onClick: () => handleStatusUpdate(selectedEnquiry._id, 'contacted')
                   },
                   {
                     key: 'admitted',
                     label: 'Mark as Admitted',
                     danger: true,
-                    onClick: () => handleUpdateStatus('admitted'),
+                    onClick: () => handleStatusUpdate(selectedEnquiry._id, 'admitted')
                   },
                   {
                     key: 'rejected',
                     label: 'Reject Application',
                     danger: true,
-                    onClick: () => handleUpdateStatus('rejected'),
+                    onClick: () => handleStatusUpdate(selectedEnquiry._id, 'rejected')
                   },
                 ],
               }}
               placement="topRight"
+              overlayStyle={{
+                borderRadius: '8px',
+                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)'
+              }}
             >
-              <Button type="primary">
-                Update Status <DownOutlined />
+              <Button 
+                type="primary"
+                style={{
+                  borderRadius: '4px',
+                  padding: '0 15px',
+                  height: '32px',
+                  fontSize: '14px',
+                  fontWeight: 400,
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                Update Status 
+                <DownOutlined style={{ fontSize: '12px' }} />
               </Button>
             </Dropdown>
           ),
         ]}
         width={800}
-        bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
+        styles={{
+          body: { 
+            maxHeight: '70vh', 
+            overflowY: 'auto',
+            padding: '0 24px 24px 24px'
+          }
+        }}
       >
         {selectedEnquiry && (
           <div className="space-y-6">

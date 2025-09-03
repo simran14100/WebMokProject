@@ -1,29 +1,28 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { apiConnector } from "../services/apiConnector";
-import { enrollment } from "../services/apis";
 import { toast } from "react-hot-toast";
 import { useSelector } from "react-redux";
+import { createAdmissionEnquiry } from "../services/operations/admissionEnquiryApi";
 
 const AdmissionEnquiryForm = () => {
   const [formData, setFormData] = useState({
-    name: "", // Changed from fullName to name
+    name: "",
     dateOfBirth: "",
     gender: "",
     parentName: "",
-    phone: "", // Changed from mobileNumber to phone
+    phone: "",
     email: "",
     alternateNumber: "",
     address: "",
     city: "",
     state: "",
-    lastClass: "",
+    qualification: "", // Changed from lastClass to qualification
     boardSchoolName: "",
     percentage: "",
     programType: "",
     academicYear: "",
     stream: "",
-    modeOfStudy: "Day School",
+    graduationCourse: ""
   });
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -46,13 +45,14 @@ const AdmissionEnquiryForm = () => {
     e.preventDefault();
 
     const requiredFields = [
-      "name", // Changed from fullName to name
+      "name",
       "dateOfBirth",
-      "phone", // Changed from mobileNumber to phone
+      "phone",
       "email",
-      "lastClass",
+      "qualification", // Changed from lastClass to qualification
       "boardSchoolName",
       "programType",
+      "graduationCourse" // Added as required field
     ];
     const missingField = requiredFields.find((field) => !formData[field]);
 
@@ -70,38 +70,30 @@ const AdmissionEnquiryForm = () => {
         email: formData.email,
         phone: formData.phone,
         programType: formData.programType,
-        // Include other fields that might be required
+        parentName: formData.parentName,
         dateOfBirth: formData.dateOfBirth,
         gender: formData.gender,
-        parentName: formData.parentName,
         alternateNumber: formData.alternateNumber,
         address: formData.address,
         city: formData.city,
         state: formData.state,
-        lastClass: formData.lastClass,
+        qualification: formData.qualification, // Using qualification instead of lastClass
         boardSchoolName: formData.boardSchoolName,
         percentage: formData.percentage,
         academicYear: formData.academicYear,
         stream: formData.stream,
-        modeOfStudy: formData.modeOfStudy || 'Day School'
+        graduationCourse: formData.graduationCourse || ''
       };
 
       console.log('Submitting form data:', submissionData);
       
-      // Use the correct endpoint for submitting an admission enquiry
-      const response = await apiConnector(
-        "POST",
-        "/api/v1/enrollment/enquiry",  // Using the correct endpoint
-        submissionData,
-        {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        }
-      );
-
-      if (response.data.success) {
-        toast.success("Admission enquiry submitted successfully!");
-        // Reset form fields
+      // Use the new createAdmissionEnquiry function
+      const response = await createAdmissionEnquiry(submissionData);
+      
+      if (response?.success) {
+        toast.success('Admission enquiry submitted successfully!');
+        // Reset form but keep programType if it was pre-selected
+        const savedProgram = localStorage.getItem("selectedProgram") || "";
         setFormData({
           name: "",
           dateOfBirth: "",
@@ -113,23 +105,47 @@ const AdmissionEnquiryForm = () => {
           address: "",
           city: "",
           state: "",
-          lastClass: "",
+          qualification: "",
           boardSchoolName: "",
           percentage: "",
-          programType: "",
+          programType: savedProgram, // Keep the program type if it was pre-selected
           academicYear: "",
           stream: "",
-          modeOfStudy: "Day School"
+          graduationCourse: ""
         });
+        
+        // Show success message
+        toast.success("Enquiry submitted successfully!");
+        
+        // Optionally redirect to a thank you page or home
+        // navigate('/thank-you');
       } else {
         throw new Error(response.data.message || "Failed to submit enquiry");
       }
     } catch (error) {
       console.error("Error submitting enquiry:", error);
-      toast.error(
-        error.response?.data?.message ||
-          "Failed to submit enquiry. Please try again."
-      );
+      
+      // Handle field-specific errors
+      if (error.response?.data?.field) {
+        const fieldName = error.response.data.field;
+        const fieldLabel = {
+          name: 'Name',
+          email: 'Email',
+          phone: 'Phone',
+          programType: 'Program Type',
+          dateOfBirth: 'Date of Birth',
+          graduationCourse: 'Graduation Course',
+          qualification: 'Last Class/Qualification',
+          boardSchoolName: 'Board/University & School Name'
+        }[fieldName] || fieldName;
+        
+        toast.error(`${fieldLabel} is required`);
+      } else {
+        toast.error(
+          error.response?.data?.message ||
+          "Failed to submit enquiry. Please check all fields and try again."
+        );
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -320,7 +336,7 @@ const AdmissionEnquiryForm = () => {
               gap: "20px",
             }}
           >
-            {renderInput("Last Class/Qualification", "lastClass", "text", true)}
+            {renderInput("Last Class/Qualification", "qualification", "text", true)}
             {renderInput(
               "Board/University & School Name",
               "boardSchoolName",
@@ -328,6 +344,7 @@ const AdmissionEnquiryForm = () => {
               true
             )}
             {renderInput("Percentage/Grades", "percentage", "number")}
+            {renderInput("Graduation Course", "graduationCourse", "text", true)}
           </div>
         </div>
 

@@ -5,14 +5,22 @@ const {
   getAdmissionEnquiry,
   updateEnquiryStatus,
   deleteEnquiry,
-  getEnquiriesByProgramType
+  getEnquiriesByProgramType,
+  createAdmissionEnquiry,
+  debugListAllEnquiries
 } = require('../controllers/AdmissionEnquiryController');
 const { protect, authorize } = require('../middlewares/auth');
 
-// Protect all routes with authentication
+// Public routes
+router.post('/', createAdmissionEnquiry); // Public route for submitting enquiries
+
+// Protected routes (require authentication)
 router.use(protect);
 
-// Routes for admin and superadmin
+// Debug route - list all enquiries (temporary, admin/superadmin only)
+router.get('/debug', authorize('admin', 'superadmin'), debugListAllEnquiries);
+
+// Admin routes
 router.route('/')
   .get(authorize('admin', 'superadmin'), getAllAdmissionEnquiries);
 
@@ -20,10 +28,12 @@ router.route('/')
 router.route('/program/:programType')
   .get(authorize('admin', 'superadmin'), getEnquiriesByProgramType);
 
+// Enquiry-specific routes
 router.route('/:id')
   .get(authorize('admin', 'superadmin'), getAdmissionEnquiry)
   .delete(authorize('admin', 'superadmin'), deleteEnquiry);
 
+// Status update route
 router.route('/:id/status')
   .put(authorize('admin', 'superadmin'), updateEnquiryStatus);
 

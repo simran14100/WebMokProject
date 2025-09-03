@@ -20,7 +20,7 @@ const getUserRole = (user) => {
 export const hasRole = (user, role) => {
   const userRole = getUserRole(user);
   const requiredRole = (role || '').toLowerCase().trim();
-  return userRole === requiredRole;
+  return userRole.toLowerCase() === requiredRole;
 };
 
 /**

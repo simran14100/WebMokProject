@@ -203,15 +203,7 @@ export const videoProtection = {
     GET_VIDEO_ANALYTICS: "/api/v1/video/analytics",
 };
 
-// Enquiry API endpoints
-export const ENQUIRY_API = {
-    GET_ENQUIRIES: "/api/v1/enquiry",
-    GET_ENQUIRY_BY_ID: (id) => `/api/v1/enquiry/${id}`,
-    CREATE_ENQUIRY: "/api/v1/enquiry",
-    UPDATE_ENQUIRY: (id) => `/api/v1/enquiry/${id}`,
-    DELETE_ENQUIRY: (id) => `/api/v1/enquiry/${id}`,
-    GET_SOURCES: "/api/v1/enquiry/sources",
-};
+
 
 // Admission Enquiry API endpoints
 export const admissionEnquiry = {
@@ -235,6 +227,22 @@ export const admissionEnquiryEndpoints = {
   GET_ENQUIRY_BY_ID: (id) => `/api/v1/admission-enquiries/${id}`,
   UPDATE_ENQUIRY_STATUS: (id) => `/api/v1/admission-enquiries/${id}/status`,
   DELETE_ENQUIRY: (id) => `/api/v1/admission-enquiries/${id}`,
+};
+
+// Enquiry API endpoints
+export const ENQUIRY_API = {
+  // Get all enquiries with optional query params
+  GET_ENQUIRIES: "/api/v1/enquiries",
+  // Get single enquiry by ID
+  GET_ENQUIRY_BY_ID: (id) => `/api/v1/enquiries/${id}`,
+  // Create new enquiry
+  CREATE_ENQUIRY: "/api/v1/enquiries",
+  // Update enquiry
+  UPDATE_ENQUIRY: (id) => `/api/v1/enquiries/${id}`,
+  // Delete enquiry
+  DELETE_ENQUIRY: (id) => `/api/v1/enquiries/${id}`,
+  // Get enquiry statistics
+  GET_STATS: "/api/v1/enquiries/stats"
 };
 
 // Enquiry Reference API endpoints

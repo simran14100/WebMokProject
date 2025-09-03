@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { FiPrinter } from 'react-icons/fi';
 import { ED_TEAL, ED_TEAL_DARK } from '../../../utils/theme';
-import { listEnquiries } from '../../../services/enquiryApi';
+import { getEnquiries } from '../../../services/enquiryApi';
 import { listDepartments } from '../../../services/departmentApi';
 import { showSuccess, showError, showLoading, dismissToast } from '../../../utils/toast';
 
@@ -32,7 +32,7 @@ export default function HonoraryApplications() {
         tId = showLoading('Loading...');
         const [deptRes, listRes] = await Promise.all([
           listDepartments(),
-          listEnquiries({ q: query, status, department, page, limit: PAGE_SIZE })
+          getEnquiries({ q: query, status, department, page, limit: PAGE_SIZE })
         ]);
         const deptItems = (deptRes?.data?.data || []).map((d) => ({ id: d._id, name: d.name }));
         setDepartments(deptItems);
@@ -69,8 +69,8 @@ export default function HonoraryApplications() {
       let tId;
       try {
         tId = showLoading('Loading enquiries...');
-        const listRes = await listEnquiries({ q: query, status, department, page, limit: PAGE_SIZE });
-        const resData = listRes?.data || {};
+        const listRes = await getEnquiries({ q: query, status, department, page, limit: PAGE_SIZE });
+        const resData = listRes || {};
         const mapped = (resData.data || []).map((e) => ({
           id: e._id,
           studentName: e.name,

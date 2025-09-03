@@ -1,13 +1,14 @@
 import { apiConnector } from '../apiConnector';
-import { admissionEnquiryEndpoints } from '../apis';
+import { admissionEnquiry } from '../apis';
 import { showError, showSuccess } from '../../utils/toast';
 
 const {
-  GET_ALL_ENQUIRIES_API,
-  GET_ENQUIRY_BY_ID_API,
-  UPDATE_ENQUIRY_STATUS_API,
-  DELETE_ENQUIRY_API,
-} = admissionEnquiryEndpoints;
+  GET_ALL_ENQUIRIES,
+  GET_ENQUIRY_BY_ID,
+  UPDATE_ENQUIRY_STATUS,
+  DELETE_ENQUIRY,
+  CREATE_ENQUIRY
+} = admissionEnquiry;
 
 /**
  * Get all admission enquiries with optional filtering and pagination
@@ -16,17 +17,17 @@ const {
  * @param {Object} headers - Additional headers to include in the request
  * @returns {Promise<Object>} Response data containing enquiries and pagination info
  */
-export const getAllAdmissionEnquiries = async (params, token, headers = {}) => {
+export const getAllAdmissionEnquiries = async (params = {}, token, headers = {}) => {
   try {
     const response = await apiConnector(
       'GET',
-      GET_ALL_ENQUIRIES_API,
-      null,
+      GET_ALL_ENQUIRIES,
+      null, // No request body for GET
       {
-        Authorization: `Bearer ${token}`,
-        ...headers, // Include any additional headers
+        ...headers,
+        ...(token && { Authorization: `Bearer ${token}` })
       },
-      params // Query parameters
+      params // Pass query parameters as an object
     );
 
     if (!response?.data?.success) {
@@ -42,14 +43,42 @@ export const getAllAdmissionEnquiries = async (params, token, headers = {}) => {
   }
 };
 
+/**
+ * Create a new admission enquiry
+ * @param {Object} enquiryData - The enquiry data to submit
+ * @returns {Promise<Object>} Response data containing the created enquiry
+ */
+export const createAdmissionEnquiry = async (enquiryData) => {
+  try {
+    const response = await apiConnector(
+      'POST',
+      CREATE_ENQUIRY,
+      enquiryData
+    );
+
+    if (!response?.data?.success) {
+      throw new Error(response?.data?.message || 'Failed to submit admission enquiry');
+    }
+
+    showSuccess('Admission enquiry submitted successfully');
+    return response.data;
+  } catch (error) {
+    console.error('CREATE ADMISSION ENQUIRY ERROR............', error);
+    const errorMessage = error.response?.data?.message || error.message || 'Failed to submit admission enquiry';
+    showError(errorMessage);
+    throw new Error(errorMessage);
+  }
+};
+
 // Get admission enquiry by ID
 export const getAdmissionEnquiryById = async (enquiryId, token) => {
   try {
     const response = await apiConnector(
       'GET',
-      `${GET_ENQUIRY_BY_ID_API}/${enquiryId}`,
+      GET_ENQUIRY_BY_ID(enquiryId),
       null,
       {
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       }
     );
@@ -69,10 +98,11 @@ export const getAdmissionEnquiryById = async (enquiryId, token) => {
 export const updateEnquiryStatus = async (enquiryId, statusData, token) => {
   try {
     const response = await apiConnector(
-      'PUT',
-      `${UPDATE_ENQUIRY_STATUS_API}/${enquiryId}/status`,
+      'PATCH',
+      UPDATE_ENQUIRY_STATUS(enquiryId),
       statusData,
       {
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       }
     );
@@ -96,9 +126,10 @@ export const deleteAdmissionEnquiry = async (enquiryId, token) => {
   try {
     const response = await apiConnector(
       'DELETE',
-      `${DELETE_ENQUIRY_API}/${enquiryId}`,
+      DELETE_ENQUIRY(enquiryId),
       null,
       {
+        'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
       }
     );

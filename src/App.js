@@ -81,7 +81,7 @@ import ExternalExperts from './components/core/SuperAdmin/ExternalExperts';
 import FinalData from './components/core/SuperAdmin/FinalData';
 import UsersManagement from './components/core/SuperAdmin/UsersManagement';
 import HonoraryApplications from './components/core/SuperAdmin/HonoraryApplications';
-import AdmissionEnquiries from './pages/admin/AdmissionEnquiries';
+
 // Sidebar centralized with variants
 import Sidebar from './components/common/Sidebar';
 // UG/PG SuperAdmin pages
@@ -249,7 +249,6 @@ function AppRoutes() {
         <Route path="settings/languages" element={<UGPGSettingsLanguages />} />
         <Route path="settings/states" element={<UGPGSettingsStates />} />
         <Route path="settings/cities" element={<UGPGSettingsCities />} />
-        <Route path="admissions/enquiries" element={<AdmissionEnquiries />} />
         <Route path="academic" element={<UGPGAcademic />} />
         <Route path="academic/session" element={<AcademicSession />} />
         <Route path="academic/exam-session" element={<ExamSession />} />

@@ -1,5 +1,4 @@
 const Enrollment = require('../models/Enrollment');
-const AdmissionEnquiry = require('../models/AdmissionEnquiry');
 const User = require('../models/User');
 
 exports.checkEnrollment = async (req, res) => {
@@ -32,56 +31,6 @@ exports.checkEnrollment = async (req, res) => {
         return res.status(500).json({
             success: false,
             message: 'Error checking enrollment status',
-            error: error.message
-        });
-    }
-};
-
-exports.createAdmissionEnquiry = async (req, res) => {
-    try {
-        const { name, email, phone, programType, fatherName } = req.body;
-        
-        // Validate required fields
-        if (!name || !email || !phone || !programType) {
-            return res.status(400).json({
-                success: false,
-                message: 'Name, email, phone, and program type are required'
-            });
-        }
-
-        // Create new enquiry
-        const enquiry = new AdmissionEnquiry({
-            name,
-            email,
-            phone,
-            programType: programType.toUpperCase(),
-            ...(fatherName && { fatherName }),
-            ...(req.user?.id && { user: req.user.id })
-        });
-
-        await enquiry.save();
-
-        // If user is logged in, create enrollment record
-        if (req.user?.id) {
-            const enrollment = new Enrollment({
-                user: req.user.id,
-                programType: programType.toUpperCase(),
-                status: 'pending'
-            });
-            await enrollment.save();
-        }
-
-        return res.status(201).json({
-            success: true,
-            message: 'Admission enquiry submitted successfully',
-            enquiry
-        });
-
-    } catch (error) {
-        console.error('Error creating admission enquiry:', error);
-        return res.status(500).json({
-            success: false,
-            message: 'Error submitting admission enquiry',
             error: error.message
         });
     }
