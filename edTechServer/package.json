@@ -26,6 +26,7 @@
     "express-validator": "^7.2.1",
     "googleapis": "^156.0.0",
     "helmet": "^8.1.0",
+    "hpp": "^0.2.3",
     "jsonwebtoken": "^9.0.2",
     "jwt-decode": "^4.0.0",
     "mongoose": "^8.16.0",
@@ -35,6 +36,8 @@
     "nodemon": "^3.1.4",
     "otp-generator": "^4.0.1",
     "razorpay": "^2.9.6",
-    "xss-clean": "^0.1.4"
+    "streamifier": "^0.1.1",
+    "xss-clean": "^0.1.4",
+    "morgan": "^1.10.0"
   }
 }

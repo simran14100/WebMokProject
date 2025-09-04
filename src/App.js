@@ -244,7 +244,11 @@ function AppRoutes() {
         </ProtectedRoute>
       }>
         <Route index element={<UGPGDashboard />} />
-        <Route path="admissions/new-registration" element={<NewRegistration />} />
+        <Route path="new-registration" element={
+          <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
+            <NewRegistration />
+          </ProtectedRoute>
+        } />
         <Route path="settings" element={<UGPGSettings />} />
         <Route path="settings/users" element={<UGPGSettingsUsers />} />
         <Route path="settings/school" element={<UGPGSettingsSchool />} />

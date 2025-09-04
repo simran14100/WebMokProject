@@ -5,18 +5,101 @@ import { clearUser } from "../store/slices/profileSlice";
 import { refreshToken } from "./operations/authApi";
 import { showError } from "../utils/toast";
 
-export const axiosInstance = axios.create({
-  baseURL: process.env.REACT_APP_BASE_URL || "http://localhost:4000",
-  withCredentials: true, // Required for cookies, authorization headers with HTTPS
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-  crossDomain: true,
-  timeout: 30000, // 30 seconds
-  xsrfCookieName: 'XSRF-TOKEN',
-  xsrfHeaderName: 'X-XSRF-TOKEN',
-});
+if (!process.env.REACT_APP_BASE_URL) {
+  console.error('REACT_APP_BASE_URL is not set in environment variables');
+}
+
+// Create a clean axios instance with minimal configuration
+const createAxiosInstance = () => {
+  const instance = axios.create({
+    baseURL: process.env.REACT_APP_BASE_URL,
+    withCredentials: true,
+    timeout: 30000, // 30 seconds
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      'X-Requested-With': 'XMLHttpRequest',
+    },
+    xsrfCookieName: 'XSRF-TOKEN',
+    xsrfHeaderName: 'X-XSRF-TOKEN',
+    // Add withCredentials for CORS
+    withCredentials: true,
+    // Handle CORS
+    crossDomain: true,
+    // Don't send credentials with CORS preflight
+    withXSRFToken: true,
+  });
+  
+  // Remove any CORS headers from requests - these should only be in responses
+  delete instance.defaults.headers.common['Access-Control-Allow-Origin'];
+  delete instance.defaults.headers.common['Access-Control-Allow-Methods'];
+  delete instance.defaults.headers.common['Access-Control-Allow-Headers'];
+  delete instance.defaults.headers.common['Access-Control-Allow-Credentials'];
+
+  // Request interceptor
+  instance.interceptors.request.use(
+    (config) => {
+      // Skip adding auth header for auth-related requests or if skipAuth is true
+      if (config.url.includes('/auth/') || config.skipAuth) {
+        delete config.headers.Authorization;
+        // Ensure CORS headers are set for all requests
+        config.headers['X-Requested-With'] = 'XMLHttpRequest';
+        return config;
+      }
+
+      // Get token from Redux store or localStorage
+      const state = store?.getState();
+      const token = state?.auth?.token || localStorage.getItem('token');
+      
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+      
+      // Ensure CORS headers are set for all requests
+      config.headers['X-Requested-With'] = 'XMLHttpRequest';
+      
+      return config;
+    },
+    (error) => {
+      console.error('Request interceptor error:', error);
+      return Promise.reject(error);
+    }
+  );
+  
+  // Response interceptor to handle 401 errors
+  instance.interceptors.response.use(
+    (response) => response,
+    async (error) => {
+      const originalRequest = error.config;
+      
+      // If error is not 401 or it's a retry request, reject
+      if (error.response?.status !== 401 || originalRequest._retry) {
+        return Promise.reject(error);
+      }
+      
+      // Mark request as retried to prevent infinite loops
+      originalRequest._retry = true;
+      
+      try {
+        // Try to refresh the token
+        const newToken = await refreshToken();
+        
+        // Retry the original request with the new token
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return instance(originalRequest);
+      } catch (refreshError) {
+        // If refresh token fails, log out the user
+        console.error('Token refresh failed:', refreshError);
+        store.dispatch(logoutAction());
+        return Promise.reject(refreshError);
+      }
+    }
+  );
+
+  return instance;
+};
+
+export const axiosInstance = createAxiosInstance();
 
 // Track if we're currently processing auth refresh
 let isRefreshing = false;
@@ -156,8 +239,13 @@ axiosInstance.interceptors.response.use(
 export const apiConnector = (method, url, bodyData = null, headers = {}, params = null) => {
   console.log('API Request:', { method, url, bodyData, headers, params });
   
+  // Skip auth for specific endpoints
+  const skipAuth = url.includes('/auth/') || headers.skipAuth || headers['X-Skip-Interceptor'];
+  
   // Get token from Redux store or localStorage
   const getToken = () => {
+    if (skipAuth) return null;
+    
     try {
       // First try to get from Redux store
       const state = store.getState();

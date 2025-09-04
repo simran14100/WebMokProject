@@ -32,10 +32,10 @@ const Login = ({ isUniversity = false }) => {
 
     try {
       // Handle login with redirect path
-      await dispatch(login(email, password, redirectPath));
+      await dispatch(login(email, password, navigate));
       
-      // If login is successful, the login function will handle the navigation
-      // No need to do anything else here
+      // After successful login, navigate to the intended path
+      navigate(redirectPath);
     } catch (err) {
       console.error('Login error:', err);
       if (err.code === 'ERR_NETWORK') {

@@ -4,9 +4,19 @@ console.log('RAZORPAY_KEY_ID:', process.env.RAZORPAY_KEY_ID);
 console.log('RAZORPAY_KEY_SECRET:', process.env.RAZORPAY_KEY_SECRET ? 'SET' : 'NOT SET');
 console.log('MONGODB_URL:', process.env.MONGODB_URL);
 const express = require("express");
+const cors = require("cors");
+const { cloudinaryConnect } = require("./config/cloudinary");
+const fileUpload = require("express-fileupload");
+const { rateLimit } = require('express-rate-limit');
+const mongoSanitize = require('express-mongo-sanitize');
+const helmet = require('helmet');
+const xss = require('xss-clean');
+const hpp = require('hpp');
+const morgan = require('morgan');
 const fs = require("fs");
 const os = require("os");
 const path = require("path");
+
 const app = express();
 const userRoutes = require("./routes/user");
 const profileRoutes = require("./routes/profile");
@@ -44,23 +54,40 @@ const visitPurposeRoutes = require("./routes/visitPurpose");
 const honoraryEnquiryRoutes = require("./routes/honoraryEnquiryRoutes");
 
 const meetingTypeRoutes = require("./routes/meetingTypeRoutes");
-
+const universityRegisteredStudentRoutes = require("./routes/universityRegisteredStudentRoutes");
 
 const database = require("./config/database");
 const cookieParser = require("cookie-parser");
-const cors = require("cors");
-const { cloudinaryConnect } = require("./config/cloudinary");
-const fileUpload = require("express-fileupload");
+const cloudinary = require('cloudinary').v2;
 
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUD_NAME,
+  api_key: process.env.API_KEY,
+  api_secret: process.env.API_SECRET
+});
 
+global.cloudinary = cloudinary;
+
+// CORS configuration for development
+app.use((req, res, next) => {
+  // Allow all origins in development
+  res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, withCredentials, skipauth, X-Skip-Interceptor');
+  res.header('Access-Control-Allow-Credentials', 'true');
+  res.header('Access-Control-Max-Age', '600');
+  
+  // Handle preflight requests
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+  
+  next();
+});
 
 // Setting up port number
 const PORT = process.env.PORT || 4000;
-
-// Loading environment variables from .env file
-
-
-
 
 // Function to start the server
 const startServer = (port) => {
@@ -85,85 +112,70 @@ database.connect()
   .catch(() => {
     console.error("Server not started due to DB connection failure");
   });
- 
-// CORS Configuration
-const corsOptions = {
-  origin: function (origin, callback) {
-    // In development, allow all origins for easier testing
-    if (process.env.NODE_ENV !== 'production') {
-      return callback(null, true);
-    }
-    
-    // In production, restrict to specific origins
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://127.0.0.1:3000',
-      'http://localhost:4000',
-      'http://127.0.0.1:4000',
-      // Add your production domains here
-    ];
-    
-    if (!origin || allowedOrigins.includes(origin)) {
-      return callback(null, true);
-    }
-    
-    const msg = `The CORS policy for this site does not allow access from the specified origin: ${origin}`;
-    console.error(msg);
-    return callback(new Error(msg), false);
-  },
-  credentials: true,
-  allowedHeaders: [
-    'Content-Type',
-    'Authorization',
-    'X-Requested-With',
-    'X-Skip-Interceptor',
-    'skipauth',
-    'withCredentials',
-    'Access-Control-Allow-Credentials',
-    'timeout',
-    'signal',
-    'headers',
-    'x-api-key',
-    'x-client-version',
-    'x-app-version',
-    'x-platform',
-    'x-device-id',
-    'x-device-type',
-    'x-auth-token',
-    'x-requested-with',
-    'x-csrf-token',
-    'x-forwarded-for',
-    'x-forwarded-proto',
-    'x-forwarded-port'
-  ],
-  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS', 'HEAD'],
-  preflightContinue: false,
-  optionsSuccessStatus: 204,
-  exposedHeaders: [
-    'Content-Range', 
-    'X-Content-Range',
-    'Set-Cookie',
-    'Access-Control-Allow-Credentials'
-  ],
-  optionsSuccessStatus: 200
-};
-
-// Apply CORS middleware
-app.use(cors(corsOptions));
-
-// Handle preflight requests
-app.options('*', cors(corsOptions));
 
 // Middlewares
 app.use(express.json());
 app.use(cookieParser());
 
-// Set CORS headers for all responses
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization, withCredentials, skipauth, X-Skip-Interceptor');
-  next();
-});
+// CORS configuration
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+  allowedHeaders: [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'Access-Control-Allow-Credentials',
+    'withCredentials',
+    'skipauth',
+    'X-Skip-Interceptor',
+    'signal',
+    'X-XSRF-TOKEN',
+    'headers'
+  ]
+}));
+
+app.use(express.urlencoded({ extended: true }));
+app.use(helmet());
+app.use(xss());
+app.use(hpp());
+app.use(mongoSanitize());
+app.use(morgan('dev'));
+
+// File upload middleware with increased limits and better error handling
+app.use(fileUpload({
+  useTempFiles: true,
+  tempFileDir: os.tmpdir(),
+  createParentPath: true,
+  limits: {
+    fileSize: 20 * 1024 * 1024, // 20MB per file (increased from 10MB)
+    files: 2, // Max 2 files per request
+    fields: 200, // Increased from 100
+    parts: 400, // Increased from 200
+    headerPairs: 400 // Increased from 200
+  },
+  limitHandler: (req, res) => {
+    console.error('File upload limit exceeded:', {
+      fileSize: req.headers['content-length'],
+      files: req.files ? Object.keys(req.files) : 'none',
+      fields: Object.keys(req.body || {})
+    });
+    return res.status(413).json({
+      success: false,
+      message: 'File upload limit exceeded. Maximum 20MB per file and 2 files per request.'
+    });
+  },
+  parseNested: true,
+  abortOnLimit: false, // Don't abort, handle limits in limitHandler
+  responseOnLimit: 'File size or count exceeds the limit',
+  debug: true, // Enable debug for now to see more logs
+  safeFileNames: true,
+  preserveExtension: 4,
+  // Add timeout for file uploads (5 minutes)
+  uploadTimeout: 5 * 60 * 1000
+}));
 
 // Configure a cross-platform temporary directory for uploads
 const uploadTmpDir = path.join(os.tmpdir(), "webmok-uploads");
@@ -186,7 +198,6 @@ app.use(
 // Connecting to cloudinary
 cloudinaryConnect();
 
-
 // Mount the routes
 app.use("/api/v1/auth", userRoutes);
 app.use("/api/v1/profile", profileRoutes);
@@ -198,6 +209,9 @@ app.use("/api/v1/admin", adminRoutes);
 app.use("/api/v1/enrollment", enrollmentRoutes);
 app.use("/api/v1/enrollment-management", enrollmentManagementRoutes);
 app.use("/api/v1/admission", admissionRoutes);
+app.use("/api/v1/university/registered-students", universityRegisteredStudentRoutes);
+
+// Protected routes
 app.use("/api/v1/admission-enquiries", admissionEnquiryRoutes);
 app.use("/api/v1/enquiries", enquiryRoutes);
 app.use("/api/v1/installments", installmentRoutes);

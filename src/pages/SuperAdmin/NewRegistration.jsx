@@ -1,4 +1,7 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { setToken } from '../../store/slices/authSlice';
 import { 
   Form, 
   Input, 
@@ -34,25 +37,62 @@ const { TextArea } = Input;
 const NewRegistration = () => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const { token, isAuthenticated } = useSelector((state) => state.auth);
+  
+  // Authentication is handled by ProtectedRoute at the route level
   const [showParentFields, setShowParentFields] = useState(true);
   const [showGuardianFields, setShowGuardianFields] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
   const [signatureFile, setSignatureFile] = useState(null);
+  const [signaturePreview, setSignaturePreview] = useState(null);
   
   // For photo upload
-  const beforeUploadPhoto = (file) => {
+  const handlePhotoChange = (info) => {
+    if (info.file) {
+      // Ensure we're working with a proper File object
+      const file = info.file.originFileObj || info.file;
+      if (file instanceof File) {
+        setPhotoFile(file);
+        // Create preview URL
+        const reader = new FileReader();
+        reader.onload = (e) => setPhotoPreview(e.target.result);
+        reader.readAsDataURL(file);
+      }
+    }
+    return false; // Prevent default upload behavior
+  };
+
+  // For signature upload
+  const handleSignatureChange = (info) => {
+    if (info.file) {
+      // Ensure we're working with a proper File object
+      const file = info.file.originFileObj || info.file;
+      if (file instanceof File) {
+        setSignatureFile(file);
+        // Create preview URL
+        const reader = new FileReader();
+        reader.onload = (e) => setSignaturePreview(e.target.result);
+        reader.readAsDataURL(file);
+      }
+    }
+    return false; // Prevent default upload behavior
+  };
+
+  const beforeUpload = (file) => {
     const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
     if (!isJpgOrPng) {
-      message.error('You can only upload JPG/PNG file!');
+      message.error('You can only upload JPG/PNG files!');
+      return Upload.LIST_IGNORE;
     }
     const isLt2M = file.size / 1024 / 1024 < 2;
     if (!isLt2M) {
       message.error('Image must be smaller than 2MB!');
+      return Upload.LIST_IGNORE;
     }
-    if (isJpgOrPng && isLt2M) {
-      setPhotoFile(file);
-    }
-    return isJpgOrPng && isLt2M ? true : Upload.LIST_IGNORE;
+    return true;
   };
   
   // For signature upload
@@ -60,37 +100,206 @@ const NewRegistration = () => {
     const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
     if (!isJpgOrPng) {
       message.error('You can only upload JPG/PNG file!');
+      return Upload.LIST_IGNORE;
     }
     const isLt1M = file.size / 1024 / 1024 < 1;
     if (!isLt1M) {
       message.error('Signature must be smaller than 1MB!');
+      return Upload.LIST_IGNORE;
     }
-    if (isJpgOrPng && isLt1M) {
-      setSignatureFile(file);
+    // Don't set the file here, let handleSignatureChange handle it
+    return true;
+  };
+
+  const uploadFile = async (file) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const response = await fetch('http://localhost:4000/api/v1/university/registered-students/upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: formData
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Upload failed');
+      }
+      
+      const data = await response.json();
+      return data.url || data.secure_url; // Handle both response formats
+    } catch (error) {
+      console.error('Error uploading file:', error);
+      message.error('Failed to upload file. Please try again.');
+      throw error;
     }
-    return isJpgOrPng && isLt1M ? true : Upload.LIST_IGNORE;
   };
 
   const onFinish = async (values) => {
     try {
       setLoading(true);
-      // Format dates before submission
-      const formattedValues = {
-        ...values,
-        dateOfBirth: values.dateOfBirth.format('YYYY-MM-DD'),
-        // Add any other field formatting here
-      };
       
-      console.log('Form values:', formattedValues);
+      // Log form values for debugging
+      console.log('Form values:', values);
       
-      // TODO: Replace with your actual API call
-      // await apiConnector('POST', '/api/registrations', formattedValues);
+      // Create FormData for the entire form
+      const formData = new FormData();
       
+      // Add all form values to FormData
+      Object.keys(values).forEach(key => {
+        // Skip file fields as we'll add them separately
+        if (key === 'photo' || key === 'signature') return;
+        
+        if (key === 'dateOfBirth' && values[key]) {
+          const dateValue = values[key].format('YYYY-MM-DD');
+          formData.append(key, dateValue);
+          console.log('Added date:', { key, value: dateValue });
+        } else if (values[key] !== undefined && values[key] !== null) {
+          // Convert objects/arrays to JSON strings
+          const value = typeof values[key] === 'object' && !(values[key] instanceof File)
+            ? JSON.stringify(values[key])
+            : values[key];
+          formData.append(key, value);
+          console.log('Added field:', { key, value });
+        }
+      });
+      
+      // Add parent data as JSON string if it exists
+      if (values.parent) {
+        formData.append('parent', JSON.stringify(values.parent));
+      }
+      
+      // Add address data as JSON string if it exists
+      if (values.address) {
+        formData.append('address', JSON.stringify(values.address));
+      }
+      
+      // Add files to FormData if they exist
+      if (photoFile) {
+        console.log('Adding photo file:', photoFile.name, photoFile.size, 'bytes', 'type:', photoFile.type);
+        // Use the same field name that the server expects
+        formData.append('photo', photoFile, photoFile.name);
+      } else {
+        console.log('No photo file to upload');
+      }
+      
+      if (signatureFile) {
+        console.log('Adding signature file:', signatureFile.name, signatureFile.size, 'bytes', 'type:', signatureFile.type);
+        // Use the same field name that the server expects
+        formData.append('signature', signatureFile, signatureFile.name);
+      } else {
+        console.log('No signature file to upload');
+      }
+      
+      // Log the form data keys for debugging
+      console.log('FormData entries:');
+      for (let pair of formData.entries()) {
+        console.log(pair[0], pair[1]);
+      }
+      
+      // Check if we have a valid token
+      if (!token) {
+        const errorMsg = 'Your session has expired. Please log in again.';
+        message.error(errorMsg);
+        // Redirect to login after showing the message
+        setTimeout(() => navigate('/login', { 
+          state: { from: '/super-admin/new-registration' } 
+        }), 1500);
+        throw new Error(errorMsg);
+      }
+      
+      // Make API call to your backend
+      console.log('Sending request to server...');
+      const response = await fetch('http://localhost:4000/api/v1/university/registered-students/', {
+        method: 'POST',
+        // Don't set Content-Type header - let the browser set it with the correct boundary
+        headers: {
+          'Authorization': `Bearer ${token}`
+          // Let the browser set the Content-Type with the correct boundary
+        },
+        body: formData
+      });
+      
+      console.log('Response status:', response.status);
+      
+      // Try to parse the response as JSON, but handle non-JSON responses
+      let responseData;
+      const contentType = response.headers.get('content-type');
+      
+      // Log response headers for debugging
+      console.log('Response headers:');
+      response.headers.forEach((value, key) => {
+        console.log(`${key}: ${value}`);
+      });
+      
+      // Get response text first to handle both JSON and non-JSON responses
+      const responseText = await response.text();
+      console.log('Raw response:', responseText);
+      
+      // Try to parse as JSON if content-type is JSON
+      if (contentType && contentType.includes('application/json')) {
+        try {
+          responseData = JSON.parse(responseText);
+        } catch (e) {
+          console.error('Error parsing JSON response:', e);
+          throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
+        }
+      } else {
+        console.log('Non-JSON response:', responseText.substring(0, 500));
+        responseData = { message: responseText };
+      }
+      
+      if (!response.ok) {
+        // Log detailed error information
+        console.error('Server error response:', {
+          status: response.status,
+          statusText: response.statusText,
+          data: responseData,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+        
+        // Handle different types of errors
+        if (response.status === 401) {
+          const errorMsg = 'Session expired. Please log in again.';
+          message.error(errorMsg);
+          // Redirect to login or handle session expiration
+          // window.location.href = '/login';
+          throw new Error(errorMsg);
+        } else if (response.status === 400) {
+          const errorMsg = responseData.message || 'Invalid data. Please check your inputs.';
+          message.error(errorMsg);
+          throw new Error(errorMsg);
+        } else if (response.status === 413) {
+          const errorMsg = 'File size is too large. Maximum 20MB per file allowed.';
+          message.error(errorMsg);
+          throw new Error(errorMsg);
+        } else if (response.status >= 500) {
+          const errorMsg = responseData.message || 'Server error. Please try again later.';
+          message.error(errorMsg);
+          throw new Error(`Server error: ${response.status} - ${response.statusText}`);
+        } else {
+          const errorMsg = responseData.message || 'An unexpected error occurred.';
+          message.error(errorMsg);
+          throw new Error(`Error ${response.status}: ${response.statusText}`);
+        }
+      }
+      
+      // Handle successful response
+      console.log('Registration successful:', responseData);
       message.success('Registration submitted successfully!');
+      
+      // Reset form and clear file states
       form.resetFields();
+      setPhotoFile(null);
+      setPhotoPreview(null);
+      setSignatureFile(null);
+      setSignaturePreview(null);
     } catch (error) {
-      console.error('Error submitting form:', error);
-      message.error('Failed to submit registration. Please try again.');
+      console.error('Error in form submission:', error);
+      message.error(error.message || 'Failed to submit registration. Please check the console for details.');
     } finally {
       setLoading(false);
     }
@@ -138,16 +347,18 @@ const NewRegistration = () => {
                       name="photo"
                       accept="image/*"
                       showUploadList={false}
-                      beforeUpload={beforeUploadPhoto}
-                      className="absolute bottom-0 right-0"
+                      beforeUpload={beforeUpload}
+                      onChange={handlePhotoChange}
+                      customRequest={({ onSuccess }) => onSuccess('ok')}
                     >
                       <Button 
                         type="primary" 
-                        shape="circle" 
-                        icon={<EditOutlined />} 
-                        size="small"
-                        className="bg-blue-500"
-                      />
+                        size="small" 
+                        icon={<CameraOutlined />}
+                        className="absolute bottom-0 right-0 transform translate-y-1/2 translate-x-1/2"
+                      >
+                        Change
+                      </Button>
                     </Upload>
                   </div>
                   <div className="text-sm text-gray-500">Student Photo (Max 2MB)</div>
@@ -161,8 +372,8 @@ const NewRegistration = () => {
                       {signatureFile ? (
                         <img 
                           src={URL.createObjectURL(signatureFile)} 
-                          alt="Signature" 
-                          className="max-h-full max-w-full"
+                          alt="Signature Preview" 
+                          className="max-w-full max-h-full object-contain"
                         />
                       ) : (
                         <div className="text-gray-400">Signature</div>
@@ -173,7 +384,8 @@ const NewRegistration = () => {
                       accept="image/*"
                       showUploadList={false}
                       beforeUpload={beforeUploadSignature}
-                      className="absolute -bottom-6 left-1/2 transform -translate-x-1/2"
+                      onChange={handleSignatureChange}
+                      customRequest={({ onSuccess }) => onSuccess('ok')}
                     >
                       <Button 
                         type="primary" 
@@ -181,7 +393,7 @@ const NewRegistration = () => {
                         icon={<UploadOutlined />}
                         className="bg-blue-500"
                       >
-                        Upload
+                        {signatureFile ? 'Change' : 'Upload'}
                       </Button>
                     </Upload>
                   </div>

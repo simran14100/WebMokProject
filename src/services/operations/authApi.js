@@ -1,3 +1,4 @@
+import axios from "axios";
 import { showSuccess, showError, showLoading, dismissToast, dismissAllToasts } from "../../utils/toast"
 import { setLoading, setToken } from "../../store/slices/authSlice"
 import { setUser, updateUser, setLoading as setProfileLoading } from "../../store/slices/profileSlice"
@@ -409,56 +410,42 @@ export function login(email, password, navigate) {
     dispatch(setLoading(true));
     
     try {
-      // Get redirect path from the navigate function (passed from component)
-      let redirectTo = '/dashboard';
-      if (typeof navigate === 'string') {
-        // If navigate is actually a redirect path (for backward compatibility)
-        redirectTo = navigate;
-        // Get the navigate function from the store
-        const { router } = store.getState();
-        if (router && router.navigate) {
-          navigate = router.navigate;
-        } else {
-          // Fallback to window navigation if router is not available
-          navigate = (path) => { window.location.href = path; };
-        }
-      }
-      
-      // The token will be set in an HTTP-only cookie by the server
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      
-      // Make the login request
-      const response = await apiConnector(
-        "POST",
-        LOGIN_API,
-        { email, password, redirectTo },
-        {
-          withCredentials: true,
-          'X-Skip-Interceptor': 'true',
-          signal: controller.signal,
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
+      // Create a minimal axios instance with no extra configuration
+      const response = await axios({
+        method: 'post',
+        url: `${process.env.REACT_APP_BASE_URL || 'http://localhost:4001'}/api/v1/auth/login`,
+        data: { email, password },
+        withCredentials: true,
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        // Ensure we don't send any extra headers
+        transformRequest: [(data, headers) => {
+          // Safely remove any problematic headers
+          if (headers && headers.common) {
+            delete headers.common['X-Requested-With'];
+            delete headers.common['Access-Control-Allow-Origin'];
+            delete headers.common['Access-Control-Allow-Methods'];
+            delete headers.common['Access-Control-Allow-Headers'];
           }
-        }
-      );
-      clearTimeout(timeoutId);
+          return JSON.stringify(data);
+        }]
+      });
       
       // If we get here, login was successful
       const { user, token } = response.data;
       
-      // Store the token in Redux store
+      // Store the token in both Redux store and localStorage as fallback
       dispatch(setToken(token));
-      
-      // Store user data in Redux store
+      localStorage.setItem('token', token);
       dispatch(setUser(user));
       
       // Show success message
       showSuccess('Login successful!');
       
-      // Always redirect to the user's profile page after login
+      // Handle navigation based on user type
       if (user.accountType === 'Student') {
         navigate('/dashboard/my-profile');
       } else if (user.accountType === 'Instructor') {
@@ -466,29 +453,46 @@ export function login(email, password, navigate) {
       } else if (user.accountType === 'Admin' || user.accountType === 'Super Admin') {
         navigate('/dashboard/my-profile');
       } else {
-        // Fallback to home page for any other user type
         navigate('/');
       }
     } catch (error) {
-      console.error('Login error:', error);
+      console.error("Login error:", error);
       
-      // Handle specific error cases
+      // Handle CORS specific errors
+      if (error.message && error.message.includes('CORS') || 
+          (error.response && error.response.status === 0)) {
+        console.error("CORS error detected. Please check backend CORS configuration.");
+        showError("CORS error: Please ensure the backend is properly configured to accept requests from this origin.");
+        return dispatch({ type: 'auth/setError', payload: "CORS configuration error. Please contact support." });
+      }
+      
+      // Handle network errors
+      if (error.message === 'Network Error' || !navigator.onLine) {
+        showError("Network error. Please check your internet connection and try again.");
+        return dispatch({ type: 'auth/setError', payload: "Network error. Please check your connection and try again." });
+      }
+      
+      // Handle server errors
       if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
-        if (error.response.status === 404) {
-          throw new Error('No account found with this email. Please sign up first.');
-        } else if (error.response.status === 401) {
-          throw new Error('Incorrect password. Please try again.');
-        } else {
-          throw new Error(error.response.data.message || 'Login failed. Please try again.');
-        }
+        console.error("Server error:", error.response.data);
+        const errorMessage = error.response.data?.message || 
+                           error.response.data?.error || 
+                           `Server error: ${error.response.status}`;
+        showError(errorMessage);
+        return dispatch({ type: 'auth/setError', payload: errorMessage });
       } else if (error.request) {
         // The request was made but no response was received
-        throw new Error('No response from server. Please check your internet connection.');
+        console.error("No response received:", error.request);
+        showError("No response from server. The server might be down or there might be a network issue.");
+        return dispatch({ type: 'auth/setError', payload: "No response from server. Please try again later." });
       } else {
         // Something happened in setting up the request that triggered an Error
-        throw new Error(error.message || 'Login failed. Please try again.');
+        console.error('Request setup error:', error.message);
+        const errorMessage = error.message || "An unexpected error occurred during login";
+        showError(errorMessage);
+        return dispatch({ type: 'auth/setError', payload: errorMessage });
       }
     } finally {
       dispatch(setLoading(false));
@@ -1267,28 +1271,33 @@ export function updateDisplayPicture(formData) {
 // Refresh the access token using the HTTP-only refresh cookie
 export const refreshToken = async (token = null) => {
   try {
-    // The refresh token is automatically sent via HTTP-only cookie
     const response = await apiConnector(
-      "POST",
+      'POST',
       REFRESH_TOKEN_API,
-      token ? { token } : {},
+      {},
       {
-        withCredentials: true, // Important for sending cookies
-        'X-Skip-Interceptor': 'true', // Skip the interceptor for this request
-        skipAuth: true // Skip auth header for refresh token request
+        withCredentials: true, // Important for cookies
+        skipAuth: true, // Skip auth interceptor for refresh token request
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'Access-Control-Allow-Credentials': 'true'
+        }
       }
     );
 
-    if (!response.data?.success) {
-      const errorMessage = response.data?.message || "Failed to refresh token";
-      console.error("REFRESH TOKEN ERROR:", errorMessage);
-      throw new Error(errorMessage);
-    }
-
-    console.log("Token refreshed successfully");
-    // The new access token is set in an HTTP-only cookie by the server
-    return response.data;
+    const { accessToken } = response.data;
     
+    // Update the token in Redux and localStorage
+    if (accessToken) {
+      store.dispatch(setToken(accessToken));
+      localStorage.setItem('token', accessToken);
+      console.log('Access token refreshed successfully');
+      return accessToken;
+    }
+    
+    throw new Error('No access token received');
   } catch (error) {
     console.error("REFRESH TOKEN ERROR:", {
       message: error.message,
