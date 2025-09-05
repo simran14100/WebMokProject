@@ -1,44 +1,87 @@
 import React, { useEffect, useState } from "react";
+import axios from 'axios';
+import { Table, Card, Button, Space, Tag, message, Input } from 'antd';
+import { SearchOutlined, ReloadOutlined } from '@ant-design/icons';
+import dayjs from 'dayjs';
+
+const { Search } = Input;
 
 const VerifiedStudents = () => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [pagination, setPagination] = useState({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+  const [searchText, setSearchText] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [showModal, setShowModal] = useState(false);
   const [remarks, setRemarks] = useState("");
 
-  // Fetch verified students from API
-  useEffect(() => {
-    const fetchStudents = async () => {
-      try {
-        // Mock data for demonstration
-        const mockData = [
-          {
-            id: 1,
-            date: "2024-03-15",
-            regNo: "2400005",
-            session: "2025-26",
-            school: "School of Engineering",
-            course: "Computer Science",
-            name: "Jile Singh",
-            fatherName: "Sansar Singh",
-            phone: "9876543210",
-            email: "jile@example.com",
-            qualification: "B.Tech",
-            dob: "08-Feb-2024"
-          },
-          // Add more mock data as needed
-        ];
-        setStudents(mockData);
-      } catch (error) {
-        console.error("Error fetching verified students:", error);
-      } finally {
-        setLoading(false);
+  // Fetch university registered students
+  const fetchStudents = async (params = {}) => {
+    setLoading(true);
+    try {
+      const { current = 1, pageSize = 10 } = params.pagination || pagination;
+      const token = localStorage.getItem('token');
+      
+      if (!token) {
+        throw new Error('No authentication token found');
       }
-    };
+      
+      const response = await axios.get('http://localhost:4001/api/v1/university/registered-students', {
+        params: {
+          page: current,
+          limit: pageSize,
+          search: searchText,
+          ...params,
+        },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
 
-    fetchStudents();
-  }, []);
+      const { data } = response;
+      
+      if (data && data.data && data.data.students) {
+        const formattedStudents = data.data.students.map(student => ({
+          ...student,
+          key: student._id,
+          name: `${student.firstName || ''} ${student.lastName || ''}`.trim(),
+          registrationDate: student.createdAt 
+            ? dayjs(student.createdAt).format('DD-MMM-YYYY')
+            : 'N/A'
+        }));
+        
+        setStudents(formattedStudents);
+        
+        if (data.data.pagination) {
+          setPagination(prev => ({
+            ...prev,
+            total: data.data.pagination.total || 0,
+            current: data.data.pagination.page || 1,
+            pageSize: data.data.pagination.limit || 10,
+          }));
+        }
+      } else {
+        setStudents([]);
+      }
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      message.error('Failed to fetch verified students');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchStudents().catch(error => {
+      console.error('Error in fetchStudents:', error);
+      message.error(error.response?.data?.message || 'Failed to fetch students. Please check your authentication.');
+    });
+  }, [searchText]);
 
   // Handle verify action
   const handleVerify = (student) => {
@@ -46,19 +89,136 @@ const VerifiedStudents = () => {
     setShowModal(true);
   };
 
-  const handleModalSubmit = () => {
-    alert(`Student ${selectedStudent.name} verified with remarks: ${remarks}`);
-    // Here you would typically make an API call to update the student's verification status
-    setShowModal(false);
-    setRemarks("");
+  const handleModalSubmit = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+
+      // Call API to update student status to verified
+      await axios.put(
+        `http://localhost:4001/api/v1/university/registered-students/${selectedStudent._id}/status`,
+        { status: 'approved', remarks },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      // Update local state to reflect the change
+      setStudents(prevStudents =>
+        prevStudents.map(student =>
+          student._id === selectedStudent._id
+            ? { ...student, status: 'approved' }
+            : student
+        )
+      );
+
+      message.success('Student verified successfully');
+      setShowModal(false);
+      setRemarks("");
+    } catch (error) {
+      console.error('Error verifying student:', error);
+      message.error(error.response?.data?.message || 'Failed to verify student');
+    }
   };
 
   const handleDelete = (id) => {
     if (window.confirm("Are you sure you want to delete this student?")) {
       alert(`Delete student with ID: ${id}`);
       // Call API to delete student here
-      setStudents((prev) => prev.filter((s) => s.id !== id));
+      setStudents((prev) => prev.filter((s) => s._id !== id));
     }
+  };
+
+  const columns = [
+    {
+      title: 'Registration ID',
+      dataIndex: 'registrationNumber',
+      key: 'registrationNumber',
+    },
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+    },
+    {
+      title: 'Course',
+      dataIndex: 'course',
+      key: 'course',
+    },
+    {
+      title: 'Registration Date',
+      dataIndex: 'registrationDate',
+      key: 'registrationDate',
+    },
+    {
+      title: 'Status',
+      key: 'status',
+      render: (_, record) => {
+        const status = record.status || 'pending';
+        const statusMap = {
+          'pending': { color: 'orange', text: 'Pending' },
+          'approved': { color: 'green', text: 'Verified' },
+          'rejected': { color: 'red', text: 'Rejected' }
+        };
+        const statusInfo = statusMap[status] || { color: 'default', text: 'Unknown' };
+        return <Tag color={statusInfo.color}>{statusInfo.text}</Tag>;
+      },
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => {
+        const isPending = !record.status || record.status === 'pending';
+        
+        return (
+          <Space size="middle">
+            <Button 
+              type="link" 
+              onClick={() => {
+                // Handle view details
+                console.log('View details for:', record._id);
+              }}
+            >
+              View Details
+            </Button>
+            {isPending && (
+              <Button 
+                type="link" 
+                onClick={() => handleVerify(record)}
+              >
+                Verify
+              </Button>
+            )}
+            <Button 
+              type="link" 
+              danger
+              onClick={() => handleDelete(record._id)}
+            >
+              Delete
+            </Button>
+          </Space>
+        );
+      },
+    },
+  ];
+
+  const handleTableChange = (newPagination, filters, sorter) => {
+    fetchStudents({
+      pagination: newPagination,
+      sortField: sorter.field,
+      sortOrder: sorter.order,
+      ...filters,
+    });
+  };
+
+  const onSearch = (value) => {
+    setSearchText(value);
+    setPagination({ ...pagination, current: 1 });
   };
 
   // Verification Modal Component
@@ -73,12 +233,12 @@ const VerifiedStudents = () => {
             
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <p><strong>Reg. No.:</strong> {selectedStudent.regNo}</p>
+                <p><strong>Reg. No.:</strong> {selectedStudent.registrationNumber}</p>
                 <p><strong>F.Name:</strong> {selectedStudent.name}</p>
               </div>
               <div>
                 <p><strong>Session:</strong> {selectedStudent.session}</p>
-                <p><strong>M.Name:</strong> {selectedStudent.fatherName.split(' ')[0]}</p>
+                <p><strong>M.Name:</strong> {selectedStudent.fatherName}</p>
               </div>
             </div>
             
@@ -219,88 +379,43 @@ const VerifiedStudents = () => {
   };
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen">
-      <div className="bg-white p-5 shadow rounded-lg">
-        <h2 className="text-xl font-semibold mb-4">Verified Students</h2>
-
-        {loading ? (
-          <p className="text-gray-500">Loading...</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full border-collapse border border-gray-200 text-sm">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="border p-2">Action</th>
-                  <th className="border p-2">Date</th>
-                  <th className="border p-2">Reg. No</th>
-                  <th className="border p-2">Session</th>
-                  <th className="border p-2">School</th>
-                  <th className="border p-2">Course</th>
-                  <th className="border p-2">Name</th>
-                  <th className="border p-2">Father's Name</th>
-                  <th className="border p-2">Phone</th>
-                  <th className="border p-2">Email</th>
-                  <th className="border p-2">Qualification</th>
-                </tr>
-              </thead>
-              <tbody>
-                {students.length > 0 ? (
-                  students.map((student) => (
-                    <tr key={student.id} className="hover:bg-gray-50">
-                      {/* Action dropdown */}
-                      <td className="border p-2 text-center">
-                        <div className="relative group inline-block">
-                          <button className="px-2 py-1 bg-purple-600 text-white rounded">
-                            ☰
-                          </button>
-                          <div className="absolute hidden group-hover:block bg-white border rounded shadow-md mt-1 w-28 z-10">
-                            <button
-                              onClick={() => handleVerify(student)}
-                              className="block w-full text-left px-3 py-2 text-sm hover:bg-gray-100"
-                            >
-                              ✅ Verify
-                            </button>
-                            <button
-                              onClick={() => handleDelete(student.id)}
-                              className="block w-full text-left px-3 py-2 text-sm text-red-600 hover:bg-gray-100"
-                            >
-                              🗑 Delete
-                            </button>
-                          </div>
-                        </div>
-                      </td>
-
-                      {/* Student data */}
-                      <td className="border p-2">{student.date}</td>
-                      <td className="border p-2">{student.regNo}</td>
-                      <td className="border p-2">{student.session}</td>
-                      <td className="border p-2">{student.school}</td>
-                      <td className="border p-2">{student.course}</td>
-                      <td className="border p-2">{student.name}</td>
-                      <td className="border p-2">{student.fatherName}</td>
-                      <td className="border p-2">{student.phone}</td>
-                      <td className="border p-2">{student.email}</td>
-                      <td className="border p-2">{student.qualification}</td>
-                    </tr>
-                  ))
-                ) : (
-                  <tr>
-                    <td colSpan="11" className="text-center p-4 text-gray-500">
-                      No verified students found.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {!loading && (
-          <p className="text-gray-600 text-sm mt-3">
-            Showing {students.length} verified student(s)
-          </p>
-        )}
-      </div>
+    <div className="p-6">
+      <Card 
+        title="Verified Students"
+        extra={
+          <Space>
+            <Search
+              placeholder="Search students..."
+              allowClear
+              enterButton={<SearchOutlined />}
+              onSearch={onSearch}
+              style={{ width: 300 }}
+            />
+            <Button 
+              icon={<ReloadOutlined />} 
+              onClick={() => {
+                setSearchText('');
+                fetchStudents();
+              }}
+            >
+              Refresh
+            </Button>
+          </Space>
+        }
+      >
+        <Table
+          columns={columns}
+          dataSource={students}
+          rowKey="_id"
+          loading={loading}
+          pagination={pagination}
+          onChange={handleTableChange}
+          scroll={{ x: 'max-content' }}
+          locale={{
+            emptyText: 'No verified students found'
+          }}
+        />
+      </Card>
       
       {/* Render the modal */}
       <VerificationModal />

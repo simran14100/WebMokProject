@@ -41,6 +41,7 @@ import Notifications from './pages/Notifications';
 import EnrollmentStatus from './pages/University/EnrollmentStatus';
 import AdmissionEnquiryForm from './components/AdmissionEnquiryForm';
 import NewRegistration from './pages/SuperAdmin/NewRegistration';
+import VerifiedStudents from './pages/SuperAdmin/VerifiedStudentss';
 
 import EditCourse from './components/core/EditCourse';
 import CourseViewer from './pages/CourseViewer';
@@ -266,6 +267,7 @@ function AppRoutes() {
         <Route path="admissions" element={<UGPGAdmissions />}>
           <Route path="enquiries" element={<AdmissionEnquiry />} />
           <Route path="registered" element={<RegisteredStudents />} />
+          <Route path="verification" element={<VerifiedStudents />} />
         </Route>
         <Route path="front-desk/visitor-logs" element={<VisitorLogs />} />
         <Route path="front-desk/phone-logs" element={<PhoneLogs />} />
