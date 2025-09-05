@@ -62,34 +62,24 @@ const registeredStudentSchema = new mongoose.Schema({
     max: 100
   },
   
-  // Course Information
-  course: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: 'Course',
-    required: true 
-  },
+   // In your model, change these fields:
+course: { 
+  type: String, // Changed from ObjectId to String
+  required: true 
+},
+
+// Remove the nested parent requirement or make fields optional
+parent: {
+  fatherName: { type: String }, // removed required: true
+  fatherOccupation: { type: String },
+  motherName: { type: String }, // removed required: true
+  motherOccupation: { type: String },
+  // ... other parent fields
+},
   specialization: { type: String },
-  
-  // Parent/Guardian Information
-  parent: {
-    fatherName: { type: String, required: true },
-    fatherOccupation: { type: String },
-    fatherPhone: { 
-      type: String,
-      match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit phone number']
-    },
-    motherName: { type: String, required: true },
-    motherOccupation: { type: String },
-    motherPhone: { 
-      type: String,
-      match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit phone number']
-    },
-    guardianName: { type: String },
-    guardianRelation: { type: String },
-    guardianPhone: { 
-      type: String,
-      match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit phone number']
-    }
+  isScholarship: { 
+    type: Boolean, 
+    default: false 
   },
   
   // Reference Information

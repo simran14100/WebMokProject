@@ -265,6 +265,7 @@ function AppRoutes() {
         <Route path="front-desk" element={<UGPGFrontDesk />} />
         <Route path="admissions" element={<UGPGAdmissions />}>
           <Route path="enquiries" element={<AdmissionEnquiry />} />
+          <Route path="registered" element={<RegisteredStudents />} />
         </Route>
         <Route path="front-desk/visitor-logs" element={<VisitorLogs />} />
         <Route path="front-desk/phone-logs" element={<PhoneLogs />} />

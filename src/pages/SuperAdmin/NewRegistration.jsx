@@ -1,3 +1,7 @@
+
+
+
+
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
@@ -14,8 +18,10 @@ import {
   message,
   Radio,
   InputNumber,
+  Checkbox,
   Upload,
-  Avatar
+  Avatar,
+  Progress
 } from 'antd';
 import { UploadOutlined, CameraOutlined, EditOutlined } from '@ant-design/icons';
 import { 
@@ -30,6 +36,7 @@ import {
   EnvironmentOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
+import axios from 'axios';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -41,44 +48,42 @@ const NewRegistration = () => {
   const navigate = useNavigate();
   const { token, isAuthenticated } = useSelector((state) => state.auth);
   
-  // Authentication is handled by ProtectedRoute at the route level
   const [showParentFields, setShowParentFields] = useState(true);
   const [showGuardianFields, setShowGuardianFields] = useState(false);
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(null);
   const [signatureFile, setSignatureFile] = useState(null);
   const [signaturePreview, setSignaturePreview] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
   
   // For photo upload
   const handlePhotoChange = (info) => {
     if (info.file) {
-      // Ensure we're working with a proper File object
       const file = info.file.originFileObj || info.file;
       if (file instanceof File) {
         setPhotoFile(file);
-        // Create preview URL
         const reader = new FileReader();
         reader.onload = (e) => setPhotoPreview(e.target.result);
         reader.readAsDataURL(file);
       }
     }
-    return false; // Prevent default upload behavior
+    return false;
   };
 
   // For signature upload
   const handleSignatureChange = (info) => {
     if (info.file) {
-      // Ensure we're working with a proper File object
       const file = info.file.originFileObj || info.file;
       if (file instanceof File) {
         setSignatureFile(file);
-        // Create preview URL
         const reader = new FileReader();
         reader.onload = (e) => setSignaturePreview(e.target.result);
         reader.readAsDataURL(file);
       }
     }
-    return false; // Prevent default upload behavior
+    return false;
   };
 
   const beforeUpload = (file) => {
@@ -87,227 +92,264 @@ const NewRegistration = () => {
       message.error('You can only upload JPG/PNG files!');
       return Upload.LIST_IGNORE;
     }
-    const isLt2M = file.size / 1024 / 1024 < 2;
-    if (!isLt2M) {
-      message.error('Image must be smaller than 2MB!');
+    
+    const maxSizeMB = 10;
+    const isLt10M = file.size / 1024 / 1024 < maxSizeMB;
+    if (!isLt10M) {
+      message.error(`Photo must be smaller than ${maxSizeMB}MB!`);
       return Upload.LIST_IGNORE;
     }
+    
     return true;
   };
   
-  // For signature upload
   const beforeUploadSignature = (file) => {
     const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png';
     if (!isJpgOrPng) {
-      message.error('You can only upload JPG/PNG file!');
+      message.error('You can only upload JPG/PNG files!');
       return Upload.LIST_IGNORE;
     }
-    const isLt1M = file.size / 1024 / 1024 < 1;
-    if (!isLt1M) {
-      message.error('Signature must be smaller than 1MB!');
+    
+    const maxSizeMB = 5;
+    const isLt5M = file.size / 1024 / 1024 < maxSizeMB;
+    if (!isLt5M) {
+      message.error(`Signature must be smaller than ${maxSizeMB}MB!`);
       return Upload.LIST_IGNORE;
     }
-    // Don't set the file here, let handleSignatureChange handle it
+    
     return true;
   };
 
-  const uploadFile = async (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
+  const onFinish = async (values) => {
+    if (submitting) return;
+    
+    setSubmitting(true);
+    setUploading(true);
+    setUploadProgress(0);
     
     try {
-      const response = await fetch('http://localhost:4000/api/v1/university/registered-students/upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: formData
-      });
+      console.log('=== FORM SUBMISSION STARTED ===');
+      console.log('Form values:', JSON.stringify(values, null, 2));
       
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Upload failed');
+      // Validate files
+      if (!photoFile || !signatureFile) {
+        message.error('Please upload both photo and signature files');
+        setSubmitting(false);
+        setUploading(false);
+        return;
       }
       
-      const data = await response.json();
-      return data.url || data.secure_url; // Handle both response formats
-    } catch (error) {
-      console.error('Error uploading file:', error);
-      message.error('Failed to upload file. Please try again.');
-      throw error;
-    }
-  };
-
-  const onFinish = async (values) => {
-    try {
-      setLoading(true);
-      
-      // Log form values for debugging
-      console.log('Form values:', values);
-      
-      // Create FormData for the entire form
+      // Create a new FormData instance
       const formData = new FormData();
       
-      // Add all form values to FormData
-      Object.keys(values).forEach(key => {
-        // Skip file fields as we'll add them separately
-        if (key === 'photo' || key === 'signature') return;
-        
-        if (key === 'dateOfBirth' && values[key]) {
-          const dateValue = values[key].format('YYYY-MM-DD');
-          formData.append(key, dateValue);
-          console.log('Added date:', { key, value: dateValue });
-        } else if (values[key] !== undefined && values[key] !== null) {
-          // Convert objects/arrays to JSON strings
-          const value = typeof values[key] === 'object' && !(values[key] instanceof File)
-            ? JSON.stringify(values[key])
-            : values[key];
-          formData.append(key, value);
-          console.log('Added field:', { key, value });
+      // Append files first
+      formData.append('photo', photoFile);
+      formData.append('signature', signatureFile);
+      
+      // Process and append form values
+      const { photo, signature, dateOfBirth, yearOfPassing, ...formValues } = values;
+      
+      // Convert dates to strings
+      if (dateOfBirth) {
+        formValues.dateOfBirth = dayjs(dateOfBirth).format('YYYY-MM-DD');
+      }
+      
+      if (yearOfPassing) {
+        formValues.yearOfPassing = dayjs(yearOfPassing).format('YYYY');
+      }
+      
+      // Add all form fields with better handling
+      Object.entries(formValues).forEach(([key, value]) => {
+        if (value !== null && value !== undefined && value !== '') {
+          // Handle nested objects (like address)
+          if (typeof value === 'object' && !dayjs.isDayjs(value) && !Array.isArray(value)) {
+            Object.entries(value).forEach(([nestedKey, nestedValue]) => {
+              if (nestedValue !== null && nestedValue !== undefined && nestedValue !== '') {
+                formData.append(`${key}.${nestedKey}`, nestedValue.toString());
+              }
+            });
+          } 
+          // Handle regular values
+          else {
+            formData.append(key, value.toString());
+          }
         }
       });
       
-      // Add parent data as JSON string if it exists
-      if (values.parent) {
-        formData.append('parent', JSON.stringify(values.parent));
+      // Debug: Log all form data entries
+      console.log('=== FORM DATA ENTRIES ===');
+      for (let [key, value] of formData.entries()) {
+        if (value instanceof File) {
+          console.log(`${key}: ${value.name} (${value.size} bytes, ${value.type})`);
+        } else {
+          console.log(`${key}: ${value}`);
+        }
       }
       
-      // Add address data as JSON string if it exists
-      if (values.address) {
-        formData.append('address', JSON.stringify(values.address));
+      // Get the token
+      const authToken = localStorage.getItem('token') || token;
+      if (!authToken) {
+        throw new Error('No authentication token found. Please log in again.');
       }
       
-      // Add files to FormData if they exist
-      if (photoFile) {
-        console.log('Adding photo file:', photoFile.name, photoFile.size, 'bytes', 'type:', photoFile.type);
-        // Use the same field name that the server expects
-        formData.append('photo', photoFile, photoFile.name);
+      // Prepare request config
+      const config = {
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+          // Let the browser set Content-Type with boundary
+        },
+        onUploadProgress: (progressEvent) => {
+          if (progressEvent.lengthComputable) {
+            const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+            setUploadProgress(percentCompleted);
+            console.log(`Upload progress: ${percentCompleted}%`);
+          }
+        },
+        timeout: 300000,
+      };
+      
+      // Make the API request
+      const apiUrl = 'http://localhost:4001/api/v1/university/registered-students/register';
+      console.log('Making request to:', apiUrl);
+      
+      const response = await axios.post(apiUrl, formData, config);
+      const { data } = response;
+      
+      console.log('Server response:', data);
+      
+      if (data.success) {
+        message.success(data.message || 'Student registered successfully!');
+        
+        // Reset form and file states
+        form.resetFields();
+        setPhotoFile(null);
+        setSignatureFile(null);
+        setPhotoPreview(null);
+        setSignaturePreview(null);
+        setUploadProgress(0);
+        
+        // Redirect if needed
+        if (data.redirectUrl) {
+          navigate(data.redirectUrl);
+        }
+        
+        return data;
       } else {
-        console.log('No photo file to upload');
-      }
-      
-      if (signatureFile) {
-        console.log('Adding signature file:', signatureFile.name, signatureFile.size, 'bytes', 'type:', signatureFile.type);
-        // Use the same field name that the server expects
-        formData.append('signature', signatureFile, signatureFile.name);
-      } else {
-        console.log('No signature file to upload');
-      }
-      
-      // Log the form data keys for debugging
-      console.log('FormData entries:');
-      for (let pair of formData.entries()) {
-        console.log(pair[0], pair[1]);
-      }
-      
-      // Check if we have a valid token
-      if (!token) {
-        const errorMsg = 'Your session has expired. Please log in again.';
-        message.error(errorMsg);
-        // Redirect to login after showing the message
-        setTimeout(() => navigate('/login', { 
-          state: { from: '/super-admin/new-registration' } 
-        }), 1500);
+        const errorMsg = data.message || 'Failed to register student';
+        
+        // Handle validation errors
+        if (data.errors) {
+          console.error('Validation errors:', data.errors);
+          Object.entries(data.errors).forEach(([field, errorMessage]) => {
+            try {
+              const fieldPath = field.split('.');
+              form.setFields([{
+                name: fieldPath,
+                errors: [errorMessage]
+              }]);
+            } catch (error) {
+              console.error('Error setting field error:', error);
+            }
+          });
+        }
+        
+        // Handle missing fields error
+        if (data.missingFields) {
+          message.error(`Please fill in all required fields: ${data.missingFields.join(', ')}`);
+          throw new Error(`Missing fields: ${data.missingFields.join(', ')}`);
+        }
+        
         throw new Error(errorMsg);
       }
-      
-      // Make API call to your backend
-      console.log('Sending request to server...');
-      const response = await fetch('http://localhost:4000/api/v1/university/registered-students/', {
-        method: 'POST',
-        // Don't set Content-Type header - let the browser set it with the correct boundary
-        headers: {
-          'Authorization': `Bearer ${token}`
-          // Let the browser set the Content-Type with the correct boundary
-        },
-        body: formData
-      });
-      
-      console.log('Response status:', response.status);
-      
-      // Try to parse the response as JSON, but handle non-JSON responses
-      let responseData;
-      const contentType = response.headers.get('content-type');
-      
-      // Log response headers for debugging
-      console.log('Response headers:');
-      response.headers.forEach((value, key) => {
-        console.log(`${key}: ${value}`);
-      });
-      
-      // Get response text first to handle both JSON and non-JSON responses
-      const responseText = await response.text();
-      console.log('Raw response:', responseText);
-      
-      // Try to parse as JSON if content-type is JSON
-      if (contentType && contentType.includes('application/json')) {
-        try {
-          responseData = JSON.parse(responseText);
-        } catch (e) {
-          console.error('Error parsing JSON response:', e);
-          throw new Error(`Invalid JSON response: ${responseText.substring(0, 200)}...`);
-        }
-      } else {
-        console.log('Non-JSON response:', responseText.substring(0, 500));
-        responseData = { message: responseText };
-      }
-      
-      if (!response.ok) {
-        // Log detailed error information
-        console.error('Server error response:', {
-          status: response.status,
-          statusText: response.statusText,
-          data: responseData,
-          headers: Object.fromEntries(response.headers.entries())
-        });
-        
-        // Handle different types of errors
-        if (response.status === 401) {
-          const errorMsg = 'Session expired. Please log in again.';
-          message.error(errorMsg);
-          // Redirect to login or handle session expiration
-          // window.location.href = '/login';
-          throw new Error(errorMsg);
-        } else if (response.status === 400) {
-          const errorMsg = responseData.message || 'Invalid data. Please check your inputs.';
-          message.error(errorMsg);
-          throw new Error(errorMsg);
-        } else if (response.status === 413) {
-          const errorMsg = 'File size is too large. Maximum 20MB per file allowed.';
-          message.error(errorMsg);
-          throw new Error(errorMsg);
-        } else if (response.status >= 500) {
-          const errorMsg = responseData.message || 'Server error. Please try again later.';
-          message.error(errorMsg);
-          throw new Error(`Server error: ${response.status} - ${response.statusText}`);
-        } else {
-          const errorMsg = responseData.message || 'An unexpected error occurred.';
-          message.error(errorMsg);
-          throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-      }
-      
-      // Handle successful response
-      console.log('Registration successful:', responseData);
-      message.success('Registration submitted successfully!');
-      
-      // Reset form and clear file states
-      form.resetFields();
-      setPhotoFile(null);
-      setPhotoPreview(null);
-      setSignatureFile(null);
-      setSignaturePreview(null);
     } catch (error) {
-      console.error('Error in form submission:', error);
-      message.error(error.message || 'Failed to submit registration. Please check the console for details.');
+
+
+
+      console.error('Validation errors:', error.response.data.errors);
+    
+    // Display validation errors on the form fields
+    error.response.data.errors.forEach(errorMessage => {
+      // Try to extract field name from error message
+      if (errorMessage.includes('email')) {
+        form.setFields([{ name: ['email'], errors: [errorMessage] }]);
+      } else if (errorMessage.includes('phone')) {
+        form.setFields([{ name: ['phone'], errors: [errorMessage] }]);
+      } else if (errorMessage.includes('aadhar')) {
+        form.setFields([{ name: ['aadharNumber'], errors: [errorMessage] }]);
+      }
+      // Add more field mappings as needed
+    });
+      
+   
+
+      // Enhanced error handling
+      let errorMessage = 'Failed to submit form. Please try again.';
+      let showDetailedError = false;
+      
+      if (error.response) {
+        const { status, data } = error.response;
+        console.error('Response error:', { status, data });
+        
+        if (status === 400) {
+          errorMessage = data.message || 'Invalid request. Please check your input.';
+          showDetailedError = true;
+          
+          // Handle specific error types
+          if (data.code === 'MISSING_REQUIRED_FIELDS') {
+            errorMessage = `Please fill in all required fields: ${data.missingFields?.join(', ') || 'unknown fields'}`;
+          } else if (data.code === 'INVALID_FILE_TYPE') {
+            errorMessage = 'Please upload only JPEG or PNG images for photo and signature.';
+          } else if (data.code === 'FILE_TOO_LARGE') {
+            errorMessage = 'File size is too large. Maximum size is 10MB for photos and 5MB for signatures.';
+          } else if (data.errors) {
+            // Show first error message
+            const firstError = Object.values(data.errors)[0];
+            errorMessage = firstError || errorMessage;
+          }
+        } else if (status === 401) {
+          errorMessage = 'Session expired. Please log in again.';
+          dispatch(setToken(null));
+          localStorage.removeItem('token');
+          navigate('/login');
+          return;
+        } else if (status === 413) {
+          errorMessage = 'File size is too large. Maximum size is 10MB for photos and 5MB for signatures.';
+        } else if (status >= 500) {
+          errorMessage = 'Server error. Please try again later.';
+        }
+      } else if (error.request) {
+        console.error('No response received:', error.request);
+        errorMessage = 'No response from server. Please check your internet connection.';
+      } else if (error.message === 'Network Error') {
+        errorMessage = 'Network error. Please check your internet connection.';
+      } else if (error.message.includes('timeout')) {
+        errorMessage = 'Request timed out. Please try again with smaller files.';
+      } else {
+        errorMessage = error.message || errorMessage;
+      }
+      
+      // Show error message
+      if (showDetailedError) {
+        message.error({
+          content: errorMessage,
+          duration: 5, // Show for 5 seconds
+        });
+      } else {
+        message.error(errorMessage);
+      }
+      
+      // Re-throw for further debugging if needed
+      throw error;
     } finally {
-      setLoading(false);
+      setSubmitting(false);
+      setUploading(false);
+      console.log('=== FORM SUBMISSION COMPLETED ===');
     }
   };
 
   return (
     <div className="p-6">
-      <Card 
+      <Card
         title={
           <div className="flex items-center">
             <IdcardOutlined className="mr-2 text-blue-600" />
@@ -316,6 +358,16 @@ const NewRegistration = () => {
         }
         className="shadow-lg"
       >
+        {uploading && (
+          <div className="mb-4">
+            <div className="flex justify-between items-center mb-2">
+              <span>Uploading files...</span>
+              <span>{uploadProgress}%</span>
+            </div>
+            <Progress percent={uploadProgress} status="active" />
+          </div>
+        )}
+        
         <Form
           form={form}
           layout="vertical"
@@ -324,6 +376,7 @@ const NewRegistration = () => {
             gender: 'male',
             sameAsPermanent: true
           }}
+          scrollToFirstError={true}
         >
           {/* Personal Information Section */}
           <div className="mb-8">
@@ -331,7 +384,7 @@ const NewRegistration = () => {
               <UserOutlined className="mr-2 text-blue-500" />
               Personal Information
             </h3>
-            
+          
             {/* Photo and Signature Upload */}
             <Row gutter={24} className="mb-6">
               <Col xs={24} sm={12} md={6} lg={4} className="mb-4">
@@ -340,7 +393,7 @@ const NewRegistration = () => {
                     <Avatar 
                       size={120} 
                       icon={<UserOutlined />} 
-                      src={photoFile ? URL.createObjectURL(photoFile) : null}
+                      src={photoPreview}
                       className="border-2 border-dashed border-gray-300"
                     />
                     <Upload
@@ -352,16 +405,15 @@ const NewRegistration = () => {
                       customRequest={({ onSuccess }) => onSuccess('ok')}
                     >
                       <Button 
-                        type="primary" 
-                        size="small" 
+                        type="link" 
                         icon={<CameraOutlined />}
-                        className="absolute bottom-0 right-0 transform translate-y-1/2 translate-x-1/2"
+                        className="absolute bottom-0 right-0 bg-white rounded-full p-2 shadow-md"
                       >
-                        Change
+                        {photoFile ? 'Change' : 'Upload'}
                       </Button>
                     </Upload>
                   </div>
-                  <div className="text-sm text-gray-500">Student Photo (Max 2MB)</div>
+                  <div className="text-sm text-gray-500">Student Photo (Max 10MB)</div>
                 </div>
               </Col>
               
@@ -369,10 +421,10 @@ const NewRegistration = () => {
                 <div className="text-center">
                   <div className="relative inline-block mb-2">
                     <div className="w-30 h-20 border-2 border-dashed border-gray-300 flex items-center justify-center">
-                      {signatureFile ? (
+                      {signaturePreview ? (
                         <img 
-                          src={URL.createObjectURL(signatureFile)} 
-                          alt="Signature Preview" 
+                          src={signaturePreview} 
+                          alt="Signature Preview"
                           className="max-w-full max-h-full object-contain"
                         />
                       ) : (
@@ -388,16 +440,15 @@ const NewRegistration = () => {
                       customRequest={({ onSuccess }) => onSuccess('ok')}
                     >
                       <Button 
-                        type="primary" 
-                        size="small" 
-                        icon={<UploadOutlined />}
-                        className="bg-blue-500"
+                        type="link" 
+                        icon={<EditOutlined />}
+                        className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 bg-white rounded-full p-2 shadow-md"
                       >
                         {signatureFile ? 'Change' : 'Upload'}
                       </Button>
                     </Upload>
                   </div>
-                  <div className="text-sm text-gray-500 mt-6">Signature (Max 1MB)</div>
+                  <div className="text-sm text-gray-500 mt-6">Signature (Max 5MB)</div>
                 </div>
               </Col>
             </Row>
@@ -461,13 +512,12 @@ const NewRegistration = () => {
                   <Input 
                     placeholder="Enter 12-digit Aadhar number" 
                     maxLength={12}
-                    type="number"
                   />
                 </Form.Item>
               </Col>
             </Row>
           </div>
-
+          
           {/* Contact Information Section */}
           <div className="mb-8">
             <h3 className="text-lg font-medium mb-4 flex items-center">
@@ -572,7 +622,7 @@ const NewRegistration = () => {
             <Row gutter={16}>
               <Col span={24} className="mb-4">
                 <Form.Item
-                  name="addressLine1"
+                  name={['address', 'line1']}
                   label="Address Line 1"
                   rules={[{ required: true, message: 'Please enter address' }]}
                 >
@@ -581,7 +631,7 @@ const NewRegistration = () => {
               </Col>
               <Col span={24} className="mb-4">
                 <Form.Item
-                  name="addressLine2"
+                  name={['address', 'line2']}
                   label="Address Line 2 (Optional)"
                 >
                   <Input placeholder="Address Line 2" />
@@ -589,7 +639,7 @@ const NewRegistration = () => {
               </Col>
               <Col xs={24} sm={12} md={8} lg={6} className="mb-4">
                 <Form.Item
-                  name="city"
+                  name={['address', 'city']}
                   label="City"
                   rules={[{ required: true, message: 'Please enter city' }]}
                 >
@@ -598,7 +648,7 @@ const NewRegistration = () => {
               </Col>
               <Col xs={24} sm={12} md={8} lg={6} className="mb-4">
                 <Form.Item
-                  name="state"
+                  name={['address', 'state']}
                   label="State"
                   rules={[{ required: true, message: 'Please select state' }]}
                 >
@@ -614,7 +664,7 @@ const NewRegistration = () => {
               </Col>
               <Col xs={24} sm={12} md={8} lg={6} className="mb-4">
                 <Form.Item
-                  name="pincode"
+                  name={['address', 'pincode']}
                   label="Pincode"
                   rules={[
                     { required: true, message: 'Please enter pincode' },
@@ -723,6 +773,15 @@ const NewRegistration = () => {
                     <Option value="civil">Civil</Option>
                     <Option value="electrical">Electrical</Option>
                   </Select>
+                </Form.Item>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6} className="mb-4">
+                <Form.Item
+                  name="isScholarship"
+                  valuePropName="checked"
+                  style={{ marginTop: '30px' }}
+                >
+                  <Checkbox>Scholarship Student</Checkbox>
                 </Form.Item>
               </Col>
             </Row>
@@ -877,28 +936,21 @@ const NewRegistration = () => {
                   name="additionalInfo"
                   label="Any Additional Information"
                 >
-                  <TextArea rows={4} placeholder="Any additional information you would like to share" />
+                  <TextArea rows={4} placeholder="Enter any additional information here..." />
                 </Form.Item>
               </Col>
             </Row>
           </div>
-
-          {/* Form Actions */}
-          <div className="flex justify-end space-x-4 mt-8">
-            <Button 
-              type="default" 
-              onClick={() => form.resetFields()}
-              className="w-32"
-            >
-              Reset
-            </Button>
+          
+          <div className="flex justify-end mt-6">
             <Button 
               type="primary" 
               htmlType="submit" 
-              loading={loading}
+              loading={submitting}
               className="w-32"
+              disabled={!photoFile || !signatureFile}
             >
-              {loading ? 'Submitting...' : 'Submit'}
+              {submitting ? 'Submitting...' : 'Submit'}
             </Button>
           </div>
         </Form>

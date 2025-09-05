@@ -1,337 +1,369 @@
+
+
 const asyncHandler = require('express-async-handler');
 const cloudinary = require('cloudinary').v2;
+const fs = require('fs').promises;
+const path = require('path');
 const UniversityRegisteredStudent = require('../models/UniversityRegisteredStudent');
-const { uploadImageToCloudinary } = require('../utils/imageUploader');
-const { v4: uuidv4 } = require('uuid');
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Helper function to upload file to Cloudinary
+const uploadToCloudinary = async (file, folder) => {
+  try {
+    if (!file || !file.tempFilePath) {
+      throw new Error('Invalid file object');
+    }
+
+    const result = await cloudinary.uploader.upload(file.tempFilePath, {
+      folder: `edtech/${folder}`,
+      resource_type: 'image',
+      quality: 'auto:good',
+      fetch_format: 'auto'
+    });
+
+    console.log(`Uploaded to Cloudinary:`, {
+      url: result.secure_url,
+      public_id: result.public_id,
+      format: result.format,
+      bytes: result.bytes
+    });
+
+    // Delete the temporary file after upload
+    try {
+      await fs.unlink(file.tempFilePath);
+      console.log(`Temporary file deleted: ${file.tempFilePath}`);
+    } catch (error) {
+      console.error('Error deleting temporary file:', error);
+    }
+
+    return {
+      url: result.secure_url,
+      public_id: result.public_id
+    };
+  } catch (error) {
+    console.error('Error uploading to Cloudinary:', error);
+    
+    // Clean up temporary file even if upload fails
+    if (file && file.tempFilePath) {
+      try {
+        await fs.unlink(file.tempFilePath);
+      } catch (cleanupError) {
+        console.error('Error cleaning up temp file:', cleanupError);
+      }
+    }
+    
+    throw error;
+  }
+};
 
 // @desc    Register a new student
-// @route   POST /api/university/registered-students
+// @route   POST /api/university/registered-students/register
 // @access  Private/Admin
 const registerStudent = asyncHandler(async (req, res) => {
-  console.log('=== Starting student registration ===');
+  let photoUpload = null;
+  let signatureUpload = null;
   
-  // Log request details
-  console.log('Request method:', req.method);
-  console.log('Content-Type:', req.headers['content-type']);
-  console.log('Request body fields:', Object.keys(req.body || {}));
-  console.log('Files received:', req.files ? Object.keys(req.files) : 'No files');
-  
-  // Validate request contains required fields
-  const requiredFields = ['firstName', 'lastName', 'dateOfBirth', 'gender', 'email', 'phone'];
-  const missingFields = requiredFields.filter(field => !req.body[field]);
-  
-  if (missingFields.length > 0) {
-    console.error('Missing required fields:', missingFields);
-    return res.status(400).json({
-      success: false,
-      message: `Missing required fields: ${missingFields.join(', ')}`
-    });
-  }
-  
-  // Log file details if they exist
-  if (req.files) {
-    console.log('=== File Upload Details ===');
-    Object.entries(req.files).forEach(([field, file]) => {
-      const fileObj = Array.isArray(file) ? file[0] : file;
-      console.log(`File [${field}]:`, {
-        name: fileObj.name,
-        size: fileObj.size,
-        mimetype: fileObj.mimetype,
-        tempFilePath: fileObj.tempFilePath || 'In memory',
-        truncated: fileObj.truncated,
-        data: fileObj.data ? `${fileObj.data.length} bytes` : 'No data',
-        encoding: fileObj.encoding
-      });
-      
-      // Check if file was truncated during upload
-      if (fileObj.truncated) {
-        console.error(`File ${field} was truncated during upload`);
-        return res.status(400).json({
-          success: false,
-          message: `The ${field} file was not fully uploaded. Please try again with a smaller file.`
-        });
-      }
-    });
-  }
-
   try {
-    // Parse JSON fields if they're strings (happens with FormData)
-    const formData = { ...req.body };
+    console.log('\n=== New Student Registration Request ===');
     
-    // Log initial form data
-    console.log('Initial form data:', JSON.stringify(formData, null, 2));
+    // Debug: Log what's actually received
+    console.log('Request files:', req.files ? Object.keys(req.files) : 'No files');
+    console.log('Request body keys:', Object.keys(req.body));
     
-    // Handle JSON string fields
-    const jsonFields = ['parent', 'address'];
-    jsonFields.forEach(field => {
-      if (formData[field] && typeof formData[field] === 'string') {
-        try {
-          formData[field] = JSON.parse(formData[field]);
-          console.log(`Parsed ${field}:`, formData[field]);
-        } catch (e) {
-          console.error(`Error parsing ${field}:`, e);
-          // Don't fail the request, just keep the string value
-        }
-      }
-    });
-
-    // Extract fields from form data
-    const {
-      firstName, middleName, lastName, dateOfBirth, gender, aadharNumber,
-      email, phone, alternatePhone,
-      address,
-      lastQualification, boardUniversity, yearOfPassing, percentage,
-      course, specialization,
-      parent,
-      source, reference,
-      notes
-    } = formData;
-
-    // Check if required fields are present
-    if (!firstName || !lastName || !email || !aadharNumber) {
+    // Validate required fields
+    const requiredFields = ['firstName', 'lastName', 'email', 'phone', 'course'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    
+    if (missingFields.length > 0) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide all required fields: firstName, lastName, email, aadharNumber'
+        message: `Missing required fields: ${missingFields.join(', ')}`
       });
     }
-
-    // Check if student already exists with same Aadhar or Email
-    const existingStudent = await UniversityRegisteredStudent.findOne({
-      $or: [
-        { aadharNumber },
-        { email: email.toLowerCase() }
-      ]
-    });
-
-    if (existingStudent) {
+    
+    // Get files from req.files - handle both single file and array
+    const { photo, signature } = req.files || {};
+    
+    // Debug: Log what files were received
+    if (photo) {
+      console.log('Photo received:', {
+        isArray: Array.isArray(photo),
+        type: typeof photo,
+        details: Array.isArray(photo) ? photo[0] : photo
+      });
+    }
+    
+    if (signature) {
+      console.log('Signature received:', {
+        isArray: Array.isArray(signature),
+        type: typeof signature,
+        details: Array.isArray(signature) ? signature[0] : signature
+      });
+    }
+    
+    // Handle files - express-fileupload can return single object or array
+    let photoFile, signatureFile;
+    
+    if (!photo) {
       return res.status(400).json({
         success: false,
-        message: 'Student with this Aadhar number or Email already exists'
+        message: 'Photo file is required',
+        code: 'MISSING_PHOTO'
+      });
+    } else {
+      photoFile = Array.isArray(photo) ? photo[0] : photo;
+    }
+    
+    if (!signature) {
+      return res.status(400).json({
+        success: false,
+        message: 'Signature file is required',
+        code: 'MISSING_SIGNATURE'
+      });
+    } else {
+      signatureFile = Array.isArray(signature) ? signature[0] : signature;
+    }
+    
+    // Validate file types
+    const validImageTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (!validImageTypes.includes(photoFile.mimetype)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Photo must be a JPEG or PNG image',
+        code: 'INVALID_PHOTO_TYPE'
       });
     }
-
-    // Handle file uploads to Cloudinary if present
-    let photoUrl = '';
-    let signatureUrl = '';
-
-    // Helper function to handle file upload
-    const handleFileUpload = async (file, folder, height = null, quality = 90) => {
-      if (!file) {
-        console.log(`No file provided for ${folder}, skipping upload`);
-        return '';
+    
+    if (!validImageTypes.includes(signatureFile.mimetype)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Signature must be a JPEG or PNG image',
+        code: 'INVALID_SIGNATURE_TYPE'
+      });
+    }
+    
+    // Log request body (excluding sensitive data)
+    const { password, confirmPassword, ...safeBody } = req.body;
+    console.log('Request body:', JSON.stringify(safeBody, null, 2));
+    
+    console.log('Processing files:', {
+      photo: { 
+        name: photoFile.name, 
+        size: photoFile.size, 
+        mimetype: photoFile.mimetype,
+        tempFilePath: photoFile.tempFilePath
+      },
+      signature: { 
+        name: signatureFile.name, 
+        size: signatureFile.size, 
+        mimetype: signatureFile.mimetype,
+        tempFilePath: signatureFile.tempFilePath
       }
-      
-      try {
-        // Get the file (handle both single file and array of files)
-        const fileToUpload = Array.isArray(file) ? file[0] : file;
-        
-        // Ensure we have file data
-        if (!fileToUpload) {
-          console.warn(`No file object found for ${folder}`);
-          return '';
-        }
-
-        // Check if we have data or temp file path
-        const hasData = fileToUpload.data && fileToUpload.data.length > 0;
-        const hasTempPath = fileToUpload.tempFilePath;
-        
-        if (!hasData && !hasTempPath) {
-          console.warn(`No file data or temp file path available for ${folder}`);
-          return '';
-        }
-
-        console.log(`Uploading ${folder} (${fileToUpload.name}, ${fileToUpload.size} bytes, ${fileToUpload.mimetype})`);
-        
-        const uploadResult = await uploadImageToCloudinary(
-          fileToUpload,
-          `university/students/${folder}`,
-          height,
-          quality
-        );
-        
-        if (!uploadResult || !uploadResult.secure_url) {
-          console.error(`Upload result is invalid for ${folder}:`, uploadResult);
-          throw new Error(`Failed to upload ${folder}: Invalid response from Cloudinary`);
-        }
-        
-        console.log(`Successfully uploaded ${folder} to:`, uploadResult.secure_url);
-        return uploadResult.secure_url;
-      } catch (error) {
-        console.error(`Error uploading ${folder}:`, {
-          error: error.message,
-          stack: error.stack,
-          file: {
-            name: file?.name,
-            size: file?.size,
-            type: file?.mimetype,
-            hasData: !!(file?.data)
-          }
-        });
-        throw error; // Re-throw to be handled by the caller
-      }
-    };
-
-    // Process file uploads if any
-    const uploadResults = {
-      photo: null,
-      signature: null
-    };
-
+    });
+    
+    // Upload files to Cloudinary
+    console.log('\nUploading files to Cloudinary...');
+    
     try {
-      // Process photo upload if it exists
-      if (req.files?.photo) {
-        const photoFile = Array.isArray(req.files.photo) ? req.files.photo[0] : req.files.photo;
-        console.log('Processing photo upload:', {
-          name: photoFile.name,
-          size: photoFile.size,
-          mimetype: photoFile.mimetype
-        });
-        
-        try {
-          const result = await uploadImageToCloudinary(photoFile, 'university/students/photos');
-          console.log('Photo upload successful:', result.secure_url);
-          uploadResults.photo = result;
-        } catch (error) {
-          console.error('Error uploading photo:', error);
-          throw new Error(`Failed to upload photo: ${error.message}`);
-        }
-      } else {
-        console.log('No photo file provided');
-      }
+      // Upload files in parallel
+      [photoUpload, signatureUpload] = await Promise.all([
+        uploadToCloudinary(photoFile, 'student-photos'),
+        uploadToCloudinary(signatureFile, 'student-signatures')
+      ]);
       
-      // Process signature upload if it exists
-      if (req.files?.signature) {
-        const signatureFile = Array.isArray(req.files.signature) 
-          ? req.files.signature[0] 
-          : req.files.signature;
-          
-        console.log('Processing signature upload:', {
-          name: signatureFile.name,
-          size: signatureFile.size,
-          mimetype: signatureFile.mimetype
-        });
-        
-        try {
-          const result = await uploadImageToCloudinary(
-            signatureFile, 
-            'university/students/signatures', 
-            200, 
-            90
-          );
-          console.log('Signature upload successful:', result.secure_url);
-          uploadResults.signature = result;
-        } catch (error) {
-          console.error('Error uploading signature:', error);
-          throw new Error(`Failed to upload signature: ${error.message}`);
-        }
-      } else {
-        console.log('No signature file provided');
-      }
+      console.log('Files uploaded successfully:', {
+        photo: photoUpload?.url || 'Failed',
+        signature: signatureUpload?.url || 'Failed'
+      });
+      
     } catch (uploadError) {
-      console.error('Error in file uploads:', uploadError);
+      console.error('Cloudinary upload error:', uploadError);
       
-      // Clean up any successfully uploaded files if there was an error
-      if (uploadResults.photo?.public_id) {
-        console.log('Cleaning up uploaded photo due to error');
-        try {
-          await cloudinary.uploader.destroy(uploadResults.photo.public_id);
-        } catch (cleanupError) {
-          console.error('Error cleaning up photo:', cleanupError);
-        }
+      // Clean up any partial uploads
+      const cleanupPromises = [];
+      if (photoUpload?.public_id) {
+        cleanupPromises.push(cloudinary.uploader.destroy(photoUpload.public_id));
+      }
+      if (signatureUpload?.public_id) {
+        cleanupPromises.push(cloudinary.uploader.destroy(signatureUpload.public_id));
       }
       
-      if (uploadResults.signature?.public_id) {
-        console.log('Cleaning up uploaded signature due to error');
-        try {
-          await cloudinary.uploader.destroy(uploadResults.signature.public_id);
-        } catch (cleanupError) {
-          console.error('Error cleaning up signature:', cleanupError);
-        }
-      }
+      await Promise.all(cleanupPromises);
       
-      throw uploadError; // Re-throw the error to be caught by the main try-catch
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to upload files. Please try again.',
+        error: process.env.NODE_ENV === 'development' ? uploadError.message : undefined
+      });
     }
-
-    // Prepare student data object with file upload results
-    const studentRecord = {
-      firstName: firstName.trim(),
-      middleName: middleName ? middleName.trim() : '',
-      lastName: lastName.trim(),
-      dateOfBirth,
-      gender,
-      aadharNumber: aadharNumber.toString().trim(),
-      email: email.toLowerCase().trim(),
-      // Add file URLs if uploads were successful
-      ...(uploadResults.photo && {
-        photo: uploadResults.photo.secure_url,
-        photoPublicId: uploadResults.photo.public_id
-      }),
-      ...(uploadResults.signature && {
-        signature: uploadResults.signature.secure_url,
-        signaturePublicId: uploadResults.signature.public_id
-      }),
-      phone: phone.toString().trim(),
-      alternatePhone: alternatePhone ? alternatePhone.toString().trim() : undefined,
-      address,
-      lastQualification,
-      boardUniversity,
-      yearOfPassing,
-      percentage: parseFloat(percentage) || 0,
-      course,
-      specialization,
-      parent,
-      source,
-      reference,
-      notes,
-      registrationNumber: `STU-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
-      ...(photoUrl && { photo: photoUrl }),
-      ...(signatureUrl && { signature: signatureUrl })
-    };
-
-    console.log('Creating student record with data:', {
-      ...studentRecord,
-      photo: studentRecord.photo ? '*** Photo URL Set ***' : 'No Photo',
-      signature: studentRecord.signature ? '*** Signature URL Set ***' : 'No Signature'
-    });
-
-    // Create new student record
-    const student = await UniversityRegisteredStudent.create(studentRecord);
-
-    console.log('Student registration successful:', student._id);
     
-    res.status(201).json({
+    // Check if files were uploaded successfully
+    if (!photoUpload?.url || !signatureUpload?.url) {
+      // Clean up any successful uploads
+      const cleanupPromises = [];
+      if (photoUpload?.public_id) {
+        cleanupPromises.push(cloudinary.uploader.destroy(photoUpload.public_id));
+      }
+      if (signatureUpload?.public_id) {
+        cleanupPromises.push(cloudinary.uploader.destroy(signatureUpload.public_id));
+      }
+      await Promise.all(cleanupPromises);
+      
+      return res.status(500).json({
+        success: false,
+        message: 'Failed to process file uploads. Please try again.'
+      });
+    }
+    
+    // Parse nested fields from form data - FIXED approach
+    // express-fileupload with parseNested: true creates nested objects
+    let address = {};
+    if (req.body.address && typeof req.body.address === 'object') {
+      address = { ...req.body.address };
+    } else {
+      // Fallback: parse dot notation fields
+      const addressFields = ['line1', 'line2', 'city', 'state', 'pincode'];
+      addressFields.forEach(field => {
+        const value = req.body[`address.${field}`];
+        if (value !== undefined && value !== '') {
+          address[field] = value;
+        }
+      });
+    }
+    
+    // Create student data
+    const studentData = {
+      firstName: req.body.firstName,
+      lastName: req.body.lastName,
+      dateOfBirth: req.body.dateOfBirth,
+      gender: req.body.gender,
+      aadharNumber: req.body.aadharNumber,
+      email: req.body.email,
+      phone: req.body.phone,
+      alternatePhone: req.body.alternatePhone,
+      source: req.body.source,
+      referenceName: req.body.referenceName,
+      referenceContact: req.body.referenceContact,
+      referenceRelation: req.body.referenceRelation,
+      address: Object.keys(address).length > 0 ? address : undefined,
+      lastQualification: req.body.lastQualification,
+      boardUniversity: req.body.boardUniversity,
+      yearOfPassing: req.body.yearOfPassing,
+      percentage: req.body.percentage,
+      course: req.body.course,
+      specialization: req.body.specialization,
+      isScholarship: req.body.isScholarship || false,
+      fatherName: req.body.fatherName,
+      fatherOccupation: req.body.fatherOccupation,
+      motherName: req.body.motherName,
+      motherOccupation: req.body.motherOccupation,
+      parentPhone: req.body.parentPhone,
+      parentEmail: req.body.parentEmail,
+      guardianName: req.body.guardianName,
+      relationWithGuardian: req.body.relationWithGuardian,
+      guardianPhone: req.body.guardianPhone,
+      guardianEmail: req.body.guardianEmail,
+      additionalInfo: req.body.additionalInfo,
+      photo: photoUpload.url,
+      photoId: photoUpload.public_id,
+      signature: signatureUpload.url,
+      signatureId: signatureUpload.public_id,
+      status: 'pending',
+      registeredBy: req.user?.id || 'system'
+    };
+    
+    // Remove undefined fields
+    Object.keys(studentData).forEach(key => {
+      if (studentData[key] === undefined) {
+        delete studentData[key];
+      }
+    });
+    
+    // Log the final data being saved
+    console.log('Student data to save:', JSON.stringify(studentData, null, 2));
+    
+    // Save to database
+    const student = await UniversityRegisteredStudent.create(studentData);
+    
+    console.log('Student registered successfully:', {
+      id: student._id,
+      email: student.email,
+      name: `${student.firstName} ${student.lastName}`,
+      course: student.course,
+      status: student.status
+    });
+    
+    return res.status(201).json({
       success: true,
       message: 'Student registered successfully',
       data: student
     });
+    
   } catch (error) {
     console.error('Error in registerStudent:', {
-      error: error.message,
+      message: error.message,
       stack: error.stack,
-      body: req.body,
-      files: req.files ? Object.keys(req.files) : 'No files'
+      name: error.name
     });
     
-    // More specific error messages based on error type
-    let errorMessage = 'Server error during student registration';
-    let statusCode = 500;
-    
-    if (error.name === 'ValidationError') {
-      errorMessage = 'Validation error: ' + Object.values(error.errors).map(e => e.message).join(', ');
-      statusCode = 400;
-    } else if (error.name === 'MongoError' && error.code === 11000) {
-      errorMessage = 'Duplicate entry. A student with this email or Aadhar number already exists.';
-      statusCode = 400;
-    } else if (error.message.includes('upload failed') || error.message.includes('Cloudinary')) {
-      errorMessage = 'File upload failed. Please try again with valid files.';
-      statusCode = 400;
+    // Clean up any Cloudinary uploads if there was an error after upload
+    const cleanupPromises = [];
+    if (photoUpload?.public_id) {
+      cleanupPromises.push(cloudinary.uploader.destroy(photoUpload.public_id));
+    }
+    if (signatureUpload?.public_id) {
+      cleanupPromises.push(cloudinary.uploader.destroy(signatureUpload.public_id));
     }
     
-    res.status(statusCode).json({
+    // Clean up temporary files
+    if (req.files) {
+      Object.values(req.files).forEach(file => {
+        const files = Array.isArray(file) ? file : [file];
+        files.forEach(singleFile => {
+          if (singleFile && singleFile.tempFilePath) {
+            cleanupPromises.push(
+              fs.unlink(singleFile.tempFilePath).catch(console.error)
+            );
+          }
+        });
+      });
+    }
+    
+    await Promise.allSettled(cleanupPromises);
+    
+    // Handle duplicate key errors (like duplicate email)
+    if (error.name === 'MongoError' && error.code === 11000) {
+      const field = Object.keys(error.keyValue)[0];
+      return res.status(400).json({
+        success: false,
+        message: `${field} already exists`,
+        field: field,
+        code: 'DUPLICATE_ENTRY'
+      });
+    }
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => err.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation failed',
+        errors: errors,
+        code: 'VALIDATION_ERROR'
+      });
+    }
+    
+    return res.status(500).json({
       success: false,
-      message: errorMessage,
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
-      code: error.code
+      message: 'Failed to register student',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error',
+      code: 'SERVER_ERROR'
     });
   }
 });
@@ -339,55 +371,84 @@ const registerStudent = asyncHandler(async (req, res) => {
 // @desc    Get all registered students
 // @route   GET /api/university/registered-students
 // @access  Private/Admin
+// @desc    Get all registered students
+// @route   GET /api/university/registered-students
+// @access  Private/Admin
 const getRegisteredStudents = asyncHandler(async (req, res) => {
-  const { page = 1, limit = 10, status, search } = req.query;
-  const query = {};
-
-  if (status) {
-    query.status = status;
+  
+  
+  const { page = 1, limit = 10, status, search, registrationNumber } = req.query;
+  
+  // Create query object to filter students
+  const query = {
+    registrationNumber: { $exists: true, $ne: null } // University registered students only
+  };
+  
+  // Filter by specific registration number if provided
+  if (registrationNumber) {
+    query.registrationNumber = { 
+      $regex: registrationNumber, 
+      $options: 'i'
+    };
   }
-
+  
+  // Filter by status
+  if (status && status !== 'all') {
+    query.status = status;
+  } else {
+    // Default to showing only pending and approved if no status filter
+    query.status = { $in: ['pending', 'approved'] };
+  }
+  
+  // Search by name, email, phone, or registration number
   if (search) {
     query.$or = [
       { firstName: { $regex: search, $options: 'i' } },
       { lastName: { $regex: search, $options: 'i' } },
       { email: { $regex: search, $options: 'i' } },
-      { 'aadharNumber': { $regex: search } },
-      { 'registrationNumber': { $regex: search, $options: 'i' } }
+      { phone: { $regex: search, $options: 'i' } },
+      { registrationNumber: { $regex: search, $options: 'i' } }
     ];
   }
-
-  const students = await UniversityRegisteredStudent.find(query)
-    .populate('course', 'name code')
-    .populate('createdBy', 'name email')
-    .sort('-createdAt')
-    .limit(limit * 1)
-    .skip((page - 1) * limit);
-
-  const count = await UniversityRegisteredStudent.countDocuments(query);
-
+  
+  const options = {
+    page: parseInt(page),
+    limit: parseInt(limit),
+    sort: { createdAt: -1 },
+    select: '-__v'
+  };
+  
+  const students = await UniversityRegisteredStudent.paginate(query, options);
+  
   res.json({
     success: true,
-    count,
-    totalPages: Math.ceil(count / limit),
-    currentPage: page,
-    data: students
+    data: {
+      students: students.docs,
+      pagination: {
+        page: students.page,
+        limit: students.limit,
+        total: students.totalDocs,
+        pages: students.totalPages,
+        hasNext: students.hasNextPage,
+        hasPrev: students.hasPrevPage
+      }
+    }
   });
 });
-
-// @desc    Get single registered student
+// @desc    Get single student
 // @route   GET /api/university/registered-students/:id
 // @access  Private/Admin
 const getStudent = asyncHandler(async (req, res) => {
   const student = await UniversityRegisteredStudent.findById(req.params.id)
-    .populate('course', 'name code')
-    .populate('createdBy', 'name email');
-
+    .select('-__v');
+  
   if (!student) {
-    res.status(404);
-    throw new Error('Student not found');
+    return res.status(404).json({
+      success: false,
+      message: 'Student not found'
+    });
   }
-
+  
   res.json({
     success: true,
     data: student
@@ -400,65 +461,72 @@ const getStudent = asyncHandler(async (req, res) => {
 const updateStudentStatus = asyncHandler(async (req, res) => {
   const { status, remarks } = req.body;
   
+  const validStatuses = ['pending', 'approved', 'rejected', 'completed'];
+  if (!validStatuses.includes(status)) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid status. Must be one of: pending, approved, rejected, completed'
+    });
+  }
+  
   const student = await UniversityRegisteredStudent.findById(req.params.id);
   
   if (!student) {
-    res.status(404);
-    throw new Error('Student not found');
+    return res.status(404).json({
+      success: false,
+      message: 'Student not found'
+    });
   }
-
-  student.status = status;
   
-  if (remarks) {
-    if (!student.notes) student.notes = '';
-    student.notes += `\n[Status Update - ${new Date().toLocaleString()}] ${remarks}`;
-  }
-
-  student.updatedBy = req.user.id;
-  student.updatedAt = Date.now();
-
-  await student.save();
-
+  // Update status and remarks
+  student.status = status;
+  if (remarks !== undefined) student.remarks = remarks;
+  
+  const updatedStudent = await student.save();
+  
   res.json({
     success: true,
-    data: student,
-    message: 'Student status updated successfully'
+    message: 'Student status updated successfully',
+    data: updatedStudent
   });
 });
 
-// @desc    Delete a registered student
+// @desc    Delete a student
 // @route   DELETE /api/university/registered-students/:id
 // @access  Private/Admin
 const deleteStudent = asyncHandler(async (req, res) => {
   const student = await UniversityRegisteredStudent.findById(req.params.id);
   
   if (!student) {
-    res.status(404);
-    throw new Error('Student not found');
+    return res.status(404).json({
+      success: false,
+      message: 'Student not found'
+    });
   }
-
-  // Delete associated files from Cloudinary
-  try {
-    if (student.photo) {
-      const publicId = student.photo.split('/').pop().split('.')[0];
-      await cloudinary.uploader.destroy(`university/students/photos/${publicId}`);
-    }
-    
-    if (student.signature) {
-      const publicId = student.signature.split('/').pop().split('.')[0];
-      await cloudinary.uploader.destroy(`university/students/signatures/${publicId}`, 
-        { resource_type: 'image' });
-    }
-  } catch (error) {
-    console.error('Error deleting files from Cloudinary:', error);
-    // Continue with deletion even if file deletion fails
+  
+  // Delete from Cloudinary
+  const cleanupPromises = [];
+  if (student.photoId) {
+    cleanupPromises.push(
+      cloudinary.uploader.destroy(student.photoId).catch(console.error)
+    );
   }
-
-  await student.remove();
-
+  if (student.signatureId) {
+    cleanupPromises.push(
+      cloudinary.uploader.destroy(student.signatureId).catch(console.error)
+    );
+  }
+  
+  // Wait for Cloudinary cleanup to complete
+  await Promise.allSettled(cleanupPromises);
+  
+  // Delete from database
+  await UniversityRegisteredStudent.findByIdAndDelete(req.params.id);
+  
   res.json({
     success: true,
-    message: 'Student removed successfully'
+    message: 'Student deleted successfully',
+    data: {}
   });
 });
 
