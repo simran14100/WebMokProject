@@ -1268,33 +1268,45 @@ export function updateDisplayPicture(formData) {
   };
 }
 
-// Refresh the access token using the HTTP-only refresh cookie
+// Refresh the access token using the refresh token
 export const refreshToken = async (token = null) => {
   try {
+    // Get the refresh token from localStorage or use the provided token
+    const refreshToken = token || localStorage.getItem('refreshToken');
+    
+    if (!refreshToken) {
+      throw new Error('No refresh token available');
+    }
+    
     const response = await apiConnector(
       'POST',
       REFRESH_TOKEN_API,
-      {},
+      { refreshToken }, // Send refresh token in the request body
       {
-        withCredentials: true, // Important for cookies
         skipAuth: true, // Skip auth interceptor for refresh token request
         headers: {
           'Content-Type': 'application/json',
           'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest',
-          'Access-Control-Allow-Credentials': 'true'
-        }
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        withCredentials: true // Still needed for cookies if any
       }
     );
 
-    const { accessToken } = response.data;
+    const { accessToken, refreshToken: newRefreshToken } = response.data;
     
-    // Update the token in Redux and localStorage
+    // Update the tokens in Redux and localStorage
     if (accessToken) {
       store.dispatch(setToken(accessToken));
       localStorage.setItem('token', accessToken);
-      console.log('Access token refreshed successfully');
-      return accessToken;
+      
+      // Update refresh token if a new one was provided
+      if (newRefreshToken) {
+        localStorage.setItem('refreshToken', newRefreshToken);
+      }
+      
+      console.log('Tokens refreshed successfully');
+      return { accessToken, refreshToken: newRefreshToken || refreshToken };
     }
     
     throw new Error('No access token received');

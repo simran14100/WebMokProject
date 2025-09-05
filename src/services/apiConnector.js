@@ -22,19 +22,7 @@ const createAxiosInstance = () => {
     },
     xsrfCookieName: 'XSRF-TOKEN',
     xsrfHeaderName: 'X-XSRF-TOKEN',
-    // Add withCredentials for CORS
-    withCredentials: true,
-    // Handle CORS
-    crossDomain: true,
-    // Don't send credentials with CORS preflight
-    withXSRFToken: true,
   });
-  
-  // Remove any CORS headers from requests - these should only be in responses
-  delete instance.defaults.headers.common['Access-Control-Allow-Origin'];
-  delete instance.defaults.headers.common['Access-Control-Allow-Methods'];
-  delete instance.defaults.headers.common['Access-Control-Allow-Headers'];
-  delete instance.defaults.headers.common['Access-Control-Allow-Credentials'];
 
   // Request interceptor
   instance.interceptors.request.use(
@@ -66,7 +54,7 @@ const createAxiosInstance = () => {
     }
   );
   
-  // Response interceptor to handle 401 errors
+  // Response interceptor to handle token refresh
   instance.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -77,20 +65,63 @@ const createAxiosInstance = () => {
         return Promise.reject(error);
       }
       
+      // Skip refresh token logic for auth endpoints
+      if (originalRequest.url.includes('/auth/')) {
+        return Promise.reject(error);
+      }
+      
       // Mark request as retried to prevent infinite loops
       originalRequest._retry = true;
       
       try {
+        // Get refresh token from localStorage
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (!refreshToken) {
+          throw new Error('No refresh token available');
+        }
+        
         // Try to refresh the token
-        const newToken = await refreshToken();
+        const response = await axios({
+          method: 'post',
+          url: `${process.env.REACT_APP_BASE_URL}/api/v1/auth/refresh-token`,
+          data: { refreshToken },
+          skipAuth: true,
+        });
+        
+        const { accessToken, refreshToken: newRefreshToken } = response.data;
+        
+        if (!accessToken) {
+          throw new Error('No access token received');
+        }
+        
+        // Update tokens in storage
+        localStorage.setItem('token', accessToken);
+        if (newRefreshToken) {
+          localStorage.setItem('refreshToken', newRefreshToken);
+        }
+        
+        // Update the token in the original request
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
+        
+        // Update the token in Redux store
+        store.dispatch({
+          type: 'auth/setToken',
+          payload: accessToken,
+        });
         
         // Retry the original request with the new token
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
         return instance(originalRequest);
       } catch (refreshError) {
-        // If refresh token fails, log out the user
         console.error('Token refresh failed:', refreshError);
+        
+        // Clear auth state and redirect to login
         store.dispatch(logoutAction());
+        
+        // Redirect to login page if not already there
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+        
         return Promise.reject(refreshError);
       }
     }

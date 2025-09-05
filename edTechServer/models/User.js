@@ -21,8 +21,12 @@ const userSchema = new mongoose.Schema({
         required:true,
         
     },
-    token:{
-        type:String,
+    token: {
+        type: String,
+    },
+    refreshToken: {
+        type: String,
+        select: false, // Don't include this field by default in queries
     },
     resetPasswordExpires:{
         type:Date,

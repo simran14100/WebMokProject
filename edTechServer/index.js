@@ -376,10 +376,15 @@ cloudinary.config({
 
 global.cloudinary = cloudinary;
 
-// CORS configuration for development
+// CORS configuration
 app.use((req, res, next) => {
   // Allow all origins in development
-  const allowedOrigins = ['http://localhost:3000', 'http://localhost:3001', 'http://localhost:4000', 'http://localhost:4001'];
+  const allowedOrigins = [
+    'http://localhost:3000', 
+    'http://localhost:3001', 
+    'http://localhost:4000', 
+    'http://localhost:4001'
+  ];
   const origin = req.headers.origin;
   
   if (allowedOrigins.includes(origin)) {
@@ -387,13 +392,16 @@ app.use((req, res, next) => {
   }
   
   res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, withCredentials, skipauth, X-Skip-Interceptor, cache-control, pragma, expires');
+  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, withCredentials, skipauth, X-Skip-Interceptor, cache-control, pragma, expires, headers');
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Max-Age', '86400');
   
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    return res.status(200).end();
+    return res.status(200).json({
+      status: 200,
+      message: 'Preflight check successful'
+    });
   }
   
   next();
@@ -507,6 +515,7 @@ app.use("/api/v1/admission", admissionRoutes);
 // IMPORTANT: Apply file upload middleware ONLY to the specific route that needs it
 // This is done within the universityRegisteredStudentRoutes file itself
 app.use("/api/v1/university/registered-students", universityRegisteredStudentRoutes);
+
 
 // Protected routes
 app.use("/api/v1/admission-enquiries", admissionEnquiryRoutes);

@@ -395,36 +395,60 @@ exports.login = async (req, res) => {
         accountType: user.accountType,
       };
 
+      // Generate access token (short-lived)
       const token = jwt.sign(payload, process.env.JWT_SECRET, {
-        expiresIn: "24h",
+        expiresIn: "15m", // 15 minutes
       });
 
-      // Secure cookie settings
+      // Generate refresh token (long-lived)
+      const refreshToken = jwt.sign(
+        { id: user._id },
+        process.env.JWT_SECRET,
+        { expiresIn: "7d" } // 7 days
+      );
+
+      // Update user with refresh token
+      user.token = token;
+      user.refreshToken = refreshToken;
+      await user.save();
+
+      // Secure cookie settings for access token
       const cookieOptions = {
-        expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+        expires: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         path: "/",
       };
 
-      // Return both cookie and token in response
-      return res.cookie("token", token, cookieOptions).status(200).json({
-        success: true,
-        message: "Login successful",
-        user: {
-          ...user._doc,
-          password: undefined,
-          userType: user.userType ? {
-            _id: user.userType._id,
-            name: user.userType.name,
-            contentManagement: user.userType.contentManagement,
-            trainerManagement: user.userType.trainerManagement,
-          } : null,
-        },
-        // Still return token for mobile clients
-        token,
-      });
+      // Set refresh token in a separate cookie
+      const refreshCookieOptions = {
+        ...cookieOptions,
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+        path: "/api/v1/auth/refresh-token",
+      };
+
+      // Set both cookies and return response
+      return res
+        .cookie("token", token, cookieOptions)
+        .cookie("refreshToken", refreshToken, refreshCookieOptions)
+        .status(200)
+        .json({
+          success: true,
+          message: "Login successful",
+          user: {
+            ...user._doc,
+            password: undefined,
+            userType: user.userType ? {
+              _id: user.userType._id,
+              name: user.userType.name,
+              contentManagement: user.userType.contentManagement,
+              trainerManagement: user.userType.trainerManagement,
+            } : null,
+          },
+          token,
+          refreshToken, // Also send refresh token in response body for mobile clients
+        });
     }
 
     return res.status(401).json({
@@ -511,8 +535,33 @@ exports.changePassword = async (req, res) => {
 // Refresh token endpoint
 exports.refreshToken = async (req, res) => {
   try {
-    // Get user from the request (set by auth middleware)
-    const user = await User.findById(req.user.id).populate("additionalDetails").populate("userType");
+    // Get refresh token from cookies or request body
+    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+    
+    if (!refreshToken) {
+      return res.status(400).json({
+        success: false,
+        message: "Refresh token is required",
+      });
+    }
+
+    // Verify the refresh token
+    let decoded;
+    try {
+      decoded = jwt.verify(refreshToken, process.env.JWT_SECRET);
+    } catch (err) {
+      console.error('Token verification error:', err);
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired refresh token",
+      });
+    }
+
+    // Find user by ID from the token
+    const user = await User.findById(decoded.id)
+      .select('+refreshToken')
+      .populate("additionalDetails")
+      .populate("userType");
     
     if (!user) {
       return res.status(401).json({
@@ -520,34 +569,66 @@ exports.refreshToken = async (req, res) => {
         message: "User not found",
       });
     }
+    
+    // Verify the refresh token matches the one in the database
+    if (user.refreshToken !== refreshToken) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid refresh token",
+      });
+    }
 
-    // Generate new token
+    // Generate new access token
     const payload = {
       email: user.email,
       id: user._id,
       accountType: user.accountType,
     };
     
-    const newToken = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: "24h",
+    const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "15m", // 15 minutes
     });
 
-    // Update user's token in database
-    user.token = newToken;
+    // Generate new refresh token
+    const newRefreshToken = jwt.sign(
+      { id: user._id },
+      process.env.JWT_SECRET,
+      { expiresIn: "7d" } // 7 days
+    );
+
+    // Update user's tokens in database
+    user.token = newAccessToken;
+    user.refreshToken = newRefreshToken;
     await user.save();
 
-    // Create cookie options
-    const options = {
-      expires: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+    // Cookie options for access token
+    const accessTokenCookieOptions = {
+      expires: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
       httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path: "/",
     };
 
-    res.cookie("token", newToken, options).status(200).json({
-      success: true,
-      message: "Token refreshed successfully",
-      token: newToken,
-      user: {
-        _id: user._id,
+    // Cookie options for refresh token
+    const refreshTokenCookieOptions = {
+      ...accessTokenCookieOptions,
+      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+      path: "/api/v1/auth/refresh-token",
+    };
+
+    // Set both cookies and send response
+    res
+      .cookie("token", newAccessToken, accessTokenCookieOptions)
+      .cookie("refreshToken", newRefreshToken, refreshTokenCookieOptions)
+      .status(200)
+      .json({
+        success: true,
+        message: "Token refreshed successfully",
+        token: newAccessToken,
+        refreshToken: newRefreshToken,
+        user: {
+          _id: user._id,
         firstName: user.firstName,
         lastName: user.lastName,
         email: user.email,
@@ -575,33 +656,53 @@ exports.refreshToken = async (req, res) => {
 
 // Logout controller
 exports.logout = async (req, res) => {
-  try {
-    // Clear the HTTP-only cookie
-    res.clearCookie('token', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-    });
+try {
+  // Get the user ID from the request (set by auth middleware)
+  const userId = req.user?.id;
+  
+  // Clear both cookies
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'lax',
+  };
 
-    // Clear the refresh token cookie
-    res.clearCookie('refreshToken', {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
-      path: '/',
-    });
+  // Clear access token cookie
+  res.clearCookie('token', {
+    ...cookieOptions,
+    path: '/',
+  });
 
-    return res.status(200).json({
-      success: true,
-      message: 'Logged out successfully',
-    });
-  } catch (error) {
-    console.error('Error during logout:', error);
-    return res.status(500).json({
-      success: false,
-      message: 'Error during logout',
-      error: error.message,
-    });
+  // Clear refresh token cookie
+  res.clearCookie('refreshToken', {
+    ...cookieOptions,
+    path: '/api/v1/auth/refresh-token',
+  });
+
+  // Clear tokens from the database if user ID is available
+  if (userId) {
+    await User.findByIdAndUpdate(
+      userId,
+      { 
+        $set: { 
+          token: null, 
+          refreshToken: null 
+        } 
+      },
+      { new: true }
+    );
   }
+
+  return res.status(200).json({
+    success: true,
+    message: 'Logged out successfully',
+  });
+} catch (error) {
+  console.error('Logout error:', error);
+  return res.status(500).json({
+    success: false,
+    message: 'Error logging out',
+    error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+  });
+}
 };

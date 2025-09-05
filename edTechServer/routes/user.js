@@ -41,8 +41,11 @@ router.post("/signup", signup)
 // Route for sending OTP to the user's email
 router.post("/sendotp", sendotp)
 
-// Route for refreshing token
-router.post("/refresh-token", auth, refreshToken)
+// Route for refreshing token - no auth middleware as we're using the refresh token for authentication
+router.post("/refresh-token", (req, res) => {
+  // The refreshToken controller will handle the request directly
+  refreshToken(req, res);
+})
 
 // Route for user logout
 router.post("/logout", auth, logout)

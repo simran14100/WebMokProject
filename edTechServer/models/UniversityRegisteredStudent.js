@@ -1,5 +1,27 @@
 const mongoose = require('mongoose');
 
+
+// Add these schemas at the top of your file
+const documentVerificationSchema = new mongoose.Schema({
+  registrationFee: { type: Boolean, default: false },
+  srSecondaryMarksheet: { type: Boolean, default: false },
+  graduationMarksheet: { type: Boolean, default: false },
+  matricMarksheet: { type: Boolean, default: false },
+  pgMarksheet: { type: Boolean, default: false },
+  idProof: { type: Boolean, default: false },
+  isEligible: { type: Boolean, default: false }
+});
+
+const verificationDetailsSchema = new mongoose.Schema({
+  photoVerified: { type: Boolean, default: false },
+  signatureVerified: { type: Boolean, default: false },
+  documents: documentVerificationSchema,
+  verifiedBy: { type: String },
+  verifiedById: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+  verifiedAt: { type: Date },
+  remarks: { type: String, default: '' }
+});
+
 const registeredStudentSchema = new mongoose.Schema({
   // Personal Information
   firstName: { type: String, required: true, trim: true },
@@ -110,6 +132,9 @@ parent: {
   },
   registrationDate: { type: Date, default: Date.now },
   registrationNumber: { type: String, unique: true },
+
+  // ADD VERIFICATION DETAILS FIELD HERE
+  verificationDetails: verificationDetailsSchema,
   
   // Audit Fields
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },

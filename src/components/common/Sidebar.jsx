@@ -29,6 +29,10 @@ import {
   VscGraph,
   VscBell,
 } from "react-icons/vsc";
+import { FaRegMoneyBillAlt, FaRegFileAlt, FaTasks, FaSchool } from "react-icons/fa";
+import { MdOutlineManageAccounts, MdPayment, MdSummarize } from "react-icons/md";
+import { RiMoneyDollarCircleLine } from "react-icons/ri";
+
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import { logout } from "../../services/operations/authApi";
@@ -149,8 +153,7 @@ const getSidebarLinks = (user, variant = 'default') => {
         subLinks: [
           { name: 'Admission Enquiries', path: '/ugpg-admin/admissions/enquiries', icon: <VscListUnordered style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'New Registration', path: '/ugpg-admin/new-registration', icon: <VscAdd style={{ fontSize: 20, color: ED_TEAL }} /> },
-
-          { name: 'Registered Students', path: '/ugpg-admin/admissions/registered', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'All Registered Students', path: '/ugpg-admin/admissions/all-registered', icon: <VscListUnordered style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Verification', path: '/ugpg-admin/admissions/verification', icon: <VscVerified style={{ fontSize: 20, color: ED_TEAL }} /> },
 
           { name: 'Enrolled Students', path: '/ugpg-admin/admissions/enrolled', icon: <VscOrganization style={{ fontSize: 20, color: ED_TEAL }} /> },
@@ -158,7 +161,22 @@ const getSidebarLinks = (user, variant = 'default') => {
       },
 
       { id: 300, name: 'ACCOUNTS', isHeader: true, icon: <VscBriefcase style={{ fontSize: 20, color: ED_TEAL }} /> },
-      { id: 301, name: 'Fee', path: '/ugpg-admin/fee', icon: <VscGift style={{ fontSize: 20, color: ED_TEAL }} /> },
+      {
+        id: 301,
+        name: 'Fee',
+        icon: <VscGift style={{ fontSize: 20, color: ED_TEAL }} />,
+        subLinks: [
+          { name: 'Fee Type', path: '/ugpg-admin/fee/type', icon: <FaRegMoneyBillAlt style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Manage Course Fee', path: '/ugpg-admin/fee/manage', icon: <MdOutlineManageAccounts style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Student Ledgers', path: '/ugpg-admin/fee/ledgers', icon: <FaRegFileAlt style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Paid Fee', path: '/ugpg-admin/fee/paid', icon: <MdPayment style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Daily Collection', path: '/ugpg-admin/fee/collection', icon: <RiMoneyDollarCircleLine style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Fee Summary', path: '/ugpg-admin/fee/summary', icon: <MdSummarize style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Session Wise Pending', path: '/ugpg-admin/fee/session-pending', icon: <FaTasks style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'School Wise Pending', path: '/ugpg-admin/fee/school-pending', icon: <FaSchool style={{ fontSize: 20, color: ED_TEAL }} /> },
+        ]
+      },
+      
       { id: 302, name: 'Accounts', path: '/ugpg-admin/accounts', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
     ];
   }

@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const { check } = require('express-validator');
 const { protect, authorize } = require('../middlewares/auth');
 const fileUpload = require('express-fileupload');
 const path = require('path');
@@ -209,6 +210,8 @@ const {
   deleteStudent
 } = require('../controllers/UniversityRegisteredStudentController');
 
+const { getStudentForVerification } = require('../controllers/universityStudentVerificationController');
+
 // Apply authentication and authorization middleware to all routes
 router.use(protect);
 router.use(authorize('admin', 'superadmin'));
@@ -273,5 +276,43 @@ router.put('/:id/status', updateStudentStatus);
 
 // Delete a student
 router.delete('/:id', deleteStudent);
+
+
+//GET student details for verification
+router.get('/:id/verification', protect, getStudentForVerification);
+
+// PUT update student status
+router.put('/:id/status', [
+  protect,
+  [
+    check('status', 'Status is required').isIn(['pending', 'approved', 'rejected', 'enrolled']),
+    check('remarks', 'Remarks should be a string').optional().isString(),
+    check('verifiedBy', 'Verifier name is required').optional().isString()
+  ]
+], async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  updateStudentStatus(req, res, next);
+});
+
+// POST complete verification with all details
+router.post('/:id/complete-verification', [
+  protect,
+  [
+    check('photoVerified', 'Photo verification status is required').isBoolean(),
+    check('signatureVerified', 'Signature verification status is required').isBoolean(),
+    check('documents', 'Documents verification data is required').isObject(),
+    check('verifiedBy', 'Verifier name is required').notEmpty(),
+    check('remarks', 'Remarks should be a string').optional().isString()
+  ]
+], async (req, res, next) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  completeVerification(req, res, next);
+});
 
 module.exports = router;

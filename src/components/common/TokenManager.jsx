@@ -29,31 +29,31 @@ const TokenManager = () => {
     });
 
     // Check token every 5 minutes
-    const checkToken = async () => {
-      try {
-        const timeUntilExpiry = getTimeUntilExpiry(token);
+    // const checkToken = async () => {
+    //   try {
+    //     const timeUntilExpiry = getTimeUntilExpiry(token);
         
-        // Show warning when token expires in 15 minutes
-        if (timeUntilExpiry <= 15 && timeUntilExpiry > 0 && !warningShownRef.current) {
-          toast.warning(`Your session will expire in ${timeUntilExpiry} minutes. Please save your work.`);
-          warningShownRef.current = true;
-        }
+    //     // Show warning when token expires in 15 minutes
+    //     if (timeUntilExpiry <= 15 && timeUntilExpiry > 0 && !warningShownRef.current) {
+    //       toast.warning(`Your session will expire in ${timeUntilExpiry} minutes. Please save your work.`);
+    //       warningShownRef.current = true;
+    //     }
         
-        // Refresh token if needed
-        const refreshed = await refreshTokenIfNeeded();
-        if (refreshed) {
-          console.log('🔄 Token refreshed successfully');
-        }
-      } catch (error) {
-        console.error('❌ Error in token check:', error);
-      }
-    };
+    //     // Refresh token if needed
+    //     const refreshed = await refreshTokenIfNeeded();
+    //     if (refreshed) {
+    //       console.log('🔄 Token refreshed successfully');
+    //     }
+    //   } catch (error) {
+    //     console.error('❌ Error in token check:', error);
+    //   }
+    // };
 
     // Initial check
-    checkToken();
+    // checkToken();
 
     // Set up interval for periodic checks
-    intervalRef.current = setInterval(checkToken, 5 * 60 * 1000); // 5 minutes
+    // intervalRef.current = setInterval(checkToken, 5 * 60 * 1000); // 5 minutes
 
     return () => {
       if (intervalRef.current) {
@@ -72,4 +72,4 @@ const TokenManager = () => {
   return null;
 };
 
-export default TokenManager; 
+export default TokenManager;

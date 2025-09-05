@@ -459,7 +459,7 @@ const getStudent = asyncHandler(async (req, res) => {
 // @route   PUT /api/university/registered-students/:id/status
 // @access  Private/Admin
 const updateStudentStatus = asyncHandler(async (req, res) => {
-  const { status, remarks } = req.body;
+  const { status, remarks, verifiedBy } = req.body;
   
   const validStatuses = ['pending', 'approved', 'rejected', 'completed'];
   if (!validStatuses.includes(status)) {
@@ -477,16 +477,52 @@ const updateStudentStatus = asyncHandler(async (req, res) => {
       message: 'Student not found'
     });
   }
+
+  // If status is being changed to 'approved', validate required fields
+  if (status === 'approved') {
+    // Only check the most critical fields
+    const requiredFields = ['photo', 'signature'];
+    
+    const missingCriticalFields = requiredFields.filter(field => !student[field]);
+    
+    // Special check for verification done by if status is being set to verified
+    if (verificationData.status === 'verified' && !verificationData.verifiedBy) {
+      missingCriticalFields.push('verifiedBy');
+    }
+
+    if (missingCriticalFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot approve student. Missing required fields: ${missingCriticalFields.join(', ')}`,
+        code: 'MISSING_REQUIRED_FIELDS',
+        missingFields: missingCriticalFields
+      });
+    }
+    
+    // For other fields, we'll trust the database state
+    // since the student might have been updated through other means
+  }
   
-  // Update status and remarks
+  // Update status, remarks, and verification details
   student.status = status;
-  if (remarks !== undefined) student.remarks = remarks;
+  if (remarks) student.remarks = remarks;
+  
+  // If being approved, set verification details
+  if (status === 'approved') {
+    student.verificationDetails = {
+      verifiedBy: verifiedBy || req.user.id,
+      verifiedAt: new Date(),
+      status: 'verified',
+      remarks: remarks || 'Student verified and approved'
+    };
+    student.registrationStatus = 'completed';
+  }
   
   const updatedStudent = await student.save();
   
   res.json({
     success: true,
-    message: 'Student status updated successfully',
+    message: `Student ${status} successfully`,
     data: updatedStudent
   });
 });

@@ -42,6 +42,7 @@ import EnrollmentStatus from './pages/University/EnrollmentStatus';
 import AdmissionEnquiryForm from './components/AdmissionEnquiryForm';
 import NewRegistration from './pages/SuperAdmin/NewRegistration';
 import VerifiedStudents from './pages/SuperAdmin/VerifiedStudentss';
+import AllRegisteredStudents from './pages/SuperAdmin/AllRegisteredStudents';
 
 import EditCourse from './components/core/EditCourse';
 import CourseViewer from './pages/CourseViewer';
@@ -99,7 +100,7 @@ import Streams from './components/core/UGPGAdmin/Academic/Streams';
 import SubjectsPapers from './components/core/UGPGAdmin/Academic/SubjectsPapers';
 import UGPGFrontDesk from './components/core/UGPGAdmin/FrontDesk';
 import UGPGAdmissions from './components/core/UGPGAdmin/Admissions';
-import UGPGFee from './components/core/UGPGAdmin/Fee';
+// import UGPGFee from './components/core/UGPGAdmin/Fee';
 import UGPGAccounts from './components/core/UGPGAdmin/Accounts';
 import UGPGSettingsUsers from './components/core/UGPGAdmin/Settings/Users';
 import UGPGSettingsSchool from './components/core/UGPGAdmin/Settings/School';
@@ -266,7 +267,7 @@ function AppRoutes() {
         <Route path="front-desk" element={<UGPGFrontDesk />} />
         <Route path="admissions" element={<UGPGAdmissions />}>
           <Route path="enquiries" element={<AdmissionEnquiry />} />
-          <Route path="registered" element={<RegisteredStudents />} />
+          <Route path="all-registered" element={<AllRegisteredStudents />} />
           <Route path="verification" element={<VerifiedStudents />} />
         </Route>
         <Route path="front-desk/visitor-logs" element={<VisitorLogs />} />
@@ -279,7 +280,7 @@ function AppRoutes() {
         <Route path="front-desk/grievance-types" element={<GrievanceTypes />} />
         <Route path="front-desk/postal-types" element={<PostalTypes />} />
         <Route path="front-desk/meeting-types" element={<MeetingTypes />} />
-        <Route path="fee" element={<UGPGFee />} />
+    
         <Route path="accounts" element={<UGPGAccounts />} />
       </Route>
       <Route path="/phd-admin" element={
