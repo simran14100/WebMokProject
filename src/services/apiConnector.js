@@ -4,6 +4,7 @@ import { logout as logoutAction } from "../store/slices/authSlice";
 import { clearUser } from "../store/slices/profileSlice";
 import { refreshToken } from "./operations/authApi";
 import { showError } from "../utils/toast";
+import { refreshTokenIfNeeded } from "../utils/tokenUtils";
 
 if (!process.env.REACT_APP_BASE_URL) {
   console.error('REACT_APP_BASE_URL is not set in environment variables');
@@ -60,59 +61,72 @@ const createAxiosInstance = () => {
     async (error) => {
       const originalRequest = error.config;
       
-      // If error is not 401 or it's a retry request, reject
-      if (error.response?.status !== 401 || originalRequest._retry) {
+      // If error is not 401, reject immediately
+      if (error.response?.status !== 401) {
         return Promise.reject(error);
       }
       
-      // Skip refresh token logic for auth endpoints
-      if (originalRequest.url.includes('/auth/')) {
+      // Skip refresh token logic for auth endpoints or if this is a retry
+      if (originalRequest.url.includes('/auth/') || originalRequest._skipAuth) {
         return Promise.reject(error);
+      }
+
+      // If we've already retried, reject to prevent infinite loops
+      if (originalRequest._retry) {
+        console.log('Already retried this request, logging out...');
+        store.dispatch(logoutAction());
+        if (!window.location.pathname.includes('/login')) {
+          window.location.href = '/login';
+        }
+        return Promise.reject(new Error('Authentication failed after retry'));
       }
       
       // Mark request as retried to prevent infinite loops
       originalRequest._retry = true;
       
       try {
-        // Get refresh token from localStorage
-        const refreshToken = localStorage.getItem('refreshToken');
-        if (!refreshToken) {
-          throw new Error('No refresh token available');
+        console.log('Token expired or invalid, attempting to refresh...');
+        const refreshSuccess = await refreshTokenIfNeeded();
+        
+        if (!refreshSuccess) {
+          console.log('Token refresh failed, logging out...');
+          store.dispatch(logoutAction());
+          if (!window.location.pathname.includes('/login')) {
+            window.location.href = '/login';
+          }
+          return Promise.reject(new Error('Failed to refresh token'));
         }
         
-        // Try to refresh the token
-        const response = await axios({
-          method: 'post',
-          url: `${process.env.REACT_APP_BASE_URL}/api/v1/auth/refresh-token`,
-          data: { refreshToken },
-          skipAuth: true,
-        });
+        // Get the new token from the store or localStorage
+        const state = store.getState();
+        const newToken = state.auth?.token || localStorage.getItem('token');
         
-        const { accessToken, refreshToken: newRefreshToken } = response.data;
-        
-        if (!accessToken) {
-          throw new Error('No access token received');
+        if (!newToken) {
+          throw new Error('No token available after refresh');
         }
         
-        // Update tokens in storage
-        localStorage.setItem('token', accessToken);
-        if (newRefreshToken) {
-          localStorage.setItem('refreshToken', newRefreshToken);
+        console.log('Retrying original request with new token...');
+        
+        // Update the auth header
+        originalRequest.headers = {
+          ...originalRequest.headers,
+          'Authorization': `Bearer ${newToken}`,
+          'X-Requested-With': 'XMLHttpRequest'
+        };
+        
+        // Ensure we don't skip auth for the retry
+        if (originalRequest._skipAuth) {
+          delete originalRequest._skipAuth;
         }
-        
-        // Update the token in the original request
-        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
-        
-        // Update the token in Redux store
-        store.dispatch({
-          type: 'auth/setToken',
-          payload: accessToken,
-        });
         
         // Retry the original request with the new token
         return instance(originalRequest);
-      } catch (refreshError) {
-        console.error('Token refresh failed:', refreshError);
+      } catch (error) {
+        console.error('Error in response interceptor:', {
+          message: error.message,
+          code: error.code,
+          response: error.response?.data
+        });
         
         // Clear auth state and redirect to login
         store.dispatch(logoutAction());
@@ -121,8 +135,7 @@ const createAxiosInstance = () => {
         if (!window.location.pathname.includes('/login')) {
           window.location.href = '/login';
         }
-        
-        return Promise.reject(refreshError);
+        return Promise.reject(error);
       }
     }
   );

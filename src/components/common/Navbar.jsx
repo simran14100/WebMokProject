@@ -29,45 +29,83 @@ const Navbar = () => {
 
    const { token } = useSelector((state) => state.auth);
 
-// Fetch initial cart count
+  // Fetch initial cart count
   useEffect(() => {
+    let isMounted = true;
+    
     const fetchCartCount = async () => {
-      if (token) {
-        try {
-          console.log("Fetching cart count...");
-          const response = await getCartCount(token);
-          console.log("Cart count response:", response);
-          if (response.success) {
-            setCartCount(response.count);
-          }
-        } catch (error) {
-          console.error("Error fetching cart count:", error);
-        }
-      } else {
+      if (!token) {
         setCartCount(0);
+        return;
+      }
+      
+      try {
+        console.log("Fetching cart count...");
+        const response = await getCartCount();
+        console.log("Cart count response:", response);
+        
+        if (!isMounted) return;
+        
+        if (response.success) {
+          setCartCount(response.count);
+        } else {
+          setCartCount(0);
+          // If we got an error, check if we need to refresh the token
+          if (response.message?.includes('jwt') || response.message?.includes('token')) {
+            console.log('Token might be invalid, attempting refresh...');
+            // The interceptor should handle the refresh automatically
+          }
+        }
+      } catch (error) {
+        console.error("Error fetching cart count:", error);
+        if (isMounted) {
+          setCartCount(0);
+        }
       }
     };
 
     fetchCartCount();
+    
+    return () => {
+      isMounted = false;
+    };
   }, [token]);
 
-  // Listen for cart updates
+  // Listen for cart updates and auth changes
   useEffect(() => {
+    let isMounted = true;
+    
     const handleCartUpdate = async () => {
-      if (token) {
-        try {
-          const response = await getCartCount(token);
-          if (response.success) {
-            setCartCount(response.count);
-          }
-        } catch (error) {
-          console.error("Error updating cart count:", error);
+      if (!token) {
+        if (isMounted) setCartCount(0);
+        return;
+      }
+      
+      try {
+        const response = await getCartCount();
+        if (!isMounted) return;
+        
+        if (response.success) {
+          setCartCount(response.count);
+        } else {
+          setCartCount(0);
         }
+      } catch (error) {
+        console.error("Error updating cart count:", error);
+        if (isMounted) setCartCount(0);
       }
     };
 
+    // Add a small delay to ensure token is refreshed if needed
+    const timer = setTimeout(handleCartUpdate, 100);
+    
     window.addEventListener('cartUpdated', handleCartUpdate);
-    return () => window.removeEventListener('cartUpdated', handleCartUpdate);
+    
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+      window.removeEventListener('cartUpdated', handleCartUpdate);
+    };
   }, [token]);
 
   // Debug cart count changes

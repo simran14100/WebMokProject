@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { check } = require('express-validator');
+const { check, validationResult } = require('express-validator');
 const { protect, authorize } = require('../middlewares/auth');
 const fileUpload = require('express-fileupload');
 const path = require('path');
@@ -207,14 +207,38 @@ const {
   getRegisteredStudents,
   getStudent,
   updateStudentStatus,
-  deleteStudent
+  deleteStudent,
+  updateStudent
 } = require('../controllers/UniversityRegisteredStudentController');
 
-const { getStudentForVerification } = require('../controllers/universityStudentVerificationController');
+const { completeVerification } = require('../controllers/universityStudentVerificationController');
+
+const { 
+  getStudentForVerification,
+
+} = require('../controllers/universityStudentVerificationController');
 
 // Apply authentication and authorization middleware to all routes
 router.use(protect);
 router.use(authorize('admin', 'superadmin'));
+
+// Complete student verification with all details
+router.post('/:id/complete-verification', 
+  [
+    check('photoVerified', 'Photo verification status is required').isBoolean(),
+    check('signatureVerified', 'Signature verification status is required').isBoolean(),
+    check('documents', 'Documents verification data is required').isObject(),
+    check('verifiedBy', 'Verifier name is required').notEmpty(),
+    check('remarks', 'Remarks should be a string').optional().isString()
+  ], 
+  async (req, res, next) => {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    completeVerification(req, res, next);
+  }
+);
 
 // Student registration route with file uploads
 router.post('/register',
@@ -271,31 +295,64 @@ router.get('/', getRegisteredStudents);
 // Get a single student by ID
 router.get('/:id', getStudent);
 
-// Update student status
-router.put('/:id/status', updateStudentStatus);
-
 // Delete a student
 router.delete('/:id', deleteStudent);
 
+// Update student information
+router.put('/:id',
+  // File upload middleware - must be first
+  (req, res, next) => {
+    const upload = fileUpload({
+      ...fileUploadOptions,
+      limits: {
+        ...fileUploadOptions.limits,
+        files: 2, // Allow up to 2 files (photo and/or signature)
+        fileSize: 10 * 1024 * 1024 // 10MB limit per file
+      }
+    });
+    
+    upload(req, res, (err) => {
+      if (err) {
+        console.error('File upload error:', {
+          message: err.message,
+          code: err.code
+        });
+        
+        let message = 'Error processing file upload';
+        let status = 400;
+        
+        if (err.message.includes('maxFileSize') || err.code === 'LIMIT_FILE_SIZE') {
+          message = 'File size exceeds 10MB limit';
+          status = 413;
+        } else if (err.message.includes('Unexpected field')) {
+          message = 'Invalid file field name. Please use "photo" and "signature" as field names';
+        } else if (err.message.includes('Unexpected end of form')) {
+          message = 'The upload was interrupted. Please try again.';
+        }
+        
+        return res.status(status).json({
+          success: false,
+          message,
+          code: 'UPLOAD_ERROR'
+        });
+      }
+      
+      next();
+    });
+  },
+  
+  // Cleanup middleware
+  cleanupUploads,
+  
+  // Parse request body
+  parseRequestBody,
+  
+  // Handle update
+  updateStudent
+);
 
 //GET student details for verification
 router.get('/:id/verification', protect, getStudentForVerification);
-
-// PUT update student status
-router.put('/:id/status', [
-  protect,
-  [
-    check('status', 'Status is required').isIn(['pending', 'approved', 'rejected', 'enrolled']),
-    check('remarks', 'Remarks should be a string').optional().isString(),
-    check('verifiedBy', 'Verifier name is required').optional().isString()
-  ]
-], async (req, res, next) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-  updateStudentStatus(req, res, next);
-});
 
 // POST complete verification with all details
 router.post('/:id/complete-verification', [

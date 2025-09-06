@@ -2,15 +2,11 @@
 import { apiConnector } from "../apiConnector";
 import { cart } from "../apis";
 
-export const fetchCartDetails = async (token) => {
+export const fetchCartDetails = async () => {
   try {
     const response = await apiConnector(
       "GET",
-      cart.GET_CART_DETAILS_API,
-      null,
-      {
-        Authorization: `Bearer ${token}`,
-      }
+      cart.GET_CART_DETAILS_API
     );
 
     if (!response.data.success) {
@@ -22,24 +18,21 @@ export const fetchCartDetails = async (token) => {
       cartData: response.data.data,
     };
   } catch (error) {
+    console.error("Error fetching cart details:", error);
     return {
       success: false,
-      message: error.message,
+      message: error.response?.data?.message || error.message,
     };
   }
 };
 
-export const addToCart = async (courseId, token) => {
+export const addToCart = async (courseId) => {
   try {
     console.log("Request payload:", { courseId }); // Debug log
     const response = await apiConnector(
       "POST",
       cart.ADD_TO_CART_API,
-      { courseId }, // Ensure this matches backend expectation
-      {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      }
+      { courseId } // Ensure this matches backend expectation
     );
     if (response.data.success) {
       // Trigger update event for navbar
@@ -56,15 +49,12 @@ export const addToCart = async (courseId, token) => {
   }
 };
 
-export const updateCartItem = async ({ courseId, quantity }, token) => {
+export const updateCartItem = async ({ courseId, quantity }) => {
   try {
     const response = await apiConnector(
       "PUT",
       cart.UPDATE_CART_ITEM_API,
-      { courseId, quantity },
-      {
-        Authorization: `Bearer ${token}`,
-      }
+      { courseId, quantity }
     );
     if (response.data.success) {
       // Trigger update event for navbar
@@ -86,15 +76,12 @@ export const updateCartItem = async ({ courseId, quantity }, token) => {
   }
 };
 
-export const removeFromCart = async ({ courseId }, token) => {
+export const removeFromCart = async ({ courseId }) => {
   try {
     const response = await apiConnector(
       "POST",
       cart.REMOVE_FROM_CART_API,
-      { courseId },
-      {
-        Authorization: `Bearer ${token}`,
-      }
+      { courseId }
     );
 
     if (response.data.success) {
@@ -118,15 +105,11 @@ export const removeFromCart = async ({ courseId }, token) => {
   }
 };
 
-export const clearCart = async (token) => {
+export const clearCart = async () => {
   try {
     const response = await apiConnector(
       "DELETE",
-      cart.CLEAR_CART_API,
-      null,
-      {
-        Authorization: `Bearer ${token}`,
-      }
+      cart.CLEAR_CART_API
     );
 
     if (response.data.success) {
@@ -150,18 +133,9 @@ export const clearCart = async (token) => {
   }
 };
 
-export const getCartCount = async (token) => {
+export const getCartCount = async () => {
   try {
-    const response = await apiConnector(
-      "GET",
-      cart.GET_CART_COUNT_API,
-      null,
-      {
-        Authorization: `Bearer ${token}`,
-      }
-    );
-
-   
+    const response = await apiConnector("GET", cart.GET_CART_COUNT_API);
 
     if (!response.data.success) {
       throw new Error(response.data.message);
@@ -169,13 +143,13 @@ export const getCartCount = async (token) => {
 
     return {
       success: true,
-      count: response.data.count
+      count: response.data.count || 0
     };
   } catch (error) {
     console.error("Error getting cart count:", error);
     return {
       success: false,
-      message: error.message,
+      message: error.response?.data?.message || error.message,
       count: 0
     };
   }

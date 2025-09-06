@@ -1269,62 +1269,167 @@ export function updateDisplayPicture(formData) {
 }
 
 // Refresh the access token using the refresh token
-export const refreshToken = async (token = null) => {
-  try {
-    // Get the refresh token from localStorage or use the provided token
-    const refreshToken = token || localStorage.getItem('refreshToken');
-    
-    if (!refreshToken) {
-      throw new Error('No refresh token available');
-    }
-    
-    const response = await apiConnector(
-      'POST',
-      REFRESH_TOKEN_API,
-      { refreshToken }, // Send refresh token in the request body
-      {
-        skipAuth: true, // Skip auth interceptor for refresh token request
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        withCredentials: true // Still needed for cookies if any
-      }
-    );
-
-    const { accessToken, refreshToken: newRefreshToken } = response.data;
-    
-    // Update the tokens in Redux and localStorage
-    if (accessToken) {
-      store.dispatch(setToken(accessToken));
-      localStorage.setItem('token', accessToken);
+// export const refreshToken = (token = null) => {
+//   return async (dispatch) => {
+//     try {
+//       // Get the refresh token from localStorage or use the provided token
+//       const refreshToken = token || localStorage.getItem('refreshToken');
       
-      // Update refresh token if a new one was provided
+//       if (!refreshToken) {
+//         console.error('No refresh token available');
+//         return {
+//           success: false,
+//           message: 'No refresh token available',
+//           payload: { success: false, message: 'No refresh token available' }
+//         };
+//       }
+      
+//       console.log('Attempting to refresh token...');
+      
+//       const response = await apiConnector(
+//         'POST',
+//         REFRESH_TOKEN_API,
+//         { refreshToken },
+//         {
+//           skipAuth: true,
+//           headers: {
+//             'Content-Type': 'application/json',
+//             'Accept': 'application/json',
+//             'X-Requested-With': 'XMLHttpRequest'
+//           },
+//           withCredentials: true
+//         }
+//       );
+
+//       const { accessToken, refreshToken: newRefreshToken } = response?.data || {};
+      
+//       if (!accessToken) {
+//         throw new Error('No access token received in response');
+//       }
+      
+//       console.log('New access token received, updating storage...');
+      
+//       // Update the tokens in Redux and localStorage
+//       dispatch(setToken(accessToken));
+//       localStorage.setItem('token', accessToken);
+      
+//       // Update refresh token if a new one was provided
+//       if (newRefreshToken) {
+//         console.log('New refresh token received, updating...');
+//         localStorage.setItem('refreshToken', newRefreshToken);
+//       }
+      
+//       console.log('Token refresh successful');
+//       return {
+//         success: true,
+//         accessToken,
+//         refreshToken: newRefreshToken || refreshToken,
+//         payload: { 
+//           success: true,
+//           accessToken,
+//           refreshToken: newRefreshToken || refreshToken
+//         }
+//       };
+      
+//     } catch (error) {
+//       const errorMessage = error.response?.data?.message || error.message || 'Failed to refresh token';
+//       console.error("REFRESH TOKEN ERROR:", {
+//         message: errorMessage,
+//         status: error.response?.status,
+//         code: error.code,
+//         response: error.response?.data
+//       });
+      
+//       // Clear tokens on any error
+//       localStorage.removeItem('token');
+//       localStorage.removeItem('refreshToken');
+      
+//       return {
+//         success: false,
+//         message: errorMessage,
+//         payload: { 
+//           success: false, 
+//           message: errorMessage,
+//           status: error.response?.status 
+//         }
+//       };
+//     }
+//   };
+// }; 
+
+
+export const refreshToken = (token = null) => {
+  return async (dispatch) => {
+    try {
+      dispatch(setLoading(true));
+      
+      const refreshTokenValue = token || localStorage.getItem('refreshToken');
+      
+      if (!refreshTokenValue) {
+        throw new Error('No refresh token available');
+      }
+      
+      const response = await apiConnector(
+        'POST',
+        REFRESH_TOKEN_API,
+        { refreshToken: refreshTokenValue },
+        {
+          skipAuth: true,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          withCredentials: true
+        }
+      );
+
+      const { accessToken, refreshToken: newRefreshToken, user } = response?.data || {};
+      
+      if (!accessToken) {
+        throw new Error('No access token received');
+      }
+      
+      // Update both Redux state and localStorage
+      dispatch(setToken(accessToken));
+      if (user) {
+        dispatch(setUser(user));
+      }
+      
+      localStorage.setItem('token', accessToken);
       if (newRefreshToken) {
         localStorage.setItem('refreshToken', newRefreshToken);
       }
       
-      console.log('Tokens refreshed successfully');
-      return { accessToken, refreshToken: newRefreshToken || refreshToken };
+      return {
+        success: true,
+        accessToken,
+        refreshToken: newRefreshToken,
+        payload: { 
+          success: true,
+          accessToken,
+          refreshToken: newRefreshToken,
+          user
+        }
+      };
+      
+    } catch (error) {
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to refresh token';
+      
+      // Clear tokens on error
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      dispatch(setToken(null));
+      dispatch(setUser(null));
+      
+      return {
+        success: false,
+        message: errorMessage,
+        payload: { 
+          success: false, 
+          message: errorMessage
+        }
+      };
+    } finally {
+      dispatch(setLoading(false));
     }
-    
-    throw new Error('No access token received');
-  } catch (error) {
-    console.error("REFRESH TOKEN ERROR:", {
-      message: error.message,
-      response: error.response?.data,
-      status: error.response?.status
-    });
-    
-    // If we get a 401, the refresh token is invalid/expired - force logout
-    if (error.response?.status === 401) {
-      // Dispatch logout action to clear user state
-      const { store } = require('../../store');
-      store.dispatch(logout());
-    }
-    
-    // Re-throw the error to be handled by the interceptor
-    throw error;
-  }
-}; 
+  };
+};

@@ -458,74 +458,74 @@ const getStudent = asyncHandler(async (req, res) => {
 // @desc    Update student status
 // @route   PUT /api/university/registered-students/:id/status
 // @access  Private/Admin
-const updateStudentStatus = asyncHandler(async (req, res) => {
-  const { status, remarks, verifiedBy } = req.body;
+// const updateStudentStatus = asyncHandler(async (req, res) => {
+//   const { status, remarks, verifiedBy } = req.body;
   
-  const validStatuses = ['pending', 'approved', 'rejected', 'completed'];
-  if (!validStatuses.includes(status)) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid status. Must be one of: pending, approved, rejected, completed'
-    });
-  }
+//   const validStatuses = ['pending', 'approved', 'rejected', 'completed'];
+//   if (!validStatuses.includes(status)) {
+//     return res.status(400).json({
+//       success: false,
+//       message: 'Invalid status. Must be one of: pending, approved, rejected, completed'
+//     });
+//   }
   
-  const student = await UniversityRegisteredStudent.findById(req.params.id);
+//   const student = await UniversityRegisteredStudent.findById(req.params.id);
   
-  if (!student) {
-    return res.status(404).json({
-      success: false,
-      message: 'Student not found'
-    });
-  }
+//   if (!student) {
+//     return res.status(404).json({
+//       success: false,
+//       message: 'Student not found'
+//     });
+//   }
 
-  // If status is being changed to 'approved', validate required fields
-  if (status === 'approved') {
-    // Only check the most critical fields
-    const requiredFields = ['photo', 'signature'];
+//   // If status is being changed to 'approved', validate required fields
+//   if (status === 'approved') {
+//     // Only check the most critical fields
+//     const requiredFields = ['photo', 'signature'];
     
-    const missingCriticalFields = requiredFields.filter(field => !student[field]);
+//     const missingCriticalFields = requiredFields.filter(field => !student[field]);
     
-    // Special check for verification done by if status is being set to verified
-    if (verificationData.status === 'verified' && !verificationData.verifiedBy) {
-      missingCriticalFields.push('verifiedBy');
-    }
+//     // Special check for verification done by if status is being set to verified
+//     if (verificationData.status === 'verified' && !verificationData.verifiedBy) {
+//       missingCriticalFields.push('verifiedBy');
+//     }
 
-    if (missingCriticalFields.length > 0) {
-      return res.status(400).json({
-        success: false,
-        message: `Cannot approve student. Missing required fields: ${missingCriticalFields.join(', ')}`,
-        code: 'MISSING_REQUIRED_FIELDS',
-        missingFields: missingCriticalFields
-      });
-    }
+//     if (missingCriticalFields.length > 0) {
+//       return res.status(400).json({
+//         success: false,
+//         message: `Cannot approve student. Missing required fields: ${missingCriticalFields.join(', ')}`,
+//         code: 'MISSING_REQUIRED_FIELDS',
+//         missingFields: missingCriticalFields
+//       });
+//     }
     
-    // For other fields, we'll trust the database state
-    // since the student might have been updated through other means
-  }
+//     // For other fields, we'll trust the database state
+//     // since the student might have been updated through other means
+//   }
   
-  // Update status, remarks, and verification details
-  student.status = status;
-  if (remarks) student.remarks = remarks;
+//   // Update status, remarks, and verification details
+//   student.status = status;
+//   if (remarks) student.remarks = remarks;
   
-  // If being approved, set verification details
-  if (status === 'approved') {
-    student.verificationDetails = {
-      verifiedBy: verifiedBy || req.user.id,
-      verifiedAt: new Date(),
-      status: 'verified',
-      remarks: remarks || 'Student verified and approved'
-    };
-    student.registrationStatus = 'completed';
-  }
+//   // If being approved, set verification details
+//   if (status === 'approved') {
+//     student.verificationDetails = {
+//       verifiedBy: verifiedBy || req.user.id,
+//       verifiedAt: new Date(),
+//       status: 'verified',
+//       remarks: remarks || 'Student verified and approved'
+//     };
+//     student.registrationStatus = 'completed';
+//   }
   
-  const updatedStudent = await student.save();
+//   const updatedStudent = await student.save();
   
-  res.json({
-    success: true,
-    message: `Student ${status} successfully`,
-    data: updatedStudent
-  });
-});
+//   res.json({
+//     success: true,
+//     message: `Student ${status} successfully`,
+//     data: updatedStudent
+//   });
+// });
 
 // @desc    Delete a student
 // @route   DELETE /api/university/registered-students/:id
@@ -566,10 +566,141 @@ const deleteStudent = asyncHandler(async (req, res) => {
   });
 });
 
+// @desc    Update student information
+// @route   PUT /api/university/registered-students/:id
+// @access  Private/Admin
+const updateStudent = asyncHandler(async (req, res) => {
+  try {
+    const student = await UniversityRegisteredStudent.findById(req.params.id);
+    
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    // Handle file uploads if any
+    if (req.files) {
+      const uploadPromises = [];
+      
+      // Handle photo upload
+      if (req.files.photo) {
+        const photo = Array.isArray(req.files.photo) ? req.files.photo[0] : req.files.photo;
+        uploadPromises.push(
+          uploadToCloudinary(photo, 'photos')
+            .then(uploadResult => {
+              // Delete old photo from Cloudinary if exists
+              if (student.photoId) {
+                cloudinary.uploader.destroy(student.photoId).catch(console.error);
+              }
+              student.photo = uploadResult.url;
+              student.photoId = uploadResult.public_id;
+            })
+        );
+      }
+
+      // Handle signature upload
+      if (req.files.signature) {
+        const signature = Array.isArray(req.files.signature) ? req.files.signature[0] : req.files.signature;
+        uploadPromises.push(
+          uploadToCloudinary(signature, 'signatures')
+            .then(uploadResult => {
+              // Delete old signature from Cloudinary if exists
+              if (student.signatureId) {
+                cloudinary.uploader.destroy(student.signatureId).catch(console.error);
+              }
+              student.signature = uploadResult.url;
+              student.signatureId = uploadResult.public_id;
+            })
+        );
+      }
+
+      // Wait for all file uploads to complete
+      await Promise.all(uploadPromises);
+    }
+
+    // Handle updates
+    const updates = req.body;
+    // List of allowed fields that can be updated
+    const allowedUpdates = [
+      // Personal Information
+      'firstName', 'lastName', 'email', 'phone', 'alternatePhone', 'gender', 'dateOfBirth',
+      'aadharNumber', 
+      
+      // Family Information
+      'fatherName', 'motherName', 'guardianName', 'guardianPhone', 
+      
+      // Address Information
+      'address', 'city', 'state', 'pincode', 'country',
+      
+      // Academic Information
+      'lastQualification', 'lastSchool', 'boardUniversity', 'yearOfPassing', 
+      'percentage', 'course', 'stream', 'specialization',
+      
+      // Registration Information
+      'registrationNumber', 'enrollmentNumber', 'batchYear', 'semester',
+      
+      // Additional Information
+      'isScholarship', 'source'
+    ];
+
+    // Apply updates
+    Object.keys(updates).forEach(update => {
+      if (allowedUpdates.includes(update)) {
+        // Handle nested address object
+        if (update === 'address' && typeof updates[update] === 'object') {
+          // Merge the existing address with the new address fields
+          student.address = student.address || {};
+          Object.assign(student.address, updates[update]);
+          // Remove any undefined values
+          Object.keys(student.address).forEach(key => {
+            if (student.address[key] === undefined) {
+              delete student.address[key];
+            }
+          });
+        } else if (updates[update] !== undefined && updates[update] !== null) {
+          // Only update if the value is defined and not null
+          student[update] = updates[update];
+        }
+      }
+    });
+
+    // Mark as modified if address was updated
+    if (updates.address) {
+      student.markModified('address');
+    }
+
+    // Save the updated student
+    const updatedStudent = await student.save();
+
+    res.json({
+      success: true,
+      message: 'Student updated successfully',
+      data: updatedStudent
+    });
+
+  } catch (error) {
+    console.error('Error updating student:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name
+    });
+
+    res.status(500).json({
+      success: false,
+      message: 'Error updating student',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Server error',
+      code: 'UPDATE_ERROR'
+    });
+  }
+});
+
 module.exports = {
   registerStudent,
   getRegisteredStudents,
   getStudent,
-  updateStudentStatus,
-  deleteStudent
+  // updateStudentStatus,
+  deleteStudent,
+  updateStudent
 };

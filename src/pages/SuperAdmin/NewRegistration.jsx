@@ -486,6 +486,7 @@ const NewRegistration = () => {
                     }}
                   />
                 </Form.Item>
+             
               </Col>
               <Col xs={24} sm={12} md={8} lg={6} className="mb-4">
                 <Form.Item

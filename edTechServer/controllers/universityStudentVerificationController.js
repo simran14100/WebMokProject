@@ -62,75 +62,135 @@ const updateStudentStatus = asyncHandler(async (req, res) => {
 });
 
 // Complete student verification with all details
+// In universityStudentVerificationController.js
+
+// Complete student verification with all details
 const completeVerification = asyncHandler(async (req, res) => {
-  const {
-    photoVerified,
-    signatureVerified,
-    documents,
-    verifiedBy,
-    remarks
-  } = req.body;
+  try {
+    const {
+      photoVerified,
+      signatureVerified,
+      documents,
+      verifiedBy,
+      remarks,
+      status
+    } = req.body;
 
-  const student = await UniversityRegisteredStudent.findById(req.params.id);
-  
-  if (!student) {
-    return res.status(404).json({
+    console.log('Received verification data:', {
+      photoVerified,
+      signatureVerified,
+      documents,
+      verifiedBy,
+      remarks,
+      status
+    });
+
+    const student = await UniversityRegisteredStudent.findById(req.params.id);
+    
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+
+    // Validate required verification fields
+    if (typeof photoVerified !== 'boolean' || typeof signatureVerified !== 'boolean') {
+      return res.status(400).json({
+        success: false,
+        message: 'Photo and signature verification status are required'
+      });
+    }
+
+    // Validate documents object
+    if (!documents || typeof documents !== 'object') {
+      return res.status(400).json({
+        success: false,
+        message: 'Documents verification data is required'
+      });
+    }
+
+    // Check if all required documents are submitted
+    const requiredDocs = {
+      registrationFee: documents.registrationFee,
+      srSecondaryMarksheet: documents.srSecondaryMarksheet,
+      graduationMarksheet: documents.graduationMarksheet,
+      matricMarksheet: documents.matricMarksheet
+    };
+
+    const missingDocs = Object.entries(requiredDocs)
+      .filter(([_, value]) => !value)
+      .map(([key]) => key);
+
+    if (missingDocs.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `The following documents are required: ${missingDocs.join(', ')}`,
+        code: 'MISSING_REQUIRED_DOCS',
+        missingDocuments: missingDocs
+      });
+    }
+
+    // Update verification details
+    const verificationDetails = {
+      photoVerified,
+      signatureVerified,
+      documents: {
+        registrationFee: !!documents.registrationFee,
+        srSecondaryMarksheet: !!documents.srSecondaryMarksheet,
+        graduationMarksheet: !!documents.graduationMarksheet,
+        matricMarksheet: !!documents.matricMarksheet,
+        pgMarksheet: !!documents.pgMarksheet,
+        idProof: !!documents.idProof,
+        isEligible: !!documents.isEligible
+      },
+      verifiedBy: verifiedBy || req.user?.name || 'System',
+      verifiedById: req.user?.id || 'system',
+      verifiedAt: new Date(),
+      remarks: remarks || ''
+    };
+
+    // Update student document
+    const updateData = {
+      verificationDetails,
+      status: status || 'approved',
+      verifiedAt: new Date(),
+      verifiedBy: verifiedBy || req.user?.name || 'System',
+      registrationStatus: 'completed'
+    };
+
+    console.log('Updating student with:', updateData);
+
+    const updatedStudent = await UniversityRegisteredStudent.findByIdAndUpdate(
+      req.params.id,
+      { $set: updateData },
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedStudent) {
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found after update'
+      });
+    }
+
+    console.log('Student verification completed successfully:', updatedStudent._id);
+    
+    return res.status(200).json({
+      success: true,
+      message: 'Student verification completed successfully',
+      data: updatedStudent
+    });
+    
+  } catch (error) {
+    console.error('Error in completeVerification:', error);
+    return res.status(500).json({
       success: false,
-      message: 'Student not found'
+      message: 'Error processing verification',
+      error: error.message
     });
   }
-
-  // Validate required verification fields
-  if (typeof photoVerified !== 'boolean' || typeof signatureVerified !== 'boolean') {
-    return res.status(400).json({
-      success: false,
-      message: 'Photo and signature verification status are required'
-    });
-  }
-
-  // Validate documents object
-  if (!documents || typeof documents !== 'object') {
-    return res.status(400).json({
-      success: false,
-      message: 'Documents verification data is required'
-    });
-  }
-
-  // Update verification details
-  student.verificationDetails = {
-    photoVerified,
-    signatureVerified,
-    documents: {
-      registrationFee: documents.registrationFee || false,
-      srSecondaryMarksheet: documents.srSecondaryMarksheet || false,
-      graduationMarksheet: documents.graduationMarksheet || false,
-      matricMarksheet: documents.matricMarksheet || false,
-      pgMarksheet: documents.pgMarksheet || false,
-      idProof: documents.idProof || false,
-      isEligible: documents.isEligible || false
-    },
-    verifiedBy: verifiedBy || req.user.name,
-    verifiedById: req.user.id,
-    verifiedAt: new Date(),
-    remarks: remarks || ''
-  };
-
-  // Update student status based on verification
-  if (documents.isEligible && photoVerified && signatureVerified) {
-    student.status = 'approved';
-  } else {
-    student.status = 'rejected';
-  }
-
-  const updatedStudent = await student.save();
-
-  res.json({
-    success: true,
-    message: 'Student verification completed successfully',
-    data: updatedStudent
-  });
 });
-
 // Get student details for verification
 const getStudentForVerification = asyncHandler(async (req, res) => {
   const student = await UniversityRegisteredStudent.findById(req.params.id);

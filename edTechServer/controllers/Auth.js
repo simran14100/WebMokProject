@@ -271,7 +271,7 @@ exports.signup = async (req, res) => {
     }
   }
 
-//login
+
 // exports.login = async(req,res)=>{
   
 //     try{
@@ -410,6 +410,7 @@ exports.login = async (req, res) => {
       // Update user with refresh token
       user.token = token;
       user.refreshToken = refreshToken;
+     
       await user.save();
 
       // Secure cookie settings for access token
@@ -532,7 +533,8 @@ exports.changePassword = async (req, res) => {
     }
   }
 
-// Refresh token endpoint
+
+
 exports.refreshToken = async (req, res) => {
   try {
     // Get refresh token from cookies or request body
@@ -560,8 +562,7 @@ exports.refreshToken = async (req, res) => {
     // Find user by ID from the token
     const user = await User.findById(decoded.id)
       .select('+refreshToken')
-      .populate("additionalDetails")
-      .populate("userType");
+      .populate("additionalDetails");
     
     if (!user) {
       return res.status(401).json({
@@ -586,14 +587,14 @@ exports.refreshToken = async (req, res) => {
     };
     
     const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: "15m", // 15 minutes
+      expiresIn: "15m",
     });
 
     // Generate new refresh token
     const newRefreshToken = jwt.sign(
       { id: user._id },
       process.env.JWT_SECRET,
-      { expiresIn: "7d" } // 7 days
+      { expiresIn: "7d" }
     );
 
     // Update user's tokens in database
@@ -601,26 +602,26 @@ exports.refreshToken = async (req, res) => {
     user.refreshToken = newRefreshToken;
     await user.save();
 
-    // Cookie options for access token
-    const accessTokenCookieOptions = {
-      expires: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+    // Cookie options
+    const cookieOptions = {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-    };
-
-    // Cookie options for refresh token
-    const refreshTokenCookieOptions = {
-      ...accessTokenCookieOptions,
-      expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-      path: "/api/v1/auth/refresh-token",
+      sameSite: "lax"
     };
 
     // Set both cookies and send response
     res
-      .cookie("token", newAccessToken, accessTokenCookieOptions)
-      .cookie("refreshToken", newRefreshToken, refreshTokenCookieOptions)
+      .cookie("token", newAccessToken, { 
+        ...cookieOptions, 
+        maxAge: 15 * 60 * 1000, // 15 minutes
+        path: "/"
+      })
+      .cookie("refreshToken", newRefreshToken, { 
+        ...cookieOptions, 
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        path: "/"   // ✅ allow all routes
+        // path: "/api/v1/auth/refresh-token"
+      })
       .status(200)
       .json({
         success: true,
@@ -629,22 +630,16 @@ exports.refreshToken = async (req, res) => {
         refreshToken: newRefreshToken,
         user: {
           _id: user._id,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        accountType: user.accountType,
-        image: user.image,
-        enrollmentFeePaid: user.enrollmentFeePaid,
-        approved: user.approved,
-        additionalDetails: user.additionalDetails,
-        userType: user.userType ? {
-          _id: user.userType._id,
-          name: user.userType.name,
-          contentManagement: user.userType.contentManagement,
-          trainerManagement: user.userType.trainerManagement,
-        } : null,
-      },
-    });
+          firstName: user.firstName,
+          lastName: user.lastName,
+          email: user.email,
+          accountType: user.accountType,
+          image: user.image,
+          enrollmentFeePaid: user.enrollmentFeePaid,
+          approved: user.approved,
+          additionalDetails: user.additionalDetails,
+        },
+      });
   } catch (error) {
     console.log("Refresh token error:", error);
     return res.status(500).json({
@@ -653,7 +648,6 @@ exports.refreshToken = async (req, res) => {
     });
   }
 };
-
 // Logout controller
 exports.logout = async (req, res) => {
 try {
