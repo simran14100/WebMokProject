@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { useSelector } from 'react-redux';
+import { toast } from 'react-hot-toast';
 import { 
   Table, 
   Button, 
@@ -61,15 +63,20 @@ const AllRegisteredStudents = () => {
   const [form] = Form.useForm();
   const [editingStudent, setEditingStudent] = useState(null);
 
+  // Get token from Redux store
+  const { token: authToken } = useSelector((state) => state.auth);
+
   // Fetch all registered students
   const fetchStudents = async (params = {}) => {
     setLoading(true);
     try {
       const { current = 1, pageSize = 10 } = params.pagination || pagination;
-      const token = localStorage.getItem('token');
       
-      if (!token) {
-        throw new Error('No authentication token found');
+      if (!authToken) {
+        console.error('No authentication token found in Redux store');
+        toast.error('Your session has expired. Please log in again.');
+        window.location.href = '/login';
+        return;
       }
       
       const response = await axios.get('http://localhost:4001/api/v1/university/registered-students', {
@@ -80,7 +87,7 @@ const AllRegisteredStudents = () => {
           ...params,
         },
         headers: {
-          'Authorization': `Bearer ${token}`,
+          'Authorization': `Bearer ${authToken}`,
           'Content-Type': 'application/json'
         }
       });
@@ -322,32 +329,60 @@ const AllRegisteredStudents = () => {
       dataIndex: 'registrationNumber',
       key: 'registrationNumber',
       sorter: true,
+      width: 150,
     },
     {
       title: 'Name',
       dataIndex: 'name',
       key: 'name',
       sorter: true,
+      width: 150,
     },
     {
       title: 'Email',
       dataIndex: 'email',
       key: 'email',
+      width: 200,
     },
     {
       title: 'Phone',
       dataIndex: 'phone',
       key: 'phone',
+      width: 120,
+    },
+    {
+      title: 'Course',
+      dataIndex: 'course',
+      key: 'course',
+      width: 120,
+    },
+    {
+      title: 'Specialization',
+      dataIndex: 'specialization',
+      key: 'specialization',
+      width: 120,
+    },
+    {
+      title: 'Scholarship',
+      key: 'isScholarship',
+      width: 100,
+      render: (_, record) => (
+        <Tag color={record.isScholarship ? 'green' : 'default'}>
+          {record.isScholarship ? 'Yes' : 'No'}
+        </Tag>
+      ),
     },
     {
       title: 'Registration Date',
       dataIndex: 'registrationDate',
       key: 'registrationDate',
       sorter: true,
+      width: 140,
     },
     {
       title: 'Status',
       key: 'status',
+      width: 120,
       render: (_, record) => getStatusBadge(record.status),
     },
     {
@@ -464,6 +499,17 @@ const AllRegisteredStudents = () => {
             </Descriptions.Item>
             <Descriptions.Item label="Status" span={2}>
               {getStatusBadge(selectedStudent.status)}
+            </Descriptions.Item>
+            <Descriptions.Item label="Course">
+              {selectedStudent.course || 'N/A'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Specialization">
+              {selectedStudent.specialization || 'N/A'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Scholarship">
+              <Tag color={selectedStudent.isScholarship ? 'green' : 'default'}>
+                {selectedStudent.isScholarship ? 'Yes' : 'No'}
+              </Tag>
             </Descriptions.Item>
             {selectedStudent.address && (
               <>

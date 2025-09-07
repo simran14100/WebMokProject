@@ -2,6 +2,9 @@ const express = require("express");
 const router = express.Router();
 
 // Import admin dashboard controllers
+// Import from universityStudentVerificationController
+
+
 const {
     getRegisteredUsers,
     getEnrolledStudents,
@@ -50,6 +53,9 @@ router.get("/course-students", auth, isAdminLevel, getCourseStudents);
 // Get PhD enrolled students (enrollment + course fee) and PhD enrollment-paid only
 router.get("/phd-enrolled-students", auth, isAdminLevel, getPhdEnrolledStudents);
 router.get("/phd-enrollment-paid-students", auth, isAdminLevel, getPhdEnrollmentPaidStudents);
+
+// Get all verified students with approved status
+
 
 // Get all approved instructors (public route)
 router.get("/all-instructors", getAllInstructors);

@@ -123,18 +123,22 @@ exports.isAdmin = async (req, res, next) => {
   try {
     const userDetails = await User.findOne({ email: req.user.email });
 
-    // Allow Admin and Instructor to access Admin-protected routes
-    if (!["Admin", "Instructor"].includes(userDetails.accountType)) {
+    // Allow Admin, SuperAdmin, Instructor, and Content Manager to access Admin-protected routes
+    if (!["Admin", "SuperAdmin", "Instructor", "Content Manager"].includes(userDetails.accountType)) {
       return res.status(401).json({
         success: false,
-        message: "This is a Protected Route for Admin/Instructor",
+        message: "You don't have permission to access this resource",
+        requiredRoles: ["Admin", "SuperAdmin", "Instructor", "Content Manager"],
+        yourRole: userDetails.accountType
       });
     }
     next();
   } catch (error) {
-    return res
-      .status(500)
-      .json({ success: false, message: `User Role Can't be Verified` });
+    console.error('Error in isAdmin middleware:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: `Error verifying user role: ${error.message}` 
+    });
   }
 };
 exports.isSuperAdmin = async (req, res, next) => {

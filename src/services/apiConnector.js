@@ -86,6 +86,15 @@ const createAxiosInstance = () => {
       
       try {
         console.log('Token expired or invalid, attempting to refresh...');
+        
+        // Get the current refresh token
+        const refreshToken = localStorage.getItem('refreshToken');
+        if (!refreshToken) {
+          console.log('No refresh token available');
+          throw new Error('No refresh token available');
+        }
+        
+        // Call the refresh token endpoint directly
         const refreshSuccess = await refreshTokenIfNeeded();
         
         if (!refreshSuccess) {

@@ -55,7 +55,8 @@ const visitPurposeRoutes = require("./routes/visitPurpose");
 const honoraryEnquiryRoutes = require("./routes/honoraryEnquiryRoutes");
 
 const meetingTypeRoutes = require("./routes/meetingTypeRoutes");
-const universityRegisteredStudentRoutes = require("./routes/universityRegisteredStudentRoutes");
+const universityRegisteredStudentRoutes = require("./routes/universityRegisteredStudent");
+const universityEnrolledStudentRoutes = require("./routes/universityEnrolledStudentRoutes");
 
 const database = require("./config/database");
 const cookieParser = require("cookie-parser");
@@ -201,7 +202,9 @@ app.use("/api/v1/course", courseRoutes);
 app.use("/api/v1/sub-category", subCategoryRoutes);
 app.use("/api/v1/payment", paymentRoutes);
 app.use("/api/v1/contact", contactUsRoute);
+app.use("/api/v1/super-admin", superAdminRoutes);
 app.use("/api/v1/admin", adminRoutes);
+
 app.use("/api/v1/enrollment", enrollmentRoutes);
 app.use("/api/v1/enrollment-management", enrollmentManagementRoutes);
 app.use("/api/v1/admission", admissionRoutes);
@@ -209,6 +212,7 @@ app.use("/api/v1/admission", admissionRoutes);
 // IMPORTANT: Apply file upload middleware ONLY to the specific route that needs it
 // This is done within the universityRegisteredStudentRoutes file itself
 app.use("/api/v1/university/registered-students", universityRegisteredStudentRoutes);
+app.use("/api/v1/university/enrolled-students", universityEnrolledStudentRoutes);
 
 
 // Protected routes

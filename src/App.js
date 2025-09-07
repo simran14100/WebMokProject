@@ -83,6 +83,8 @@ import RacMembers from './components/core/SuperAdmin/RacMembers';
 import ExternalExperts from './components/core/SuperAdmin/ExternalExperts';
 import FinalData from './components/core/SuperAdmin/FinalData';
 import UsersManagement from './components/core/SuperAdmin/UsersManagement';
+import Feetype from './components/core/UGPGAdmin/Fees/Feetype';
+import ManageFee from './components/core/UGPGAdmin/Fees/ManageFee';
 import HonoraryApplications from './components/core/SuperAdmin/HonoraryApplications';
 
 // Sidebar centralized with variants
@@ -120,6 +122,7 @@ import PostalTypes from './components/core/UGPGAdmin/FrontDesk/PostalTypes';
 import MeetingTypes from './components/core/UGPGAdmin/FrontDesk/MeetingTypes';
 import ProgramSelection from "./pages/University/ProgramSelection";
 import UniversityDashboard from "./pages/UniversityDashboard";
+import UniversityEnrolledStudent from "./pages/SuperAdmin/UniversityEnrolledStudent";
 import { withEnrollmentVerification } from "./middleware/enrollmentMiddleware";
 
 // Debug Redux store on app start
@@ -269,6 +272,7 @@ function AppRoutes() {
           <Route path="enquiries" element={<AdmissionEnquiry />} />
           <Route path="all-registered" element={<AllRegisteredStudents />} />
           <Route path="verification" element={<VerifiedStudents />} />
+          <Route path="enrolled" element={<UniversityEnrolledStudent/>} />
         </Route>
         <Route path="front-desk/visitor-logs" element={<VisitorLogs />} />
         <Route path="front-desk/phone-logs" element={<PhoneLogs />} />
@@ -282,6 +286,18 @@ function AppRoutes() {
         <Route path="front-desk/meeting-types" element={<MeetingTypes />} />
     
         <Route path="accounts" element={<UGPGAccounts />} />
+        
+        {/* Fee Management */}
+        <Route path="fee/type" element={
+          <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
+            <Feetype />
+          </ProtectedRoute>
+        } />
+        <Route path="fee/manage" element={
+          <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
+            <ManageFee />
+          </ProtectedRoute>
+        } />
       </Route>
       <Route path="/phd-admin" element={
         <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.SUPER_ADMIN]}>

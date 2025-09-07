@@ -37,7 +37,7 @@ const FeeTypePage = () => {
   const totalPages = Math.ceil(filteredData.length / entriesPerPage);
 
   return (
-    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" }}>
+    <div style={{ padding: "20px", fontFamily: "Arial, sans-serif" , marginTop: "8rem" }}>
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "20px" }}>
         <h2 style={{ fontSize: "20px", fontWeight: "600" }}>Manage Fee Type</h2>

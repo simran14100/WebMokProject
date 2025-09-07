@@ -101,6 +101,7 @@ export const enrollment = {
 export const admin = {
     GET_REGISTERED_USERS_API: "/api/v1/admin/registered-users",
     GET_ENROLLED_STUDENTS_API: "/api/v1/admin/enrolled-students",
+    GET_VERIFIED_STUDENTS: "/api/v1/admin/verified-students",
     GET_PHD_ENROLLED_STUDENTS_API: "/api/v1/admin/phd-enrolled-students",
     GET_PHD_ENROLLMENT_PAID_STUDENTS_API: "/api/v1/admin/phd-enrollment-paid-students",
     GET_PENDING_INSTRUCTORS_API: "/api/v1/admin/pending-instructors",
@@ -176,6 +177,26 @@ export const contact = {
     CONTACT_US_API: "/api/v1/reach/contact",
 };
 
+// University Endpoints
+export const universityEndpoints = {
+    // Student verification
+    GET_ALL_VERIFIED_STUDENTS: "/api/v1/university/verified-students",
+    VERIFY_STUDENT: "/api/v1/university/verify-student",
+    
+    // Enrolled students
+    GET_ALL_ENROLLED_STUDENTS: "/api/v1/university/enrolled-students",
+    ENROLL_STUDENT: "/api/v1/university/enroll-student",
+    UPDATE_ENROLLMENT_STATUS: (id) => `/api/v1/university/enrolled-students/${id}/status`,
+    
+    // Student management
+    GET_STUDENT_DETAILS: (id) => `/api/v1/university/students/${id}`,
+    UPDATE_STUDENT_DETAILS: (id) => `/api/v1/university/students/${id}`,
+    
+    // Programs and batches
+    GET_ALL_PROGRAMS: "/api/v1/university/programs",
+    GET_ALL_BATCHES: "/api/v1/university/batches"
+};
+
 // Meeting endpoints
 export const meetingEndpoints = {
     GET_ALL_MEETINGS: "/api/v1/meetings",
@@ -246,6 +267,8 @@ export const ENQUIRY_API = {
   // Get enquiry statistics
   GET_STATS: "/api/v1/enquiries/stats"
 };
+
+
 
 // Enquiry Reference API endpoints
 export const ENQUIRY_REFERENCE_API = "/api/v1/enquiry-references";

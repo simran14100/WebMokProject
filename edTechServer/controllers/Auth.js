@@ -395,16 +395,16 @@ exports.login = async (req, res) => {
         accountType: user.accountType,
       };
 
-      // Generate access token (short-lived)
+      // Generate access token (24 hours)
       const token = jwt.sign(payload, process.env.JWT_SECRET, {
-        expiresIn: "15m", // 15 minutes
+        expiresIn: "24h"
       });
 
-      // Generate refresh token (long-lived)
+      // Generate refresh token (7 days)
       const refreshToken = jwt.sign(
         { id: user._id },
         process.env.JWT_SECRET,
-        { expiresIn: "7d" } // 7 days
+        { expiresIn: "7d" }
       );
 
       // Update user with refresh token
@@ -413,9 +413,9 @@ exports.login = async (req, res) => {
      
       await user.save();
 
-      // Secure cookie settings for access token
+      // Secure cookie settings for access token (24 hours)
       const cookieOptions = {
-        expires: new Date(Date.now() + 15 * 60 * 1000), // 15 minutes
+        expires: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
@@ -537,10 +537,27 @@ exports.changePassword = async (req, res) => {
 
 exports.refreshToken = async (req, res) => {
   try {
-    // Get refresh token from cookies or request body
-    const refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+    // Set CORS headers
+    res.header('Access-Control-Allow-Origin', req.headers.origin || '*');
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, PATCH, DELETE');
+    res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+    
+    // Handle preflight requests
+    if (req.method === 'OPTIONS') {
+      return res.status(200).end();
+    }
+
+    // Get refresh token from cookies, body, or headers
+    let refreshToken = req.cookies.refreshToken || req.body.refreshToken;
+    
+    // If not found in cookies or body, try Authorization header
+    if (!refreshToken && req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+      refreshToken = req.headers.authorization.split(' ')[1];
+    }
     
     if (!refreshToken) {
+      console.error('No refresh token provided');
       return res.status(400).json({
         success: false,
         message: "Refresh token is required",
@@ -587,7 +604,7 @@ exports.refreshToken = async (req, res) => {
     };
     
     const newAccessToken = jwt.sign(payload, process.env.JWT_SECRET, {
-      expiresIn: "15m",
+      expiresIn: "24h",
     });
 
     // Generate new refresh token
@@ -609,36 +626,39 @@ exports.refreshToken = async (req, res) => {
       sameSite: "lax"
     };
 
+    // Prepare user data for response
+    const userData = {
+      _id: user._id,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      email: user.email,
+      accountType: user.accountType,
+      image: user.image,
+      enrollmentFeePaid: user.enrollmentFeePaid,
+      approved: user.approved,
+      additionalDetails: user.additionalDetails,
+      userType: user.userType,
+    };
+
     // Set both cookies and send response
     res
       .cookie("token", newAccessToken, { 
         ...cookieOptions, 
-        maxAge: 15 * 60 * 1000, // 15 minutes
+        maxAge: 24 * 60 * 60 * 1000, // 24 hours
         path: "/"
       })
       .cookie("refreshToken", newRefreshToken, { 
         ...cookieOptions, 
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
-        path: "/"   // ✅ allow all routes
-        // path: "/api/v1/auth/refresh-token"
+        path: "/"
       })
       .status(200)
       .json({
         success: true,
         message: "Token refreshed successfully",
-        token: newAccessToken,
+        accessToken: newAccessToken,
         refreshToken: newRefreshToken,
-        user: {
-          _id: user._id,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          email: user.email,
-          accountType: user.accountType,
-          image: user.image,
-          enrollmentFeePaid: user.enrollmentFeePaid,
-          approved: user.approved,
-          additionalDetails: user.additionalDetails,
-        },
+        user: userData
       });
   } catch (error) {
     console.log("Refresh token error:", error);
