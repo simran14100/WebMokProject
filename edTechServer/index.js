@@ -57,6 +57,7 @@ const honoraryEnquiryRoutes = require("./routes/honoraryEnquiryRoutes");
 const meetingTypeRoutes = require("./routes/meetingTypeRoutes");
 const universityRegisteredStudentRoutes = require("./routes/universityRegisteredStudent");
 const universityEnrolledStudentRoutes = require("./routes/universityEnrolledStudentRoutes");
+const feeTypeRoutes = require("./routes/feeTypeRoutes");
 
 const database = require("./config/database");
 const cookieParser = require("cookie-parser");
@@ -199,45 +200,46 @@ cloudinaryConnect();
 app.use("/api/v1/auth", userRoutes);
 app.use("/api/v1/profile", profileRoutes);
 app.use("/api/v1/course", courseRoutes);
-app.use("/api/v1/sub-category", subCategoryRoutes);
 app.use("/api/v1/payment", paymentRoutes);
+app.use("/api/v1/reviews", profileRoutes);
 app.use("/api/v1/contact", contactUsRoute);
-app.use("/api/v1/super-admin", superAdminRoutes);
+app.use("/api/v1/razorpay", paymentRoutes);
 app.use("/api/v1/admin", adminRoutes);
-
-app.use("/api/v1/enrollment", enrollmentRoutes);
+app.use("/api/v1/enrollments", enrollmentRoutes);
 app.use("/api/v1/enrollment-management", enrollmentManagementRoutes);
 app.use("/api/v1/admission", admissionRoutes);
-
-// IMPORTANT: Apply file upload middleware ONLY to the specific route that needs it
-// This is done within the universityRegisteredStudentRoutes file itself
-app.use("/api/v1/university/registered-students", universityRegisteredStudentRoutes);
-app.use("/api/v1/university/enrolled-students", universityEnrolledStudentRoutes);
-
-
-// Protected routes
 app.use("/api/v1/admission-enquiries", admissionEnquiryRoutes);
+app.use("/api/v1/sub-categories", subCategoryRoutes);
 app.use("/api/v1/enquiries", enquiryRoutes);
 app.use("/api/v1/installments", installmentRoutes);
-app.use("/api/v1/video", videoRoutes);
-app.use("/api/v1/guide", require("./routes/guide"));
+app.use("/api/v1/videos", videoRoutes);
 app.use("/api/v1/cart", cartRoutes);
 app.use("/api/v1/google", googleRoutes);
-app.use("/api/v1/session", sessionRoutes); // legacy/general
-app.use("/api/v1/ugpg-session", ugpgSessionRoutes);
-app.use("/api/v1/phd-session", phdSessionRoutes);
-app.use("/api/v1/ugpg-exam-session", ugpgExamSessionRoutes);
+app.use("/api/v1/sessions", sessionRoutes);
+app.use("/api/v1/ugpg/sessions", ugpgSessionRoutes);
+app.use("/api/v1/phd/sessions", phdSessionRoutes);
+app.use("/api/v1/ugpg-exam/sessions", ugpgExamSessionRoutes);
 app.use("/api/v1/coursework", courseworkRoutes);
-app.use("/api/v1/department", departmentRoutes);
-app.use("/api/v1/ugpg-school", ugpgSchoolRoutes);
-app.use("/api/v1/subject", subjectRoutes);
-app.use("/api/v1/ugpg-subject", ugpgSubjectRoutes);
-app.use("/api/v1/ugpg-course", ugpgCourseRoutes);
+app.use("/api/v1/ugpg/schools", ugpgSchoolRoutes);
+app.use("/api/v1/departments", departmentRoutes);
+app.use("/api/v1/subjects", subjectRoutes);
+app.use("/api/v1/ugpg/courses", ugpgCourseRoutes);
+app.use("/api/v1/ugpg/subjects", ugpgSubjectRoutes);
+app.use("/api/v1/super-admin", superAdminRoutes);
+app.use("/api/v1/languages", languageRoutes);
+app.use("/api/v1/ugpg/visitor-logs", ugpgVisitorLogRoutes);
+app.use("/api/v1/visit-purposes", visitPurposeRoutes);
+app.use("/api/v1/honorary-enquiries", honoraryEnquiryRoutes);
+app.use("/api/v1/meeting-types", meetingTypeRoutes);
+app.use("/api/v1/university/registered-students", universityRegisteredStudentRoutes);
+app.use("/api/v1/university/enrolled-students", universityEnrolledStudentRoutes);
+app.use("/api/v1/university/fee-types", feeTypeRoutes);
 
 app.use("/api/v1/rac-members", require("./routes/racMember"));
 app.use("/api/v1/external-experts", require("./routes/externalExpert"));
 
 app.use("/api/v1/language", languageRoutes);
+
 // Enquiry references routes
 app.use("/api/v1/enquiry-references", require("./routes/enquiryReferenceRoutes"));
 // Visitor logs route (UG/PG)

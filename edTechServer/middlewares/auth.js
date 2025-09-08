@@ -9,46 +9,63 @@ dotenv.config();
 
 // This function is used as middleware to authenticate user requests
 exports.auth = exports.protect = async (req, res, next) => {
-	try {
-		// Extracting JWT from request cookies, body or header
-	// 	const token =
-    //    req.cookies.token ||
-    //     req.body.token ||
-    //     req.header("Authorization").replace("Bearer ", "");
+  try {
+    // Extract token from headers, cookies, or body
+    let token = null;
 
-	let token = null;
+    // Try extracting from header (Bearer token)
+    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+      token = req.headers.authorization.split(" ")[1];
+    }
+    // Fallback to cookies or body if needed
+    else if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    } else if (req.body && req.body.token) {
+      token = req.body.token;
+    }
 
-// Try extracting from header (Bearer token)
-if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
-  token = req.headers.authorization.split(" ")[1];
-}
+    console.log("Authorization Header:", req.headers.authorization);
+    
+    // If JWT is missing, return 401 Unauthorized response
+    if (!token) {
+      console.error('No token provided');
+      return res.status(401).json({ 
+        success: false, 
+        message: 'Authentication required. Please log in.' 
+      });
+    }
 
-// Fallbacks (if you're also using cookies or body)
-if (!token && req.cookies.token) {
-  token = req.cookies.token;
-} else if (!token && req.body.token) {
-  token = req.body.token;
-}
-
-
-  console.log("Authorization Header:", req.headers.authorization);
- 
-
-
-
-		// If JWT is missing, return 401 Unauthorized response
-		if (!token) {
-			return res.status(401).json({ success: false, message: `Token Missing` });
-		}
-
-		try {
-			console.log("JWT_SECRET:", process.env.JWT_SECRET);
-
-			// Verifying the JWT using the secret key stored in environment variables
-			const decode = await jwt.verify(token, process.env.JWT_SECRET);
-			console.log("Decoded Token:", decode); //
-			// Storing the decoded JWT payload in the request object for further use
-			req.user = decode;
+    try {
+      console.log("JWT_SECRET:", process.env.JWT_SECRET);
+      
+      // Verify the JWT
+      const decoded = await jwt.verify(token, process.env.JWT_SECRET);
+      console.log("Decoded Token:", decoded);
+      
+      // Get user from the database
+      const user = await User.findById(decoded.id).select('-password');
+      
+      if (!user) {
+        console.error('User not found for token:', decoded.id);
+        return res.status(401).json({ 
+          success: false, 
+          message: 'User not found. Please log in again.' 
+        });
+      }
+      
+      // Attach user to request object
+      req.user = {
+        _id: user._id,
+        email: user.email,
+        accountType: user.accountType,
+        role: user.role || user.accountType
+      };
+      
+      console.log('Authenticated user:', {
+        id: req.user._id,
+        email: req.user.email,
+        accountType: req.user.accountType
+      });
 		} catch (error) {
 			// If JWT verification fails, return 401 Unauthorized response
 			return res
