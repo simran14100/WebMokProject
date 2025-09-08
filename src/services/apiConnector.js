@@ -28,11 +28,20 @@ const createAxiosInstance = () => {
   // Request interceptor
   instance.interceptors.request.use(
     (config) => {
+      console.log('[API Request Interceptor] Processing request:', {
+        url: config.url,
+        method: config.method,
+        headers: config.headers,
+        skipAuth: config.skipAuth,
+        isAuthRequest: config.url.includes('/auth/')
+      });
+
       // Skip adding auth header for auth-related requests or if skipAuth is true
       if (config.url.includes('/auth/') || config.skipAuth) {
         delete config.headers.Authorization;
         // Ensure CORS headers are set for all requests
         config.headers['X-Requested-With'] = 'XMLHttpRequest';
+        console.log('[API Request Interceptor] Skipping auth for request');
         return config;
       }
 
@@ -40,12 +49,30 @@ const createAxiosInstance = () => {
       const state = store?.getState();
       const token = state?.auth?.token || localStorage.getItem('token');
       
+      console.log('[API Request Interceptor] Token state:', {
+        hasToken: !!token,
+        tokenLength: token ? token.length : 0,
+        tokenPrefix: token ? token.substring(0, 10) + '...' : 'none',
+        fromRedux: !!state?.auth?.token,
+        fromLocalStorage: !!localStorage.getItem('token')
+      });
+      
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
+        console.log('[API Request Interceptor] Added Authorization header');
+      } else {
+        console.warn('[API Request Interceptor] No token found for authenticated request');
       }
       
       // Ensure CORS headers are set for all requests
       config.headers['X-Requested-With'] = 'XMLHttpRequest';
+      
+      console.log('[API Request Interceptor] Final request config:', {
+        url: config.url,
+        method: config.method,
+        headers: config.headers,
+        params: config.params
+      });
       
       return config;
     },
@@ -173,14 +200,39 @@ const processQueue = (error, token = null) => {
 // Request interceptor - can be used for adding headers if needed
 axiosInstance.interceptors.request.use(
   (config) => {
+    console.log('[Axios Interceptor] Processing request:', {
+      url: config.url,
+      method: config.method,
+      headers: config.headers
+    });
+
     // Skip adding auth header for auth-related requests
-    if ((config.url && config.url.includes('/auth/')) || config.headers['skipAuth']) {
+    if (config.url.includes('/auth/') || config.skipAuth) {
+      console.log('[Axios Interceptor] Skipping auth for request');
+      delete config.headers.Authorization;
       return config;
     }
+
+    const state = store.getState();
+    const token = state?.auth?.token || localStorage.getItem('token');
+    
+    console.log('[Axios Interceptor] Token state:', {
+      hasToken: !!token,
+      fromRedux: !!state?.auth?.token,
+      fromLocalStorage: !!localStorage.getItem('token')
+    });
+
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+      console.log('[Axios Interceptor] Added Authorization header');
+    } else {
+      console.warn('[Axios Interceptor] No token found for authenticated request');
+    }
+    
     return config;
   },
   (error) => {
-    console.error('Request interceptor error:', error);
+    console.error('[Axios Interceptor] Request error:', error);
     return Promise.reject(error);
   }
 );
@@ -263,92 +315,72 @@ axiosInstance.interceptors.response.use(
     return Promise.reject(error);
   }
 );
-// utils/apiConnector.js
-// export const apiConnector = async (method, url, bodyData = null, customHeaders = {}) => {
-//   const options = {
-//     method: method.toUpperCase(),
-//     credentials: 'include', // Crucial for cookies
-//     headers: {
-//       'Content-Type': 'application/json',
-//       ...customHeaders,
-//     },
-//     body: bodyData ? JSON.stringify(bodyData) : undefined,
-//   };
 
-//   try {
-//     const response = await fetch(`${BASE_URL}${url}`, options);
-    
-//     if (!response.ok) {
-//       const errorData = await response.json();
-//       throw new Error(errorData.message || "Request failed");
-//     }
-
-//     return await response.json();
-//   } catch (error) {
-//     console.error("API call error:", error);
-//     throw error;
-//   }
-// };
-export const apiConnector = (method, url, bodyData = null, headers = {}, params = null) => {
-  console.log('API Request:', { method, url, bodyData, headers, params });
-  
-  // Skip auth for specific endpoints
-  const skipAuth = url.includes('/auth/') || headers.skipAuth || headers['X-Skip-Interceptor'];
-  
-  // Get token from Redux store or localStorage
-  const getToken = () => {
-    if (skipAuth) return null;
-    
-    try {
-      // First try to get from Redux store
-      const state = store.getState();
-      if (state?.auth?.token) {
-        return state.auth.token;
-      }
-      
-      // Then try to get from localStorage
-      const persistedAuth = localStorage.getItem('persist:auth');
-      if (persistedAuth) {
-        const parsedAuth = JSON.parse(persistedAuth);
-        if (parsedAuth.token) {
-          return JSON.parse(parsedAuth.token);
-        }
-      }
-    } catch (error) {
-      console.error('Error getting token:', error);
-    }
-    return null;
-  };
-
-  const token = getToken();
-  
-  // Prepare request config
-  const config = {
-    method: method.toLowerCase(),
-    url: url,
-    headers: {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-      ...(token && { 'Authorization': `Bearer ${token}` }),
-      ...headers
-    },
-    withCredentials: true
-  };
-  
-  // Add request data if present
-  if (bodyData) {
-    config.data = bodyData;
-  }
-  
-  // Add query parameters if present
-  if (params) {
-    config.params = params;
-  }
-  
-  console.log('Sending API request with config:', {
-    ...config,
-    headers: { ...config.headers, Authorization: config.headers.Authorization ? 'Bearer [TOKEN]' : 'None' }
+export const apiConnector = async (method, url, bodyData = null, headers = {}, params = null) => {
+  console.log('[apiConnector] Making request:', {
+    method,
+    url,
+    bodyData,
+    headers,
+    params,
+    hasToken: !!store.getState()?.auth?.token || !!localStorage.getItem('token')
   });
-  
-  return axiosInstance(config);
+
+  try {
+    const response = await axiosInstance({
+      method: method,
+      url: url,
+      data: bodyData,
+      headers: {
+        ...headers,
+        'X-Requested-With': 'XMLHttpRequest'
+      },
+      params: params,
+      withCredentials: true,
+    });
+    
+    console.log('[apiConnector] Request successful:', {
+      url,
+      status: response.status,
+      data: response.data
+    });
+    
+    return response;
+  } catch (error) {
+    console.error('[apiConnector] Request failed:', {
+      url,
+      method,
+      error: {
+        message: error.message,
+        response: {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data
+        },
+        request: error.request
+      }
+    });
+    
+    // Handle 401 Unauthorized
+    if (error.response?.status === 401) {
+      console.log('[apiConnector] Detected 401 Unauthorized, attempting token refresh...');
+      try {
+        const newToken = await refreshToken();
+        if (newToken) {
+          console.log('[apiConnector] Token refreshed, retrying original request');
+          // Update the authorization header with the new token
+          const retryConfig = error.config;
+          retryConfig.headers.Authorization = `Bearer ${newToken}`;
+          return axiosInstance(retryConfig);
+        }
+      } catch (refreshError) {
+        console.error('[apiConnector] Token refresh failed:', refreshError);
+        // If refresh fails, clear auth state and redirect to login
+        store.dispatch(logoutAction());
+        window.location.href = '/login';
+      }
+    }
+    
+    throw error;
+  }
 };

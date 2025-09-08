@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from "react";
 import { useSelector } from 'react-redux';
-import axios from 'axios';
 import { toast } from 'react-hot-toast';
 import { FiEdit2, FiTrash2, FiDollarSign, FiCheckCircle, FiXCircle, FiX, FiCheck, FiPlus } from 'react-icons/fi';
+import { apiConnector } from '../../../../services/apiConnector';
+import { fee } from '../../../../services/apis';
 
 // Reusable Modal Component
 const Modal = ({ isOpen, onClose, title, children }) => {
@@ -29,9 +30,11 @@ const Modal = ({ isOpen, onClose, title, children }) => {
 };
 
 const FeeTypePage = () => {
-  const { token } = useSelector((state) => state.auth);
+  const { token, isAuthenticated } = useSelector((state) => state.auth);
+  const { user } = useSelector((state) => state.profile);
   const [searchText, setSearchText] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
+  const [authChecked, setAuthChecked] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
@@ -52,31 +55,85 @@ const FeeTypePage = () => {
     amount: ''
   });
 
+  // Check authentication and fetch fee types
+  const checkAuthAndFetchData = async () => {
+    console.log('Checking authentication status...');
+    console.log('Token exists:', !!token);
+    console.log('User authenticated:', isAuthenticated);
+    console.log('User data:', user);
+
+    if (!token || !isAuthenticated) {
+      console.log('No valid token found, attempting token refresh...');
+      try {
+        const { refreshToken } = require('../../../../services/operations/authApi');
+        await refreshToken();
+        // After refresh, fetch the data
+        await fetchFeeTypes();
+      } catch (refreshError) {
+        console.error('Token refresh failed:', refreshError);
+        toast.error('Your session has expired. Please log in again.');
+        // Redirect to login or handle as needed
+        window.location.href = '/login';
+      }
+      return;
+    }
+    
+    // If we have a valid token, fetch the data
+    await fetchFeeTypes();
+  };
+
   // Fetch fee types from API
   const fetchFeeTypes = async () => {
+    if (!token) {
+      console.error('No token available for API call');
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await axios.get(
+      
+      console.log('Fetching fee types with params:', {
+        page: currentPage,
+        limit: entriesPerPage,
+        search: searchText
+      });
+      
+      const response = await apiConnector(
+        'GET',
         `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-types`,
+        null,
+        { 'Content-Type': 'application/json' },
         {
-          params: {
-            page: currentPage,
-            limit: entriesPerPage,
-            search: searchText,
-          },
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          page: currentPage,
+          limit: entriesPerPage,
+          search: searchText,
         }
       );
       
       if (response.data.success) {
         setFeeTypes(response.data.data);
-        setTotalItems(response.data.pagination.total);
+        setTotalItems(response.data.pagination?.total || response.data.data?.length || 0);
       }
     } catch (error) {
       console.error('Error fetching fee types:', error);
-      toast.error(error.response?.data?.message || 'Failed to fetch fee types');
+      console.error('Error response:', error.response?.data);
+      
+      if (error.response?.status === 401) {
+        // If unauthorized, try to refresh token and retry once
+        try {
+          const { refreshToken } = require('../../../services/operations/authApi');
+          await refreshToken();
+          await fetchFeeTypes(); // Retry the request
+          return;
+        } catch (refreshError) {
+          console.error('Token refresh failed:', refreshError);
+          toast.error('Your session has expired. Please log in again.');
+          // Redirect to login or handle as needed
+          return;
+        }
+      }
+      
+      toast.error(error.response?.data?.message || 'Failed to fetch fee types. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -108,15 +165,11 @@ const FeeTypePage = () => {
       
       console.log('Sending payload:', payload); // Log the payload being sent
       
-      const response = await axios.post(
+      const response = await apiConnector(
+        'POST',
         `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-types`,
         payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
+        { 'Content-Type': 'application/json' }
       );
 
       console.log('Response:', response.data); // Log the response
@@ -159,15 +212,11 @@ const FeeTypePage = () => {
         refundable: formData.refundable === 'Yes'
       };
 
-      const response = await axios.put(
+      const response = await apiConnector(
+        'PUT',
         `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-types/${selectedItem._id}`,
         payload,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
+        { 'Content-Type': 'application/json' }
       );
 
       if (response.data.success) {
@@ -194,7 +243,8 @@ const FeeTypePage = () => {
     if (!selectedItem) return;
 
     try {
-      await axios.post(
+      await apiConnector(
+        'POST',
         `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-assignments`,
         {
           feeTypeId: selectedItem._id,
@@ -203,12 +253,7 @@ const FeeTypePage = () => {
           amount: parseFloat(formData.amount),
           status: 'Pending'
         },
-        {
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
-          },
-        }
+        { 'Content-Type': 'application/json' }
       );
       toast.success('Fee assigned successfully');
       setShowAssignModal(false);
@@ -231,13 +276,9 @@ const FeeTypePage = () => {
   const handleDelete = async (id) => {
     if (window.confirm('Are you sure you want to delete this fee type? This action cannot be undone.')) {
       try {
-        const response = await axios.delete(
-          `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-types/${id}`,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-          }
+        const response = await apiConnector(
+          'DELETE',
+          `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-types/${id}`
         );
 
         if (response.data.success) {
@@ -289,8 +330,23 @@ const FeeTypePage = () => {
 
   // Fetch fee types on component mount and when search or page changes
   useEffect(() => {
-    fetchFeeTypes();
+    const init = async () => {
+      console.log('Component mounted, checking auth...');
+      await checkAuthAndFetchData();
+      setAuthChecked(true);
+    };
+    
+    init();
   }, [currentPage, searchText]);
+  
+  // Show loading state until auth check is complete
+  if (!authChecked) {
+    return (
+      <div className="flex justify-center items-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   const totalPages = Math.ceil(totalItems / entriesPerPage);
   const startIndex = (currentPage - 1) * entriesPerPage;
