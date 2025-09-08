@@ -58,6 +58,7 @@ const meetingTypeRoutes = require("./routes/meetingTypeRoutes");
 const universityRegisteredStudentRoutes = require("./routes/universityRegisteredStudent");
 const universityEnrolledStudentRoutes = require("./routes/universityEnrolledStudentRoutes");
 const feeTypeRoutes = require("./routes/feeTypeRoutes");
+const feeAssignmentRoutes = require("./routes/feeAssignmentRoutes");
 
 const database = require("./config/database");
 const cookieParser = require("cookie-parser");
@@ -234,6 +235,7 @@ app.use("/api/v1/meeting-types", meetingTypeRoutes);
 app.use("/api/v1/university/registered-students", universityRegisteredStudentRoutes);
 app.use("/api/v1/university/enrolled-students", universityEnrolledStudentRoutes);
 app.use("/api/v1/university/fee-types", feeTypeRoutes);
+app.use("/api/v1/university/fee-assignments", feeAssignmentRoutes);
 
 app.use("/api/v1/rac-members", require("./routes/racMember"));
 app.use("/api/v1/external-experts", require("./routes/externalExpert"));

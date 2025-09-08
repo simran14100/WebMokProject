@@ -248,21 +248,37 @@ const FeeTypePage = () => {
     if (!selectedItem) return;
 
     try {
-      await apiConnector(
+      const response = await apiConnector(
         'POST',
         `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-assignments`,
         {
-          feeTypeId: selectedItem._id,
+          feeType: selectedItem._id,
           session: formData.session,
           course: formData.course,
           amount: parseFloat(formData.amount),
-          status: 'Pending'
+          assigneeId: user._id // The current user assigning the fee
         },
-        { 'Content-Type': 'application/json' }
+        { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }
       );
-      toast.success('Fee assigned successfully');
-      setShowAssignModal(false);
-      fetchFeeTypes();
+      
+      if (response.data?.success) {
+        toast.success('Fee assigned successfully');
+        setShowAssignModal(false);
+        // Reset form
+        setFormData({
+          ...formData,
+          session: '',
+          course: '',
+          amount: ''
+        });
+        // Refresh the fee types list
+        fetchFeeTypes();
+      } else {
+        throw new Error(response.data?.message || 'Failed to assign fee');
+      }
       
       // Reset form data
       setFormData({
@@ -572,7 +588,7 @@ const FeeTypePage = () => {
               <td style={tdStyle}>{item.category}</td>
               <td style={tdStyle}>{item.type}</td>
               <td style={tdStyle}>{item.name}</td>
-              <td style={tdStyle}>{item.refundable}</td>
+              <td style={tdStyle}>{item.refundable ? 'Yes' : 'No'}</td>
               <td style={tdStyle}>
                 <span
                   style={{
