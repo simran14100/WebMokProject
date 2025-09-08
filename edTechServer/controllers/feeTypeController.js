@@ -360,14 +360,14 @@ const getFeeAssignments = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, sortBy = 'createdAt', sortOrder = 'desc', search = '' } = req.query;
     const skip = (parseInt(page) - 1) * parseInt(limit);
     
-    // Build the query
-    const query = { university: req.user.university };
+    // Initialize query object
+    const query = {};
     
     // Add search functionality if search term is provided
-    if (search) {
+    if (search && typeof search === 'string') {
       query.$or = [
         { 'feeType.name': { $regex: search, $options: 'i' } },
-        { 'course.name': { $regex: search, $options: 'i' } },
+        { course: { $regex: search, $options: 'i' } },
         { session: { $regex: search, $options: 'i' } }
       ];
     }
@@ -375,29 +375,52 @@ const getFeeAssignments = asyncHandler(async (req, res) => {
     // Get total count for pagination
     const total = await FeeAssignment.countDocuments(query);
     
+    // Validate sort field to prevent NoSQL injection
+    const sortField = ['createdAt', 'updatedAt', 'amount', 'session', 'course'].includes(sortBy) 
+      ? sortBy 
+      : 'createdAt';
+    
     // Get fee assignments with pagination and sorting
     const feeAssignments = await FeeAssignment.find(query)
       .populate('feeType', 'name type category refundable')
-      .populate('course', 'name code')
-      .populate('assignedBy', 'name email')
-      .sort({ [sortBy]: sortOrder === 'desc' ? -1 : 1 })
+      .sort({ [sortField]: sortOrder === 'desc' ? -1 : 1 })
       .skip(skip)
-      .limit(parseInt(limit));
+      .limit(parseInt(limit) || 10);
+    
+    // Filter out any null feeTypes
+    const filteredAssignments = feeAssignments.filter(assignment => assignment.feeType);
     
     res.status(200).json({
       success: true,
-      count: feeAssignments.length,
+      count: filteredAssignments.length,
       total,
-      totalPages: Math.ceil(total / limit),
-      currentPage: parseInt(page),
-      data: feeAssignments,
+      totalPages: Math.ceil(total / (parseInt(limit) || 10)),
+      currentPage: parseInt(page) || 1,
+      data: filteredAssignments,
     });
   } catch (error) {
     console.error('Error fetching fee assignments:', error);
-    res.status(500).json({
+    
+    // More specific error messages
+    let errorMessage = 'Error fetching fee assignments';
+    let statusCode = 500;
+    
+    if (error.name === 'CastError') {
+      errorMessage = 'Invalid data format';
+      statusCode = 400;
+    } else if (error.name === 'ValidationError') {
+      errorMessage = 'Validation error';
+      statusCode = 400;
+    }
+    
+    res.status(statusCode).json({
       success: false,
-      message: 'Error fetching fee assignments',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+      message: errorMessage,
+      error: process.env.NODE_ENV === 'development' ? {
+        message: error.message,
+        stack: error.stack,
+        name: error.name
+      } : undefined,
     });
   }
 });
