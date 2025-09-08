@@ -1,4 +1,5 @@
 import asyncHandler from 'express-async-handler';
+import mongoose from 'mongoose';
 import FeeType from '../models/feeTypeModel.js';
 import { validateCreateFeeType, validateUpdateFeeType } from '../validations/feeTypeValidation.js';
 
@@ -168,22 +169,61 @@ const updateFeeType = asyncHandler(async (req, res) => {
 // @route   DELETE /api/v1/university/fee-types/:id
 // @access  Private/University
 const deleteFeeType = asyncHandler(async (req, res) => {
-  const feeType = await FeeType.findOneAndDelete({
-    _id: req.params.id,
-    university: req.user.university,
-  });
-
-  if (!feeType) {
-    return res.status(404).json({
+  if (!mongoose.Types.ObjectId.isValid(req.params.id)) {
+    return res.status(400).json({
       success: false,
-      message: 'Fee type not found',
+      message: 'Invalid fee type ID format',
     });
   }
 
-  res.json({
-    success: true,
-    message: 'Fee type deleted successfully',
-  });
+  try {
+    // First check if fee type exists
+    const feeType = await FeeType.findOne({
+      _id: req.params.id,
+      university: req.user.university,
+    });
+
+    if (!feeType) {
+      return res.status(404).json({
+        success: false,
+        message: 'Fee type not found',
+      });
+    }
+
+    try {
+      // Try to check if FeeStructure model exists and has references
+      const FeeStructure = mongoose.model('FeeStructure');
+      const feeStructureUsingType = await FeeStructure.findOne({
+        'components.feeType': req.params.id,
+        university: req.user.university,
+      });
+
+      if (feeStructureUsingType) {
+        return res.status(400).json({
+          success: false,
+          message: 'Cannot delete fee type as it is being used in one or more fee structures',
+        });
+      }
+    } catch (error) {
+      // If FeeStructure model doesn't exist or there's an error, log it but continue with deletion
+      console.warn('Could not check FeeStructure references:', error.message);
+    }
+
+    // Proceed with deletion
+    await FeeType.findByIdAndDelete(req.params.id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Fee type deleted successfully',
+    });
+  } catch (error) {
+    console.error('Error deleting fee type:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error deleting fee type',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+    });
+  }
 });
 
 // @desc    Get fee type statistics

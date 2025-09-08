@@ -317,27 +317,36 @@ axiosInstance.interceptors.response.use(
 );
 
 export const apiConnector = async (method, url, bodyData = null, headers = {}, params = null) => {
+  // For DELETE requests, we don't want to include a body
+  const isDelete = method.toUpperCase() === 'DELETE';
+  
   console.log('[apiConnector] Making request:', {
     method,
     url,
-    bodyData,
+    bodyData: isDelete ? '[omitted for DELETE]' : bodyData,
     headers,
     params,
     hasToken: !!store.getState()?.auth?.token || !!localStorage.getItem('token')
   });
 
   try {
-    const response = await axiosInstance({
+    const requestConfig = {
       method: method,
       url: url,
-      data: bodyData,
       headers: {
         ...headers,
         'X-Requested-With': 'XMLHttpRequest'
       },
       params: params,
       withCredentials: true,
-    });
+    };
+
+    // Only include data for non-DELETE requests
+    if (!isDelete && bodyData !== null) {
+      requestConfig.data = bodyData;
+    }
+
+    const response = await axiosInstance(requestConfig);
     
     console.log('[apiConnector] Request successful:', {
       url,

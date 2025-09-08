@@ -204,9 +204,14 @@ const FeeTypePage = () => {
   // Handle update fee type
   const handleUpdate = async (e) => {
     e.preventDefault();
-    if (!selectedItem) return;
+    if (!selectedItem) {
+      toast.error('No fee type selected for update');
+      return;
+    }
 
     try {
+      setLoading(true);
+      
       const payload = {
         ...formData,
         refundable: formData.refundable === 'Yes'
@@ -274,20 +279,35 @@ const FeeTypePage = () => {
 
   // Handle delete fee type
   const handleDelete = async (id) => {
+    if (!id) {
+      toast.error('Invalid fee type ID');
+      return;
+    }
+
     if (window.confirm('Are you sure you want to delete this fee type? This action cannot be undone.')) {
       try {
         const response = await apiConnector(
           'DELETE',
-          `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-types/${id}`
+          `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-types/${id}`,
+          null, // Explicitly pass null as bodyData
+          { 
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
         );
 
-        if (response.data.success) {
+        if (response.data?.success) {
           toast.success('Fee type deleted successfully');
           fetchFeeTypes();
+        } else {
+          throw new Error(response.data?.message || 'Failed to delete fee type');
         }
       } catch (error) {
         console.error('Error deleting fee type:', error);
-        toast.error(error.response?.data?.message || 'Failed to delete fee type');
+        const errorMessage = error.response?.data?.message || 
+                           error.message || 
+                           'Failed to delete fee type. Please try again.';
+        toast.error(errorMessage);
       }
     }
   };
@@ -300,7 +320,8 @@ const FeeTypePage = () => {
       category: item.category,
       type: item.type,
       refundable: item.refundable ? 'Yes' : 'No',
-      status: item.status || 'Active'
+      status: item.status || 'Active',
+      // Add any additional fields that need to be edited
     });
     setShowUpdateModal(true);
   };
@@ -388,191 +409,7 @@ const FeeTypePage = () => {
         />
       </div>
 
-      {/* Add/Edit Fee Type Modal */}
-      <Modal
-        isOpen={showAddModal || showUpdateModal}
-        onClose={() => {
-          setShowAddModal(false);
-          setShowUpdateModal(false);
-          setSelectedItem(null);
-        }}
-        title={showAddModal ? 'Add New Fee Type' : 'Update Fee Type'}
-      >
-        <form onSubmit={showAddModal ? handleSubmit : handleUpdate} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Name <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                className="w-full rounded-md border border-gray-300 p-2 focus:ring-indigo-500 focus:border-indigo-500"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Category <span className="text-red-500">*</span>
-              </label>
-              <input
-                type="text"
-                name="category"
-                value={formData.category}
-                onChange={handleInputChange}
-                className="w-full rounded-md border border-gray-300 p-2 focus:ring-indigo-500 focus:border-indigo-500"
-                required
-              />
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Type <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="type"
-                value={formData.type}
-                onChange={handleInputChange}
-                className="w-full rounded-md border border-gray-300 p-2 focus:ring-indigo-500 focus:border-indigo-500"
-                required
-              >
-                <option value="">Select type</option>
-                <option value="One Time">One Time</option>
-                <option value="Recurring">Recurring</option>
-                <option value="Installment">Installment</option>
-              </select>
-            </div>
-            
-            <div className="flex items-center">
-              <input
-                type="checkbox"
-                id="refundable"
-                name="refundable"
-                checked={formData.refundable === 'Yes'}
-                onChange={(e) => handleInputChange({
-                  target: {
-                    name: 'refundable',
-                    value: e.target.checked ? 'Yes' : 'No'
-                  }
-                })}
-                className="h-4 w-4 text-indigo-600 focus:ring-indigo-500 border-gray-300 rounded"
-              />
-              <label htmlFor="refundable" className="ml-2 block text-sm text-gray-700">
-                Refundable
-              </label>
-            </div>
-            
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={() => {
-                  setShowAddModal(false);
-                  setShowUpdateModal(false);
-                  setSelectedItem(null);
-                }}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
-              >
-                {showAddModal ? 'Add Fee Type' : 'Update Fee Type'}
-              </button>
-            </div>
-          </form>
-        ) : showAssignModal && (
-          <form onSubmit={handleAssignFee} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Assign To <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="assignTo"
-                value={formData.assignTo}
-                onChange={handleInputChange}
-                className="w-full rounded-md border border-gray-300 p-2 focus:ring-indigo-500 focus:border-indigo-500"
-              >
-                <option value="course">Course</option>
-                <option value="student">Student</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                {formData.assignTo === 'course' ? 'Select Course' : 'Select Student'} <span className="text-red-500">*</span>
-              </label>
-              <select
-                name="assigneeId"
-                value={formData.assigneeId}
-                onChange={handleInputChange}
-                className="w-full rounded-md border border-gray-300 p-2 focus:ring-indigo-500 focus:border-indigo-500"
-                required
-              >
-                <option value="">Select {formData.assignTo}</option>
-                {/* You'll need to fetch and map actual courses/students here */}
-                <option value="1">{formData.assignTo === 'course' ? 'Course 1' : 'Student 1'}</option>
-                <option value="2">{formData.assignTo === 'course' ? 'Course 2' : 'Student 2'}</option>
-              </select>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Amount <span className="text-red-500">*</span>
-              </label>
-              <div className="relative rounded-md shadow-sm">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <span className="text-gray-500 sm:text-sm">₹</span>
-                </div>
-                <input
-                  type="number"
-                  name="amount"
-                  value={formData.amount}
-                  onChange={handleInputChange}
-                  className="focus:ring-indigo-500 focus:border-indigo-500 block w-full pl-7 pr-12 sm:text-sm border-gray-300 rounded-md p-2 border"
-                  placeholder="0.00"
-                  min="0"
-                  step="0.01"
-                  required
-                />
-              </div>
-            </div>
-            
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Due Date
-              </label>
-              <input
-                type="date"
-                name="dueDate"
-                value={formData.dueDate}
-                onChange={handleInputChange}
-                className="w-full rounded-md border border-gray-300 p-2 focus:ring-indigo-500 focus:border-indigo-500"
-                min={new Date().toISOString().split('T')[0]}
-              />
-            </div>
-            
-            <div className="flex justify-end space-x-3 pt-4">
-              <button
-                type="button"
-                onClick={() => setShowAssignModal(false)}
-                className="px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
-              >
-                Assign Fee
-              </button>
-            </div>
-          </form>
-        )}
-      </Modal>
+     
 
       {/* Assign Fee Modal */}
       <Modal
@@ -827,8 +664,9 @@ const FeeTypePage = () => {
               required
             >
               <option value="">-- Select Fee Type --</option>
-              <option value="One Time">One Time</option>
-              <option value="Recurring">Recurring</option>
+              <option value="Semester Wise">Semester Wise</option>
+              <option value="Yearly">Yearly</option>
+              <option value="After Course">After Course</option>
             </select>
           </div>
           
