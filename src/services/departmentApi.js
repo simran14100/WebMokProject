@@ -1,6 +1,6 @@
 import { apiConnector } from "./apiConnector";
 
-const BASE = "/api/v1/department";
+const BASE = "/api/v1/departments";
 
 export const listDepartments = () => apiConnector("GET", `${BASE}`);
 

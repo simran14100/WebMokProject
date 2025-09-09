@@ -5,6 +5,7 @@ exports.createCourse = async (req, res) => {
   try {
     const {
       school,
+      session,
       category,
       courseName,
       courseType,
@@ -16,12 +17,13 @@ exports.createCourse = async (req, res) => {
       status,
     } = req.body;
 
-    if (!school || !category || !courseName) {
-      return res.status(400).json({ success: false, message: "school, category and courseName are required" });
+    if (!school || !session || !category || !courseName) {
+      return res.status(400).json({ success: false, message: "school, session, category and courseName are required" });
     }
 
     const doc = await UGPGCourse.create({
       school,
+      session,
       category,
       courseName: courseName.trim(),
       courseType: ["Semester", "Yearly"].includes(courseType) ? courseType : "Yearly",
@@ -47,7 +49,10 @@ exports.createCourse = async (req, res) => {
 // List courses
 exports.listCourses = async (_req, res) => {
   try {
-    const list = await UGPGCourse.find({}).populate("school", "name").sort({ createdAt: -1 });
+    const list = await UGPGCourse.find({})
+      .populate("school", "name")
+      .populate("session", "name")
+      .sort({ createdAt: -1 });
     return res.json({ success: true, data: list });
   } catch (err) {
     console.error("listCourses error", err);

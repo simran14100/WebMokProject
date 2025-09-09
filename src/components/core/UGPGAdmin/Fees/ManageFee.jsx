@@ -28,7 +28,7 @@ const ManageFee = () => {
       console.log('Fetching fee assignments...');
       const response = await apiConnector(
         "GET",
-        `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-assignments`,
+        `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-assignments`,
         null,
         {
           'Authorization': `Bearer ${token}`,
@@ -75,7 +75,7 @@ const ManageFee = () => {
     try {
       const response = await apiConnector(
         'GET',
-        `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-types`,
+        `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-types`,
         null,
         {
           'Authorization': `Bearer ${token}`,
@@ -161,7 +161,7 @@ const ManageFee = () => {
         // Update existing fee assignment
         await apiConnector(
           'PUT',
-          `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-assignments/${selectedItem._id}`,
+          `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-assignments/${selectedItem._id}`,
           payload,
           {
             'Authorization': `Bearer ${token}`,
@@ -173,7 +173,7 @@ const ManageFee = () => {
         // Create new fee assignment
         await apiConnector(
           'POST',
-          `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-assignments`,
+          `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-assignments`,
           payload,
           {
             'Authorization': `Bearer ${token}`,
@@ -199,7 +199,7 @@ const ManageFee = () => {
       try {
         await apiConnector(
           'DELETE',
-          `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-assignments/${id}`,
+          `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-assignments/${id}`,
           null,
           {
             'Authorization': `Bearer ${token}`,

@@ -39,6 +39,7 @@ import AssignmentDetail from './pages/AssignmentDetail';
 import AdminNotifications from './pages/AdminNotifications';
 import Notifications from './pages/Notifications';
 import EnrollmentStatus from './pages/University/EnrollmentStatus';
+import ProgramSelection from './pages/University/ProgramSelection';
 import AdmissionEnquiryForm from './components/AdmissionEnquiryForm';
 import NewRegistration from './pages/SuperAdmin/NewRegistration';
 import VerifiedStudents from './pages/SuperAdmin/VerifiedStudentss';
@@ -120,7 +121,7 @@ import EnquiryReferences from './components/core/UGPGAdmin/FrontDesk/EnquiryRefe
 import GrievanceTypes from './components/core/UGPGAdmin/FrontDesk/GrievanceTypes';
 import PostalTypes from './components/core/UGPGAdmin/FrontDesk/PostalTypes';
 import MeetingTypes from './components/core/UGPGAdmin/FrontDesk/MeetingTypes';
-import ProgramSelection from "./pages/University/ProgramSelection";
+
 import UniversityDashboard from "./pages/UniversityDashboard";
 import UniversityEnrolledStudent from "./pages/SuperAdmin/UniversityEnrolledStudent";
 import { withEnrollmentVerification } from "./middleware/enrollmentMiddleware";
@@ -203,9 +204,22 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
       {/* University Routes */}
-      <Route path="/university" element={<ProgramSelection />} />
+      <Route path="/university" element={
+        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
+          <ProgramSelection />
+        </ProtectedRoute>
+      }>
+        {/* Child enrollment routes render inside ProgramSelection via <Outlet /> */}
+        <Route path="enrollment" element={
+          <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT]}>
+            <EnrollmentStatus />
+          </ProtectedRoute>
+        } />
+      </Route>
+      
+      {/* Admin Dashboard */}
       <Route path="/university-dashboard" element={
-        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.SUPER_ADMIN, ACCOUNT_TYPE.ADMIN]}>
+        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
           <UniversityDashboard />
         </ProtectedRoute>
       } />

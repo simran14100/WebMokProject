@@ -9,7 +9,7 @@ import { Table, Button, Input, Select, Space, Modal, Form, message } from 'antd'
 const { Option } = Select;
 
 // API endpoints
-const API_BASE_URL = 'http://localhost:4001/api/v1';
+const API_BASE_URL = `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1`;
 
 const UniversityEnrolledStudent = () => {
   const [students, setStudents] = useState([]);

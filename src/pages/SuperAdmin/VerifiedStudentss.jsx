@@ -40,7 +40,7 @@ const VerifiedStudents = () => {
         return;
       }
       
-      const response = await axios.get('http://localhost:4001/api/v1/university/registered-students', {
+      const response = await axios.get(`${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/registered-students`, {
         params: {
           page: current,
           limit: pageSize,
@@ -420,7 +420,7 @@ const VerificationModal = ({ showModal, selectedStudent, form, setShowModal, fet
         console.log('Verification Data:', JSON.stringify(verificationData, null, 2));
         
         // FIXED: Correct API endpoint - changed from /students/ to /registered-students/
-        const apiUrl = `http://localhost:4001/api/v1/university/registered-students/${selectedStudent._id}/complete-verification`;
+        const apiUrl = `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/registered-students/${selectedStudent._id}/complete-verification`;
         console.log('API Endpoint:', apiUrl);
         
         const startTime = Date.now();

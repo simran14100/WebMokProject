@@ -1,9 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, Outlet } from 'react-router-dom';
 import { FaGraduationCap, FaUserGraduate, FaUserTie, FaSpinner } from 'react-icons/fa';
 import { useDispatch, useSelector } from 'react-redux';
 import { apiConnector } from '../../services/apiConnector';
-import { enrollment, profile } from '../../services/apis';
+import { profile } from '../../services/apis';
 import { toast } from 'react-hot-toast';
 import { setUser, updateUser } from '../../store/slices/profileSlice';
 import { setToken } from '../../store/slices/authSlice';
@@ -15,7 +15,6 @@ const ProgramSelection = () => {
   const dispatch = useDispatch();
   const [selectedProgram, setSelectedProgram] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [showEnquiryModal, setShowEnquiryModal] = useState(false);
   const [showEnrollmentModal, setShowEnrollmentModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [enrollmentStatus, setEnrollmentStatus] = useState(null);
@@ -53,169 +52,126 @@ const ProgramSelection = () => {
     }
   ];
 
-  // Check for existing program type on component mount
+  // Use ref to track initial render
+  const initialRender = React.useRef(true);
+  const redirectedOnLoad = React.useRef(false);
+
+  // Prefill from URL/localStorage once; do not navigate here to avoid loops
   useEffect(() => {
-    const searchParams = new URLSearchParams(location.search);
-    const isUpdating = searchParams.get('update') === 'true';
-    
-    const checkExistingProgram = async () => {
-      // If we're updating the program, don't redirect
-      if (isUpdating) {
-        console.log('Update mode: Allowing program selection');
+    if (showEnrollmentModal) return;
+    if (initialRender.current) {
+      initialRender.current = false;
+      const searchParams = new URLSearchParams(location.search);
+      const programFromUrl = searchParams.get('program');
+      const isUpdating = searchParams.get('update') === 'true';
+
+      // If user already has a programType, redirect once to enrollment status (but NOT during update flow)
+      if (!redirectedOnLoad.current && token && currentUser?.programType && !isUpdating) {
+        redirectedOnLoad.current = true;
+        navigate(`/university/enrollment?program=${currentUser.programType}`);
         return;
       }
-      
-      // If user already has a program type, redirect to enrollment status
-      if (currentUser?.programType) {
-        console.log('User already has a program type, redirecting to enrollment status');
-        navigate('/university/enrollment');
-        return;
+
+      if (programFromUrl) {
+        const program = programTypes.find(p => p.id === programFromUrl);
+        if (program) {
+          setSelectedProgram(programFromUrl);
+          setFormData(prev => ({
+            ...prev,
+            programType: programFromUrl,
+            email: currentUser?.email || '',
+            firstName: currentUser?.firstName || '',
+            lastName: currentUser?.lastName || '',
+            phone: currentUser?.phone || ''
+          }));
+          return;
+        }
       }
-      
-      // Check localStorage for saved program type
+
       const savedProgram = localStorage.getItem('selectedProgram');
       if (savedProgram) {
-        console.log('Found saved program in localStorage, redirecting to enrollment status');
-        navigate('/university/enrollment');
+        setSelectedProgram(savedProgram);
+        setFormData(prev => ({
+          ...prev,
+          programType: savedProgram,
+          email: currentUser?.email || '',
+          firstName: currentUser?.firstName || '',
+          lastName: currentUser?.lastName || '',
+          phone: currentUser?.phone || ''
+        }));
       }
-    };
 
-    checkExistingProgram();
-  }, [currentUser, navigate, location.search]);
+      // If update flow requested, auto-open modal using known program
+      if (isUpdating) {
+        const updateProgram = programFromUrl || currentUser?.programType || savedProgram;
+        if (updateProgram) {
+          setSelectedProgram(updateProgram);
+          setFormData(prev => ({
+            ...prev,
+            programType: updateProgram,
+            email: currentUser?.email || '',
+            firstName: currentUser?.firstName || '',
+            lastName: currentUser?.lastName || '',
+            phone: currentUser?.phone || ''
+          }));
+          // Only open modal if authenticated; otherwise user must login first
+          if (token) {
+            setShowEnrollmentModal(true);
+          }
+        }
+      }
+    }
+  }, [location.search, showEnrollmentModal, token, currentUser?.programType, navigate]);
 
   // Handle program selection
   const handleProgramSelect = async (program) => {
-    // Save the selected program to localStorage
-    localStorage.setItem('selectedProgram', program);
-    
-    // Update the local state
-    setSelectedProgram(program);
-    
-    // Update the form data
-    setFormData(prev => ({
-      ...prev,
-      programType: program,
-      email: currentUser?.email || '',
-      firstName: currentUser?.firstName || '',
-      lastName: currentUser?.lastName || '',
-      phone: currentUser?.phone || ''
-    }));
-    
-    // If user is not logged in, show enquiry form
-    if (!token) {
-      console.log('User not authenticated, showing enquiry form');
-      setShowEnquiryModal(true);
-      return;
-    }
-    
-    // If user is logged in, update their profile with the selected program
     try {
-      await apiConnector(
-        'PUT',
-        '/api/v1/profile/updateProfile',
-        { programType: program },
-        {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }
-      );
+      setLoading(true);
       
-      // Redirect to enrollment status page
-      navigate('/university/enrollment');
+      // Save the selected program to localStorage
+      localStorage.setItem('selectedProgram', program);
+      
+      // Update the local state
+      setSelectedProgram(program);
+      setFormData(prev => ({
+        ...prev,
+        programType: program,
+        email: currentUser?.email || '',
+        firstName: currentUser?.firstName || '',
+        lastName: currentUser?.lastName || '',
+        phone: currentUser?.phone || ''
+      }));
+      
+      // If user is not logged in, redirect to login with return URL
+      if (!token) {
+        navigate(`/login?redirect=/university?program=${program}`);
+        return;
+      }
+
+      // Respect update flow: if ?update=true, always open modal even if same program
+      const searchParams = new URLSearchParams(location.search);
+      const isUpdating = searchParams.get('update') === 'true';
+
+      // If user already has this program type and NOT updating, go directly to enrollment status
+      if (!isUpdating && currentUser?.programType === program) {
+        navigate(`/university/enrollment?program=${program}`);
+        return;
+      }
+
+      // Open the enrollment modal; do not navigate or call backend here
+      setShowEnrollmentModal(true);
     } catch (error) {
-      console.error('Error updating program type:', error);
-      toast.error('Failed to save program selection. Please try again.');
-    }
-  };
-
-  // Handle enquiry form submission
-  const handleEnquirySubmit = async (e) => {
-    e.preventDefault();
-    if (isSubmitting) return;
-
-    // Basic validation
-    if (!formData.name || !formData.email || !formData.phone) {
-      toast.error('Please fill in all required fields');
-      return;
-    }
-
-    setIsSubmitting(true);
-    const toastId = toast.loading('Submitting your enquiry...');
-    
-    try {
-      // Submit the enquiry
-      const enquiryResponse = await apiConnector(
-        'POST',
-        '/api/v1/enquiry',
-        {
-          ...formData,
-          programType: selectedProgram,
-          status: 'new',
-          source: 'website'
-        },
-        {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : undefined,
-          'X-Skip-Interceptor': 'true'
-        }
-      );
-      
-      if (!enquiryResponse.data?.success) {
-        throw new Error(enquiryResponse.data?.message || 'Failed to submit enquiry');
-      }
-      
-      // If user is logged in, create enrollment as well
-      if (token) {
-        await apiConnector(
-          'POST',
-          '/api/v1/enrollment/status',
-          {
-            programType: selectedProgram,
-            enquiryId: enquiryResponse.data.enquiry?._id
-          },
-          {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-            'X-Skip-Interceptor': 'true'
-          }
-        );
-      }
-      
-      toast.success('Your enquiry has been submitted successfully!');
-      setShowEnquiryModal(false);
-      
-      // Redirect based on authentication status
-      if (token) {
-        navigate('/dashboard');
-      } else {
-        navigate('/thank-you', { 
-          state: { 
-            message: 'Thank you for your interest! We will contact you shortly.',
-            showLogin: true
-          } 
-        });
-      }
-      
-    } catch (error) {
-      console.error('Error submitting enquiry:', {
-        message: error.message,
-        response: error.response?.data,
+      console.error('Error in handleProgramSelect:', {
+        error: error.response?.data || error.message,
         stack: error.stack
       });
       
-      let errorMessage = 'Failed to submit enquiry. ';
-      if (error.response?.data?.message) {
-        errorMessage += error.response.data.message;
-      } else if (error.message) {
-        errorMessage += error.message;
-      }
-      
-      toast.error(errorMessage);
+      toast.error('Failed to start enrollment. Please try again.');
     } finally {
-      setIsSubmitting(false);
-      toast.dismiss(toastId);
+      setLoading(false);
     }
   };
+
 
   // Handle input change for the forms
   const handleInputChange = (e) => {
@@ -265,6 +221,11 @@ const ProgramSelection = () => {
         throw new Error(response.data?.message || 'Failed to save program selection');
       }
       
+      // Update Redux user so ProtectedRoute allows /university/enrollment
+      if (response.data?.data) {
+        dispatch(updateUser(response.data.data));
+      }
+
       // Show success message
       toast.success('Program selection saved successfully!');
       setShowEnrollmentModal(false);
@@ -316,34 +277,85 @@ const ProgramSelection = () => {
   };
 
   return (
-    <div className="program-selection-container">
-      <div className="program-selection-card">
-        <h1>Select Your Program</h1>
-        <p className="subtitle">Choose your academic level to continue</p>
-        
-        <div className="program-grid">
-          {programTypes.map((program) => (
-            <div 
-              key={program.id}
-              className={`program-card ${selectedProgram === program.id ? 'selected' : ''}`}
-              onClick={() => handleProgramSelect(program.id)}
-            >
-              <div className="program-icon-container">
-                {program.icon}
-              </div>
-              <h3>{program.title}</h3>
-              <p>{program.description}</p>
-              {loading && selectedProgram === program.id && (
-                <div className="loading-spinner">
-                  <FaSpinner className="spinner" />
-                </div>
-              )}
-            </div>
-          ))}
+    <div className="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="text-center mb-12">
+          <h2 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
+            Select Your Program
+          </h2>
+          <p className="mt-3 max-w-2xl mx-auto text-xl text-gray-500 sm:mt-4">
+            Choose your academic level to continue
+          </p>
         </div>
-      </div>
 
-     
+        <div className="mt-10 grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {programTypes.map((program) => {
+            const isSelected = selectedProgram === program.id;
+            const isLoading = loading && isSelected;
+            
+            return (
+              <div
+                key={program.id}
+                onClick={() => !isLoading && handleProgramSelect(program.id)}
+                className={`relative bg-white overflow-hidden shadow rounded-lg cursor-pointer border-2 transition-all duration-200 ${
+                  isSelected 
+                    ? 'border-blue-500 ring-2 ring-blue-200' 
+                    : 'border-gray-200 hover:border-blue-300 hover:shadow-md'
+                } ${isLoading ? 'opacity-75 cursor-wait' : ''}`}
+              >
+                <div className="px-6 py-8">
+                  <div className={`flex items-center justify-center h-16 w-16 rounded-full mx-auto mb-4 ${
+                    isSelected ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {React.cloneElement(program.icon, {
+                      className: 'h-8 w-8 transition-transform duration-200 group-hover:scale-110'
+                    })}
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 text-center">
+                    {program.title}
+                  </h3>
+                  <p className="mt-2 text-sm text-gray-500 text-center">
+                    {program.description}
+                  </p>
+                </div>
+                
+                <div className="px-6 py-4 bg-gray-50 border-t border-gray-100">
+                  <div className="text-center">
+                    <span className={`inline-flex items-center justify-center px-4 py-2 rounded-full text-sm font-medium ${
+                      isSelected 
+                        ? 'bg-blue-100 text-blue-800' 
+                        : 'bg-gray-100 text-gray-800 group-hover:bg-blue-50 group-hover:text-blue-700'
+                    }`}>
+                      {isLoading ? (
+                        <>
+                          <FaSpinner className="animate-spin -ml-1 mr-2 h-4 w-4" />
+                          Processing...
+                        </>
+                      ) : isSelected ? (
+                        'Selected'
+                      ) : (
+                        'Select Program'
+                      )}
+                    </span>
+                  </div>
+                </div>
+                
+                {isLoading && (
+                  <div className="absolute inset-0 bg-white bg-opacity-50 flex items-center justify-center">
+                    <FaSpinner className="animate-spin h-8 w-8 text-blue-500" />
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+        
+        {!token && (
+          <div className="mt-8 text-center text-sm text-gray-600">
+            <p>You'll need to be signed in to continue. You'll be redirected to login after selecting a program.</p>
+          </div>
+        )}
+      </div>
 
       {/* Enrollment Modal */}
       {showEnrollmentModal && (
@@ -463,7 +475,8 @@ const ProgramSelection = () => {
           </div>
         </div>
       )}
-
+      {/* Render nested university routes (e.g., /university/enrollment) */}
+      <Outlet />
      
     </div>
   );

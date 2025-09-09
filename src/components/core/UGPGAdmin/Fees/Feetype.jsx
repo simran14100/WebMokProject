@@ -100,7 +100,7 @@ const FeeTypePage = () => {
       
       const response = await apiConnector(
         'GET',
-        `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-types`,
+        `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-types`,
         null,
         { 'Content-Type': 'application/json' },
         {
@@ -167,7 +167,7 @@ const FeeTypePage = () => {
       
       const response = await apiConnector(
         'POST',
-        `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-types`,
+        `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-types`,
         payload,
         { 'Content-Type': 'application/json' }
       );
@@ -219,7 +219,7 @@ const FeeTypePage = () => {
 
       const response = await apiConnector(
         'PUT',
-        `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-types/${selectedItem._id}`,
+        `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-types/${selectedItem._id}`,
         payload,
         { 'Content-Type': 'application/json' }
       );
@@ -250,7 +250,7 @@ const FeeTypePage = () => {
     try {
       const response = await apiConnector(
         'POST',
-        `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-assignments`,
+        `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-assignments`,
         {
           feeType: selectedItem._id,
           session: formData.session,
@@ -304,7 +304,7 @@ const FeeTypePage = () => {
       try {
         const response = await apiConnector(
           'DELETE',
-          `${process.env.REACT_APP_API_URL || 'http://localhost:4001'}/api/v1/university/fee-types/${id}`,
+          `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-types/${id}`,
           null, // Explicitly pass null as bodyData
           { 
             'Authorization': `Bearer ${token}`,

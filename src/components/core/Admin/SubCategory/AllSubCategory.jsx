@@ -18,7 +18,7 @@ const [searchTerm, setSearchTerm] = useState('');
     const fetchSubCategories = async () => {
       setLoading(true);
       try {
-        const response = await apiConnector('GET', 'http://localhost:4000/api/v1/subCategory/showAllSubCategories');
+        const response = await apiConnector('GET', `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/subCategory/showAllSubCategories`);
         setSubCategories(response.data.data || []);
       } catch (error) {
         toast.error('Failed to fetch sub-categories');

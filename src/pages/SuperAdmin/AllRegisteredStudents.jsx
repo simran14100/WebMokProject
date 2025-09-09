@@ -79,7 +79,7 @@ const AllRegisteredStudents = () => {
         return;
       }
       
-      const response = await axios.get('http://localhost:4001/api/v1/university/registered-students', {
+      const response = await axios.get(`${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/registered-students`, {
         params: {
           page: current,
           limit: pageSize,
@@ -222,7 +222,7 @@ const AllRegisteredStudents = () => {
   const handleDelete = async (studentId) => {
     try {
       const token = localStorage.getItem('token');
-      await axios.delete(`http://localhost:4001/api/v1/university/registered-students/${studentId}`, {
+      await axios.delete(`${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/registered-students/${studentId}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
@@ -287,7 +287,7 @@ const AllRegisteredStudents = () => {
       
       // Update the student's information
       const updateResponse = await axios.put(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:4000'}/api/v1/university/registered-students/${editingStudent._id}`,
+        `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/registered-students/${editingStudent._id}`,
         updateData,
         {
           headers: {

@@ -31,7 +31,7 @@ const SubCategory = () => {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      const response = await apiConnector('POST', 'http://localhost:4000/api/v1/subCategory/createSubCategory', data);
+      const response = await apiConnector('POST', `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/subCategory/createSubCategory`, data);
       if (response.data.success) {
         toast.success('Sub-category created successfully');
         reset();       

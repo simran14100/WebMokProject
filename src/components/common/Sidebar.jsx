@@ -120,11 +120,13 @@ const getSidebarLinks = (user, variant = 'default') => {
         icon: <VscBook style={{ fontSize: 20, color: ED_TEAL }} />,
         subLinks: [
           { name: 'Academic Session', path: '/ugpg-admin/academic/session', icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} /> },
-          { name: 'Exam Session', path: '/ugpg-admin/academic/exam-session', icon: <VscListSelection style={{ fontSize: 20, color: ED_TEAL }} /> },
+         
           { name: 'Courses Type', path: '/ugpg-admin/academic/course-types', icon: <VscListFlat style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Courses', path: '/ugpg-admin/academic/courses', icon: <VscBook style={{ fontSize: 20, color: ED_TEAL }} /> },
-          { name: 'Streams', path: '/ugpg-admin/academic/streams', icon: <VscFiles style={{ fontSize: 20, color: ED_TEAL }} /> },
+
+          // { name: 'Streams', path: '/ugpg-admin/academic/streams', icon: <VscFiles style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Subjects/Papers', path: '/ugpg-admin/academic/subjects-papers', icon: <VscLibrary style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Exam Session', path: '/ugpg-admin/academic/exam-session', icon: <VscListSelection style={{ fontSize: 20, color: ED_TEAL }} /> },
         ]
       },
 
@@ -159,6 +161,8 @@ const getSidebarLinks = (user, variant = 'default') => {
           { name: 'Enrolled Students', path: '/ugpg-admin/admissions/enrolled', icon: <VscOrganization style={{ fontSize: 20, color: ED_TEAL }} /> },
         ]
       },
+      // Newly added: Timetable link right after Admissions
+      { id: 2025, name: 'Timetable', path: '/ugpg-admin/timetable', icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} /> },
 
       { id: 300, name: 'ACCOUNTS', isHeader: true, icon: <VscBriefcase style={{ fontSize: 20, color: ED_TEAL }} /> },
       {

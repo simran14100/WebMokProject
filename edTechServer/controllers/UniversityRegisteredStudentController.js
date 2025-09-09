@@ -704,3 +704,42 @@ module.exports = {
   deleteStudent,
   updateStudent
 };
+
+// Export an additional function separately to avoid breaking existing exports
+module.exports.getMyRegistrationStatus = asyncHandler(async (req, res) => {
+  try {
+    const userEmail = req.user?.email;
+    const userPhone = req.user?.contactNumber || req.user?.phone;
+
+    if (!userEmail && !userPhone) {
+      return res.status(400).json({ success: false, message: 'Email or phone is required to check status' });
+    }
+
+    const query = {
+      status: 'approved',
+      $or: []
+    };
+    if (userEmail) {
+      query.$or.push({ email: userEmail });
+    }
+    if (userPhone) {
+      query.$or.push({ phone: userPhone });
+    }
+    if (query.$or.length === 0) delete query.$or;
+
+    const record = await UniversityRegisteredStudent.findOne(query).select('-__v');
+
+    return res.json({
+      success: true,
+      data: record ? {
+        matched: true,
+        status: record.status,
+        registrationNumber: record.registrationNumber || null,
+        registeredAt: record.registrationDate || record.createdAt,
+      } : { matched: false, status: 'not_found' }
+    });
+  } catch (error) {
+    console.error('getMyRegistrationStatus error:', error);
+    return res.status(500).json({ success: false, message: 'Failed to check registration status' });
+  }
+});

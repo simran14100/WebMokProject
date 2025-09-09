@@ -208,7 +208,8 @@ const {
   getStudent,
   updateStudentStatus,
   deleteStudent,
-  updateStudent
+  updateStudent,
+  getMyRegistrationStatus,
 } = require('../controllers/UniversityRegisteredStudentController');
 
 const { completeVerification } = require('../controllers/universityStudentVerificationController');
@@ -218,7 +219,10 @@ const {
 
 } = require('../controllers/universityStudentVerificationController');
 
-// Apply authentication and authorization middleware to all routes
+// Public (student) endpoint to check own registration status (requires auth but not admin)
+router.get('/my-status', protect, getMyRegistrationStatus);
+
+// Apply authentication and authorization middleware to remaining admin routes
 router.use(protect);
 router.use(authorize('admin', 'superadmin'));
 

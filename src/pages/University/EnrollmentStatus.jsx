@@ -29,7 +29,13 @@ const EnrollmentStatus = () => {
         console.log('🔑 Checking authentication...');
         // Redirect to login if not authenticated
         if (!token) {
-          navigate('/login', { state: { from: location.pathname } });
+          const searchParams = new URLSearchParams(location.search);
+          const programType = searchParams.get('program') || '';
+          const redirectUrl = programType 
+            ? `/university/enrollment?program=${programType}`
+            : '/university/enrollment';
+            
+          navigate(`/login?redirect=${encodeURIComponent(redirectUrl)}`);
           return;
         }
 
@@ -51,8 +57,8 @@ const EnrollmentStatus = () => {
               console.log('ℹ️ Using program type from localStorage:', programType);
             } else {
               // No program type found, redirect to program selection
-              console.log('ℹ️ No program type found, redirecting to program selection');
-              navigate('/university/program-selection');
+              console.log('⚠️ No program type found, redirecting to program selection');
+              navigate('/university');
               return;
             }
           }
@@ -66,21 +72,34 @@ const EnrollmentStatus = () => {
         console.log('📝 Setting program type:', programType);
         setProgram(programType);
         
-        // Make sure we have the latest user data
-        console.log('🔄 Fetching user profile...');
-        
-        // Dispatch the fetchUserProfile thunk action
-        await dispatch(fetchUserProfile(token));
-        
-        // Get the latest user data from the Redux store
+        // Make sure we have the latest user data (optional async refresh)
+        // await dispatch(fetchUserProfile(token)); // can be enabled if needed
         const userProfile = user;
         console.log('✅ User profile data from store:', userProfile);
-        
         if (!userProfile) {
           throw new Error('Failed to load user profile');
         }
-        
-        // Update program type in user's profile if not set
+
+        // Fast-path: check UniversityRegisteredStudent approval
+        try {
+          const regStatus = await apiConnector(
+            'GET',
+            '/api/v1/university/registered-students/my-status',
+            null,
+            {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json'
+            }
+          );
+          if (regStatus?.data?.success && regStatus.data?.data?.matched && regStatus.data.data.status === 'approved') {
+            console.log('✅ UniversityRegisteredStudent shows approved. Redirecting to dashboard.');
+            navigate('/dashboard', { replace: true });
+            return;
+          }
+        } catch (e) {
+          console.warn('University registration status check failed (non-blocking):', e?.response?.data || e.message);
+        }
+
         if (programType && !userProfile.programType) {
           console.log('🔄 Updating user program type in profile...');
           await dispatch(updateUserProgram(programType, token));
@@ -91,12 +110,12 @@ const EnrollmentStatus = () => {
         
         // If user has an enrollment status, handle it
         if (userProfile?.enrollmentStatus) {
-          const status = userProfile.enrollmentStatus.toLowerCase();
+          const status = (userProfile.enrollmentStatus || '').toLowerCase();
           
           // If approved, redirect to dashboard
           if (status === 'approved') {
             console.log('✅ User is already enrolled, redirecting to dashboard');
-            navigate('/dashboard');
+            navigate('/dashboard', { replace: true });
             return;
           }
           
@@ -104,19 +123,27 @@ const EnrollmentStatus = () => {
           if (status === 'pending' && userProfile.paymentStatus === 'Completed') {
             console.log('ℹ️ Payment completed but enrollment still pending, showing enrollment status');
             setStatus('pending');
+            navigate(`/university/enrollment/pending?program=${programType}`, { replace: true });
             return;
           }
           
           // For other statuses (rejected, etc.)
           setStatus(status);
+          if (status === 'rejected') {
+            navigate(`/university/enrollment/rejected?program=${programType}`, { replace: true });
+            return;
+          }
+          // default to pending view route
+          navigate(`/university/enrollment/pending?program=${programType}`, { replace: true });
         } else {
           // No enrollment status, check if payment was made
           if (userProfile.paymentStatus === 'Completed') {
             console.log('ℹ️ Payment completed but no enrollment status, showing pending status');
             setStatus('pending');
+            navigate(`/university/enrollment/pending?program=${programType}`, { replace: true });
           } else {
             console.log('ℹ️ No enrollment status or payment, redirecting to program selection');
-            navigate('/university/program-selection');
+            navigate('/university');
             return;
           }
         }
@@ -130,7 +157,7 @@ const EnrollmentStatus = () => {
 
     checkEnrollmentStatus();
   // Only include dependencies that are used in the effect
-  }, [location.search, navigate, token, dispatch]);
+  }, [location.search, navigate, token, dispatch, user?.enrollmentStatus]);
 
   const handleEnroll = async () => {
     try {

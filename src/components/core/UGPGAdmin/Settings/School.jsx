@@ -38,7 +38,7 @@ export default function UGPGSettingsSchool() {
     setLoading(true);
     setError("");
     try {
-      const res = await apiConnector("GET", "/api/v1/ugpg-school");
+      const res = await apiConnector("GET", "/api/v1/ugpg/schools");
       const list = res?.data?.data || [];
       setItems(Array.isArray(list) ? list : []);
       // reset to first page when dataset changes
@@ -180,7 +180,7 @@ export default function UGPGSettingsSchool() {
                     }
                     setSubmitting(true);
                     try {
-                      await apiConnector("POST", "/api/v1/ugpg-school", { name: form.title.trim(), shortcode: form.shortcode.trim() });
+                      await apiConnector("POST", "/api/v1/ugpg/schools", { name: form.title.trim(), shortcode: form.shortcode.trim() });
                       await fetchDepartments();
                       setOpen(false);
                     } catch (e) {

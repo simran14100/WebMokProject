@@ -209,7 +209,7 @@ const NewRegistration = () => {
       };
       
       // Make the API request
-      const apiUrl = 'http://localhost:4001/api/v1/university/registered-students/register';
+      const apiUrl = `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/registered-students/register`;
       console.log('Making request to:', apiUrl);
       
       const response = await axios.post(apiUrl, formData, config);

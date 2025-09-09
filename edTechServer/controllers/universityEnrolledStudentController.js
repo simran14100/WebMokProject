@@ -1,9 +1,9 @@
-const UniversityEnrolledStudent = require('../models/UniversityEnrolledStudent');
+
 const UniversityRegisteredStudent = require('../models/UniversityRegisteredStudent');
 const User = require('../models/User');
 const { Types: { ObjectId } } = require('mongoose');
 
-// Get all approved students
+
 exports.getAllApprovedStudents = async (req, res) => {
     try {
         const { search = '' } = req.query;
@@ -122,3 +122,5 @@ exports.updateEnrollmentStatus = async (req, res) => {
         });
     }
 };
+
+

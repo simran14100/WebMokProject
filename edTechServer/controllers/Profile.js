@@ -11,6 +11,7 @@ const {convertSecondsToDuration} = require("../utils/secToDuration")
 // Method for updating a profile
 exports.updateProfile = async (req, res) => {
   try {
+    console.log("[updateProfile] controller invoked for user:", req.user?.id);
     const {
       firstName = "",
       lastName = "",
@@ -24,17 +25,38 @@ exports.updateProfile = async (req, res) => {
       fatherName = ""
     } = req.body
     
-    const id = req.user.id
+    const id = req.user?.id || req.user?._id
 
-    // Find the user and profile
+    // Find the user
     const userDetails = await User.findById(id)
-    const profile = await Profile.findById(userDetails.additionalDetails)
+    if (!userDetails) {
+      return res.status(404).json({ success: false, message: "User not found" })
+    }
+
+    // Ensure the user has an additionalDetails profile
+    let profile = null
+    if (userDetails.additionalDetails) {
+      profile = await Profile.findById(userDetails.additionalDetails)
+    }
+    if (!profile) {
+      // Create a new Profile document if missing
+      profile = await Profile.create({
+        dateOfBirth: dateOfBirth || undefined,
+        about: about || undefined,
+        contactNumber: contactNumber || phone || undefined,
+        gender: gender || undefined,
+      })
+      userDetails.additionalDetails = profile._id
+    }
 
     // Update basic profile fields
-    profile.dateOfBirth = dateOfBirth || profile.dateOfBirth
-    profile.about = about || profile.about
-    profile.contactNumber = contactNumber || profile.contactNumber
-    profile.gender = gender || profile.gender
+    if (profile) {
+      profile.dateOfBirth = dateOfBirth || profile.dateOfBirth
+      profile.about = about || profile.about
+      // Prefer explicit contactNumber; fallback to phone from payload
+      profile.contactNumber = contactNumber || phone || profile.contactNumber
+      profile.gender = gender || profile.gender
+    }
 
     // Update user fields
     userDetails.firstName = firstName || userDetails.firstName

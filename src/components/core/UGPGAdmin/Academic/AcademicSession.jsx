@@ -49,7 +49,7 @@ export default function AcademicSession() {
   const fetchSessions = async () => {
     try {
       setLoading(true);
-      const res = await apiConnector("GET", "/api/v1/ugpg-session");
+      const res = await apiConnector("GET", "/api/v1/ugpg/sessions");
       if (res?.data?.success) {
         setSessions(res.data.data || []);
       } else {
@@ -86,7 +86,7 @@ export default function AcademicSession() {
     let toastId;
     try {
       toastId = showLoading("Creating session...");
-      const res = await apiConnector("POST", "/api/v1/ugpg-session", { ...form });
+      const res = await apiConnector("POST", "/api/v1/ugpg/sessions", { ...form });
       if (res?.data?.success) {
         showSuccess("Session created");
         setOpen(false);

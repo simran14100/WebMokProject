@@ -104,32 +104,32 @@ app.use((req, res, next) => {
   next();
 });
 
-// Setting up port number
-const PORT = process.env.PORT || 4000;
+// // Setting up port number
+// const PORT = process.env.PORT || 4000;
 
-// Function to start the server
-const startServer = (port) => {
-  const server = app.listen(port, () => {
-    console.log(`Server is running on port ${port}`);
-  }).on('error', (err) => {
-    if (err.code === 'EADDRINUSE') {
-      console.log(`Port ${port} is in use, trying port ${Number(port) + 1}...`);
-      startServer(Number(port) + 1);
-    } else {
-      console.error('Server error:', err);
-      process.exit(1);
-    }
-  });
-};
+// // Function to start the server
+// const startServer = (port) => {
+//   const server = app.listen(port, () => {
+//     console.log(`Server is running on port ${port}`);
+//   }).on('error', (err) => {
+//     if (err.code === 'EADDRINUSE') {
+//       console.log(`Port ${port} is in use, trying port ${Number(port) + 1}...`);
+//       startServer(Number(port) + 1);
+//     } else {
+//       console.error('Server error:', err);
+//       process.exit(1);
+//     }
+//   });
+// };
 
-// Connect to database and start server
-database.connect()
-  .then(() => {
-    startServer(PORT);
-  })
-  .catch(() => {
-    console.error("Server not started due to DB connection failure");
-  });
+// // Connect to database and start server
+// database.connect()
+//   .then(() => {
+//     startServer(PORT);
+//   })
+//   .catch(() => {
+//     console.error("Server not started due to DB connection failure");
+//   });
 
 // Middlewares
 app.use(express.json());
@@ -237,6 +237,11 @@ app.use("/api/v1/university/enrolled-students", universityEnrolledStudentRoutes)
 app.use("/api/v1/university/fee-types", feeTypeRoutes);
 app.use("/api/v1/university/fee-assignments", feeAssignmentRoutes);
 
+// Direct binding for critical profile update route (temporary safeguard)
+const { auth } = require("./middlewares/auth");
+const { updateProfile } = require("./controllers/Profile");
+app.put("/api/v1/profile/updateProfile", auth, updateProfile);
+
 app.use("/api/v1/rac-members", require("./routes/racMember"));
 app.use("/api/v1/external-experts", require("./routes/externalExpert"));
 
@@ -277,14 +282,40 @@ app.use((req, res) => {
   });
 });
 
-// Start the server after database connection is established
+const PORT = process.env.PORT || 4000;
+
+// Function to start the server
+const startServer = (port) => {
+  const server = app.listen(port, () => {
+    console.log(`Server is running on port ${port}`);
+  }).on('error', (err) => {
+    if (err.code === 'EADDRINUSE') {
+      console.log(`Port ${port} is in use, trying port ${Number(port) + 1}...`);
+      startServer(Number(port) + 1);
+    } else {
+      console.error('Server error:', err);
+      process.exit(1);
+    }
+  });
+};
+
+// Connect to database and start server
 database.connect()
   .then(() => {
-    app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
-    });
+    startServer(PORT);
   })
-  .catch((error) => {
-    console.error('Failed to connect to the database:', error);
-    process.exit(1);
+  .catch(() => {
+    console.error("Server not started due to DB connection failure");
   });
+
+// Start the server after database connection is established
+// database.connect()
+//   .then(() => {
+//     app.listen(PORT, () => {
+//       console.log(`Server is running on port ${PORT}`);
+//     });
+//   })
+//   .catch((error) => {
+//     console.error('Failed to connect to the database:', error);
+//     process.exit(1);
+//   });

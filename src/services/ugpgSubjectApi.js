@@ -1,6 +1,6 @@
 import { apiConnector } from "./apiConnector";
 
-const BASE = "/api/v1/ugpg-subject";
+const BASE = "/api/v1/ugpg/subjects";
 
 export const listUGPGSubjects = (params) => apiConnector("GET", `${BASE}`, null, null, params);
 export const createUGPGSubject = (payload) => apiConnector("POST", `${BASE}`, payload);

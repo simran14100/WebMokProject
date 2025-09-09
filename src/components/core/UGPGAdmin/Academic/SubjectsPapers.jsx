@@ -33,19 +33,109 @@ export default function SubjectsPapers() {
     const q = opts.q ?? sSearch;
     setSLoading(true);
     try {
+      console.log('Fetching subjects with params:', { q, page, limit: S_LIMIT });
       const res = await listUGPGSubjects({ q, page, limit: S_LIMIT });
-      const items = (res?.data?.data || []).map((s) => ({ id: s._id, name: s.name, departmentId: s.department?._id || "", departmentName: s.department?.name || "", status: s.status || "Active" }));
+      
+      if (!res) {
+        console.error('No response received from API');
+        throw new Error('No response from server');
+      }
+      
+      console.log('Subjects API Response:', {
+        status: res.status,
+        statusText: res.statusText,
+        data: res.data,
+        headers: res.headers
+      });
+      
+      if (!res.data || !res.data.success) {
+        console.error('API returned error:', res.data?.message || 'Unknown error');
+        throw new Error(res.data?.message || 'Failed to load subjects');
+      }
+      
+      const items = Array.isArray(res.data.data) 
+        ? res.data.data.map((s) => ({
+            id: s._id, 
+            name: s.name, 
+            departmentId: s.department?._id || "", 
+            departmentName: s.department?.name || "", 
+            status: s.status || "Active"
+          }))
+        : [];
+      
+      console.log('Processed subjects:', items);
       setSubjects(items);
-    } finally { setSLoading(false); }
+      
+    } catch (error) {
+      console.error('Error in loadSubjects:', {
+        name: error.name,
+        message: error.message,
+        response: error.response?.data,
+        stack: error.stack
+      });
+      setSubjects([]);
+      // Show error to user
+      alert(`Failed to load subjects: ${error.message}`);
+    } finally { 
+      setSLoading(false); 
+    }
   };
 
   const openAddSubject = () => { setSEdit(null); setSForm({ department: departments[0]?.id || "", name: "", status: "Active" }); setSModal(true); };
   const openEditSubject = (row) => { setSEdit(row.id); setSForm({ department: row.departmentId, name: row.name, status: row.status || "Active" }); setSModal(true); };
   const saveSubject = async () => {
-    if (!sForm.department || !sForm.name.trim()) return;
-    if (editSubject) await updateUGPGSubject(editSubject.id, { department: sForm.department, name: sForm.name.trim(), status: sForm.status });
-    else await createUGPGSubject({ department: sForm.department, name: sForm.name.trim(), status: sForm.status });
-    setSModal(false); setSPage(1); await loadSubjects({ page: 1 });
+    if (!sForm.department || !sForm.name.trim()) {
+      alert('Please fill in all required fields');
+      return;
+    }
+    
+    try {
+      const payload = { 
+        name: sForm.name.trim(), 
+        status: sForm.status || 'Active',
+        department: sForm.department // This should be the department ID
+      };
+      
+      console.log('[saveSubject] Sending payload:', payload);
+      
+      let response;
+      if (editSubject) {
+        console.log(`[saveSubject] Updating subject ${editSubject.id}`);
+        response = await updateUGPGSubject(editSubject.id, payload);
+      } else {
+        console.log('[saveSubject] Creating new subject');
+        response = await createUGPGSubject(payload);
+      }
+      
+      console.log('[saveSubject] API Response:', response);
+      
+      if (!response || !response.data) {
+        throw new Error('No response data received from server');
+      }
+      
+      if (response.data.success === false) {
+        throw new Error(response.data.message || 'Failed to save subject');
+      }
+      
+      // Success - close modal and refresh data
+      setSModal(false); 
+      setSPage(1);
+      await loadSubjects({ page: 1 });
+      
+    } catch (error) {
+      console.error('[saveSubject] Error details:', {
+        name: error.name,
+        message: error.message,
+        response: error.response?.data,
+        stack: error.stack
+      });
+      
+      const errorMessage = error.response?.data?.message || 
+                         error.message || 
+                         'Failed to save subject. Please try again.';
+      
+      alert(`Error: ${errorMessage}`);
+    }
   };
   const removeSubject = async (row) => { if (!window.confirm("Delete this subject?")) return; await deleteUGPGSubject(row.id); setSubjects((prev)=>prev.filter(x=>x.id!==row.id)); };
 

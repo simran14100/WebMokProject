@@ -413,7 +413,7 @@ export function login(email, password, navigate) {
       // Create a minimal axios instance with no extra configuration
       const response = await axios({
         method: 'post',
-        url: `${process.env.REACT_APP_BASE_URL || 'http://localhost:4001'}/api/v1/auth/login`,
+        url: `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/auth/login`,
         data: { email, password },
         withCredentials: true,
         headers: {
