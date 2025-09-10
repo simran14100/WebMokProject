@@ -7,7 +7,7 @@ import { profile } from '../../services/apis';
 import { toast } from 'react-hot-toast';
 import { setUser, updateUser } from '../../store/slices/profileSlice';
 import { setToken } from '../../store/slices/authSlice';
-import './University.css';
+// import './University.css';
 
 const ProgramSelection = () => {
   const navigate = useNavigate();

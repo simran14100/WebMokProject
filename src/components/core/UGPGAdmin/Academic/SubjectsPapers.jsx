@@ -389,35 +389,166 @@ export default function SubjectsPapers() {
           <label style={{ color: TEXT }}>Search:</label>
           <input value={sSearch} onChange={(e)=>{ setSPage(1); setSSearch(e.target.value); }} placeholder="Search subject..." style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: "8px 10px", width: 240 }} />
         </div>
-        <div style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, overflow: "hidden", width:"80%", marginLeft:"120px" }}>
-          <div style={{ display: "grid", gridTemplateColumns: "2fr 3fr 3fr 2fr 2fr 2fr", background: ED_TEAL, color: "#fff", padding: "12px 16px", fontWeight: 500 }}>
-            <div>Action</div>
-            <div>School</div>
-            <div>Course</div>
-            <div>Semester</div>
-            <div>Subject</div>
-            <div>Status</div>
+        <div style={{ background: "#fff", border: `1px solid ${BORDER}`, borderRadius: 12, overflow: "hidden", width: "90%", margin: "0 auto", boxShadow: "0 1px 3px rgba(0,0,0,0.1)" }}>
+          <div style={{ 
+            display: "grid", 
+            gridTemplateColumns: "120px 1.5fr 2fr 1fr 1.5fr 100px", 
+            background: ED_TEAL, 
+            color: "#fff", 
+            padding: "14px 16px", 
+            fontWeight: 500,
+            position: 'sticky',
+            top: 0,
+            zIndex: 10
+          }}>
+            <div style={{ padding: '0 8px' }}>Action</div>
+            <div style={{ padding: '0 8px' }}>School</div>
+            <div style={{ padding: '0 8px' }}>Course</div>
+            <div style={{ padding: '0 8px' }}>Subject</div>
+            <div style={{ padding: '0 8px' }}>Semester</div>
+            <div style={{ padding: '0 8px', textAlign: 'center' }}>Status</div>
           </div>
-          <div>
+          <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
             {sLoading ? (
-              <div style={{ padding: 12, color: TEXT }}>Loading...</div>
+              <div style={{ 
+                display: 'flex', 
+                justifyContent: 'center', 
+                alignItems: 'center', 
+                padding: '40px',
+                color: TEXT 
+              }}>
+                <div style={spinnerStyle}></div>
+                <span>Loading subjects...</span>
+              </div>
             ) : (
               subjects.map((row) => (
-                <div key={row._id} style={{ display: "grid", gridTemplateColumns: "2fr 3fr 3fr 2fr 2fr 2fr", alignItems: "center", padding: "12px 16px", borderBottom: `1px solid ${BORDER}` }}>
-                  <div style={{ display: "flex", gap: 8 }}>
-                    <button onClick={()=>openEditSubject(row)} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid ${ED_TEAL}`, background: "#fff", color: ED_TEAL }}>Edit</button>
-                    <button onClick={()=>removeSubject(row)} style={{ padding: "6px 10px", borderRadius: 6, border: `1px solid #ef4444`, background: "#fff", color: "#ef4444" }}>Delete</button>
+                <div 
+                  key={row._id} 
+                  style={{ 
+                    display: "grid", 
+                    gridTemplateColumns: "120px 1.5fr 2fr 1fr 1.5fr 100px",
+                    alignItems: "center", 
+                    padding: "14px 16px", 
+                    borderBottom: `1px solid ${BORDER}`,
+                    transition: 'background-color 0.2s',
+                    ':hover': {
+                      backgroundColor: '#f8fafc'
+                    }
+                  }}
+                >
+                  <div style={{ display: "flex", gap: 8, flexWrap: 'wrap' }}>
+                    <button 
+                      onClick={() => openEditSubject(row)} 
+                      style={{ 
+                        padding: "6px 10px", 
+                        borderRadius: 6, 
+                        border: `1px solid ${ED_TEAL}`, 
+                        background: "#fff", 
+                        color: ED_TEAL,
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        transition: 'all 0.2s',
+                        ':hover': {
+                          background: ED_TEAL,
+                          color: '#fff'
+                        }
+                      }}
+                    >
+                      Edit
+                    </button>
+                    <button 
+                      onClick={() => removeSubject(row)} 
+                      style={{ 
+                        padding: "6px 10px", 
+                        borderRadius: 6, 
+                        border: `1px solid #ef4444`, 
+                        background: "#fff", 
+                        color: "#ef4444",
+                        cursor: 'pointer',
+                        fontSize: '12px',
+                        fontWeight: 500,
+                        transition: 'all 0.2s',
+                        ':hover': {
+                          background: '#ef4444',
+                          color: '#fff'
+                        }
+                      }}
+                    >
+                      Delete
+                    </button>
                   </div>
-                  <div style={{ color: TEXT }}>{row.school?.name || 'N/A'}</div>
-                  <div style={{ color: TEXT }}>{row.course?.courseName || 'N/A'}</div>
-                  <div style={{ color: TEXT }}>Semester {row.semester || 'N/A'}</div>
-                  <div style={{ color: TEXT }}>{row.name || 'N/A'}</div>
-                  <div style={{ color: TEXT }}>{row.status || 'Active'}</div>
+                  <div style={{ 
+                    color: TEXT, 
+                    padding: '0 8px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    fontSize: '14px'
+                  }} title={row.school?.name || 'N/A'}>
+                    {row.school?.name || 'N/A'}
+                  </div>
+                  <div style={{ 
+                    color: TEXT, 
+                    padding: '0 8px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    fontSize: '14px'
+                  }} title={row.course?.courseName || 'N/A'}>
+                    {row.course?.courseName || 'N/A'}
+                  </div>
+                  <div style={{ 
+                    color: TEXT, 
+                    padding: '0 8px',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    fontSize: '14px',
+                    fontWeight: 500
+                  }} title={row.name || 'N/A'}>
+                    {row.name || 'N/A'}
+                  </div>
+                  <div style={{ 
+                    color: TEXT, 
+                    padding: '0 8px',
+                    fontSize: '14px'
+                  }}>
+                    Semester {row.semester || 'N/A'}
+                  </div>
+                  <div style={{ 
+                    padding: '0 8px',
+                    display: 'flex',
+                    justifyContent: 'center'
+                  }}>
+                    <span style={{
+                      padding: '4px 10px',
+                      borderRadius: '12px',
+                      fontSize: '12px',
+                      fontWeight: 500,
+                      backgroundColor: row.status === 'Active' ? '#dcfce7' : '#fee2e2',
+                      color: row.status === 'Active' ? '#166534' : '#991b1b',
+                      textAlign: 'center',
+                      minWidth: '70px',
+                      display: 'inline-block'
+                    }}>
+                      {row.status || 'Inactive'}
+                    </span>
+                  </div>
                 </div>
               ))
             )}
             {(!sLoading && subjects.length === 0) && (
-              <div style={{ padding: 12, color: TEXT }}>No subjects found.</div>
+              <div style={{ 
+                padding: '40px 16px', 
+                color: TEXT,
+                textAlign: 'center',
+                gridColumn: '1 / -1',
+                fontSize: '14px',
+                color: '#64748b'
+              }}>
+                No subjects found. Click "Add New Subject" to create one.
+              </div>
             )}
           </div>
         </div>

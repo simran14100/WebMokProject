@@ -126,7 +126,9 @@ const getSidebarLinks = (user, variant = 'default') => {
 
           // { name: 'Streams', path: '/ugpg-admin/academic/streams', icon: <VscFiles style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Subjects/Papers', path: '/ugpg-admin/academic/subjects-papers', icon: <VscLibrary style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { id: 2025, name: 'Timetable', path: '/ugpg-admin/timetable', icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Exam Session', path: '/ugpg-admin/academic/exam-session', icon: <VscListSelection style={{ fontSize: 20, color: ED_TEAL }} /> },
+
         ]
       },
 
@@ -162,7 +164,7 @@ const getSidebarLinks = (user, variant = 'default') => {
         ]
       },
       // Newly added: Timetable link right after Admissions
-      { id: 2025, name: 'Timetable', path: '/ugpg-admin/timetable', icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} /> },
+     
 
       { id: 300, name: 'ACCOUNTS', isHeader: true, icon: <VscBriefcase style={{ fontSize: 20, color: ED_TEAL }} /> },
       {

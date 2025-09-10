@@ -147,17 +147,15 @@ function ProtectedRoute({ children, allowedRoles }) {
   }
   
   if (allowedRoles && !allowedRoles.includes(user.accountType)) {
-    console.log('ProtectedRoute - User role not allowed:', user.accountType);
-    return (
-      <div className="flex items-center justify-center h-screen">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-red-600 mb-4">Access Denied</h2>
-          <p className="text-gray-600">You don't have permission to access this page.</p>
-          <p className="text-sm text-gray-500 mt-2">Your role: {user.accountType || 'Unknown'}</p>
-          <p className="text-sm text-gray-500">Required roles: {allowedRoles.join(', ')}</p>
-        </div>
-      </div>
-    );
+    console.log('ProtectedRoute - User role not allowed, redirecting to profile');
+    // Redirect to appropriate dashboard based on user role
+    const redirectPath = 
+      user.accountType === ACCOUNT_TYPE.STUDENT ? '/dashboard/my-profile' :
+      user.accountType === ACCOUNT_TYPE.INSTRUCTOR ? '/dashboard/instructor' :
+      user.accountType === ACCOUNT_TYPE.ADMIN ? '/admin/dashboard' :
+      '/dashboard';
+    
+    return <Navigate to={redirectPath} replace />;
   }
   
   console.log('ProtectedRoute - Access granted');
