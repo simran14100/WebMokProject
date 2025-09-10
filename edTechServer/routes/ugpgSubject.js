@@ -9,8 +9,8 @@ const {
   deleteSubject,
 } = require("../controllers/UGPGSubject");
 
-// Protect all UGPG subject routes for admin-level users
-router.use(auth, isAdminLevel);
+// Protect all routes with authentication
+router.use(auth);
 
 router.get("/", getSubjects);
 router.post("/", createSubject);

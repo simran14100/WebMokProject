@@ -8,8 +8,8 @@ const {
   deleteCourse,
 } = require("../controllers/UGPGCourse");
 
-// Protect all routes
-router.use(auth, isAdminLevel);
+// Protect all routes with authentication
+router.use(auth);
 
 router.get("/", listCourses);
 router.post("/", createCourse);
