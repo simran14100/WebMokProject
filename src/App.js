@@ -40,6 +40,7 @@ import AdminNotifications from './pages/AdminNotifications';
 import Notifications from './pages/Notifications';
 import EnrollmentStatus from './pages/University/EnrollmentStatus';
 import ProgramSelection from './pages/University/ProgramSelection';
+import UniversityStudentDashboard from './pages/University/UniversityStudentDashboard';
 import AdmissionEnquiryForm from './components/AdmissionEnquiryForm';
 import NewRegistration from './pages/SuperAdmin/NewRegistration';
 import VerifiedStudents from './pages/SuperAdmin/VerifiedStudentss';
@@ -121,11 +122,10 @@ import EnquiryReferences from './components/core/UGPGAdmin/FrontDesk/EnquiryRefe
 import GrievanceTypes from './components/core/UGPGAdmin/FrontDesk/GrievanceTypes';
 import PostalTypes from './components/core/UGPGAdmin/FrontDesk/PostalTypes';
 import MeetingTypes from './components/core/UGPGAdmin/FrontDesk/MeetingTypes';
-
 import UniversityDashboard from "./pages/UniversityDashboard";
 import UniversityEnrolledStudent from "./pages/SuperAdmin/UniversityEnrolledStudent";
 import { withEnrollmentVerification } from "./middleware/enrollmentMiddleware";
-
+import DashboardLayout from './components/common/DashboardLayout';
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
 console.log("App starting - localStorage debug:");
@@ -201,7 +201,32 @@ function AppRoutes() {
       <Route path="/contact" element={<Contact />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-      {/* University Routes */}
+      
+      {/* Enrolled Students - Using University Student Dashboard */}
+      <Route path="/EnrolledStudents" element={
+        <DashboardLayout variant="university">
+          <UniversityStudentDashboard />
+        </DashboardLayout>
+      } />
+      
+      {/* University Student Dashboard */}
+      {/* <Route path="/university/student/*" element={
+        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT]}>
+          <UniversityStudentDashboard />
+        </ProtectedRoute>
+      }>
+        <Route path="accounts" element={<div>Account Details</div>} />
+        <Route path="document" element={<div>Document Upload</div>} />
+        <Route path="attendance" element={<div>Attendance</div>} />
+        <Route path="assignments" element={<div>Assignments</div>} />
+        <Route path="exam-schedule" element={<div>Exam Schedule</div>} />
+        <Route path="results" element={<div>Results</div>} />
+        <Route path="fees" element={<div>Fees & Payments</div>} />
+        <Route path="change-password" element={<div>Change Password</div>} />
+        <Route path="notification-settings" element={<div>Notification Settings</div>} />
+      </Route> */}
+
+      {/* University Admin Routes */}
       <Route path="/university" element={
         <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
           <ProgramSelection />
@@ -213,6 +238,7 @@ function AppRoutes() {
             <EnrollmentStatus />
           </ProtectedRoute>
         } />
+        {/* Dashboard route will be handled by the main Dashboard component */}
       </Route>
       
       {/* Admin Dashboard */}
@@ -356,7 +382,7 @@ function AppRoutes() {
       {/* Dashboard Routes - Common for all authenticated users */}
       <Route path="/dashboard" element={
         <ProtectedRoute>
-          <Dashboard />
+          <Dashboard isEnrolledStudentView={window.location.pathname.startsWith('/dashboard/accounts')} />
         </ProtectedRoute>
       }>
         <Route path="my-profile" element={<AdminProfile />} />

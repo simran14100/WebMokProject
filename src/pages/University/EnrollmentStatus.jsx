@@ -80,7 +80,29 @@ const EnrollmentStatus = () => {
           throw new Error('Failed to load user profile');
         }
 
-        // Fast-path: check UniversityRegisteredStudent approval
+        if (programType && !userProfile.programType) {
+          console.log('🔄 Updating user program type in profile...');
+          await dispatch(updateUserProgram(programType, token));
+        }
+        
+        // Check enrollment status with detailed logging
+        console.group('🔍 Enrollment Status Debug');
+        console.log('📋 Raw enrollment status from backend:', userProfile?.enrollmentStatus);
+        console.log('📋 User program type:', userProfile?.programType);
+        console.log('📋 User account type:', userProfile?.accountType);
+        console.log('📋 User enrollment details:', {
+          status: userProfile?.enrollmentStatus,
+          program: userProfile?.programType,
+          isVerified: userProfile?.isVerified,
+          paymentStatus: userProfile?.paymentStatus,
+          additionalInfo: userProfile?.additionalInfo
+        });
+        console.log('📋 Full user profile object:', JSON.parse(JSON.stringify(userProfile || {})));
+        console.groupEnd();
+        
+        // Only check university registration status
+        let finalStatus = 'pending';
+        
         try {
           const regStatus = await apiConnector(
             'GET',
@@ -91,61 +113,36 @@ const EnrollmentStatus = () => {
               'Content-Type': 'application/json'
             }
           );
-          if (regStatus?.data?.success && regStatus.data?.data?.matched && regStatus.data.data.status === 'approved') {
-            console.log('✅ UniversityRegisteredStudent shows approved. Redirecting to dashboard.');
-            navigate('/dashboard', { replace: true });
-            return;
+          
+          if (regStatus?.data?.success && regStatus.data?.data?.matched) {
+            if (regStatus.data.data.status === 'approved') {
+              finalStatus = 'universityEnrolled';
+              console.log('✅ University registration status: approved');
+            } else {
+              console.log('ℹ️ University registration status:', regStatus.data.data.status);
+            }
           }
         } catch (e) {
           console.warn('University registration status check failed (non-blocking):', e?.response?.data || e.message);
         }
-
-        if (programType && !userProfile.programType) {
-          console.log('🔄 Updating user program type in profile...');
-          await dispatch(updateUserProgram(programType, token));
-        }
         
-        // Check enrollment status
-        console.log('📋 Checking enrollment status:', userProfile?.enrollmentStatus);
+        // Set the status to show appropriate UI
+        setStatus(finalStatus);
         
-        // If user has an enrollment status, handle it
-        if (userProfile?.enrollmentStatus) {
-          const status = (userProfile.enrollmentStatus || '').toLowerCase();
-          
-          // If approved, redirect to dashboard
-          if (status === 'approved') {
-            console.log('✅ User is already enrolled, redirecting to dashboard');
-            navigate('/dashboard', { replace: true });
-            return;
-          }
-          
-          // If payment is completed but status is still pending, check for enrollment date
-          if (status === 'pending' && userProfile.paymentStatus === 'Completed') {
-            console.log('ℹ️ Payment completed but enrollment still pending, showing enrollment status');
-            setStatus('pending');
-            navigate(`/university/enrollment/pending?program=${programType}`, { replace: true });
-            return;
-          }
-          
-          // For other statuses (rejected, etc.)
-          setStatus(status);
-          if (status === 'rejected') {
-            navigate(`/university/enrollment/rejected?program=${programType}`, { replace: true });
-            return;
-          }
-          // default to pending view route
+        // Navigate to appropriate route based on status
+        if (finalStatus === 'universityEnrolled' || finalStatus === 'approved') {
+          console.log(`✅ User is ${finalStatus}, showing enrollment status`);
+          navigate(`/university/enrollment/approved?program=${programType}`, { replace: true });
+        } else if (finalStatus === 'rejected') {
+          navigate(`/university/enrollment/rejected?program=${programType}`, { replace: true });
+        } else if (userProfile.paymentStatus === 'Completed') {
+          console.log('ℹ️ Payment completed but no enrollment status, showing pending status');
+          setStatus('pending');
           navigate(`/university/enrollment/pending?program=${programType}`, { replace: true });
         } else {
-          // No enrollment status, check if payment was made
-          if (userProfile.paymentStatus === 'Completed') {
-            console.log('ℹ️ Payment completed but no enrollment status, showing pending status');
-            setStatus('pending');
-            navigate(`/university/enrollment/pending?program=${programType}`, { replace: true });
-          } else {
-            console.log('ℹ️ No enrollment status or payment, redirecting to program selection');
-            navigate('/university');
-            return;
-          }
+          console.log('ℹ️ No enrollment status or payment, redirecting to program selection');
+          navigate('/university');
+          return;
         }
       } catch (error) {
         console.error('Error checking enrollment status:', error);
@@ -214,7 +211,7 @@ const EnrollmentStatus = () => {
             </p>
             <div className="mt-6">
               <button
-                onClick={() => navigate('/dashboard')}
+                onClick={() => navigate('/EnrolledStudents')}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 Go to Dashboard
@@ -223,26 +220,7 @@ const EnrollmentStatus = () => {
           </div>
         );
         
-      case 'approved':
-        return (
-          <div className="text-center">
-            <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100">
-              <VscCheck className="h-6 w-6 text-green-600" />
-            </div>
-            <h3 className="mt-3 text-lg font-medium text-gray-900">Enrollment Approved!</h3>
-            <p className="mt-2 text-sm text-gray-500">
-              Your enrollment in the {program} program has been approved. You can now access all features.
-            </p>
-            <div className="mt-6">
-              <button
-                onClick={() => navigate('/dashboard')}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Go to Dashboard
-              </button>
-            </div>
-          </div>
-        );
+      
       
       case 'rejected':
         return (

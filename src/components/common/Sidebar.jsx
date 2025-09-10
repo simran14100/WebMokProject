@@ -62,6 +62,110 @@ const isAdminCreatedStudent = (user) => {
 };
 
 const getSidebarLinks = (user, variant = 'default') => {
+  // Define default student links
+  const studentLinks = [
+    {
+      id: 1,
+      name: "My Profile",
+      path: "/dashboard/my-profile",
+      icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} />,
+    },
+    {
+      id: 2,
+      name: "Notifications",
+      path: "/dashboard/notifications",
+      icon: <VscBell style={{ fontSize: 20, color: ED_TEAL }} />,
+    },
+    {
+      id: 3,
+      name: "Enrolled Courses",
+      path: "/dashboard/enrolled-courses",
+      icon: <VscLibrary style={{ fontSize: 20, color: ED_TEAL }} />,
+    },
+    {
+      id: 4,
+      name: "Live Classes",
+      path: "/dashboard/live-classes",
+      icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} />,
+    },
+    // Assignments appears only for students created by admin
+    ...(isAdminCreatedStudent(user) ? [{
+      id: 5,
+      name: "Assignments",
+      path: "/dashboard/assignments",
+      icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} />,
+    }] : []),
+    {
+      id: 6,
+      name: "Cart",
+      path: "/dashboard/cart",
+      icon: <VscBriefcase style={{ fontSize: 20, color: ED_TEAL }} />,
+    },
+    {
+      id: 7,
+      name: "Settings",
+      path: "/dashboard/settings",
+      icon: <VscGear style={{ fontSize: 20, color: ED_TEAL }} />,
+    }
+  ];
+  
+  // Return early for specific variants or user types
+  if ((variant === 'university' || variant === 'EnrolledStudents') && user?.isUniversityStudent) {
+    return [
+      { 
+        id: 1, 
+        name: 'Account details', 
+        path: '/EnrolledStudents/accounts', 
+        icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> 
+      },
+      { 
+        id: 2, 
+        name: 'Document Upload', 
+        path: '/EnrolledStudents/document', 
+        icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> 
+      },
+      { 
+        id: 3, 
+        name: 'Attendance', 
+        path: '/EnrolledStudents/attendance', 
+        icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> 
+      },
+      { 
+        id: 4, 
+        name: 'Assignments', 
+        path: '/EnrolledStudents/assignments', 
+        icon: <FaTasks style={{ fontSize: 20, color: ED_TEAL }} /> 
+      },
+      { 
+        id: 5, 
+        name: 'Exam Schedule', 
+        path: '/EnrolledStudents/exam-schedule', 
+        icon: <FaRegFileAlt style={{ fontSize: 20, color: ED_TEAL }} /> 
+      },
+      { 
+        id: 6, 
+        name: 'Results', 
+        path: '/EnrolledStudents/results', 
+        icon: <VscGraph style={{ fontSize: 20, color: ED_TEAL }} /> 
+      },
+      { 
+        id: 7, 
+        name: 'Fees & Payments', 
+        path: '/EnrolledStudents/fees', 
+        icon: <FaRegMoneyBillAlt style={{ fontSize: 20, color: ED_TEAL }} /> 
+      },
+      {
+        id: 8,
+        name: 'Settings',
+        icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} />,
+        subLinks: [
+          { name: 'Change Password', path: '/EnrolledStudents/change-password' },
+          { name: 'Notification Settings', path: '/EnrolledStudents/notification-settings' }
+        ]
+      }
+    ];
+  }
+  
   // PhD Admin sidebar for SuperAdmin
   if (variant === 'phd' && (user?.accountType === 'SuperAdmin' || user?.accountType === 'Admin')) {
     return [
@@ -90,8 +194,8 @@ const getSidebarLinks = (user, variant = 'default') => {
       { id: 13, name: 'RAC Members', path: '/phd-admin/rac-members', icon: <VscListSelection style={{ fontSize: 20, color: ED_TEAL }} /> },
       { id: 14, name: 'External Experts', path: '/phd-admin/experts', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
       { id: 15, name: 'Users Management', path: '/phd-admin/users', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
-      { id: 15, name: 'Final Data', path: '/phd-admin/final-data', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
-      { id: 15, name: 'Honorary Registration', path: '/phd-admin/honorary', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 16, name: 'Final Data', path: '/phd-admin/final-data', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 17, name: 'Honorary Registration', path: '/phd-admin/honorary', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
     
     ];
 
@@ -447,54 +551,7 @@ const getSidebarLinks = (user, variant = 'default') => {
     ];
   }
 
-  // Student links (default)
-  const studentLinks = [
-    {
-      id: 1,
-      name: "My Profile",
-      path: "/dashboard/my-profile",
-      icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} />,
-    },
-    {
-      id: 2,
-      name: "Notifications",
-      path: "/dashboard/notifications",
-      icon: <VscBell style={{ fontSize: 20, color: ED_TEAL }} />,
-    },
-    {
-      id: 3,
-      name: "Enrolled Courses",
-      path: "/dashboard/enrolled-courses",
-      icon: <VscLibrary style={{ fontSize: 20, color: ED_TEAL }} />,
-    },
-    {
-      id: 4,
-      name: "Live Classes",
-      path: "/dashboard/live-classes",
-      icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} />,
-    },
-    // Assignments appears only for students created by admin
-    ...(isAdminCreatedStudent(user) ? [{
-      id: 5,
-      name: "Assignments",
-      path: "/dashboard/assignments",
-      icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} />,
-    }] : []),
-    
-    {
-      id: 6,
-      name: "Cart",
-      path: "/dashboard/cart",
-      icon: <VscBriefcase style={{ fontSize: 20, color: ED_TEAL }} />,
-    },
-    {
-      id: 7,
-      name: "Settings",
-      path: "/dashboard/settings",
-      icon: <VscGear style={{ fontSize: 20, color: ED_TEAL }} />,
-    }
-  ];
-
+  // Return default student links for all other cases
   return studentLinks;
 };
 
@@ -828,169 +885,3 @@ export default function Sidebar({ isMobile = false, isOpen = true, onClose = () 
   );
 }
 
-// const adminSidebarLinks = [
-//   { name: "Dashboard", path: "/admin/dashboard", icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
-//   { name: "Admission Confirm", path: "/admin/admission-confirmation", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
-//   { name: "Enrolled Students", path: "/admin/enrolled-students", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
-//   { name: "Manage Users", path: "/admin/users", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
-//   { name: "Manage Categories", path: "/admin/categories", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
-// ];
-
-
-// const studentSidebarLinks = [
-//   { name: "Dashboard", path: "/dashboard", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
-//   { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
-//   { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
-//   { name: "Active Courses", path: "/dashboard/active-courses", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
-// ];
-
-// const instructorSidebarLinks = [
-//   { name: "My Profile", path: "/dashboard/my-profile", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
-//   { name: "Dashboard", path: "/instructor/dashboard", icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
-//   { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
-//   { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
-// ];
-
-// const getSidebarLinks = (user) => {
-//   if (user?.accountType === "Instructor") return [
-//     { name: "My Profile", path: "/dashboard/my-profile", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
-//     { name: "Enrolled Students", path: "/dashboard/enrolled-students", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
-//     { name: "My Courses", path: "/instructor/my-courses", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
-//     { name: "Add a Course", path: "/instructor/add-course", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
-//     { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
-//     { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
-//   ];
-//   if (user?.accountType === "Admin" || user?.accountType === "SuperAdmin") return [
-//     { name: "Dashboard", path: "/admin/dashboard", icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
-//     { name: "Admission Confirm", path: "/admin/admission-confirmation", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
-//     { name: "Enrolled Students", path: "/admin/enrolled-students", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
-//     { name: "Manage Users", path: "/admin/users", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
-//     { name: "Manage Categories", path: "/admin/categories", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
-//     { name: "Settings", path: "/admin/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
-//   ];
-//   // STUDENT LINKS (update here)
-//   return [
-//     { name: "Dashboard", path: "/dashboard", icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
-//     { name: "Cart", path: "/dashboard/cart", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
-//     { name: "Settings", path: "/dashboard/settings", icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} /> },
-//     { name: "Active Courses", path: "/dashboard/active-courses", icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
-//   ];
-// };
-
-// export default function Sidebar() {
-//   const { user, loading: profileLoading } = useSelector((state) => state.profile);
-//   const { loading: authLoading } = useSelector((state) => state.auth);
-//   const dispatch = useDispatch();
-//   const navigate = useNavigate();
-//   const [confirmationModal, setConfirmationModal] = useState(null);
-
-//   // Debug log for user and accountType
-//   console.log('Sidebar user:', user);
-//   console.log('Sidebar user.accountType:', user?.accountType);
-
-//      if (profileLoading || authLoading) {
-//      return (
-//        <div style={{
-//          position: 'fixed',
-//          left: 0,
-//          top: 120,
-//          height: 'calc(100vh - 120px)',
-//          width: 220,
-//          display: "grid",
-//          alignItems: "center",
-//          borderRight: `1px solid ${BORDER}`,
-//          background: "#fff",
-//          zIndex: 100
-//        }}>
-//          <div className="spinner"></div>
-//        </div>
-//      );
-//    }
-
-//   return (
-//     <>
-//              <div style={{
-//          position: 'fixed',
-//          left: 0,
-//          top: 120, // navbar height in px - increased to prevent overlap
-//          height: 'calc(100vh - 120px)',
-//          width: 220,
-//          display: 'flex',
-//          flexDirection: 'column',
-//          borderRight: `1px solid ${BORDER}`,
-//          background: '#fff',
-//          padding: '2rem 0',
-//          zIndex: 100,
-//          boxShadow: '0 2px 8px rgba(0,0,0,0.04)',
-//          overflowY: 'auto', // Allow sidebar to scroll if needed
-//        }}>
-//         {/* No brand/company name at the top */}
-//         <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingTop: 14 }}>
-//           {getSidebarLinks(user).map((link) => (
-//             <button
-//               key={link.name}
-//               onClick={() => navigate(link.path)}
-//               style={{
-//                 display: "flex",
-//                 alignItems: "center",
-//                 gap: 12,
-//                 padding: "12px 24px",
-//                 background: "none",
-//                 border: "none",
-//                 borderRadius: 8,
-//                 color: TEXT_DARK,
-//                 fontWeight: 600,
-//                 fontSize: 16,
-//                 cursor: "pointer",
-//                 transition: "background 0.2s, color 0.2s",
-//                 textAlign: "left",
-//               }}
-//               onMouseOver={e => {
-//                 e.currentTarget.style.background = "#f0f9f8";
-//                 e.currentTarget.style.color = ED_TEAL;
-//               }}
-//               onMouseOut={e => {
-//                 e.currentTarget.style.background = "none";
-//                 e.currentTarget.style.color = TEXT_DARK;
-//               }}
-//             >
-//               {link.icon}
-//               <span>{link.name}</span>
-//             </button>
-//           ))}
-//         </div>
-//         <div style={{ margin: "24px 0", height: 1, width: "85%", background: BORDER, alignSelf: "center" }} />
-//         <div style={{ display: "flex", flexDirection: "column", gap: 8, paddingLeft: 24, paddingRight: 24, marginBottom: 24 }}>
-//           <button
-//             onClick={() =>
-//               setConfirmationModal({
-//                 text1: "Are you sure?",
-//                 text2: "You will be logged out of your account.",
-//                 btn1Text: "Logout",
-//                 btn2Text: "Cancel",
-//                 btn1Handler: () => dispatch(logout(navigate)),
-//                 btn2Handler: () => setConfirmationModal(null),
-//               })
-//             }
-//             style={{
-//               padding: "10px 0",
-//               fontSize: 15,
-//               fontWeight: 600,
-//               color: TEXT_DARK,
-//               background: "none",
-//               border: "none",
-//               cursor: "pointer",
-//               display: "flex",
-//               alignItems: "center",
-//               gap: 8,
-//             }}
-//           >
-//             <VscSignOut style={{ fontSize: 20, color: ED_TEAL }} />
-//             <span>Logout</span>
-//           </button>
-//         </div>
-//       </div>
-//       {confirmationModal && <ConfirmationModal modalData={confirmationModal} />}
-//     </>
-//   );
-// }

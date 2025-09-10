@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import Sidebar from './Sidebar';
 
-const DashboardLayout = ({ children }) => {
+const DashboardLayout = ({ children, variant = 'default' }) => {
   const [isMobile, setIsMobile] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
@@ -27,7 +27,7 @@ const DashboardLayout = ({ children }) => {
       display: 'flex'
     }}>
       {/* Sidebar */}
-      <Sidebar isMobile={isMobile} isOpen={isSidebarOpen || !isMobile} onClose={() => setIsSidebarOpen(false)} />
+      <Sidebar variant={variant} isMobile={isMobile} isOpen={isSidebarOpen || !isMobile} onClose={() => setIsSidebarOpen(false)} />
 
       {/* No floating hamburger: Navbar controls sidebar via events */}
       

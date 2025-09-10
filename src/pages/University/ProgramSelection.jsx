@@ -68,6 +68,7 @@ const ProgramSelection = () => {
       // If user already has a programType, redirect once to enrollment status (but NOT during update flow)
       if (!redirectedOnLoad.current && token && currentUser?.programType && !isUpdating) {
         redirectedOnLoad.current = true;
+        // Always redirect to enrollment status page for enrolled students
         navigate(`/university/enrollment?program=${currentUser.programType}`);
         return;
       }
@@ -230,18 +231,8 @@ const ProgramSelection = () => {
       toast.success('Program selection saved successfully!');
       setShowEnrollmentModal(false);
 
-      // Navigate based on enrollment status
-      if (response.data?.data?.enrollmentStatus === 'Approved') {
-        // If enrolled, go to respective dashboard
-        if (formData.programType === 'phd') {
-          navigate('/phd-dashboard');
-        } else {
-          navigate('/dashboard');
-        }
-      } else {
-        // If not enrolled, go to enrollment status page with program type
-        navigate(`/university/enrollment?program=${encodeURIComponent(formData.programType)}`);
-      }
+      // Always go to enrollment status page after selection
+      navigate(`/university/enrollment?program=${encodeURIComponent(formData.programType)}`);
       
     } catch (error) {
       console.error('Error submitting enrollment:', {
