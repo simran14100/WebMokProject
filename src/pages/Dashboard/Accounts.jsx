@@ -51,9 +51,9 @@ export default function Accounts() {
     
     try {
       await dispatch(changePassword(token, {
-        currentPassword,
+        oldPassword: currentPassword,
         newPassword,
-        confirmNewPassword
+        confirmNewPassword: newPassword // Send newPassword again as confirmNewPassword to match backend validation
       }));
       
       setSuccess('Password updated successfully!');

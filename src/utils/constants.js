@@ -14,6 +14,9 @@ export const PROGRAM_TYPE = {
     PHD: "PhD"
 };
 
+// UI Constants
+export const ED_TEAL = "#07A698";
+
 // API Endpoints
 export const API_ENDPOINTS = {
     // Auth endpoints

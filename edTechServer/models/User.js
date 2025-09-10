@@ -42,6 +42,10 @@ const userSchema = new mongoose.Schema({
         required:true,
         ref:"Profile",
     },
+    documents: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'Document'
+    }],
     active: {
       type: Boolean,
       default: true,

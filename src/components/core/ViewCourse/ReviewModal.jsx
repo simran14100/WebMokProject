@@ -103,7 +103,7 @@ import { createRating } from "../../../services/operations/courseDetailsAPI";
 import IconBtn from "../../common/IconBtn";
 
 // Professional color constants
-const ED_TEAL = '#07A698';
+import { ED_TEAL } from '../../../utils/constants';
 const ED_TEAL_DARK = '#059a8c';
 const ED_TEAL_LIGHT = '#e8f6f5';
 const BORDER = '#e0e0e0';

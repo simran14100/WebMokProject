@@ -32,9 +32,10 @@ import Category from "./pages/Category";
 import InstructorLayout from './components/common/InstructorLayout';
 import Cart from './pages/Cart';
 import ActiveCourses from './pages/ActiveCourses';
-import MyCourses from './pages/MyCourses';
-import LiveClasses from './pages/LiveClasses';
-import Assignments from './pages/Assignments';
+
+import DocumentUpload from "./pages/Dashboard/DocumentUpload";
+
+import Assignments from "./pages/Assignments";
 import AssignmentDetail from './pages/AssignmentDetail';
 import AdminNotifications from './pages/AdminNotifications';
 import Notifications from './pages/Notifications';
@@ -88,6 +89,8 @@ import UsersManagement from './components/core/SuperAdmin/UsersManagement';
 import Feetype from './components/core/UGPGAdmin/Fees/Feetype';
 import ManageFee from './components/core/UGPGAdmin/Fees/ManageFee';
 import HonoraryApplications from './components/core/SuperAdmin/HonoraryApplications';
+import MyCourses from "./pages/MyCourses";
+import LiveClasses from "./pages/LiveClasses";
 
 // Sidebar centralized with variants
 import Sidebar from './components/common/Sidebar';
@@ -126,6 +129,7 @@ import UniversityDashboard from "./pages/UniversityDashboard";
 import UniversityEnrolledStudent from "./pages/SuperAdmin/UniversityEnrolledStudent";
 import { withEnrollmentVerification } from "./middleware/enrollmentMiddleware";
 import DashboardLayout from './components/common/DashboardLayout';
+import Accounts from "./pages/Dashboard/Accounts";
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
 console.log("App starting - localStorage debug:");
@@ -207,16 +211,10 @@ function AppRoutes() {
         <DashboardLayout variant="university">
           <UniversityStudentDashboard />
         </DashboardLayout>
-      } />
-      
-      {/* University Student Dashboard */}
-      {/* <Route path="/university/student/*" element={
-        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT]}>
-          <UniversityStudentDashboard />
-        </ProtectedRoute>
       }>
-        <Route path="accounts" element={<div>Account Details</div>} />
-        <Route path="document" element={<div>Document Upload</div>} />
+        <Route index element={<Accounts/>} />
+        <Route path="accounts" element={<Accounts/>} />
+        <Route path="document" element={<DocumentUpload />} />
         <Route path="attendance" element={<div>Attendance</div>} />
         <Route path="assignments" element={<div>Assignments</div>} />
         <Route path="exam-schedule" element={<div>Exam Schedule</div>} />
@@ -224,7 +222,9 @@ function AppRoutes() {
         <Route path="fees" element={<div>Fees & Payments</div>} />
         <Route path="change-password" element={<div>Change Password</div>} />
         <Route path="notification-settings" element={<div>Notification Settings</div>} />
-      </Route> */}
+      </Route>
+      
+      
 
       {/* University Admin Routes */}
       <Route path="/university" element={

@@ -48,6 +48,7 @@ const subjectRoutes = require("./routes/subject");
 const ugpgCourseRoutes = require("./routes/ugpgCourse");
 const ugpgSubjectRoutes = require("./routes/ugpgSubject");
 const superAdminRoutes = require("./routes/superAdmin");
+const documentRoutes = require("./routes/document");
 
 const languageRoutes = require("./routes/language");
 const ugpgVisitorLogRoutes = require("./routes/ugpgVisitorLog");
@@ -104,32 +105,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// // Setting up port number
-// const PORT = process.env.PORT || 4000;
 
-// // Function to start the server
-// const startServer = (port) => {
-//   const server = app.listen(port, () => {
-//     console.log(`Server is running on port ${port}`);
-//   }).on('error', (err) => {
-//     if (err.code === 'EADDRINUSE') {
-//       console.log(`Port ${port} is in use, trying port ${Number(port) + 1}...`);
-//       startServer(Number(port) + 1);
-//     } else {
-//       console.error('Server error:', err);
-//       process.exit(1);
-//     }
-//   });
-// };
-
-// // Connect to database and start server
-// database.connect()
-//   .then(() => {
-//     startServer(PORT);
-//   })
-//   .catch(() => {
-//     console.error("Server not started due to DB connection failure");
-//   });
 
 // Middlewares
 app.use(express.json());
@@ -222,6 +198,7 @@ app.use("/api/v1/phd/sessions", phdSessionRoutes);
 app.use("/api/v1/ugpg-exam/sessions", ugpgExamSessionRoutes);
 app.use("/api/v1/coursework", courseworkRoutes);
 app.use("/api/v1/ugpg/schools", ugpgSchoolRoutes);
+app.use("/api/v1/documents", documentRoutes);
 app.use("/api/v1/departments", departmentRoutes);
 app.use("/api/v1/subjects", subjectRoutes);
 app.use("/api/v1/ugpg/courses", ugpgCourseRoutes);

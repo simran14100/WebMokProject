@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Outlet } from 'react-router-dom';
 import Sidebar from './Sidebar';
 
 const DashboardLayout = ({ children, variant = 'default' }) => {
@@ -42,9 +43,13 @@ const DashboardLayout = ({ children, variant = 'default' }) => {
         background: '#f8f9fa',
         display: 'flex',
         justifyContent: 'center',
-        alignItems: 'flex-start'
+        alignItems: 'flex-start',
+        width: '100%',
+        maxWidth: '1200px',
+        margin: '120px auto 0',
+        paddingLeft: isMobile ? '1rem' : 'calc(60px + 2rem)'
       }}>
-        {children}
+        {children || <Outlet />}
       </div>
     </div>
   );

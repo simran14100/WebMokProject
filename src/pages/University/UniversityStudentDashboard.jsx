@@ -4,7 +4,7 @@ import DashboardLayout from '../../components/common/DashboardLayout';
 
 const UniversityStudentDashboard = () => {
   const location = useLocation();
-  const isBasePath = location.pathname === '/university/student' || location.pathname === '/university/student/';
+  const isBasePath = location.pathname === '/EnrolledStudents' || location.pathname === '/EnrolledStudents/';
   
   // If not the base path, render the nested route
   if (!isBasePath) {
