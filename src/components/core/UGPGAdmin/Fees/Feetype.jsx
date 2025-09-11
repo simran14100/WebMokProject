@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from "react";
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
 import { FiEdit2, FiTrash2, FiDollarSign, FiCheckCircle, FiXCircle, FiX, FiCheck, FiPlus } from 'react-icons/fi';
 import { apiConnector } from '../../../../services/apiConnector';
 import { fee } from '../../../../services/apis';
+import { refreshToken } from '../../../../services/operations/authApi';
 
 // Reusable Modal Component
 const Modal = ({ isOpen, onClose, title, children }) => {
@@ -65,7 +66,6 @@ const FeeTypePage = () => {
     if (!token || !isAuthenticated) {
       console.log('No valid token found, attempting token refresh...');
       try {
-        const { refreshToken } = require('../../../../services/operations/authApi');
         await refreshToken();
         // After refresh, fetch the data
         await fetchFeeTypes();
@@ -73,13 +73,10 @@ const FeeTypePage = () => {
         console.error('Token refresh failed:', refreshError);
         toast.error('Your session has expired. Please log in again.');
         // Redirect to login or handle as needed
-        window.location.href = '/login';
       }
-      return;
+    } else {
+      await fetchFeeTypes();
     }
-    
-    // If we have a valid token, fetch the data
-    await fetchFeeTypes();
   };
 
   // Fetch fee types from API
@@ -121,7 +118,6 @@ const FeeTypePage = () => {
       if (error.response?.status === 401) {
         // If unauthorized, try to refresh token and retry once
         try {
-          const { refreshToken } = require('../../../services/operations/authApi');
           await refreshToken();
           await fetchFeeTypes(); // Retry the request
           return;

@@ -126,14 +126,14 @@ const getSidebarLinks = (user, variant = 'default') => {
       },
       { 
         id: 3, 
-        name: 'Attendance', 
-        path: '/EnrolledStudents/attendance', 
+        name: 'Leave Request', 
+        path: '/EnrolledStudents/LeaveRequest', 
         icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> 
       },
       { 
         id: 4, 
-        name: 'Assignments', 
-        path: '/EnrolledStudents/assignments', 
+        name: 'Time Table', 
+        path: '/EnrolledStudents/Timetable', 
         icon: <FaTasks style={{ fontSize: 20, color: ED_TEAL }} /> 
       },
       { 
@@ -153,16 +153,8 @@ const getSidebarLinks = (user, variant = 'default') => {
         name: 'Fees & Payments', 
         path: '/EnrolledStudents/fees', 
         icon: <FaRegMoneyBillAlt style={{ fontSize: 20, color: ED_TEAL }} /> 
-      },
-      {
-        id: 8,
-        name: 'Settings',
-        icon: <VscSettingsGear style={{ fontSize: 20, color: ED_TEAL }} />,
-        subLinks: [
-          { name: 'Change Password', path: '/EnrolledStudents/change-password' },
-          { name: 'Notification Settings', path: '/EnrolledStudents/notification-settings' }
-        ]
       }
+     
     ];
   }
   

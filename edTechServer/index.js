@@ -224,6 +224,9 @@ app.use("/api/v1/external-experts", require("./routes/externalExpert"));
 
 app.use("/api/v1/language", languageRoutes);
 
+// Academic routes
+app.use("/api/v1/academic", require("./routes/academicRoutes"));
+
 // Enquiry references routes
 app.use("/api/v1/enquiry-references", require("./routes/enquiryReferenceRoutes"));
 // Visitor logs route (UG/PG)
