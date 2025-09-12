@@ -104,17 +104,38 @@ exports.updateProfile = async (req, res) => {
 // Returns all upcoming and past live classes for batches the student is assigned to
 exports.getStudentLiveClasses = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id;
+    const userEmail = req.user.email; // Get user's email from JWT
+    console.log('Fetching live classes for user:', { userId, email: userEmail });
 
-    // Find batches where the student is assigned
-    // We only check persisted students array
-    const batches = await Batch.find({ students: userId }, { name: 1, liveClasses: 1 })
-      .lean();
+    // Find batches where the student is assigned either in students or tempStudents array
+    const batches = await Batch.find({
+      $or: [
+        { students: userId },
+        { 'tempStudents.email': userEmail }
+      ]
+    }, { 
+      name: 1, 
+      liveClasses: 1, 
+      students: 1,
+      tempStudents: 1
+    }).lean();
+      
+    console.log(`Found ${batches.length} batches for user ${userId} (${userEmail})`);
+    console.log('Batch details:', JSON.stringify(batches.map(b => ({
+      _id: b._id,
+      name: b.name,
+      studentCount: b.students ? b.students.length : 0,
+      tempStudentCount: b.tempStudents ? b.tempStudents.length : 0,
+      liveClassCount: b.liveClasses ? b.liveClasses.length : 0
+    })), null, 2));
 
     const events = [];
     for (const b of batches) {
+      console.log(`Processing batch ${b._id} with ${(b.liveClasses || []).length} live classes`);
+      
       for (const e of (b.liveClasses || [])) {
-        events.push({
+        const event = {
           id: String(e._id || `${b._id}-${e.startTime}`),
           title: e.title || "Live Class",
           description: e.description || "",
@@ -123,7 +144,9 @@ exports.getStudentLiveClasses = async (req, res) => {
           link: e.link || "",
           startTime: e.startTime,
           createdAt: e.createdAt,
-        });
+        };
+        console.log('Adding event:', JSON.stringify(event, null, 2));
+        events.push(event);
       }
     }
     

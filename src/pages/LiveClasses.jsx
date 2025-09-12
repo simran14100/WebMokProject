@@ -136,21 +136,32 @@ export default function LiveClasses() {
         console.log('API Response Data:', result);
         
         if (result?.data && Array.isArray(result.data)) {
-          const liveClasses = result.data.map(lc => {
-            const event = {
-              ...lc,
-              id: lc._id || lc.id,
-              start: new Date(lc.startTime),
-              end: new Date(new Date(lc.startTime).getTime() + 60 * 60 * 1000), // Default 1 hour duration
-              title: lc.title || 'Untitled Class',
-              description: lc.description || '',
-              link: lc.link || ''
-            };
-            console.log('Processed event:', event);
-            return event;
-          });
+          const liveClasses = result.data
+            .filter(lc => lc && (lc._id || lc.id)) // Filter out any invalid entries
+            .map(lc => {
+              try {
+                const startTime = lc.startTime ? new Date(lc.startTime) : new Date();
+                const event = {
+                  ...lc,
+                  id: lc._id || lc.id,
+                  date: startTime, // Use 'date' for consistency with calendar component
+                  start: startTime,
+                  end: lc.endTime ? new Date(lc.endTime) : new Date(startTime.getTime() + 60 * 60 * 1000), // Default 1 hour duration
+                  title: lc.title || 'Untitled Class',
+                  description: lc.description || '',
+                  link: lc.link || lc.meetingUrl || '',
+                  batchName: lc.batch?.name || 'Batch'
+                };
+                console.log('Processed event:', event);
+                return event;
+              } catch (error) {
+                console.error('Error processing live class:', { lc, error });
+                return null;
+              }
+            })
+            .filter(Boolean); // Remove any null entries from mapping errors
           
-          console.log(`Loaded ${liveClasses.length} live classes`);
+          console.log(`Successfully processed ${liveClasses.length} live classes`);
           if (mounted) {
             setEvents(liveClasses);
             setLoading(false);
@@ -212,16 +223,23 @@ export default function LiveClasses() {
   }, [rowHeight, rowBaseOffset]);
 
   const eventsByDate = useMemo(() => {
-    const map = {};
-    for (const e of events) {
-      const dt = new Date(e.startTime);
-      const key = formatDateKey(dt);
-      if (!map[key]) map[key] = [];
-      map[key].push({ ...e, date: dt });
-    }
-    // sort events per day by time
-    Object.values(map).forEach((arr) => arr.sort((a, b) => a.date - b.date));
-    return map;
+    console.log('Grouping events by date. Total events:', events.length);
+    const groups = {};
+    events.forEach((ev) => {
+      try {
+        if (!ev || !ev.date) {
+          console.warn('Skipping invalid event (missing date):', ev);
+          return;
+        }
+        const key = formatDateKey(ev.date);
+        if (!groups[key]) groups[key] = [];
+        groups[key].push(ev);
+      } catch (error) {
+        console.error('Error processing event:', { ev, error });
+      }
+    });
+    console.log('Grouped events by date:', groups);
+    return groups;
   }, [events]);
 
   const weekdays = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -251,66 +269,57 @@ export default function LiveClasses() {
 
   const DayCell = ({ date }) => {
     const key = formatDateKey(date);
-    const inMonth = date.getMonth() === calendarDate.getMonth();
     const dayEvents = eventsByDate[key] || [];
-    const isSelected = key === formatDateKey(selectedDate);
-    const maxShow = 3;
-    const cellClass = `day-cell ${isSelected ? "selected" : ""} ${inMonth ? "current-month" : "other-month"}`;
+    const maxShow = 2; // Max events to show in day cell
+    const isToday = isSameDay(date, new Date());
+    const isCurrentMonth = date.getMonth() === calendarDate.getMonth();
+    
     return (
       <div
-        className={cellClass}
+        className={`day-cell ${isToday ? 'today' : ''} ${
+          !isCurrentMonth ? 'other-month' : ''
+        }`}
         onClick={() => {
-          if (dayEvents.length === 1) {
-            const ev = dayEvents[0];
-            const isPast = ev.date.getTime() < Date.now() && !isSameDay(ev.date, new Date());
-            const l = ev.link;
-            if (isPast) {
-              try { toast.error("This class link has expired."); } catch {}
-              return;
-            }
-            if (l) {
-              openLink(l);
-              return;
-            }
-          }
-          // Multiple events or no valid/usable link: go to day view for details
-          setSelectedDate(new Date(date));
-          setCalendarView("day");
+          setSelectedDate(date);
+          setCalendarView('day');
         }}
       >
-        <div className="day-number">{String(date.getDate()).padStart(2, "0")}</div>
+        <div className="day-number">
+          {date.getDate()}
+          {dayEvents.length > 0 && (
+            <span className="event-count">{dayEvents.length}</span>
+          )}
+        </div>
         {dayEvents.length > 0 && (
           <div className="day-events">
-            {dayEvents.slice(0, maxShow).map((ev) => (
-              <div
-                key={ev.id}
-                className="event-chip"
-                title={ev.title || "Live Class"}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  const isPast = ev.date.getTime() < Date.now() && !isSameDay(ev.date, new Date());
-                  if (isPast) {
-                    try { toast.error("This class link has expired."); } catch {}
-                    return;
-                  }
-                  const l = ev.link;
-                  if (l) openLink(l);
-                }}
-                role="button"
-                tabIndex={0}
-              >
-                <span>{ev.title || "Live Class"}</span>
-                {ev.date.getTime() < Date.now() && !isSameDay(ev.date, new Date()) && (
-                  <span className="status-badge done">Done</span>
-                )}
-              </div>
-            ))}
+            {dayEvents.slice(0, maxShow).map((ev) => {
+              const isPast = ev.date.getTime() < Date.now() && !isSameDay(ev.date, new Date());
+              return (
+                <div
+                  key={ev.id}
+                  className={`event-preview ${isPast ? 'past' : ''}`}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    if (ev.link) {
+                      window.open(ev.link, '_blank', 'noopener,noreferrer');
+                    }
+                  }}
+                  title={`${ev.title || 'Live Class'} - ${ev.date.toLocaleTimeString()}`}
+                >
+                  <div className="event-title">{ev.title || 'Live Class'}</div>
+                  <div className="event-time">
+                    {ev.date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  {isPast && <span className="status-badge done">Done</span>}
+                </div>
+              );
+            })}
             {dayEvents.length > maxShow && (
               <div
                 className="more-events"
                 onClick={(e) => {
                   e.stopPropagation();
-                  setSelectedDate(new Date(date));
+                  setSelectedDate(date);
                   setCalendarView("day");
                 }}
                 role="button"
