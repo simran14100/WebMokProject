@@ -25,7 +25,7 @@ const {
 } = require("../controllers/AdminDashboard");
 
 // Import batch controllers
-const { createBatch, listBatches, exportBatches, getBatchById, updateBatch, deleteBatch, addStudentToBatch, removeStudentFromBatch, listBatchStudents, listTempStudentsInBatch, addTempStudentToBatch, removeTempStudentFromBatch, listBatchCourses, addCourseToBatch, removeCourseFromBatch, addLiveClassToBatch, listBatchTrainers, addTrainerToBatch, removeTrainerFromBatch } = require("../controllers/Batch");
+const { createBatch, listBatches, exportBatches, getBatchById, updateBatch, deleteBatch, addStudentToBatch, removeStudentFromBatch, listBatchStudents, listTempStudentsInBatch, addTempStudentToBatch, removeTempStudentFromBatch, listBatchCourses, addCourseToBatch, removeCourseFromBatch, addLiveClassToBatch, getBatchLiveClasses, listBatchTrainers, addTrainerToBatch, removeTrainerFromBatch } = require("../controllers/Batch");
 const { createAdminReview, deleteReview } = require("../controllers/RatingAndReview");
 const { createUserType, listUserTypes } = require("../controllers/UserType");
 const { createMeetEvent } = require("../controllers/GoogleCalendar");
@@ -170,6 +170,8 @@ router.get("/tasks/:taskId/summary", auth, isAdminLevel, getTaskSummary);
 // ***********************************
 // Batch Live Classes (Admin only)
 // ***********************************
+// Get all live classes for a batch
+router.get("/batches/:batchId/live-classes", auth, getBatchLiveClasses);
 // Create a live class for a batch
 router.post("/batches/:batchId/live-classes", auth, isAdminLevel, addLiveClassToBatch);
 

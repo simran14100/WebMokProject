@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import { logout as logoutAction } from '../../store/slices/authSlice';
 import { clearUser } from '../../store/slices/profileSlice';
-import { clearCart } from '../../store/slices/cartSlice';
+import { setTotalItems } from '../../store/slices/cartSlice';
 import { logout } from '../../services/operations/authApi';
 import { fetchCourseCategories } from '../../services/operations/courseDetailsAPI';
 import { getCartCount } from "../../services/operations/cartApi";
@@ -23,11 +23,9 @@ const Navbar = () => {
   const [isSticky, setIsSticky] = useState(false);
   const categoryDropdownRef = useRef(null);
   const profileDropdownRef = useRef(null);
-  const [cartCount, setCartCount] = useState(0);
   const [isMobile, setIsMobile] = useState(false);
- 
-
-   const { token } = useSelector((state) => state.auth);
+  const { token } = useSelector((state) => state.auth);
+  const cartCount = useSelector((state) => state.cart.totalItems);
 
   // Fetch initial cart count
   useEffect(() => {
@@ -35,7 +33,8 @@ const Navbar = () => {
     
     const fetchCartCount = async () => {
       if (!token) {
-        setCartCount(0);
+        console.log('No token, setting cart count to 0');
+        dispatch(setTotalItems(0));
         return;
       }
       
@@ -47,9 +46,11 @@ const Navbar = () => {
         if (!isMounted) return;
         
         if (response.success) {
-          setCartCount(response.count);
+          console.log('Setting cart count to:', response.count);
+          dispatch(setTotalItems(response.count));
         } else {
-          setCartCount(0);
+          console.log('Cart count fetch failed, setting to 0. Error:', response.message);
+          dispatch(setTotalItems(0));
           // If we got an error, check if we need to refresh the token
           if (response.message?.includes('jwt') || response.message?.includes('token')) {
             console.log('Token might be invalid, attempting refresh...');
@@ -59,7 +60,7 @@ const Navbar = () => {
       } catch (error) {
         console.error("Error fetching cart count:", error);
         if (isMounted) {
-          setCartCount(0);
+          dispatch(setTotalItems(0));
         }
       }
     };
@@ -69,7 +70,7 @@ const Navbar = () => {
     return () => {
       isMounted = false;
     };
-  }, [token]);
+  }, [token, dispatch]);
 
   // Listen for cart updates and auth changes
   useEffect(() => {
@@ -77,22 +78,26 @@ const Navbar = () => {
     
     const handleCartUpdate = async () => {
       if (!token) {
-        if (isMounted) setCartCount(0);
+        if (isMounted) dispatch(setTotalItems(0));
         return;
       }
       
       try {
+        console.log("Cart updated, refreshing cart count...");
         const response = await getCartCount();
+        console.log("Updated cart count response:", response);
+        
         if (!isMounted) return;
         
         if (response.success) {
-          setCartCount(response.count);
+          dispatch(setTotalItems(response.count));
         } else {
-          setCartCount(0);
+          console.error("Failed to update cart count:", response.message);
+          dispatch(setTotalItems(0));
         }
       } catch (error) {
         console.error("Error updating cart count:", error);
-        if (isMounted) setCartCount(0);
+        if (isMounted) dispatch(setTotalItems(0));
       }
     };
 

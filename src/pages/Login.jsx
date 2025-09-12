@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
+import { showSuccess } from '../utils/toast';
 import { login } from '../services/operations/authApi';
 import Logo from '../assets/img/logo/logo-1.png';
 
@@ -31,11 +32,32 @@ const Login = ({ isUniversity = false }) => {
     setLoading(true);
 
     try {
-      // Handle login with redirect path
-      await dispatch(login(email, password, navigate));
+      // Call the login action and wait for it to complete
+      const result = await dispatch(login(email, password, navigate));
       
-      // After successful login, navigate to the intended path
-      navigate(redirectPath);
+      // Check if the login was successful
+      if (result?.payload?.success) {
+        showSuccess('Login successful!');
+        
+        // Get user data from the result
+        const user = result.payload.user;
+        
+        // If navigate wasn't passed to login, handle navigation here
+        if (!navigate) {
+          setTimeout(() => {
+            if (user?.accountType === 'Student' || user?.accountType === 'Admin' || user?.accountType === 'Super Admin') {
+              navigate(redirectPath);
+            } else if (user?.accountType === 'Instructor') {
+              navigate('/instructor/dashboard/my-profile');
+            } else {
+              navigate('/');
+            }
+          }, 500);
+        }
+      } else if (result?.payload) {
+        // If login failed but we have an error message
+        setError(result.payload.message || 'Login failed. Please try again.');
+      }
     } catch (err) {
       console.error('Login error:', err);
       if (err.code === 'ERR_NETWORK') {

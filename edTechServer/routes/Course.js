@@ -2,11 +2,13 @@
 const express = require("express")
 const router = express.Router()
 
+// Import Middleware
+const { auth, isInstructor, isStudent, isAdmin, isAdminOrSuperAdmin, isApprovedInstructor, isAdminLevel } = require("../middlewares/auth")
+
 // Import the Controllers
 
 // Course Controllers Import
-const {
-  
+const {  
   createCourse,
   getAllCourses,
   getCourseDetails,
@@ -14,7 +16,7 @@ const {
   editCourse,
   getInstructorCourses,
   getAdminCourses,
-  deleteCourse,
+  deleteCourse
 } = require("../controllers/Course")
 
 // Tags Controllers Import
@@ -50,9 +52,16 @@ const {
 } = require("../controllers/RatingAndReview")
 
 
-const { updateCourseProgress} = require("../controllers/courseProgress")
-// Importing Middlewares
-const { auth, isApprovedInstructor, isStudent, isAdminLevel, isAdminOrSuperAdmin } = require("../middlewares/auth")
+const { updateCourseProgress } = require("../controllers/courseProgress")
+
+// Test route to verify route mounting
+router.get("/test-route", (req, res) => {
+    console.log('Test route hit!');
+    return res.status(200).json({
+        success: true,
+        message: 'Test route is working!'
+    });
+});
 
 // ********************************************************************************************************
 //                                      Course routes
@@ -196,10 +205,44 @@ router.post("/categoryPageDetails", categoryPageDetails)
 // ********************************************************************************************************
 //                                      Rating and Review
 // ********************************************************************************************************
-router.post("/createRating", auth, isStudent, createRating)
-router.get("/getAverageRating", getAverageRating)
-router.get("/getReviews", getAllRatingReview)
-// In your routes file
+router.post("/createRating", auth, isStudent, async (req, res, next) => {
+    try {
+        console.log('=== CREATE RATING ROUTE HIT ===');
+        console.log('Request Body:', req.body);
+        console.log('User:', req.user);
+        
+        // Ensure user is properly attached to request
+        if (!req.user) {
+            console.error('No user found in request after auth middleware');
+            return res.status(401).json({
+                success: false,
+                message: 'User not authenticated'
+            });
+        }
+        
+        // Ensure user ID is available
+        if (!req.user._id) {
+            console.error('No user ID found in request.user:', req.user);
+            return res.status(401).json({
+                success: false,
+                message: 'User ID not found in request'
+            });
+        }
+        
+        // Continue to the createRating controller
+        next();
+    } catch (error) {
+        console.error('Error in createRating middleware:', error);
+        return res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+            error: error.message
+        });
+    }
+}, createRating);
 
+router.get("/getAverageRating", getAverageRating);
+router.get("/getReviews", getAllRatingReview);
 
-module.exports = router
+// Export the router
+module.exports = router;

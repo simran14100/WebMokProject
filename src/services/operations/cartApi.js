@@ -1,6 +1,7 @@
 // services/api/cart.js
 import { apiConnector } from "../apiConnector";
 import { cart } from "../apis";
+import { store } from "../../store";
 
 export const fetchCartDetails = async () => {
   try {
@@ -28,18 +29,41 @@ export const fetchCartDetails = async () => {
 
 export const addToCart = async (courseId) => {
   try {
-    console.log("Request payload:", { courseId }); // Debug log
+    console.log("Request payload:", { courseId });
+    
+    // Get the current state to access the token
+    const state = store?.getState();
+    const token = state?.auth?.token || localStorage.getItem('token');
+    
+    if (!token) {
+      console.error("No authentication token found");
+      return {
+        success: false,
+        message: "Authentication required. Please log in."
+      };
+    }
+
     const response = await apiConnector(
       "POST",
       cart.ADD_TO_CART_API,
-      { courseId } // Ensure this matches backend expectation
+      { courseId },
+      {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      }
     );
-    if (response.data.success) {
+    
+    if (response?.data?.success) {
+      // Update Redux store with new cart count
+      const cartCount = response.data.data?.items?.reduce((total, item) => total + (item.quantity || 1), 0) || 0;
+      store.dispatch({ type: 'cart/setTotalItems', payload: cartCount });
+      
       // Trigger update event for navbar
       window.dispatchEvent(new Event("cartUpdated"));
     }
-    console.log("Full response:", response); // Debug log
-    return response.data;
+    
+    console.log("Full response:", response);
+    return response?.data || response;
   } catch (error) {
     console.error("API Error:", error.response?.data || error.message);
     return {
@@ -57,6 +81,10 @@ export const updateCartItem = async ({ courseId, quantity }) => {
       { courseId, quantity }
     );
     if (response.data.success) {
+      // Update Redux store with new cart count
+      const cartCount = response.data.data?.items?.reduce((total, item) => total + (item.quantity || 1), 0) || 0;
+      store.dispatch({ type: 'cart/setTotalItems', payload: cartCount });
+      
       // Trigger update event for navbar
       window.dispatchEvent(new Event("cartUpdated"));
     }
@@ -85,6 +113,10 @@ export const removeFromCart = async ({ courseId }) => {
     );
 
     if (response.data.success) {
+      // Update Redux store with new cart count
+      const cartCount = response.data.data?.items?.reduce((total, item) => total + (item.quantity || 1), 0) || 0;
+      store.dispatch({ type: 'cart/setTotalItems', payload: cartCount });
+      
       // Trigger update event for navbar
       window.dispatchEvent(new Event("cartUpdated"));
     }
@@ -113,6 +145,10 @@ export const clearCart = async () => {
     );
 
     if (response.data.success) {
+      // Update Redux store with new cart count
+      const cartCount = response.data.data?.items?.reduce((total, item) => total + (item.quantity || 1), 0) || 0;
+      store.dispatch({ type: 'cart/setTotalItems', payload: cartCount });
+      
       // Trigger update event for navbar
       window.dispatchEvent(new Event("cartUpdated"));
     }

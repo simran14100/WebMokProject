@@ -611,30 +611,53 @@ export default function ActiveCourses() {
     const fetchEnrolledCourses = async () => {
       try {
         setLoading(true);
-        const response = await apiConnector(
-          "GET",
-          GET_ENROLLED_COURSES_API,
-          null,
+        
+        // Using native fetch API
+        const response = await fetch(
+          `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/profile/getEnrolledCourses`,
           {
-            Authorization: `Bearer ${token}`,
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${token}`,
+            },
+            credentials: 'include',
           }
         );
 
-        console.log("Enrolled courses response:", response);
+        const data = await response.json();
+        console.log("Enrolled courses response:", data);
         
-        if (response.data.success) {
-          setEnrolledCourses(response.data.data);
+        if (!response.ok) {
+          throw new Error(data.message || 'Failed to fetch enrolled courses');
+        }
+        
+        if (data.success) {
+          setEnrolledCourses(Array.isArray(data.data) ? data.data : []);
         } else {
-          console.error("Failed to fetch enrolled courses:", response.data.message);
-          showError("Failed to fetch enrolled courses");
+          throw new Error(data.message || 'No courses found');
         }
       } catch (error) {
         console.error("Error fetching enrolled courses:", error);
-        if (error.response?.status === 401) {
-          showError("Please login to view your courses");
-        } else {
-          showError("Failed to load enrolled courses");
+        
+        let errorMessage = "Failed to load enrolled courses. ";
+        
+        // Handle fetch API errors
+        if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+          errorMessage = "Unable to connect to the server. Please check your internet connection.";
+        } 
+        // Handle JSON parsing errors
+        else if (error.name === 'SyntaxError') {
+          errorMessage = "Error processing server response. Please try again later.";
+          console.error('JSON Parse Error:', error);
         }
+        // Handle our custom errors
+        else if (error.message) {
+          errorMessage = error.message;
+        }
+        
+        showError(errorMessage);
+        setEnrolledCourses([]); // Reset to empty array on error
       } finally {
         setLoading(false);
       }

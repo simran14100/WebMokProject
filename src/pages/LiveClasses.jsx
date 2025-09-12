@@ -1,10 +1,7 @@
-
-
-
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate, useParams } from 'react-router-dom';
 import { toast } from "react-hot-toast";
-import { apiConnector } from "../services/apiConnector";
-import { profile } from "../services/apis";
 import DashboardLayout from "../components/common/DashboardLayout";
 
 function formatDateKey(date) {
@@ -43,8 +40,18 @@ function isSameDay(a, b) {
 }
 
 export default function LiveClasses() {
+  const navigate = useNavigate();
+  const { user } = useSelector((state) => state.profile);
+  const { batchId: urlBatchId } = useParams();
+  
+  // Use a hardcoded batch ID for testing
+  const TEST_BATCH_ID = "689f561b05ca720224de841f"; // Frontend development batch ID
+  const [currentBatchId, setCurrentBatchId] = useState(urlBatchId || user?.batchId || TEST_BATCH_ID);
+  const batchId = currentBatchId; // Use the state variable
+  
+  console.log('Using batch ID:', batchId); // Debug log
   const [events, setEvents] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [calendarView, setCalendarView] = useState("month"); // "month" | "day"
   const [calendarDate, setCalendarDate] = useState(() => {
@@ -60,20 +67,114 @@ export default function LiveClasses() {
 
   useEffect(() => {
     let mounted = true;
+    
     async function load() {
+      console.log('Starting to load live classes...');
+      
       setLoading(true);
       setError("");
+      
       try {
-        const res = await apiConnector("GET", profile.LIVE_CLASSES_API);
-        const list = res?.data?.data || res?.data || [];
-        if (mounted) setEvents(Array.isArray(list) ? list : []);
+        // Get token from Redux store and local storage for debugging
+        const token = user?.token || localStorage.getItem('token');
+        console.log('Auth Debug:', { 
+          hasUser: !!user,
+          hasTokenInUser: !!user?.token,
+          hasTokenInStorage: !!localStorage.getItem('token'),
+          batchId 
+        });
+        
+        if (!token) {
+          const errorMsg = 'No authentication token found. Please log in again.';
+          console.error(errorMsg);
+          throw new Error(errorMsg);
+        }
+        
+        console.log('Making API request to fetch live classes...');
+        const startTime = Date.now();
+        
+        // Fetch live classes for the student
+        const response = await fetch(`http://localhost:4000/api/v1/profile/live-classes`, {
+          method: 'GET',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json'
+          },
+          credentials: 'include',
+          mode: 'cors'
+        });
+        
+        const responseTime = Date.now() - startTime;
+        console.log(`API Response received in ${responseTime}ms`, { 
+          status: response.status,
+          statusText: response.statusText,
+          url: response.url
+        });
+        
+        if (response.status === 401) {
+          console.log('Received 401 Unauthorized, redirecting to login...');
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+          return;
+        }
+        
+        if (!response.ok) {
+          const errorText = await response.text();
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+            console.error('API Error Response:', errorData);
+          } catch (e) {
+            console.error('Failed to parse error response:', errorText);
+            throw new Error(`HTTP error! status: ${response.status}, body: ${errorText}`);
+          }
+          throw new Error(errorData.message || `Failed to fetch live classes. Status: ${response.status}`);
+        }
+        
+        const result = await response.json();
+        console.log('API Response Data:', result);
+        
+        if (result?.data && Array.isArray(result.data)) {
+          const liveClasses = result.data.map(lc => {
+            const event = {
+              ...lc,
+              id: lc._id || lc.id,
+              start: new Date(lc.startTime),
+              end: new Date(new Date(lc.startTime).getTime() + 60 * 60 * 1000), // Default 1 hour duration
+              title: lc.title || 'Untitled Class',
+              description: lc.description || '',
+              link: lc.link || ''
+            };
+            console.log('Processed event:', event);
+            return event;
+          });
+          
+          console.log(`Loaded ${liveClasses.length} live classes`);
+          if (mounted) {
+            setEvents(liveClasses);
+            setLoading(false);
+          }
+        } else {
+          console.log('No live classes found or invalid data format:', result);
+          if (mounted) {
+            setEvents([]);
+            setLoading(false);
+          }
+        }
       } catch (e) {
-        console.error("Fetch live classes failed", e);
-        if (mounted) setError("Failed to load live classes");
-      } finally {
-        if (mounted) setLoading(false);
+        console.error('Error in load:', {
+          message: e.message,
+          stack: e.stack,
+          response: e.response?.data
+        });
+        if (mounted) {
+          setError(`Error: ${e.message || 'Failed to load live classes'}`);
+          setLoading(false);
+        }
       }
     }
+    
     load();
     return () => {
       mounted = false;

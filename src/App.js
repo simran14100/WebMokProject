@@ -1,6 +1,6 @@
 import "./App.css";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Provider, useSelector } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import store, { persistor } from './store';
@@ -84,6 +84,7 @@ import StudentReports from './components/core/SuperAdmin/StudentReports';
 import GuideManagement from './components/core/SuperAdmin/GuideManagement';
 import RacMembers from './components/core/SuperAdmin/RacMembers';
 import ExternalExperts from './components/core/SuperAdmin/ExternalExperts';
+import LeaveRequests from './components/core/UGPGAdmin/Settings/LeaveRequests';
 import FinalData from './components/core/SuperAdmin/FinalData';
 import UsersManagement from './components/core/SuperAdmin/UsersManagement';
 import Feetype from './components/core/UGPGAdmin/Fees/Feetype';
@@ -98,6 +99,7 @@ import Sidebar from './components/common/Sidebar';
 import UGPGDashboard from './components/core/UGPGAdmin/Dashboard';
 import UGPGSettings from './components/core/UGPGAdmin/Settings';
 import UGPGAcademic from './components/core/UGPGAdmin/Academic';
+import ExamSchedule from './pages/Dashboard/ExamSchedule';
 import AdmissionEnquiry from './pages/SuperAdmin/AdmissionEnquiry';
 import AcademicSession from './components/core/UGPGAdmin/Academic/AcademicSession';
 import ExamSession from './components/core/UGPGAdmin/Academic/ExamSession';
@@ -130,6 +132,7 @@ import UniversityEnrolledStudent from "./pages/SuperAdmin/UniversityEnrolledStud
 import { withEnrollmentVerification } from "./middleware/enrollmentMiddleware";
 import DashboardLayout from './components/common/DashboardLayout';
 import Accounts from "./pages/Dashboard/Accounts";
+
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
 console.log("App starting - localStorage debug:");
@@ -208,16 +211,27 @@ function AppRoutes() {
       
       {/* Enrolled Students - Using University Student Dashboard */}
       <Route path="/EnrolledStudents" element={
-        <DashboardLayout variant="university">
-          <UniversityStudentDashboard />
-        </DashboardLayout>
+        <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT]}>
+          <DashboardLayout variant="university">
+            <UniversityStudentDashboard />
+          </DashboardLayout>
+        </ProtectedRoute>
       }>
         <Route index element={<Accounts/>} />
         <Route path="accounts" element={<Accounts/>} />
         <Route path="document" element={<DocumentUpload />} />
         <Route path="attendance" element={<div>Attendance</div>} />
         <Route path="assignments" element={<div>Assignments</div>} />
-        <Route path="exam-schedule" element={<div>Exam Schedule</div>} />
+        <Route path="exam-schedule" element={
+          <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT]}>
+            <ExamSchedule />
+          </ProtectedRoute>
+        } />
+        <Route path="leave-requests" element={
+        
+            <LeaveRequests />
+        
+        } />
         <Route path="results" element={<div>Results</div>} />
         <Route path="fees" element={<div>Fees & Payments</div>} />
         <Route path="change-password" element={<div>Change Password</div>} />
@@ -298,6 +312,11 @@ function AppRoutes() {
         <Route path="settings/languages" element={<UGPGSettingsLanguages />} />
         <Route path="settings/states" element={<UGPGSettingsStates />} />
         <Route path="settings/cities" element={<UGPGSettingsCities />} />
+        <Route path="settings/leave-request" element={
+          <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
+            <LeaveRequests />
+          </ProtectedRoute>
+        } />
         <Route path="academic" element={<UGPGAcademic />} />
         <Route path="academic/session" element={<AcademicSession />} />
         <Route path="academic/exam-session" element={<ExamSession />} />

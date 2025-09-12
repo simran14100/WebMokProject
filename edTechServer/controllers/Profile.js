@@ -284,75 +284,148 @@ exports.getAllUserDetails = async (req, res) => {
 
   exports.getEnrolledCourses = async (req, res) => {
     try {
-      const userId = req.user.id
-      let userDetails = await User.findOne({
-        _id: userId,
-      })
-        .populate({
-          path: "courses",
-          populate: {
-            path: "courseContent",
-            populate: {
-              path: "subSection",
-            },
-          },
-        })
-        .exec()
-      userDetails = userDetails.toObject()
-      var SubsectionLength = 0
-    for (var i = 0; i < userDetails.courses.length; i++) {
-        let totalDurationInSeconds = 0
-        SubsectionLength = 0
-      for (var j = 0; j < userDetails.courses[i].courseContent.length; j++) {
-          totalDurationInSeconds += userDetails.courses[i].courseContent[
-            j
-          ].subSection.reduce((acc, curr) => acc + parseInt(curr.timeDuration), 0)
-          userDetails.courses[i].totalDuration = convertSecondsToDuration(
-            totalDurationInSeconds
-          )
-          SubsectionLength +=
-            userDetails.courses[i].courseContent[j].subSection.length
-        }
-        // Get course progress for this specific course and user
-        const courseProgress = await CourseProgress.findOne({
-          courseID: userDetails.courses[i]._id,
-          userId: userId,
-        })
-        
-        // Get the number of completed videos (default to 0 if no progress found)
-        const completedVideosCount = courseProgress?.completedVideos?.length || 0
-        
-        // Calculate progress percentage
-        if (SubsectionLength === 0) {
-          // If course has no content, progress is 0%
-          userDetails.courses[i].progressPercentage = 0
-        } else {
-          // Calculate percentage: (completed videos / total videos) * 100
-          const progressPercentage = (completedVideosCount / SubsectionLength) * 100
-          
-          // Round to 2 decimal places
-          const multiplier = Math.pow(10, 2)
-          userDetails.courses[i].progressPercentage = Math.round(progressPercentage * multiplier) / multiplier
-        }
-      }
-  
-      if (!userDetails) {
+      // Debug: Log the request details
+      console.log('Request headers:', JSON.stringify(req.headers, null, 2));
+      console.log('Request user object:', req.user ? {
+        id: req.user._id || req.user.id,
+        email: req.user.email,
+        accountType: req.user.accountType
+      } : 'No user object found');
+      
+      // Get user ID from the request object
+      const userId = req.user?._id || req.user?.id;
+      
+      // Validate user ID
+      if (!userId) {
+        console.error('No user ID found in request object');
         return res.status(400).json({
           success: false,
-          message: `Could not find user with id: ${userDetails}`,
-        })
+          message: 'User ID not found in request',
+          requestUser: req.user ? 'User object exists but no ID found' : 'No user object'
+        });
       }
-      return res.status(200).json({
-        success: true,
-        data: userDetails.courses,
-      })
+      
+      // Ensure userId is a string and validate ObjectId format
+      const userIdStr = userId.toString();
+      console.log('Processing enrolled courses for user ID:', userIdStr);
+      
+      // Validate MongoDB ObjectId format
+      if (!mongoose.Types.ObjectId.isValid(userIdStr)) {
+        console.error('Invalid MongoDB ObjectId format:', userIdStr);
+        return res.status(400).json({
+          success: false,
+          message: 'Invalid user ID format',
+          receivedId: userIdStr,
+          expectedFormat: '24 character hex string'
+        });
+      }
+      
+      // Convert to ObjectId for consistent querying
+      const userIdObj = new mongoose.Types.ObjectId(userIdStr);
+      
+      // Get user with course IDs
+      const user = await User.findById(userIdObj)
+        .select('courses')
+        .lean()
+        .exec();
+      
+      if (!user) {
+        console.error('User not found in database:', userIdStr);
+        return res.status(404).json({
+          success: false,
+          message: 'User not found',
+        });
+      }
+
+      // If no courses, return empty array
+      if (!user.courses || user.courses.length === 0) {
+        console.log('No courses found for user:', userIdStr);
+        return res.status(200).json({
+          success: true,
+          data: [],
+          message: 'No courses enrolled yet',
+        });
+      }
+
+      try {
+        // Convert course IDs to ObjectId for consistent querying
+        const courseIds = user.courses.map(id => new mongoose.Types.ObjectId(id));
+        
+        // Get all active courses with populated content
+        const courses = await Course.find({
+          _id: { $in: courseIds },
+          status: { $ne: 'Inactive' }
+        })
+        .populate({
+          path: 'courseContent',
+          populate: {
+            path: 'subSection',
+          },
+        })
+        .lean()
+        .exec();
+
+        // Process each course to calculate progress
+        const processedCourses = await Promise.all(courses.map(async (course) => {
+          // Calculate total duration and subsections
+          let totalDurationInSeconds = 0;
+          let totalSubsections = 0;
+          
+          if (course.courseContent && Array.isArray(course.courseContent)) {
+            course.courseContent.forEach((content) => {
+              if (content.subSection && Array.isArray(content.subSection)) {
+                totalDurationInSeconds += content.subSection.reduce(
+                  (acc, curr) => acc + (parseInt(curr.timeDuration) || 0),
+                  0
+                );
+                totalSubsections += content.subSection.length;
+              }
+            });
+          }
+          
+          // Get course progress
+          const courseProgress = await CourseProgress.findOne({
+            courseID: course._id,
+            userId: userIdObj,
+          }).lean();
+          
+          // Calculate progress percentage
+          const completedVideosCount = courseProgress?.completedVideos?.length || 0;
+          const progressPercentage = totalSubsections > 0 
+            ? Math.round((completedVideosCount / totalSubsections) * 100 * 100) / 100 
+            : 0;
+            
+          return {
+            ...course,
+            totalDuration: convertSecondsToDuration(totalDurationInSeconds),
+            progressPercentage,
+            totalSubsections,
+            completedVideos: completedVideosCount
+          };
+        }));
+        
+        return res.status(200).json({
+          success: true,
+          data: processedCourses,
+        });
+        
+      } catch (error) {
+        console.error('Error processing courses:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Error processing course data',
+          error: error.message
+        });
+      }
     } catch (error) {
+      console.error('Error in getEnrolledCourses:', error);
       return res.status(500).json({
         success: false,
-        message: error.message,
-      })
+        message: 'Error fetching enrolled courses',
+        error: error.message
+      });
     }
-  }
+  };
 
   exports.instructorDashboard = async (req, res) => {
     try {

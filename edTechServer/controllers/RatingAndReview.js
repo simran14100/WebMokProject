@@ -5,63 +5,111 @@ const { default: mongoose } = require("mongoose");
 
 
 exports.createRating = async (req, res) => {
-    const userId = req.user.id;
-    const { rating, review, courseId } = req.body;
+    try {
+        console.log('=== START createRating ===');
+        console.log('Request Headers:', req.headers);
+        console.log('User from request:', JSON.stringify(req.user, null, 2));
+        console.log('Request Body:', req.body);
+        
+        // Get user ID from the authenticated user
+        const userId = req.user?._id || req.user?.id;
+        
+        // Log the user ID for debugging
+        console.log('User ID from request:', userId);
+        console.log('User ID type:', typeof userId);
+        
+        if (!userId) {
+            console.error('No user ID found in request');
+            console.error('Available user properties:', Object.keys(req.user || {}));
+            return res.status(401).json({
+                success: false,
+                message: 'User not authenticated - No user ID found',
+                userInfo: req.user ? {
+                    id: req.user.id,
+                    _id: req.user._id,
+                    email: req.user.email,
+                    accountType: req.user.accountType
+                } : 'No user object found'
+            });
+        }
 
-    
-//check if user is enrolled or not
-// Check if user is enrolled or not
-const courseDetails = await Course.findOne({
-  _id: courseId,
-  studentsEnrolled: userId // Check for userId directly
-});
+        const { rating, review, courseId } = req.body;
 
-    if (!courseDetails) {
-        return res.status(404).json({
+        if (!courseId) {
+            console.error('No courseId provided in request');
+            return res.status(400).json({
+                success: false,
+                message: 'Course ID is required',
+            });
+        }
+
+        // Check if user is enrolled in the course
+        const courseDetails = await Course.findOne({
+            _id: courseId,
+            studentsEnrolled: { $in: [userId] }
+        }).lean();
+
+        if (!courseDetails) {
+            console.error(`User ${userId} is not enrolled in course ${courseId}`);
+            return res.status(403).json({
+                success: false,
+                message: 'You must be enrolled in this course to leave a review',
+            });
+        }
+
+        // If user already reviewed the course
+        const alreadyReviewed = await RatingAndReview.findOne({
+            user: userId,
+            course: courseId
+        });
+
+        if (alreadyReviewed) {
+            return res.status(400).json({
+                success: false,
+                message: "You have already reviewed this course"
+            });
+        }
+
+        // Validate rating
+        if (!rating || rating < 1 || rating > 5) {
+            return res.status(400).json({
+                success: false,
+                message: "Please provide a valid rating between 1 and 5"
+            });
+        }
+
+        // Create rating and review 
+        const ratingReview = await RatingAndReview.create({
+            rating,
+            review: review || '',
+            course: courseId,
+            user: userId
+        });
+
+        // Update course with this rating and review
+        await Course.findByIdAndUpdate(
+            courseId,
+            {
+                $push: {
+                    ratingAndReviews: ratingReview._id,
+                }
+            },
+            { new: true }
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: "Rating and review created successfully",
+            data: ratingReview,
+        });
+    } catch (error) {
+        console.error('Error in createRating:', error);
+        return res.status(500).json({
             success: false,
-            message: "Student is not enrolled in this course",
+            message: 'An error occurred while processing your request',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });
     }
-
-    // If user already reviewed the course
-    const alreadyReviewed = await RatingAndReview.findOne({
-        user: userId,
-        course: courseId
-    });
-
-    if (alreadyReviewed) {
-        return res.status(404).json({
-            success: false,
-            message: "Course is already reviewed by the user"
-        });
-    }
-
-    // Create rating and review 
-    const ratingReview = await RatingAndReview.create({
-        rating,
-        review,
-        course: courseId,
-        user: userId
-    });
-
-    // Update course with this rating and review
-    const updateCourseDetails = await Course.findByIdAndUpdate(
-        { _id: courseId },
-        {
-            $push: {
-                ratingAndReviews: ratingReview._id,
-            }
-        },
-        { new: true }
-    );
-
-    console.log(updateCourseDetails);
-
-    return res.status(200).json({
-        success: true,
-        message: "Rating and review created successfully",
-        ratingReview,
-    });
 };
 
 
@@ -213,18 +261,40 @@ exports.deleteReview = async (req, res) => {
 // Admin: create a rating/review without enrollment restriction
 exports.createAdminReview = async (req, res) => {
   try {
-    const adminUserId = req.user.id;
+    console.log('Creating admin review with data:', req.body);
+    console.log('Authenticated user:', req.user);
+    
+    const adminUserId = req.user?.id || req.user?._id;
     const { rating, review, courseId } = req.body;
 
-    if (!courseId || !review || typeof rating === "undefined") {
-      return res.status(400).json({ success: false, message: "courseId, rating and review are required" });
+    if (!adminUserId) {
+      console.error('No admin user ID found in request');
+      return res.status(401).json({ success: false, message: "Admin authentication required" });
+    }
+
+    if (!courseId || typeof rating === "undefined" || !review) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "courseId, rating and review are required" 
+      });
     }
 
     // Ensure the course exists
     const course = await Course.findById(courseId).select("_id");
     if (!course) {
-      return res.status(404).json({ success: false, message: "Course not found" });
+      return res.status(404).json({ 
+        success: false, 
+        message: "Course not found" 
+      });
     }
+
+    console.log('Creating review with data:', {
+      rating,
+      review,
+      course: courseId,
+      user: adminUserId,
+      isAdminReview: true
+    });
 
     // Create rating and review attributed to the admin user
     const ratingReview = await RatingAndReview.create({
@@ -232,18 +302,29 @@ exports.createAdminReview = async (req, res) => {
       review,
       course: courseId,
       user: adminUserId,
+      isAdminReview: true
     });
 
     // Link to course
-    await Course.findByIdAndUpdate(courseId, { $push: { ratingAndReviews: ratingReview._id } }, { new: true });
+    await Course.findByIdAndUpdate(
+      courseId, 
+      { $push: { ratingAndReviews: ratingReview._id } }, 
+      { new: true }
+    );
 
+    console.log('Successfully created admin review:', ratingReview);
+    
     return res.status(200).json({
       success: true,
       message: "Admin review created successfully",
       data: ratingReview,
     });
   } catch (error) {
-    console.error(error);
-    return res.status(500).json({ success: false, message: "Failed to create admin review", error: error.message });
+    console.error('Error in createAdminReview:', error);
+    return res.status(500).json({ 
+      success: false, 
+      message: "Failed to create admin review", 
+      error: error.message 
+    });
   }
 };

@@ -998,29 +998,71 @@ export async function createAdminReview({ courseId, rating, review }, token) {
 // =========================
 // Batch Live Classes
 // =========================
-export async function addLiveClassToBatch(batchId, payload, token) {
-  const toastId = showLoading("Creating live class...")
+export async function addLiveClassToBatch(batchId, payload) {
+  const toastId = showLoading("Creating live class...");
   try {
-    const response = await apiConnector(
-      "POST",
-      `${ADD_LIVE_CLASS_TO_BATCH_API}/${batchId}/live-classes`,
-      payload,
-      {
-        Authorization: `Bearer ${token}`,
-      }
-    )
-
-    if (!response.data?.success) {
-      throw new Error(response.data?.message || "Failed to create live class")
+    // 1. Get token from localStorage (same as how it's stored in Redux)
+    const token = localStorage.getItem('token');
+    
+    if (!token) {
+      throw new Error('No authentication token found. Please log in again.');
     }
-    showSuccess("Live class created")
-    return response.data.data
+
+    console.log('Token being sent:', token.substring(0, 15) + '...'); // Log first 15 chars of token
+    
+    // Get user ID from token
+    const tokenPayload = JSON.parse(atob(token.split('.')[1]));
+    const userId = tokenPayload._id || tokenPayload.id; // Try both _id and id
+    
+    if (!userId) {
+      console.error('Token payload:', tokenPayload);
+      throw new Error('Invalid token: No user ID found in token');
+    }
+    
+    const response = await fetch(`http://localhost:4000/api/v1/admin/batches/${batchId}/live-classes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        'Accept': 'application/json'
+      },
+      credentials: 'include',
+      body: JSON.stringify({
+        ...payload,
+        createdBy: userId // Use the actual user ID from the token
+      })
+    });
+
+    console.log('Response status:', response.status);
+    
+    // Check for HTTP errors
+    if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Error response:', errorText);
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      throw new Error(errorData.message || 'Failed to create live class');
+    }
+
+    const data = await response.json();
+    console.log('Response data:', data);
+
+    if (!data?.success) {
+      throw new Error(data?.message || "Failed to create live class");
+    }
+    
+    showSuccess("Live class created successfully!");
+    return data.data || data;
   } catch (error) {
-    console.log("ADD LIVE CLASS TO BATCH ERROR............", error)
-    showError(error.response?.data?.message || error.message || "Failed to create live class")
-    throw error
+    console.error("ADD LIVE CLASS TO BATCH ERROR:", error);
+    showError(error.message || "Failed to create live class");
+    throw error;
   } finally {
-    dismissToast(toastId)
+    dismissToast(toastId);
   }
 }
 

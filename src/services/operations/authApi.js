@@ -404,7 +404,7 @@ export function signUp(
 }
 
 // eslint-disable-next-line no-restricted-globals
-export function login(email, password, navigate) {
+export function login(email, password, navigate = null) {
   return async (dispatch) => {
     const toastId = showLoading("Signing in...");
     dispatch(setLoading(true));
@@ -435,26 +435,50 @@ export function login(email, password, navigate) {
       });
       
       // If we get here, login was successful
-      const { user, token } = response.data;
+      const { user, token, refreshToken } = response.data;
       
-      // Store the token in both Redux store and localStorage as fallback
+      // Store the tokens in both Redux store and localStorage
       dispatch(setToken(token));
       localStorage.setItem('token', token);
-      dispatch(setUser(user));
       
-      // Show success message
-      showSuccess('Login successful!');
-      
-      // Handle navigation based on user type
-      if (user.accountType === 'Student') {
-        navigate('/dashboard/my-profile');
-      } else if (user.accountType === 'Instructor') {
-        navigate('/instructor/dashboard/my-profile');
-      } else if (user.accountType === 'Admin' || user.accountType === 'Super Admin') {
-        navigate('/dashboard/my-profile');
-      } else {
-        navigate('/');
+      // Store refresh token in httpOnly cookie (handled by server) and localStorage as fallback
+      if (refreshToken) {
+        localStorage.setItem('refreshToken', refreshToken);
       }
+      
+      // Store user data
+      dispatch(setUser(user));
+      localStorage.setItem('user', JSON.stringify(user));
+      
+      // Prepare success result with user data
+      const result = { 
+        type: 'auth/login/fulfilled',
+        payload: { 
+          success: true, 
+          token, 
+          user,
+          message: 'Login successful!' 
+        } 
+      };
+      
+      // Dispatch the success action
+      dispatch(result);
+      
+      // Handle navigation if navigate function is provided
+      if (navigate) {
+        if (user.accountType === 'Student') {
+          navigate('/dashboard/my-profile');
+        } else if (user.accountType === 'Instructor') {
+          navigate('/instructor/dashboard/my-profile');
+        } else if (user.accountType === 'Admin' || user.accountType === 'Super Admin') {
+          navigate('/dashboard/my-profile');
+        } else {
+          navigate('/');
+        }
+      }
+      
+      // Return success result
+      return result;
     } catch (error) {
       console.error("Login error:", error);
       
@@ -1272,35 +1296,47 @@ export function updateDisplayPicture(formData) {
 export const refreshToken = (refreshTokenValue = null) => {
   return async (dispatch) => {
     try {
+      // Get refresh token from parameter or localStorage
       const token = refreshTokenValue || localStorage.getItem('refreshToken');
       
+      console.log('Refresh token check:', {
+        hasTokenParam: !!refreshTokenValue,
+        hasTokenInStorage: !!localStorage.getItem('refreshToken'),
+        tokenLength: token?.length || 0
+      });
+      
       if (!token) {
-        console.error('No refresh token available in localStorage');
-        throw new Error('No refresh token available');
+        const error = new Error('No refresh token available');
+        error.code = 'NO_REFRESH_TOKEN';
+        throw error;
       }
 
       console.log('Attempting to refresh token...');
       
-      const response = await apiConnector(
-        'POST',
-        REFRESH_TOKEN_API,
-        { refreshToken: token },
-        {
-          skipAuth: true,
-          headers: {
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'XMLHttpRequest'
-          },
-          withCredentials: true
-        }
-      );
+      // Make the refresh token request
+      const response = await axios({
+        method: 'POST',
+        url: `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}${REFRESH_TOKEN_API}`,
+        data: { refreshToken: token },
+        headers: {
+          'Content-Type': 'application/json',
+          'Accept': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        withCredentials: true,
+        timeout: 10000 // 10 second timeout
+      });
 
-      console.log('Refresh token response:', response?.data);
+      console.log('Refresh token response:', {
+        status: response.status,
+        hasAccessToken: !!response.data?.accessToken,
+        hasNewRefreshToken: !!response.data?.refreshToken
+      });
       
-      const { accessToken, refreshToken: newRefreshToken, user } = response?.data || {};
+      const { accessToken, refreshToken: newRefreshToken, user } = response.data || {};
       
       if (!accessToken) {
-        throw new Error('No access token received in response');
+        throw new Error('No access token received in refresh response');
       }
       
       // Update Redux state with new token
@@ -1309,9 +1345,10 @@ export const refreshToken = (refreshTokenValue = null) => {
       // Update user data in Redux if available
       if (user) {
         dispatch(setUser(user));
+        localStorage.setItem('user', JSON.stringify(user));
       }
       
-      // Update localStorage
+      // Update localStorage with new tokens
       localStorage.setItem('token', accessToken);
       if (newRefreshToken) {
         localStorage.setItem('refreshToken', newRefreshToken);
@@ -1330,23 +1367,34 @@ export const refreshToken = (refreshTokenValue = null) => {
     } catch (error) {
       console.error('Refresh token error:', {
         message: error.message,
-        response: error.response?.data,
-        stack: error.stack
+        code: error.code,
+        status: error.response?.status,
+        data: error.response?.data,
+        url: error.config?.url
       });
       
-      // Clear stored tokens on failure
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      dispatch(setToken(null));
-      
-      // Redirect to login if not already there
-      if (!window.location.pathname.includes('/login')) {
-        window.location.href = '/login';
+      // If this was a 401 or invalid token error, clear auth state
+      if (error.response?.status === 401 || error.code === 'NO_REFRESH_TOKEN') {
+        // Clear stored tokens
+        localStorage.removeItem('token');
+        localStorage.removeItem('refreshToken');
+        localStorage.removeItem('user');
+        
+        // Reset Redux state
+        dispatch(setToken(null));
+        dispatch(setUser(null));
+        
+        // Only redirect if we're not already on the login page
+        if (!window.location.pathname.includes('/login')) {
+          // Use window.location to force a full page reload and clear any React state
+          window.location.href = '/login';
+        }
       }
       
       return {
         success: false,
-        message: error.response?.data?.message || error.message || 'Failed to refresh token'
+        message: error.response?.data?.message || error.message || 'Failed to refresh token',
+        code: error.code || 'REFRESH_TOKEN_ERROR'
       };
     }
   };

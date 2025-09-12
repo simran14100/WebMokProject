@@ -36,68 +36,121 @@ const onRefreshed = (token) => {
   refreshSubscribers = [];
 };
 
-export const refreshTokenIfNeeded = async () => {
+export const refreshTokenIfNeeded = async (forceRefresh = false) => {
   try {
     // Get tokens from both Redux state and localStorage for redundancy
     const state = store.getState();
     const token = state.auth?.token || localStorage.getItem('token');
     const refreshTokenValue = localStorage.getItem('refreshToken');
     
-    // 🔍 ADD DEBUG LOGS HERE:
-    console.log('🔐 Token check - current token exists:', !!token);
-    console.log('🔐 Token check - refresh token exists:', !!refreshTokenValue);
-    console.log('🔐 Token expiring soon:', isTokenExpiringSoon(token));
-    console.log('🔐 Token expired:', isTokenExpired(token));
-    console.log('🔐 Current token:', token ? 'Present' : 'Missing');
-    console.log('🔐 Refresh token:', refreshTokenValue ? 'Present' : 'Missing');
+    console.log('🔐 Token check:', {
+      hasToken: !!token,
+      tokenLength: token?.length || 0,
+      hasRefreshToken: !!refreshTokenValue,
+      refreshTokenLength: refreshTokenValue?.length || 0,
+      isExpiringSoon: isTokenExpiringSoon(token),
+      isExpired: isTokenExpired(token),
+      forceRefresh: forceRefresh
+    });
     
-    if (!token || !refreshTokenValue) {
-      console.log("No token or refresh token available");
+    // If we don't have a refresh token, we can't refresh
+    if (!refreshTokenValue) {
+      console.error('❌ No refresh token available in localStorage');
+      // Clear any invalid tokens
+      if (token) {
+        localStorage.removeItem('token');
+      }
       return false;
     }
     
-    if (isTokenExpiringSoon(token) || isTokenExpired(token)) {
-      // 🔍 ADD MORE DEBUG LOGS:
-      console.log('🔐 Token needs refresh - expiring soon:', isTokenExpiringSoon(token));
-      console.log('🔐 Token needs refresh - expired:', isTokenExpired(token));
+    // If we don't have a token, it's expired, expiring soon, or we're forcing a refresh
+    if (forceRefresh || !token || isTokenExpiringSoon(token) || isTokenExpired(token)) {
+      console.log('🔄 Token needs refresh:', {
+        hasToken: !!token,
+        isExpiringSoon: isTokenExpiringSoon(token),
+        isExpired: isTokenExpired(token),
+        forceRefresh: forceRefresh
+      });
       
+      // If we're already refreshing, wait for the result
       if (isRefreshing) {
-        console.log('🔐 Already refreshing, waiting...');
+        console.log('⏳ Already refreshing, adding to queue...');
         return new Promise((resolve) => {
           refreshSubscribers.push((success) => {
+            console.log('✅ Resolving queued refresh request');
             resolve(success);
           });
         });
       }
       
       isRefreshing = true;
-      console.log('🔐 Starting token refresh process...');
+      console.log('🔄 Starting token refresh...');
       
       try {
-        console.log("Token expiring soon or expired, refreshing...");
-        
         // Use dynamic import to avoid circular dependencies
         const { refreshToken: refreshTokenAction } = await import("../services/operations/authApi");
-        const result = await store.dispatch(refreshTokenAction(refreshTokenValue));
         
-        if (result?.payload?.success) {
-          console.log("✅ Token refreshed successfully");
+        // Dispatch the refresh token action
+        console.log('🔄 Dispatching refreshToken action...');
+        const action = await store.dispatch(refreshTokenAction(refreshTokenValue));
+        const result = action.payload || action; // Handle both thunk and direct action results
+        
+        console.log('🔑 Refresh result:', {
+          success: result?.success,
+          hasAccessToken: !!result?.accessToken,
+          hasUser: !!result?.user,
+          error: result?.error,
+          code: result?.code
+        });
+        
+        if (result?.success) {
+          console.log('✅ Token refresh successful');
           onRefreshed(true);
           return true;
         } else {
-          console.log("❌ Token refresh failed in action");
-          throw new Error(result?.payload?.message || 'Failed to refresh token');
+          const errorMessage = result?.message || 'Failed to refresh token';
+          console.error('❌ Token refresh failed:', errorMessage);
+          
+          // Clear invalid tokens
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          
+          // Reset auth state
+          store.dispatch({ type: 'auth/setToken', payload: null });
+          store.dispatch({ type: 'auth/setUser', payload: null });
+          
+          // Notify subscribers of failure
+          onRefreshed(false);
+          
+          throw new Error(errorMessage);
         }
       } catch (error) {
-        console.error("❌ Failed to refresh token:", error);
+        console.error("❌ Failed to refresh token:", {
+          message: error.message,
+          code: error.code,
+          stack: error.stack
+        });
+        
+        // Notify all subscribers of the failure
         onRefreshed(false);
         
-        // Clear tokens and logout on failure
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        
-        const { logout } = await import("../services/operations/authApi");
-        store.dispatch(logout());
+        try {
+          // Clear tokens
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          
+          // Clear Redux state
+          store.dispatch({ type: 'auth/setToken', payload: null });
+          store.dispatch({ type: 'auth/setUser', payload: null });
+          
+          // Only attempt logout if we're not already on the login page
+          if (!window.location.pathname.includes('/login')) {
+            const { logout } = await import("../services/operations/authApi");
+            store.dispatch(logout());
+          }
+        } catch (cleanupError) {
+          console.error("❌ Error during cleanup after token refresh failure:", cleanupError);
+        }
         
         return false;
       } finally {

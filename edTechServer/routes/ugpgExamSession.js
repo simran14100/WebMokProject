@@ -6,11 +6,14 @@ const {
   listExamSessions,
   updateExamSession,
   deleteExamSession,
+  listStudentExamSessions
 } = require("../controllers/ExamSession");
 
-// All routes protected for admin-level
-router.use(auth, isAdminLevel);
+// Student-accessible route (no admin check)
+router.get("/student", auth, listStudentExamSessions);
 
+// Admin-only routes
+router.use(auth, isAdminLevel);
 router.get("/", listExamSessions);
 router.post("/", createExamSession);
 router.patch("/:id", updateExamSession);

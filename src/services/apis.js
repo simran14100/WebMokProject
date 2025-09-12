@@ -37,9 +37,9 @@ export const profile = {
 };
 
 export const subCategory = {
-    GET_SUBCATEGORIES_BY_PARENT_API: "/api/v1/subCategory/getSubCategory",
-    SHOW_ALL_SUBCATEGORIES_API: "/api/v1/subCategory/showAllSubCategories",
-    SUBCATEGORY_PAGE_DETAILS_API: "/api/v1/subCategory/subCategoryPageDetails",
+    GET_SUBCATEGORIES_BY_PARENT_API: "/api/v1/sub-categories/getSubCategory",
+    SHOW_ALL_SUBCATEGORIES_API: "/api/v1/sub-categories/showAllSubCategories",
+    SUBCATEGORY_PAGE_DETAILS_API: "/api/v1/sub-categories/subCategoryPageDetails",
 };
 
 export const course = {
@@ -177,6 +177,15 @@ export const contact = {
     CONTACT_US_API: "/api/v1/reach/contact",
 };
 
+export const LEAVE_REQUESTS = {
+  API: {
+    CREATE_LEAVE_REQUEST: "/api/v1/leave-requests",
+    GET_MY_LEAVE_REQUESTS: "/api/v1/leave-requests/my-requests",
+    GET_ALL_LEAVE_REQUESTS: "/api/v1/leave-requests",
+    UPDATE_LEAVE_REQUEST_STATUS: "/api/v1/leave-requests/:id/status"
+  }
+};
+
 // University Endpoints
 export const universityEndpoints = {
     // Student verification
@@ -277,9 +286,9 @@ export const cart = {
   GET_CART_DETAILS_API: "/api/v1/cart",
   ADD_TO_CART_API: "/api/v1/cart/add",
   UPDATE_CART_ITEM_API: "/api/v1/cart/update",
+  GET_CART_COUNT_API: "/api/v1/cart/count",
   REMOVE_FROM_CART_API: "/api/v1/cart/remove",
-  CLEAR_CART_API: "/api/v1/cart/clear",
- GET_CART_COUNT_API: "api/v1/cart/count"  // Add this new endpoint
+  CLEAR_CART_API: "/api/v1/cart/clear"
 };
 
 // Coursework (PhD Admin)

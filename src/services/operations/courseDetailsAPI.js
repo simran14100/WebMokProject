@@ -518,34 +518,73 @@ export const markLectureAsComplete = async (data, token) => {
 
 // create a rating for course
 export const createRating = async (data, token) => {
-  const toastId = showLoading("Loading...")
-  let success = false
+  const toastId = showLoading("Saving your rating...");
   try {
-    const response = await apiConnector("POST", CREATE_RATING_API, data, {
-      Authorization: `Bearer ${token}`,
-    })
-    console.log("CREATE RATING API RESPONSE............", response)
-    if (!response?.data?.success) {
-      throw new Error("Could Not Create Rating")
+    const baseUrl = process.env.REACT_APP_BASE_URL || 'http://localhost:4000';
+    const apiUrl = `${baseUrl}${CREATE_RATING_API}`;
+    
+    console.log('=== FRONTEND: createRating called ===');
+    console.log('API URL:', apiUrl);
+    console.log('Token exists:', !!token);
+    console.log('Token length:', token?.length);
+    console.log('First 10 chars of token:', token?.substring(0, 10) + '...');
+    console.log('Request data:', data);
+    
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      },
+      body: JSON.stringify(data),
+      credentials: 'include' // Include cookies for session management
+    });
+    
+    console.log('Response status:', response.status);
+    console.log('Response headers:', Object.fromEntries(response.headers.entries()));
+
+    const responseData = await response.json();
+    
+    if (!response.ok) {
+      // Handle HTTP errors (4xx, 5xx)
+      throw new Error(responseData.message || 'Failed to create rating');
     }
-    showSuccess("Rating Created")
-    success = true
+
+    if (!responseData.success) {
+      throw new Error(responseData.message || 'Could not create rating');
+    }
+
+    showSuccess("Rating submitted successfully!");
+    return true;
   } catch (error) {
-    success = false
-    console.log("CREATE RATING API ERROR............", error)
-    showError(error.message)
+    console.error("CREATE RATING API ERROR:", error);
+    showError(error.message || 'Failed to submit rating. Please try again.');
+    return false;
+  } finally {
+    dismissToast(toastId);
   }
-  dismissToast(toastId)
-  return success
 }
 
 // Fetch all ratings and reviews
 export const getAllReviews = async () => {
   const toastId = showLoading("Loading reviews...")
   try {
-    const response = await apiConnector("GET", GET_REVIEWS_API)
-    if (!response?.data?.success) {
-      throw new Error(response?.data?.message || "Could not fetch reviews")
+    const response = await fetch(GET_REVIEWS_API, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      credentials: 'include'
+    });
+
+    const responseData = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(responseData.message || 'Failed to fetch reviews');
+    }
+
+    if (!responseData.success) {
+      throw new Error(responseData.message || 'Could not fetch reviews');
     }
     return response?.data?.data || []
   } catch (error) {

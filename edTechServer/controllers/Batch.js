@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const Batch = require("../models/Batch");
 const User = require("../models/User");
 
@@ -327,7 +328,22 @@ exports.getBatchById = async (req, res) => {
       .populate({ path: "students", select: "firstName lastName email image contactNumber enrollmentFeePaid accountType createdByAdmin" })
       .populate({ path: "trainers", select: "firstName lastName email image accountType approved" })
       .populate({ path: "courses", select: "courseName price thumbnail instructor", populate: { path: "instructor", select: "firstName lastName" } })
+      .populate({
+        path: 'liveClasses.createdBy',
+        select: 'firstName lastName email',
+        options: { lean: true }
+      })
+      .populate({
+        path: 'liveClasses.attendees',
+        select: 'firstName lastName email',
+        options: { lean: true }
+      })
       .lean();
+      
+    // Ensure liveClasses is an array
+    if (batch) {
+      batch.liveClasses = Array.isArray(batch.liveClasses) ? batch.liveClasses : [];
+    }
     if (!batch) {
       return res.status(404).json({ success: false, message: "Batch not found" });
     }
@@ -501,6 +517,80 @@ function escapeCsv(val) {
 // ***********************************
 // Batch Live Classes (Admin only)
 // ***********************************
+// GET /api/v1/admin/batches/:batchId/live-classes
+exports.getBatchLiveClasses = async (req, res) => {
+  try {
+    const { batchId } = req.params;
+    
+    if (!batchId) {
+      return res.status(400).json({ success: false, message: "Batch ID is required" });
+    }
+    
+    console.log(`[getBatchLiveClasses] Fetching live classes for batch ${batchId}`);
+    
+    // Find the batch with live classes populated
+    const batch = await Batch.findById(batchId)
+      .select('liveClasses name')
+      .populate({
+        path: 'liveClasses.createdBy',
+        select: 'firstName lastName email',
+        options: { lean: true }
+      })
+      .populate({
+        path: 'liveClasses.attendees',
+        select: 'firstName lastName email',
+        options: { lean: true }
+      })
+      .lean();
+      
+    if (!batch) {
+      console.error(`[getBatchLiveClasses] Batch ${batchId} not found`);
+      return res.status(404).json({ success: false, message: "Batch not found" });
+    }
+    
+    // Ensure we have a proper array of live classes
+    const liveClasses = Array.isArray(batch.liveClasses) ? batch.liveClasses : [];
+    
+    console.log(`[getBatchLiveClasses] Found ${liveClasses.length} live classes for batch ${batch.name} (${batchId})`);
+    
+    // Log sample data (first 2 classes)
+    if (liveClasses.length > 0) {
+      console.log('[getBatchLiveClasses] Sample live classes:', 
+        liveClasses.slice(0, 2).map(lc => ({
+          id: lc._id,
+          title: lc.title,
+          startTime: lc.startTime,
+          attendees: lc.attendees ? lc.attendees.length : 0
+        }))
+      );
+    }
+    
+    // Return the data in the expected format
+    return res.status(200).json({
+      success: true,
+      data: liveClasses.map(lc => ({
+        ...lc,
+        // Ensure all required fields are present
+        id: lc._id || new mongoose.Types.ObjectId().toString(),
+        title: lc.title || 'Untitled Class',
+        startTime: lc.startTime || new Date(),
+        link: lc.link || '',
+        description: lc.description || '',
+        createdBy: lc.createdBy || { _id: 'unknown', firstName: 'Unknown', lastName: '', email: '' },
+        attendees: lc.attendees || [],
+        createdAt: lc.createdAt || new Date()
+      }))
+    });
+    
+  } catch (error) {
+    console.error("[getBatchLiveClasses] ERROR:", error);
+    return res.status(500).json({ 
+      success: false, 
+      message: error.message || "Internal server error" 
+    });
+  }
+};
+
 // POST /api/v1/admin/batches/:batchId/live-classes
 exports.addLiveClassToBatch = async (req, res) => {
   try {
@@ -524,19 +614,36 @@ exports.addLiveClassToBatch = async (req, res) => {
       return res.status(400).json({ success: false, message: "Cannot schedule a class in the past" });
     }
 
+    // Ensure we have a valid user ID
+    if (!req.user || !req.user._id) {
+      return res.status(401).json({ success: false, message: "User not authenticated" });
+    }
+
     const event = {
       title: String(title).trim(),
       description: String(description || ""),
       link: String(link || ""),
       startTime: start,
-      createdBy: req.user.id,
+      createdBy: new mongoose.Types.ObjectId(req.user._id), // Fixed: Added 'new' keyword
       attendees: (batch.students || []).map((s) => s),
       createdAt: new Date(),
     };
-
+    
     batch.liveClasses = Array.isArray(batch.liveClasses) ? batch.liveClasses : [];
     batch.liveClasses.push(event);
-    await batch.save();
+    
+    console.log('Saving batch with liveClasses:', {
+      batchId: batch._id,
+      liveClassesCount: batch.liveClasses.length,
+      newEvent: event
+    });
+    
+    const savedBatch = await batch.save();
+    
+    console.log('Batch after save:', {
+      batchId: savedBatch._id,
+      liveClasses: savedBatch.liveClasses
+    });
 
     return res.status(201).json({ success: true, message: "Live class created", data: event });
   } catch (error) {

@@ -7,7 +7,7 @@ const Course = require('../models/Course');
 // Backend controller (cartController.js)
 exports.getCartDetails = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id; // Changed from req.user.id to req.user._id
 
     // Fetch user's cart with populated course details
     const cart = await Cart.findOne({ user: userId })
@@ -70,7 +70,8 @@ exports.getCartDetails = async (req, res) => {
 // Add item to cart
 exports.addToCart = async (req, res) => {
   try {
-    const userId = req.user.id;
+    console.log('User from request:', req.user); // Debug log
+    const userId = req.user._id; // Changed from req.user.id to req.user._id
     const { courseId } = req.body;
 
     // Validate input
@@ -157,7 +158,7 @@ exports.addToCart = async (req, res) => {
 // Update cart item quantity
 exports.updateCartItem = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id; // Changed from req.user.id to req.user._id
     const { courseId, quantity } = req.body;
 
     // Validate input
@@ -234,7 +235,7 @@ exports.updateCartItem = async (req, res) => {
 // Remove item from cart
 exports.removeFromCart = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id; // Changed from req.user.id to req.user._id
     const { courseId } = req.body;
 
     // Validate input
@@ -295,7 +296,7 @@ exports.removeFromCart = async (req, res) => {
 // Clear cart
 exports.clearCart = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id; // Changed from req.user.id to req.user._id
 
     // Find and update cart
     const cart = await Cart.findOneAndUpdate(
@@ -331,7 +332,7 @@ exports.clearCart = async (req, res) => {
 // In your cartController.js
 exports.getCartCount = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = req.user._id; // Changed from req.user.id to req.user._id
     const cart = await Cart.findOne({ user: userId });
     
     const count = cart ? cart.items.reduce((total, item) => total + item.quantity, 0) : 0;

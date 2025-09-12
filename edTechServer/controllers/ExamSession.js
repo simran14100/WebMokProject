@@ -273,6 +273,99 @@ exports.updateExamSession = async (req, res) => {
   }
 };
 
+// List exam sessions for students (identical to admin version for now)
+exports.listStudentExamSessions = async (req, res) => {
+  try {
+    const { 
+      page = 1, 
+      limit = 10, 
+      search = '',
+      schoolId,
+      courseId,
+      subjectId,
+      sessionId,
+      status,
+      examType
+    } = req.query;
+    
+    // Build query based on filters
+    const query = {};
+    
+    // Text search across multiple fields
+    if (search) {
+      query.$or = [
+        { 'sessionId.name': { $regex: search, $options: 'i' } },
+        { 'schoolId.name': { $regex: search, $options: 'i' } },
+        { 'courseId.courseName': { $regex: search, $options: 'i' } },
+        { 'subjectId.name': { $regex: search, $options: 'i' } },
+        { examType: { $regex: search, $options: 'i' } },
+        { status: { $regex: search, $options: 'i' } }
+      ];
+    }
+    
+    // Add filter conditions if provided
+    if (schoolId) query.schoolId = schoolId;
+    if (courseId) query.courseId = courseId;
+    if (subjectId) query.subjectId = subjectId;
+    if (sessionId) query.sessionId = sessionId;
+    if (status) query.status = status;
+    if (examType) query.examType = examType;
+
+    // Execute query with population and pagination
+    const [list, count] = await Promise.all([
+      ExamSession.find(query)
+        .populate({
+          path: 'sessionId',
+          select: 'name',
+          model: 'UGPGSession'
+        })
+        .populate({
+          path: 'schoolId',
+          select: 'name',
+          model: 'UGPGSchool'
+        })
+        .populate({
+          path: 'courseId',
+          select: 'courseName',
+          model: 'UGPGCourse'
+        })
+        .populate({
+          path: 'subjectId',
+          select: 'name',
+          model: 'UGPGSubject'
+        })
+        .sort({ examDate: -1, createdAt: -1 })
+        .limit(Number(limit))
+        .skip((Number(page) - 1) * Number(limit))
+        .lean(),
+      ExamSession.countDocuments(query)
+    ]);
+
+    // Format the response data
+    const formattedList = list.map(session => ({
+      ...session,
+      semester: `Semester ${session.semester}`
+    }));
+
+    return res.json({ 
+      success: true, 
+      data: formattedList,
+      pagination: {
+        total: count,
+        totalPages: Math.ceil(count / limit),
+        currentPage: Number(page),
+        limit: Number(limit)
+      }
+    });
+  } catch (err) {
+    console.error("Student ExamSession list error", err);
+    return res.status(500).json({ 
+      success: false, 
+      message: err.message || "Failed to fetch student exam sessions" 
+    });
+  }
+};
+
 // Delete exam session (soft delete)
 exports.deleteExamSession = async (req, res) => {
   try {

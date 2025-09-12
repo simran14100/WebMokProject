@@ -48,6 +48,7 @@ const subjectRoutes = require("./routes/subject");
 const ugpgCourseRoutes = require("./routes/ugpgCourse");
 const ugpgSubjectRoutes = require("./routes/ugpgSubject");
 const superAdminRoutes = require("./routes/superAdmin");
+const leaveRequestRoutes = require("./routes/leaveRequestRoutes");
 const documentRoutes = require("./routes/document");
 
 const languageRoutes = require("./routes/language");
@@ -115,6 +116,7 @@ app.use(cookieParser());
 app.use(cors({
   origin: process.env.FRONTEND_URL || 'http://localhost:3000',
   credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
     'Content-Type',
     'Authorization',
@@ -127,6 +129,7 @@ app.use(cors({
     'X-Skip-Interceptor',
     'signal',
     'X-XSRF-TOKEN',
+    'X-Debug',
     'headers',
     'content-type',
     'x-requested-with'
@@ -195,7 +198,7 @@ app.use("/api/v1/google", googleRoutes);
 app.use("/api/v1/sessions", sessionRoutes);
 app.use("/api/v1/ugpg/sessions", ugpgSessionRoutes);
 app.use("/api/v1/phd/sessions", phdSessionRoutes);
-app.use("/api/v1/ugpg-exam/sessions", ugpgExamSessionRoutes);
+app.use("/api/v1/ugpg-exam", ugpgExamSessionRoutes);
 app.use("/api/v1/coursework", courseworkRoutes);
 app.use("/api/v1/ugpg/schools", ugpgSchoolRoutes);
 app.use("/api/v1/documents", documentRoutes);
@@ -213,7 +216,7 @@ app.use("/api/v1/university/registered-students", universityRegisteredStudentRou
 app.use("/api/v1/university/enrolled-students", universityEnrolledStudentRoutes);
 app.use("/api/v1/university/fee-types", feeTypeRoutes);
 app.use("/api/v1/university/fee-assignments", feeAssignmentRoutes);
-
+app.use("/api/v1/leave-requests", leaveRequestRoutes);
 // Direct binding for critical profile update route (temporary safeguard)
 const { auth } = require("./middlewares/auth");
 const { updateProfile } = require("./controllers/Profile");
@@ -235,6 +238,9 @@ app.use("/api/v1/visit-purposes", visitPurposeRoutes);
 app.use("/api/v1/enquiry", honoraryEnquiryRoutes);
 
 app.use("/api/v1/meeting-types", meetingTypeRoutes);
+
+// Leave request routes
+app.use("/api/v1/leave-requests", require("./routes/leaveRequestRoutes"));
 
 // Testing the server
 app.get("/", (req, res) => {
