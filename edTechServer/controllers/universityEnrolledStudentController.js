@@ -27,9 +27,14 @@ exports.getAllApprovedStudents = async (req, res) => {
             ];
         }
         
-        // Get all approved students with necessary fields
+        // Get all approved students with necessary fields and populate course data
         const students = await UniversityRegisteredStudent.find(query)
             .select('-password -__v -updatedAt -verificationToken -verificationTokenExpires')
+            .populate({
+                path: 'course',
+                select: 'courseName courseType durationYear category',
+                model: 'UGPGCourse'
+            })
             .sort({ createdAt: -1 });
             
         console.log(`Found ${students.length} approved students`);

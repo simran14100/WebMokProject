@@ -371,12 +371,7 @@ const registerStudent = asyncHandler(async (req, res) => {
 // @desc    Get all registered students
 // @route   GET /api/university/registered-students
 // @access  Private/Admin
-// @desc    Get all registered students
-// @route   GET /api/university/registered-students
-// @access  Private/Admin
 const getRegisteredStudents = asyncHandler(async (req, res) => {
-  
-  
   const { page = 1, limit = 10, status, search, registrationNumber } = req.query;
   
   // Create query object to filter students
@@ -407,7 +402,8 @@ const getRegisteredStudents = asyncHandler(async (req, res) => {
       { lastName: { $regex: search, $options: 'i' } },
       { email: { $regex: search, $options: 'i' } },
       { phone: { $regex: search, $options: 'i' } },
-      { registrationNumber: { $regex: search, $options: 'i' } }
+      { registrationNumber: { $regex: search, $options: 'i' } },
+      { courseName: { $regex: search, $options: 'i' } } // Also search by course name
     ];
   }
   
@@ -415,15 +411,33 @@ const getRegisteredStudents = asyncHandler(async (req, res) => {
     page: parseInt(page),
     limit: parseInt(limit),
     sort: { createdAt: -1 },
-    select: '-__v'
+    select: '-__v -updatedAt -__v',
+    populate: [
+      {
+        path: 'course',
+        select: 'courseName courseType durationYear category',
+        model: 'UGPGCourse'
+      }
+    ]
   };
   
+  // Execute the query with pagination
   const students = await UniversityRegisteredStudent.paginate(query, options);
+  
+  // Process the students to include courseName
+  const processedStudents = students.docs.map(student => {
+    const studentObj = student.toObject();
+    return {
+      ...studentObj,
+      courseName: student.course?.name || 'N/A',
+      courseType: student.course?.type || 'N/A'
+    };
+  });
   
   res.json({
     success: true,
     data: {
-      students: students.docs,
+      students: processedStudents,
       pagination: {
         page: students.page,
         limit: students.limit,

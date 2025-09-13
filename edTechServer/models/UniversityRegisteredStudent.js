@@ -84,11 +84,15 @@ const registeredStudentSchema = new mongoose.Schema({
     max: 100
   },
   
-   // In your model, change these fields:
-course: { 
-  type: String, // Changed from ObjectId to String
-  required: true 
-},
+   // Course reference
+  course: { 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'UGPGCourse',
+    required: true 
+  },
+  
+  // Keep courseName as a string for easier access
+  courseName: { type: String, required: true },
 
 // Remove the nested parent requirement or make fields optional
 parent: {

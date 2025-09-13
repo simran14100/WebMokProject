@@ -77,8 +77,18 @@ exports.getTimetables = asyncHandler(async (req, res) => {
       })
       .populate({
         path: 'course',
-        select: 'name code',
-        strictPopulate: false
+        select: 'courseName courseType durationYear semester',
+        strictPopulate: false,
+        transform: doc => {
+          if (!doc) return null;
+          return {
+            _id: doc._id,
+            name: doc.courseName,
+            type: doc.courseType,
+            durationYear: doc.durationYear,
+            semester: doc.semester
+          };
+        }
       })
       .populate({
         path: 'subject',
@@ -136,11 +146,41 @@ exports.getTimetables = asyncHandler(async (req, res) => {
 // @access  Private
 exports.getTimetable = asyncHandler(async (req, res, next) => {
   const timetable = await Timetable.findById(req.params.id)
-    .populate('school', 'name')
-    .populate('session', 'name')
-    .populate('course', 'name code')
-    .populate('subject', 'name code')
-    .populate('faculty', 'name email');
+    .populate({
+      path: 'school',
+      select: 'name',
+      strictPopulate: false
+    })
+    .populate({
+      path: 'session',
+      select: 'name',
+      strictPopulate: false
+    })
+    .populate({
+      path: 'course',
+      select: 'courseName courseType durationYear semester',
+      strictPopulate: false,
+      transform: doc => {
+        if (!doc) return null;
+        return {
+          _id: doc._id,
+          name: doc.courseName,
+          type: doc.courseType,
+          durationYear: doc.durationYear,
+          semester: doc.semester
+        };
+      }
+    })
+    .populate({
+      path: 'subject',
+      select: 'name code',
+      strictPopulate: false
+    })
+    .populate({
+      path: 'faculty',
+      select: 'name email',
+      strictPopulate: false
+    });
 
   if (!timetable) {
     return next(new ApiError(`No timetable found with id of ${req.params.id}`, 404));

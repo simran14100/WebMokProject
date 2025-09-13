@@ -84,6 +84,7 @@ const AllRegisteredStudents = () => {
           page: current,
           limit: pageSize,
           search: searchText,
+          populate: 'course', // Request the server to populate course data
           ...params,
         },
         headers: {
@@ -95,14 +96,45 @@ const AllRegisteredStudents = () => {
       const { data } = response;
       
       if (data && data.data && data.data.students) {
-        const formattedStudents = data.data.students.map(student => ({
-          ...student,
-          key: student._id,
-          name: `${student.firstName || ''} ${student.lastName || ''}`.trim(),
-          registrationDate: student.createdAt 
+        console.log('Raw API response students:', data.data.students);
+        
+        const formattedStudents = data.data.students.map(student => {
+          console.log('Processing student:', {
+            id: student._id,
+            firstName: student.firstName,
+            lastName: student.lastName,
+            createdAt: student.createdAt,
+            course: student.course,
+            courseName: student.courseName
+          });
+          
+          // Handle UGPGCourse data structure
+          const courseName = student.course?.courseName || student.courseName || 'N/A';
+          const courseType = student.course?.category || 'N/A';
+          const duration = student.course?.durationYear ? `${student.course.durationYear} years` : 'N/A';
+          const registrationDate = student.createdAt 
             ? dayjs(student.createdAt).format('DD-MMM-YYYY')
-            : 'N/A'
-        }));
+            : 'N/A';
+            
+          console.log('Processed student data:', {
+            id: student._id,
+            courseName,
+            courseType,
+            duration,
+            registrationDate,
+            hasCreatedAt: !!student.createdAt
+          });
+          
+          return {
+            ...student,
+            key: student._id,
+            name: `${student.firstName || ''} ${student.lastName || ''}`.trim(),
+            registrationDate,
+            courseName,
+            courseType,
+            duration
+          };
+        });
         
         setStudents(formattedStudents);
         
@@ -352,8 +384,8 @@ const AllRegisteredStudents = () => {
     },
     {
       title: 'Course',
-      dataIndex: 'course',
-      key: 'course',
+      dataIndex: 'courseName',
+      key: 'courseName',
       width: 120,
     },
     {

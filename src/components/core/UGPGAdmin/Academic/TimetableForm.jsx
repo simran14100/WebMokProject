@@ -28,6 +28,8 @@ const TimetableForm = () => {
   const [filteredSubjects, setFilteredSubjects] = useState([]);
   const [filteredCourses, setFilteredCourses] = useState([]);
   const [filteredTeachers, setFilteredTeachers] = useState([]);
+  const [availableSemesters, setAvailableSemesters] = useState([]);
+  const [selectedCourse, setSelectedCourse] = useState(null);
   
   // Course types
   const courseTypes = ["Certificate", "Diploma", "Bachelor Degree", "Master Degree"];
@@ -70,13 +72,20 @@ const TimetableForm = () => {
       console.log('==============================');
       
       // Process courses to ensure they have the expected structure
-      const processedCourses = (Array.isArray(data.courses) ? data.courses : []).map(course => ({
-        ...course,
-        _id: course._id || course.id,
-        courseName: course.courseName || course.name,
-        school: course.school?._id || course.school,
-        category: course.category || course.type
-      }));
+      const processedCourses = (Array.isArray(data.courses) ? data.courses : []).map(course => {
+        // Ensure semester is properly set based on course type
+        const semesterCount = course.semester || (course.durationYear ? 
+          (course.courseType?.toLowerCase() === 'yearly' ? course.durationYear : course.durationYear * 2) : 8);
+          
+        return {
+          ...course,
+          _id: course._id || course.id,
+          courseName: course.courseName || course.name,
+          school: course.school?._id || course.school,
+          category: course.category || course.type,
+          semester: semesterCount // Ensure semester count is set
+        };
+      });
       
       // Process teachers to ensure consistent structure
       const processedTeachers = (Array.isArray(data.teachers) ? data.teachers : []).map(teacher => ({
@@ -127,14 +136,29 @@ const TimetableForm = () => {
 
   // Load timetable data for editing
   const loadTimetableData = async () => {
-    if (!isEditMode) return;
+    if (!isEditMode || !id) return;
     
     try {
       setLoading(true);
       
-      // 1. First load the timetable data
+      // 1. First load the timetable data with all necessary population
       const response = await TIMETABLE_API.getTimetable(id);
       const timetable = response.data;
+      
+      // Ensure we have the full course data
+      if (timetable.course && !timetable.course.name) {
+        // If course is just an ID, fetch the full course details
+        const courseResponse = await TIMETABLE_API.getCourse(timetable.course._id);
+        if (courseResponse.data) {
+          timetable.course = { ...timetable.course, ...courseResponse.data };
+        }
+      }
+      
+      if (!timetable) {
+        throw new Error('Timetable not found');
+      }
+      
+      console.log('Loaded timetable data:', timetable);
       
       console.log('Loaded timetable data:', {
         ...timetable,
@@ -159,47 +183,130 @@ const TimetableForm = () => {
         });
         
         setSelectedSchool(schoolId);
+        
+        // Wait for state to update
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
         // Update filtered data based on the selected school and course type
-        updateFilteredData(schoolId, timetable.courseType);
+        await updateFilteredData(schoolId, timetable.courseType);
+        
+        // Debug: Log the courses data
+        console.log('All courses from dropdownData:', dropdownData.courses);
+        console.log('Filtering courses with:', { 
+          schoolId, 
+          courseType: timetable.courseType,
+          coursesCount: dropdownData.courses?.length || 0 
+        });
+        
+        // Wait for courses to be filtered
+        const filtered = dropdownData.courses.filter(course => {
+          const schoolMatch = course.school?.toString() === schoolId?.toString();
+          const typeMatch = course.category === timetable.courseType || 
+                          course.courseType === timetable.courseType;
+          
+          console.log('Course:', { 
+            id: course._id || course.id,
+            name: course.name || course.courseName,
+            school: course.school,
+            category: course.category,
+            courseType: course.courseType,
+            matches: { schoolMatch, typeMatch }
+          });
+          
+          return schoolMatch && typeMatch;
+        });
+        
+        console.log('Filtered courses:', filtered);
+        setFilteredCourses(filtered);
+        
+        // Extract the course ID for comparison
+        const courseId = timetable.course?._id || timetable.course;
+        console.log('Looking for course with ID:', courseId);
+        
+        // Find the selected course
+        let selectedCourse = null;
+        if (typeof courseId === 'string' || courseId?._bsontype === 'ObjectID') {
+          // If course is an ID, find the corresponding course object
+          selectedCourse = filtered.find(c => {
+            const match = (c?._id?.toString() === courseId.toString()) || 
+                         (c?.id?.toString() === courseId.toString());
+            console.log('Checking course:', { 
+              id: c?._id || c?.id, 
+              match, 
+              courseId: courseId.toString() 
+            });
+            return match;
+          });
+        } else if (timetable.course && typeof timetable.course === 'object') {
+          // If course is already a populated object
+          selectedCourse = timetable.course;
+          console.log('Using populated course object:', selectedCourse);
+        }
+        
+        if (selectedCourse) {
+          console.log('Found selected course:', selectedCourse);
+          setSelectedCourse(selectedCourse);
+          
+          // Set semester count based on course type
+          const semesterCount = selectedCourse.semester || (selectedCourse.durationYear ? 
+            (selectedCourse.courseType?.toLowerCase() === 'yearly' ? 
+              selectedCourse.durationYear : selectedCourse.durationYear * 2) : 6);
+          
+          const semesters = Array.from({ length: semesterCount }, (_, i) => `Semester ${i + 1}`);
+          setAvailableSemesters(semesters);
+          
+          // Set the form value for course
+          form.setFieldsValue({
+            course: selectedCourse._id || selectedCourse.id
+          });
+        }
       }
       
-      // 3. Wait for dropdown data to be loaded and filtered
-      const waitForDropdowns = () => {
-        return new Promise((resolve) => {
-          const check = () => {
-            if (dropdownData.courses.length > 0 && dropdownData.teachers.length > 0) {
-              resolve();
-            } else {
-              setTimeout(check, 100);
-            }
-          };
-          check();
-        });
-      };
-      
-      await waitForDropdowns();
-      
-      // 4. Set all form values after state updates and dropdowns are ready
-      const formValues = {
-        courseType: timetable.courseType,
-        school: timetable.school?._id || timetable.school,
-        course: timetable.course?._id || timetable.course,
-        session: timetable.session?._id || timetable.session,
-        subject: timetable.subject?._id || timetable.subject,
-        day: timetable.day,
-        timeSlot: timetable.timeSlot,
-        room: timetable.room,
-        faculty: timetable.faculty?._id || timetable.faculty,
-        description: timetable.description || '',
-      };
-      
-      console.log('Setting form values:', formValues);
-      form.setFieldsValue(formValues);
-      
-      // 5. Force update the form to ensure all fields are properly set
+      // Set all form values after a small delay to ensure dropdowns are populated
       setTimeout(() => {
-        form.validateFields();
-      }, 200);
+        // Get the course ID from either the selected course or the timetable data
+        const courseId = selectedCourse?._id || selectedCourse?.id || 
+                        (timetable.course?._id || timetable.course)?.toString();
+                        
+        console.log('Setting form values with course data:', { 
+          courseId,
+          selectedCourse,
+          timetableCourse: timetable.course,
+          filteredCourses: filteredCourses.map(c => ({ id: c._id || c.id, name: c.name || c.courseName }))
+        });
+        
+        // If we have a course ID but no selected course, try to find it in filteredCourses
+        if (courseId && !selectedCourse) {
+          const foundCourse = filteredCourses.find(c => 
+            (c._id && c._id.toString() === courseId) || 
+            (c.id && c.id.toString() === courseId)
+          );
+          if (foundCourse) {
+            setSelectedCourse(foundCourse);
+          }
+        }
+        
+        // Set form values
+        form.setFieldsValue({
+          courseType: timetable.courseType,
+          course: courseId ? {
+            value: courseId,
+            label: selectedCourse ? 
+              `${selectedCourse.courseName || selectedCourse.name} (${selectedCourse.courseType || selectedCourse.type || 'N/A'})` : 
+              'Loading course...'
+          } : undefined,
+          session: timetable.session?._id || timetable.session,
+          semester: timetable.semester,
+          day: timetable.day,
+          timeSlot: timetable.timeSlot,
+          subject: timetable.subject?._id || timetable.subject,
+          teacher: timetable.teacher?._id || timetable.teacher,
+          room: timetable.room,
+          remarks: timetable.remarks
+        });
+        
+        console.log('Form values set:', form.getFieldsValue());
+      }, 200); // Increased delay to ensure all state updates are processed
       
     } catch (error) {
       showError(error.response?.data?.message || 'Failed to load timetable data');
@@ -209,8 +316,65 @@ const TimetableForm = () => {
     }
   };
 
+  // Handle course selection to update available semesters
+  const handleCourseChange = (selectedOption) => {
+    if (!selectedOption) {
+      setSelectedCourse(null);
+      setAvailableSemesters([]);
+      form.setFieldsValue({ 
+        semester: undefined,
+        course: undefined
+      });
+      return;
+    }
+    
+    // selectedOption will be an object with { value, label } when using labelInValue
+    const courseId = selectedOption?.value || selectedOption;
+    
+    // Find the complete course object from filteredCourses
+    const course = filteredCourses.find(c => 
+      (c._id && c._id.toString() === courseId?.toString()) || 
+      (c.id && c.id.toString() === courseId?.toString())
+    );
+    
+    if (course) {
+      // Store the complete course object
+      setSelectedCourse(course);
+      
+      // Reset semester when course changes
+      form.setFieldsValue({ 
+        semester: undefined,
+        course: {
+          value: course._id || course.id,
+          label: `${course.courseName || course.name} (${course.courseType || course.type || 'N/A'})`
+        }
+      });
+      
+      // Calculate semester count based on course type
+      const semesterCount = course.semester || (course.durationYear ? 
+        (course.courseType?.toLowerCase() === 'yearly' ? course.durationYear : course.durationYear * 2) : 6);
+      
+      // Always show semesters, not years
+      const semesters = Array.from({ length: semesterCount }, (_, i) => `Semester ${i + 1}`);
+      setAvailableSemesters(semesters);
+      
+      console.log('Selected course:', course);
+      console.log('Available semesters:', semesters);
+    } else {
+      setSelectedCourse(null);
+      setAvailableSemesters([]);
+      form.setFieldsValue({ 
+        semester: undefined,
+        course: undefined
+      });
+    }
+  };
+
   // Handle school change to filter subjects and courses
   const handleSchoolChange = (value) => {
+    // Reset course and semester when school changes
+    setSelectedCourse(null);
+    setAvailableSemesters([]);
     setSelectedSchool(value);
     form.setFieldsValue({ 
       course: undefined,
@@ -233,10 +397,13 @@ const TimetableForm = () => {
   // Handle course type change to filter courses
   const handleCourseTypeChange = (value) => {
     setSelectedCourseType(value);
+    setSelectedCourse(null);
+    setAvailableSemesters([]);
     form.setFieldsValue({ 
       school: undefined,
       course: undefined,
-      subject: undefined
+      subject: undefined,
+      semester: undefined
     });
     
     // Filter courses based on selected course type and school
@@ -250,6 +417,17 @@ const TimetableForm = () => {
     } else {
       setFilteredCourses([]);
     }
+  };
+
+  // Reset form fields when course type or school changes
+  const resetFormFields = () => {
+    setSelectedCourse(null);
+    setAvailableSemesters([]);
+    form.setFieldsValue({
+      course: undefined,
+      subject: undefined,
+      semester: undefined
+    });
   };
 
   // Update filtered data based on school and course type
@@ -334,7 +512,10 @@ const TimetableForm = () => {
         subject: values.subject,
         faculty: values.faculty,
         course: values.course,
+        semester: values.semester, // Make sure semester is included
       };
+      
+      console.log('Submitting timetable data:', timetableData); // Debug log
       
       if (isEditMode) {
         await TIMETABLE_API.updateTimetable(id, timetableData);
@@ -350,18 +531,71 @@ const TimetableForm = () => {
     } catch (error) {
       showError(error.response?.data?.message || 'Failed to save timetable');
       console.error('Error saving timetable:', error);
-    } finally {
-      setSubmitting(false);
+    }
+  };
+
+  // Function to load full course details by ID
+  const loadCourseDetails = async (courseId) => {
+    if (!courseId) return null;
+    
+    try {
+      // Check if we already have the course in filtered courses
+      const existingCourse = filteredCourses.find(c => 
+        (c._id && c._id.toString() === courseId.toString())
+      );
+      
+      if (existingCourse) return existingCourse;
+      
+      // If not found, try to fetch it
+      const response = await TIMETABLE_API.getCourse(courseId);
+      if (response.data) {
+        // Add to filtered courses if not already there
+        setFilteredCourses(prev => {
+          const exists = prev.some(c => c._id === response.data._id);
+          return exists ? prev : [...prev, response.data];
+        });
+        return response.data;
+      }
+      return null;
+    } catch (error) {
+      console.error('Error loading course details:', error);
+      return null;
     }
   };
 
   // Load initial data
   useEffect(() => {
-    loadDropdownData();
+    const loadData = async () => {
+      try {
+        setLoading(true);
+        await loadDropdownData();
+        if (isEditMode) {
+          await loadTimetableData();
+          
+          // After loading timetable, ensure we have full course details
+          const formValues = form.getFieldsValue();
+          const courseId = formValues.course?.value || formValues.course;
+          if (courseId) {
+            const courseDetails = await loadCourseDetails(courseId);
+            if (courseDetails) {
+              setSelectedCourse(courseDetails);
+              form.setFieldsValue({
+                course: {
+                  value: courseDetails._id,
+                  label: `${courseDetails.courseName || courseDetails.name || 'Unnamed Course'} (${courseDetails.courseType || courseDetails.type || selectedCourseType || ''})`
+                }
+              });
+            }
+          }
+        }
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
     
-    if (isEditMode) {
-      loadTimetableData();
-    }
+    loadData();
   }, [id]);
 
   return (
@@ -443,30 +677,114 @@ const TimetableForm = () => {
                     optionFilterProp="children"
                     loading={loading}
                     disabled={!selectedSchool || !selectedCourseType}
+                    onChange={handleCourseChange}
                     filterOption={(input, option) =>
                       (option?.children?.toLowerCase() || '').includes(input.toLowerCase())
                     }
                     notFoundContent={filteredCourses.length === 0 ? 'No courses found for the selected criteria' : null}
+                    labelInValue
+                    value={(() => {
+                      // If we have a selected course with details, use it
+                      if (selectedCourse) {
+                        const courseName = selectedCourse.courseName || selectedCourse.name || 'Loading...';
+                        const courseType = selectedCourse.courseType || selectedCourse.type || selectedCourseType || '';
+                        
+                        // If we only have course ID, try to find it in filtered courses
+                        if ((!courseName || courseName === 'Loading...') && selectedCourse._id) {
+                          const foundCourse = filteredCourses.find(c => 
+                            c._id?.toString() === selectedCourse._id?.toString()
+                          );
+                          if (foundCourse) {
+                            return {
+                              value: foundCourse._id,
+                              label: `${foundCourse.courseName || foundCourse.name || 'Unnamed Course'} (${foundCourse.courseType || foundCourse.type || selectedCourseType || ''})`
+                            };
+                          }
+                        }
+                        
+                        return {
+                          value: selectedCourse._id || selectedCourse.id,
+                          label: courseType ? 
+                            `${courseName} (${courseType})` : 
+                            courseName
+                        };
+                      }
+                      
+                      // If we have a course ID in the form values, try to find it
+                      const formValues = form.getFieldsValue();
+                      if (formValues.course) {
+                        const courseId = formValues.course.value || formValues.course;
+                        if (!courseId) return undefined;
+                        
+                        // Try to find in filtered courses first
+                        const course = filteredCourses.find(c => 
+                          (c._id && c._id.toString() === courseId.toString())
+                        );
+                        
+                        if (course) {
+                          const courseName = course.courseName || course.name || 'Unnamed Course';
+                          const courseType = course.courseType || course.type || selectedCourseType || '';
+                          return {
+                            value: course._id,
+                            label: courseType ? 
+                              `${courseName} (${courseType})` : 
+                              courseName
+                          };
+                        }
+                        
+                        // If not found in filtered courses but we have a course ID, show loading state
+                        return {
+                          value: courseId,
+                          label: 'Loading course...'
+                        };
+                      }
+                      
+                      return undefined;
+                    })()}
                   >
                     {filteredCourses.length > 0 ? (
                       filteredCourses.map(course => {
                         // Handle different course data structures
                         const courseId = course._id || course.id || '';
                         const courseName = course.courseName || course.name || 'Unnamed Course';
-                        const courseType = course.courseType || course.type || selectedCourseType || 'N/A';
+                        const courseType = course.courseType || course.type || selectedCourseType || '';
                         const duration = course.durationYear || course.duration || 0;
+                        
+                        // Create display text
+                        let displayText = courseName;
+                        if (courseType) displayText += ` (${courseType}`;
+                        if (duration) displayText += ` - ${duration} year${duration > 1 ? 's' : ''}`;
+                        if (courseType) displayText += ')';
                         
                         return (
                           <Option key={courseId} value={courseId}>
-                            {courseName} ({courseType} - {duration} years)
+                            {displayText}
                           </Option>
                         );
                       })
                     ) : (
-                      <Option disabled value="no-data">
-                        {loading ? 'Loading...' : 'No courses available for selected criteria'}
-                      </Option>
+                      <Option disabled value="no-courses">No courses available for the selected criteria</Option>
                     )}
+                  </Select>
+                </Form.Item>
+              </Col>
+              
+              <Col xs={24} md={8}>
+                <Form.Item
+                  name="semester"
+                  label="Semester"
+                  rules={[{ required: true, message: 'Please select semester' }]}
+                >
+                  <Select 
+                    placeholder="Select semester"
+                    disabled={!selectedCourse}
+                    loading={loading}
+                  >
+                    {availableSemesters.map((semester, index) => (
+                      <Option key={index} value={semester}>
+                        {semester}
+                      </Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </Col>
@@ -518,7 +836,7 @@ const TimetableForm = () => {
                       )
                       .map(subject => (
                         <Option key={subject._id} value={subject._id}>
-                        {subject.name} ({subject.code || 'No Code'})
+                        {subject.name} 
                       </Option>
                     ))}
                   </Select>

@@ -39,6 +39,10 @@ const timetableSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
+  semester: {
+    type: String,
+    required: true
+  },
   faculty: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: "Teacher", 

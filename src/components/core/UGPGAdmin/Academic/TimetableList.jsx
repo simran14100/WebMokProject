@@ -160,6 +160,12 @@ const TimetableList = () => {
       ),
     },
     {
+      title: 'Semester',
+      dataIndex: 'semester',
+      key: 'semester',
+      render: (semester) => semester || 'N/A',
+    },
+    {
       title: 'Day',
       dataIndex: 'day',
       key: 'day',

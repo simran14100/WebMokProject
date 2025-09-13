@@ -56,14 +56,45 @@ const VerifiedStudents = () => {
       const { data } = response;
       
       if (data && data.data && data.data.students) {
-        const formattedStudents = data.data.students.map(student => ({
-          ...student,
-          key: student._id,
-          name: `${student.firstName || ''} ${student.lastName || ''}`.trim(),
-          registrationDate: student.createdAt 
+        console.log('Verified Students - Raw API response:', data.data.students);
+        
+        const formattedStudents = data.data.students.map(student => {
+          console.log('Processing verified student:', {
+            id: student._id,
+            firstName: student.firstName,
+            lastName: student.lastName,
+            createdAt: student.createdAt,
+            course: student.course,
+            courseName: student.courseName
+          });
+          
+          // Handle UGPGCourse data structure
+          const courseName = student.course?.courseName || student.courseName || 'N/A';
+          const courseType = student.course?.category || 'N/A';
+          const duration = student.course?.durationYear ? `${student.course.durationYear} years` : 'N/A';
+          const registrationDate = student.createdAt 
             ? dayjs(student.createdAt).format('DD-MMM-YYYY')
-            : 'N/A'
-        }));
+            : 'N/A';
+            
+          console.log('Processed verified student data:', {
+            id: student._id,
+            courseName,
+            courseType,
+            duration,
+            registrationDate,
+            hasCreatedAt: !!student.createdAt
+          });
+          
+          return {
+            ...student,
+            key: student._id,
+            name: `${student.firstName || ''} ${student.lastName || ''}`.trim(),
+            registrationDate,
+            course: courseName,
+            courseType,
+            duration
+          };
+        });
         
         setStudents(formattedStudents);
         

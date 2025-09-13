@@ -33,10 +33,12 @@ import {
   HomeOutlined,
   BookOutlined,
   BankOutlined,
-  EnvironmentOutlined
+  EnvironmentOutlined,
+  LoadingOutlined
 } from '@ant-design/icons';
 import dayjs from 'dayjs';
 import axios from 'axios';
+import { apiConnector } from '../../services/apiConnector';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -57,6 +59,8 @@ const NewRegistration = () => {
   const [submitting, setSubmitting] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
+  const [courses, setCourses] = useState([]);
+  const [loadingCourses, setLoadingCourses] = useState(false);
   
   // For photo upload
   const handlePhotoChange = (info) => {
@@ -119,6 +123,24 @@ const NewRegistration = () => {
     
     return true;
   };
+
+  // Fetch courses on component mount
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        setLoadingCourses(true);
+        const response = await apiConnector("GET", "/api/v1/ugpg/courses");
+        setCourses(response?.data?.data || []);
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+        message.error('Failed to load courses');
+      } finally {
+        setLoadingCourses(false);
+      }
+    };
+
+    fetchCourses();
+  }, []);
 
   const onFinish = async (values) => {
     if (submitting) return;
@@ -752,13 +774,20 @@ const NewRegistration = () => {
                   label="Select Course"
                   rules={[{ required: true, message: 'Please select a course' }]}
                 >
-                  <Select placeholder="Select course">
-                    <Option value="btech">B.Tech</Option>
-                    <Option value="mtech">M.Tech</Option>
-                    <Option value="bca">BCA</Option>
-                    <Option value="mca">MCA</Option>
-                    <Option value="bba">BBA</Option>
-                    <Option value="mba">MBA</Option>
+                  <Select 
+                    placeholder={loadingCourses ? 'Loading courses...' : 'Select course'}
+                    loading={loadingCourses}
+                    showSearch
+                    optionFilterProp="children"
+                    filterOption={(input, option) =>
+                      option.children.toLowerCase().indexOf(input.toLowerCase()) >= 0
+                    }
+                  >
+                    {courses.map(course => (
+                      <Option key={course._id} value={course._id}>
+                        {course.courseName} {course.code ? `(${course.code})` : ''}
+                      </Option>
+                    ))}
                   </Select>
                 </Form.Item>
               </Col>

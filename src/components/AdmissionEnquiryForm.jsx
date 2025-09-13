@@ -344,7 +344,7 @@ const AdmissionEnquiryForm = () => {
               true
             )}
             {renderInput("Percentage/Grades", "percentage", "number")}
-            {renderInput("Graduation Course", "graduationCourse", "text", true)}
+            {renderInput("Applying Course", "graduationCourse", "text", true)}
           </div>
         </div>
 

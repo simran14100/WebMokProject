@@ -231,10 +231,15 @@ const completeVerification = asyncHandler(async (req, res) => {
         isEligible: !!documents.isEligible
       },
       verifiedBy: verifiedBy || req.user?.name || 'System',
-      verifiedById: req.user?.id || 'system',
+      verifiedById: req.user?.id || req.user?._id || null, // Set to null if no user ID is available
       verifiedAt: new Date(),
       remarks: remarks || ''
     };
+    
+    // Remove verifiedById if it's not a valid ObjectId to prevent cast error
+    if (verificationDetails.verifiedById && !mongoose.Types.ObjectId.isValid(verificationDetails.verifiedById)) {
+      delete verificationDetails.verifiedById;
+    }
 
     // Update student document
     const updateData = {

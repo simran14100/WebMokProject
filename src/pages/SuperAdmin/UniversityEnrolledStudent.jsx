@@ -141,9 +141,14 @@ const UniversityEnrolledStudent = () => {
     },
     {
       title: 'Course',
-      dataIndex: 'course',
       key: 'course',
-      width: 120,
+      width: 150,
+      render: (_, record) => (
+        <div className="flex flex-col">
+          <span className="font-medium">{record.course?.courseName || 'N/A'}</span>
+         
+        </div>
+      ),
     },
     {
       title: 'Specialization',
