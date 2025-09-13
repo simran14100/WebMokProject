@@ -82,6 +82,7 @@ import CourseworkDatesheet from './components/core/SuperAdmin/CourseworkDateshee
 import CourseworkResults from './components/core/SuperAdmin/CourseworkResults';
 import StudentReports from './components/core/SuperAdmin/StudentReports';
 import GuideManagement from './components/core/SuperAdmin/GuideManagement';
+import TimeTable from './pages/Dashboard/TimeTable';
 import RacMembers from './components/core/SuperAdmin/RacMembers';
 import ExternalExperts from './components/core/SuperAdmin/ExternalExperts';
 import Leave from './pages/Dashboard/Leave';
@@ -229,6 +230,11 @@ function AppRoutes() {
         <Route path="exam-schedule" element={
           <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT]}>
             <ExamSchedule />
+          </ProtectedRoute>
+        } />
+        <Route path="timetable" element={
+          <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT]}>
+            <TimeTable />
           </ProtectedRoute>
         } />
         <Route path="leave-requests" element={

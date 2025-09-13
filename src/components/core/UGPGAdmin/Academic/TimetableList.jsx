@@ -323,12 +323,12 @@ const TimetableList = () => {
     <>
       <Card 
         title={
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' , marginTop:"11rem" }}>
             <span>Timetable Management</span>
             <Button 
               type="primary" 
               icon={<PlusOutlined />} 
-              onClick={() => navigate('/ugpg-admin/academic/timetable/new')}
+              onClick={() => navigate('/ugpg-admin/academic/timetable-add')}
             >
               Add Timetable
             </Button>

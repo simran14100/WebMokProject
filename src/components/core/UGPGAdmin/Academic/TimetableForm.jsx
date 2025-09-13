@@ -504,15 +504,21 @@ const TimetableForm = () => {
     try {
       setSubmitting(true);
       
+      // Helper function to extract ID from potential object
+      const extractId = (value) => {
+        if (!value) return value;
+        return typeof value === 'object' ? value.value || value._id || value : value;
+      };
+      
       const timetableData = {
         ...values,
-        // Ensure we're only sending IDs for references
-        school: values.school,
-        session: values.session,
-        subject: values.subject,
-        faculty: values.faculty,
-        course: values.course,
-        semester: values.semester, // Make sure semester is included
+        // Extract IDs for all reference fields
+        school: extractId(values.school),
+        session: extractId(values.session),
+        subject: extractId(values.subject),
+        faculty: extractId(values.faculty),
+        course: extractId(values.course),
+        semester: values.semester,
       };
       
       console.log('Submitting timetable data:', timetableData); // Debug log
@@ -599,7 +605,7 @@ const TimetableForm = () => {
   }, [id]);
 
   return (
-    <div style={{ padding: '16px' }}>
+    <div style={{ padding: '16px'  , marginTop:"11rem"}}>
       <Button 
         type="text" 
         icon={<ArrowLeftOutlined />} 

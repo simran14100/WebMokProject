@@ -205,7 +205,7 @@ const TeacherList = () => {
   }, []);
 
   return (
-    <div style={{ padding: "16px" , marginTop:"4rem"}}>
+    <div style={{ padding: "16px" , marginTop:"7rem"}}>
   <div style={{ marginBottom: "16px" }}>
     <h2 style={{ fontSize: "20px", fontWeight: "bold", marginBottom: "16px" }}>
       Manage Teachers

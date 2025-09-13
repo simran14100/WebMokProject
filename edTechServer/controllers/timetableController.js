@@ -2,6 +2,7 @@ const Timetable = require('../models/Timetable');
 const UGPGCourse = require('../models/UGPGCourse');
 const asyncHandler = require('express-async-handler');
 const ApiError = require('../utils/ApiError');
+const UniversityRegisteredStudent = require('../models/UniversityRegisteredStudent');
 
 // @desc    Create a new timetable entry
 // @route   POST /api/v1/timetable
@@ -144,6 +145,74 @@ exports.getTimetables = asyncHandler(async (req, res) => {
 // @desc    Get single timetable entry
 // @route   GET /api/v1/timetable/:id
 // @access  Private
+// @desc    Get student's timetable
+// @route   GET /api/v1/timetable/student
+// @access  Private/Student
+exports.getStudentTimetable = asyncHandler(async (req, res, next) => {
+  try {
+    // Get student's details
+    const student = await UniversityRegisteredStudent.findOne({ user: req.user.id })
+      .populate('course', 'name courseType');
+
+    if (!student) {
+      return next(new ApiError('Student not found', 404));
+    }
+
+    // Use the semester from query params if provided, otherwise use student's current semester
+    const semester = req.query.semester || student.currentSemester || 'Semester 1';
+
+    // Get timetable for student's course and selected semester
+    const timetable = await Timetable.find({
+      course: student.course._id,
+      semester: semester
+    })
+    .populate('subject', 'name code')
+    .populate('faculty', 'name')
+    .populate('course', 'name')
+    .populate('school', 'name')
+    .sort({ day: 1, timeSlot: 1 });
+
+    res.status(200).json({
+      success: true,
+      data: timetable,
+      semester: semester, // Return the actual semester used
+      course: student.course
+    });
+  } catch (error) {
+    console.error('Error fetching student timetable:', error);
+    next(new ApiError('Failed to fetch student timetable', 500));
+  }
+});
+
+// @desc    Get all semesters that have timetable entries
+// @route   GET /api/v1/timetable/semesters
+// @access  Private/Student
+exports.getTimetableSemesters = asyncHandler(async (req, res, next) => {
+  try {
+    // Get student's details
+    const student = await UniversityRegisteredStudent.findOne({ user: req.user.id })
+      .populate('course', 'name courseType');
+
+    if (!student) {
+      return next(new ApiError('Student not found', 404));
+    }
+
+    // Get all unique semesters for the student's course
+    const semesters = await Timetable.distinct('semester', {
+      course: student.course._id
+    }).sort();
+
+    res.status(200).json({
+      success: true,
+      semesters
+    });
+  } catch (error) {
+    console.error('Error fetching timetable semesters:', error);
+    next(new ApiError('Failed to fetch timetable semesters', 500));
+  }
+});
+
+// @desc    Get single timetable entry
 exports.getTimetable = asyncHandler(async (req, res, next) => {
   const timetable = await Timetable.findById(req.params.id)
     .populate({
