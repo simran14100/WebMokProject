@@ -31,6 +31,51 @@ const TimetableList = () => {
   // Course types for filtering
   const courseTypes = ['Certificate', 'Diploma', 'Bachelor Degree', 'Master Degree'];
 
+  // Group timetables by common fields
+  const groupTimetables = (timetables) => {
+    const groups = {};
+    
+    timetables.forEach(entry => {
+      if (!entry) return;
+      
+      const key = [
+        entry.course?._id || '',
+        entry.subject?._id || '',
+        entry.semester || '',
+        entry.school?._id || ''
+      ].join('|');
+      
+      if (!groups[key]) {
+        groups[key] = {
+          ...entry,
+          timeSlots: [],
+          key: key,
+          id: entry._id
+        };
+      }
+      
+      // Add time slot to the group
+      if (entry.timeSlot) {
+        const timeSlot = {
+          time: entry.timeSlot,
+          day: entry.day,
+          id: entry._id
+        };
+        
+        // Check if this time slot already exists (avoid duplicates)
+        const exists = groups[key].timeSlots.some(
+          ts => ts.time === timeSlot.time && ts.day === timeSlot.day
+        );
+        
+        if (!exists) {
+          groups[key].timeSlots.push(timeSlot);
+        }
+      }
+    });
+    
+    return Object.values(groups);
+  };
+
   // Load timetables
   const loadTimetables = async (params = {}) => {
     try {
@@ -38,7 +83,7 @@ const TimetableList = () => {
       const { current, pageSize, ...filters } = params;
       const queryParams = {
         page: current || 1,
-        limit: pageSize || 10,
+        limit: 1000, // Get more records to group properly
         ...filters
       };
       
@@ -46,57 +91,56 @@ const TimetableList = () => {
       const response = await TIMETABLE_API.getTimetables(queryParams);
       console.log('Timetables API response:', response);
       
-      // Handle different response formats
+      let processedData = [];
+      
+      // Handle different response formats and process data
       if (response && response.success !== false) {
         // Case 1: Standard API response with data and pagination
         if (response.data && Array.isArray(response.data)) {
           console.log('Handling standard paginated response');
-          setTimetables(response.data);
+          processedData = groupTimetables(response.data);
           setPagination(prev => ({
             ...prev,
             current: response.pagination?.currentPage || response.pagination?.page || 1,
             pageSize: response.pagination?.itemsPerPage || response.pagination?.limit || 10,
             total: response.pagination?.total || response.count || response.data.length,
           }));
-          return;
         }
-        
         // Case 2: Direct array response
-        if (Array.isArray(response)) {
+        else if (Array.isArray(response)) {
           console.log('Handling direct array response');
-          setTimetables(response);
+          processedData = groupTimetables(response);
           setPagination(prev => ({
             ...prev,
             current: 1,
             pageSize: 10,
             total: response.length,
           }));
-          return;
         }
-        
         // Case 3: Response with data property that might be an object
-        if (response.data && typeof response.data === 'object') {
+        else if (response.data && typeof response.data === 'object') {
           console.log('Handling object response with data property');
           const dataArray = Object.values(response.data);
-          setTimetables(Array.isArray(dataArray) ? dataArray : []);
+          processedData = groupTimetables(Array.isArray(dataArray) ? dataArray : []);
           setPagination(prev => ({
             ...prev,
             current: 1,
             pageSize: 10,
             total: Array.isArray(dataArray) ? dataArray.length : 0,
           }));
-          return;
         }
       }
       
-      // If we get here, the response format is unexpected
-      console.error('Unexpected response format:', response);
-      setTimetables([]);
-      setPagination(prev => ({
-        ...prev,
-        current: 1,
-        total: 0
-      }));
+      setTimetables(processedData);
+      
+      if (processedData.length === 0) {
+        console.error('No valid timetable data found in response:', response);
+        setPagination(prev => ({
+          ...prev,
+          current: 1,
+          total: 0
+        }));
+      }
     } catch (error) {
       console.error('Error loading timetables:', error);
       showError(error.response?.data?.message || 'Failed to load timetable');
@@ -147,6 +191,38 @@ const TimetableList = () => {
     loadTimetables({ ...pagination, ...newFilters, current: 1 });
   };
 
+  // Format time slots for display
+  const formatTimeSlots = (timeSlots) => {
+    if (!timeSlots || timeSlots.length === 0) return 'N/A';
+    
+    // Group by day
+    const byDay = {};
+    timeSlots.forEach(slot => {
+      if (!byDay[slot.day]) {
+        byDay[slot.day] = [];
+      }
+      byDay[slot.day].push(slot.time);
+    });
+    
+    // Sort days according to the week order
+    const dayOrder = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const sortedDays = Object.keys(byDay).sort((a, b) => 
+      dayOrder.indexOf(a) - dayOrder.indexOf(b)
+    );
+    
+    // Format each day's time slots
+    return sortedDays.map(day => (
+      <div key={day} style={{ 
+        marginBottom: 8,
+        padding: '4px 8px',
+        backgroundColor: '#f8f9fa',
+        borderRadius: 4
+      }}>
+        <strong style={{ color: '#1890ff' }}>{day}:</strong> {byDay[day].sort().join(', ')}
+      </div>
+    ));
+  };
+
   // Columns for the table
   const columns = [
     {
@@ -158,52 +234,52 @@ const TimetableList = () => {
           <div><small>{record.courseType}</small></div>
         </div>
       ),
+      sorter: (a, b) => (a.course?.name || '').localeCompare(b.course?.name || ''),
     },
     {
       title: 'Semester',
       dataIndex: 'semester',
       key: 'semester',
-      render: (semester) => semester || 'N/A',
-    },
-    {
-      title: 'Day',
-      dataIndex: 'day',
-      key: 'day',
-      filters: daysOfWeek.map(day => ({ text: day, value: day })),
-      onFilter: (value, record) => record.day === value,
-    },
-    {
-      title: 'Time Slot',
-      dataIndex: 'timeSlot',
-      key: 'timeSlot',
-    },
-    {
-      title: 'Course Type',
-      dataIndex: 'courseType',
-      key: 'courseType',
-      filters: courseTypes.map(type => ({ text: type, value: type })),
-      onFilter: (value, record) => record.courseType === value,
-    },
-    {
-      title: 'School',
-      dataIndex: ['school', 'name'],
-      key: 'school',
-    },
-    {
-      title: 'Session',
-      dataIndex: ['session', 'name'],
-      key: 'session',
+      render: (semester) => ` ${semester}`,
+      sorter: (a, b) => (a.semester || '').localeCompare(b.semester || ''),
     },
     {
       title: 'Subject',
-      dataIndex: ['subject', 'name'],
       key: 'subject',
       render: (_, record) => (
         <div>
-          <div>{record.subject?.name}</div>
-          <div><small>{record.subject?.code}</small></div>
+          <div>{record.subject?.name || 'N/A'}</div>
+          {record.subject?.code && <div><small>{record.subject.code}</small></div>}
         </div>
       ),
+      sorter: (a, b) => (a.subject?.name || '').localeCompare(b.subject?.name || ''),
+    },
+    {
+      title: 'School',
+      key: 'school',
+      render: (_, record) => record.school?.name || 'N/A',
+      sorter: (a, b) => (a.school?.name || '').localeCompare(b.school?.name || ''),
+    },
+    {
+      title: 'Schedule',
+      key: 'schedule',
+      render: (_, record) => (
+        <div>
+          {record.timeSlots && record.timeSlots.length > 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              {formatTimeSlots(record.timeSlots)}
+            </div>
+          ) : (
+            'No schedule set'
+          )}
+        </div>
+      ),
+    },
+    {
+      title: 'Session',
+      key: 'session',
+      render: (_, record) => record.session?.name || 'N/A',
+      sorter: (a, b) => (a.session?.name || '').localeCompare(b.session?.name || '')
     },
     {
       title: 'Room',
@@ -244,56 +320,77 @@ const TimetableList = () => {
   }, []);
 
   return (
-    <div style={{ padding: '16px', marginTop:"7rem" }}>
+    <>
       <Card 
-        title="Timetable Management" 
-        extra={
-          <Button 
-            type="primary" 
-            icon={<PlusOutlined />}
-            onClick={() => navigate('/ugpg-admin/academic/timetable-add')}
-            title="Add New Timetable"
-          >
-            Add Timetable
-          </Button>
+        title={
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <span>Timetable Management</span>
+            <Button 
+              type="primary" 
+              icon={<PlusOutlined />} 
+              onClick={() => navigate('/ugpg-admin/academic/timetable/new')}
+            >
+              Add Timetable
+            </Button>
+          </div>
         }
+        bordered={false}
+        style={{ borderRadius: 8, boxShadow: '0 1px 2px 0 rgba(0, 0, 0, 0.03)' }}
       >
-        <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
-          <Col xs={24} md={6}>
-            <Select
-              placeholder="Filter by Course Type"
-              style={{ width: '100%' }}
-              allowClear
-              onChange={(value) => handleFilterChange('courseType', value)}
-            >
-              {courseTypes.map(type => (
-                <Option key={type} value={type}>{type}</Option>
-              ))}
-            </Select>
-          </Col>
-          <Col xs={24} md={6}>
-            <Select
-              placeholder="Filter by Day"
-              style={{ width: '100%' }}
-              allowClear
-              onChange={(value) => handleFilterChange('day', value)}
-            >
-              {daysOfWeek.map(day => (
-                <Option key={day} value={day}>{day}</Option>
-              ))}
-            </Select>
-          </Col>
-        </Row>
-
-        <Table
-          columns={columns}
-          dataSource={timetables}
-          rowKey="_id"
-          loading={loading}
-          pagination={pagination}
-          onChange={handleTableChange}
-          scroll={{ x: true }}
-        />
+      <div style={{ marginBottom: 16 }}>
+        <Space>
+          <Select
+            placeholder="Filter by Course Type"
+            style={{ width: 200 }}
+            allowClear
+            onChange={(value) => handleFilterChange('courseType', value)}
+          >
+            {courseTypes.map(type => (
+              <Select.Option key={type} value={type}>{type}</Select.Option>
+            ))}
+          </Select>
+          <Select
+            placeholder="Filter by Day"
+            style={{ width: 150 }}
+            allowClear
+            onChange={(value) => handleFilterChange('day', value)}
+          >
+            {daysOfWeek.map(day => (
+              <Select.Option key={day} value={day}>{day}</Select.Option>
+            ))}
+          </Select>
+        </Space>
+      </div>
+      
+      <Table
+        columns={columns}
+        dataSource={timetables}
+        rowKey="_id"
+        pagination={{
+          ...pagination,
+          showSizeChanger: true,
+          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} entries`,
+          pageSizeOptions: ['10', '20', '50', '100']
+        }}
+        loading={loading}
+        onChange={handleTableChange}
+        scroll={{ x: true }}
+        style={{ borderRadius: 8 }}
+        rowClassName={() => 'timetable-row'}
+      />
+      
+      <style jsx global>{`
+        .ant-table-thead > tr > th {
+          background: #fafafa;
+          font-weight: 600;
+        }
+        .timetable-row:hover td {
+          background: #f6f9ff !important;
+        }
+        .ant-table-tbody > tr > td {
+          transition: background 0.3s;
+        }
+      `}</style>
       </Card>
 
       {/* Delete confirmation modal */}
@@ -312,7 +409,7 @@ const TimetableList = () => {
           </p>
         )}
       </Modal>
-    </div>
+    </>
   );
 };
 
