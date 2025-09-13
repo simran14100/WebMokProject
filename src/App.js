@@ -84,11 +84,13 @@ import StudentReports from './components/core/SuperAdmin/StudentReports';
 import GuideManagement from './components/core/SuperAdmin/GuideManagement';
 import RacMembers from './components/core/SuperAdmin/RacMembers';
 import ExternalExperts from './components/core/SuperAdmin/ExternalExperts';
-import LeaveRequests from './components/core/UGPGAdmin/Settings/LeaveRequests';
+import Leave from './pages/Dashboard/Leave';
 import FinalData from './components/core/SuperAdmin/FinalData';
 import UsersManagement from './components/core/SuperAdmin/UsersManagement';
 import Feetype from './components/core/UGPGAdmin/Fees/Feetype';
 import ManageFee from './components/core/UGPGAdmin/Fees/ManageFee';
+import TeacherList from './components/core/UGPGAdmin/Users/TeacherList';
+import TeacherForm from './components/core/UGPGAdmin/Users/TeacherForm';
 import HonoraryApplications from './components/core/SuperAdmin/HonoraryApplications';
 import MyCourses from "./pages/MyCourses";
 import LiveClasses from "./pages/LiveClasses";
@@ -103,6 +105,8 @@ import ExamSchedule from './pages/Dashboard/ExamSchedule';
 import AdmissionEnquiry from './pages/SuperAdmin/AdmissionEnquiry';
 import AcademicSession from './components/core/UGPGAdmin/Academic/AcademicSession';
 import ExamSession from './components/core/UGPGAdmin/Academic/ExamSession';
+import TimetableList from './components/core/UGPGAdmin/Academic/TimetableList';
+import TimetableForm from './components/core/UGPGAdmin/Academic/TimetableForm';
 import CourseTypes from './components/core/UGPGAdmin/Academic/CourseTypes';
 import Courses from './components/core/UGPGAdmin/Academic/Courses';
 import Streams from './components/core/UGPGAdmin/Academic/Streams';
@@ -111,7 +115,7 @@ import UGPGFrontDesk from './components/core/UGPGAdmin/FrontDesk';
 import UGPGAdmissions from './components/core/UGPGAdmin/Admissions';
 // import UGPGFee from './components/core/UGPGAdmin/Fee';
 import UGPGAccounts from './components/core/UGPGAdmin/Accounts';
-import UGPGSettingsUsers from './components/core/UGPGAdmin/Settings/Users';
+
 import UGPGSettingsSchool from './components/core/UGPGAdmin/Settings/School';
 import UGPGSettingsLanguages from './components/core/UGPGAdmin/Settings/Languages';
 import UGPGSettingsStates from './components/core/UGPGAdmin/Settings/States';
@@ -228,9 +232,7 @@ function AppRoutes() {
           </ProtectedRoute>
         } />
         <Route path="leave-requests" element={
-        
-            <LeaveRequests />
-        
+            <Leave />
         } />
         <Route path="results" element={<div>Results</div>} />
         <Route path="fees" element={<div>Fees & Payments</div>} />
@@ -307,19 +309,22 @@ function AppRoutes() {
           </ProtectedRoute>
         } />
         <Route path="settings" element={<UGPGSettings />} />
-        <Route path="settings/users" element={<UGPGSettingsUsers />} />
+       
         <Route path="settings/school" element={<UGPGSettingsSchool />} />
         <Route path="settings/languages" element={<UGPGSettingsLanguages />} />
         <Route path="settings/states" element={<UGPGSettingsStates />} />
         <Route path="settings/cities" element={<UGPGSettingsCities />} />
         <Route path="settings/leave-request" element={
           <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
-            <LeaveRequests />
+            <Leave />
           </ProtectedRoute>
         } />
         <Route path="academic" element={<UGPGAcademic />} />
         <Route path="academic/session" element={<AcademicSession />} />
         <Route path="academic/exam-session" element={<ExamSession />} />
+        <Route path="academic/timetable" element={<TimetableList />} />
+        <Route path="academic/timetable-add" element={<TimetableForm />} />
+        <Route path="academic/timetable-edit/:id" element={<TimetableForm />} />
         <Route path="academic/course-types" element={<CourseTypes />} />
         <Route path="academic/courses" element={<Courses />} />
         <Route path="academic/streams" element={<Streams />} />
@@ -355,6 +360,25 @@ function AppRoutes() {
             <ManageFee />
           </ProtectedRoute>
         } />
+        
+        {/* Teacher Management */}
+        <Route path="teachers">
+          <Route index element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
+              <TeacherList />
+            </ProtectedRoute>
+          } />
+          <Route path="add" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
+              <TeacherForm />
+            </ProtectedRoute>
+          } />
+          <Route path="edit/:id" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
+              <TeacherForm />
+            </ProtectedRoute>
+          } />
+        </Route>
       </Route>
       <Route path="/phd-admin" element={
         <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.SUPER_ADMIN]}>

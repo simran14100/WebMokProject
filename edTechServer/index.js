@@ -61,6 +61,7 @@ const universityRegisteredStudentRoutes = require("./routes/universityRegistered
 const universityEnrolledStudentRoutes = require("./routes/universityEnrolledStudentRoutes");
 const feeTypeRoutes = require("./routes/feeTypeRoutes");
 const feeAssignmentRoutes = require("./routes/feeAssignmentRoutes");
+const timetableRoutes = require("./routes/timetableRoutes");
 
 const database = require("./config/database");
 const cookieParser = require("cookie-parser");
@@ -82,25 +83,62 @@ app.use((req, res, next) => {
     'http://localhost:3000', 
     'http://localhost:3001', 
     'http://localhost:4000', 
-    'http://localhost:4001'
+    'http://localhost:4001',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:4000'
   ];
   const origin = req.headers.origin;
   
   if (allowedOrigins.includes(origin)) {
     res.header('Access-Control-Allow-Origin', origin);
+  } else if (process.env.NODE_ENV !== 'production') {
+    // In development, allow any origin
+    res.header('Access-Control-Allow-Origin', origin || '*');
   }
   
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, PATCH, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Requested-With, Accept, Origin, withCredentials, skipauth, X-Skip-Interceptor, cache-control, pragma, expires, headers');
+  // Allow all methods
+  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+  
+  // Allow all headers
+  res.header('Access-Control-Allow-Headers', [
+    'Content-Type',
+    'Authorization',
+    'X-Requested-With',
+    'Accept',
+    'Origin',
+    'withCredentials',
+    'skipauth',
+    'X-Skip-Interceptor',
+    'cache-control',
+    'pragma',
+    'expires',
+    'headers',
+    'total',
+    'x-total-count',
+    'limit',
+    'page',
+    'range',
+    'content-range'
+  ].join(', '));
+  
+  // Expose custom headers to the client
+  res.header('Access-Control-Expose-Headers', [
+    'Content-Range',
+    'X-Total-Count',
+    'total',
+    'x-total-count',
+    'limit',
+    'page',
+    'range',
+    'content-range'
+  ].join(', '));
+  
   res.header('Access-Control-Allow-Credentials', 'true');
   res.header('Access-Control-Max-Age', '86400');
   
   // Handle preflight requests
   if (req.method === 'OPTIONS') {
-    return res.status(200).json({
-      status: 200,
-      message: 'Preflight check successful'
-    });
+    return res.status(204).end(); // 204 No Content for preflight
   }
   
   next();
@@ -208,6 +246,7 @@ app.use("/api/v1/ugpg/courses", ugpgCourseRoutes);
 app.use("/api/v1/ugpg/subjects", ugpgSubjectRoutes);
 app.use("/api/v1/super-admin", superAdminRoutes);
 app.use("/api/v1/languages", languageRoutes);
+app.use("/api/v1/teachers", require('./routes/teacherRoutes'));
 app.use("/api/v1/ugpg/visitor-logs", ugpgVisitorLogRoutes);
 app.use("/api/v1/visit-purposes", visitPurposeRoutes);
 app.use("/api/v1/honorary-enquiries", honoraryEnquiryRoutes);
@@ -217,6 +256,7 @@ app.use("/api/v1/university/enrolled-students", universityEnrolledStudentRoutes)
 app.use("/api/v1/university/fee-types", feeTypeRoutes);
 app.use("/api/v1/university/fee-assignments", feeAssignmentRoutes);
 app.use("/api/v1/leave-requests", leaveRequestRoutes);
+app.use("/api/v1/timetable", timetableRoutes);
 // Direct binding for critical profile update route (temporary safeguard)
 const { auth } = require("./middlewares/auth");
 const { updateProfile } = require("./controllers/Profile");

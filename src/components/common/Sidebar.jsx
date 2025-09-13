@@ -203,12 +203,11 @@ const getSidebarLinks = (user, variant = 'default') => {
         name: 'Settings', 
         icon: <VscGear style={{ fontSize: 20, color: ED_TEAL }} />, 
         subLinks: [
-          { name: 'Users', path: '/ugpg-admin/settings/users', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Users', path: '/ugpg-admin/teachers', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'School', path: '/ugpg-admin/settings/school', icon: <VscOrganization style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Languages', path: '/ugpg-admin/settings/languages', icon: <VscBook style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'States', path: '/ugpg-admin/settings/states', icon: <VscListTree style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Leave Request', path: '/ugpg-admin/settings/leave-request', icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} /> },
-          // 
         ]
       },
       { 
@@ -223,7 +222,7 @@ const getSidebarLinks = (user, variant = 'default') => {
 
           // { name: 'Streams', path: '/ugpg-admin/academic/streams', icon: <VscFiles style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Subjects/Papers', path: '/ugpg-admin/academic/subjects-papers', icon: <VscLibrary style={{ fontSize: 20, color: ED_TEAL }} /> },
-          { id: 2025, name: 'Timetable', path: '/ugpg-admin/timetable', icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Timetable', path: '/ugpg-admin/academic/timetable', icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Exam Session', path: '/ugpg-admin/academic/exam-session', icon: <VscListSelection style={{ fontSize: 20, color: ED_TEAL }} /> },
 
         ]
@@ -263,6 +262,17 @@ const getSidebarLinks = (user, variant = 'default') => {
       // Newly added: Timetable link right after Admissions
      
 
+      { id: 250, name: 'TEACHER MANAGEMENT', isHeader: true, icon: <VscPerson style={{ fontSize: 20, color: ED_TEAL }} /> },
+      {
+        id: 251,
+        name: 'Teachers',
+        icon: <VscPerson style={{ fontSize: 20, color: ED_TEAL }} />,
+        subLinks: [
+          { name: 'All Teachers', path: '/ugpg-admin/teachers', icon: <VscListUnordered style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Add New Teacher', path: '/ugpg-admin/teachers/add', icon: <VscAdd style={{ fontSize: 20, color: ED_TEAL }} /> },
+        ]
+      },
+      
       { id: 300, name: 'ACCOUNTS', isHeader: true, icon: <VscBriefcase style={{ fontSize: 20, color: ED_TEAL }} /> },
       {
         id: 301,

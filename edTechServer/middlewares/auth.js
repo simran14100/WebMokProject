@@ -9,26 +9,38 @@ dotenv.config();
 
 // This function is used as middleware to authenticate user requests
 exports.auth = exports.protect = async (req, res, next) => {
+  console.log('=== AUTH MIDDLEWARE START ===');
+  console.log('Request URL:', req.originalUrl);
+  console.log('Request Method:', req.method);
+  console.log('Request Headers:', {
+    authorization: req.headers.authorization ? '***present***' : 'missing',
+    cookie: req.headers.cookie ? '***present***' : 'missing'
+  });
+  
   try {
     // Extract token from headers, cookies, or body
     let token = null;
+    let tokenSource = 'none';
 
     // Try extracting from header (Bearer token)
     if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
       token = req.headers.authorization.split(" ")[1];
+      tokenSource = 'authorization header';
     }
     // Fallback to cookies or body if needed
     else if (req.cookies && req.cookies.token) {
       token = req.cookies.token;
+      tokenSource = 'cookie';
     } else if (req.body && req.body.token) {
       token = req.body.token;
+      tokenSource = 'request body';
     }
 
-    console.log("Authorization Header:", req.headers.authorization);
+    console.log(`Token found in ${tokenSource}:`, token ? '***present***' : 'missing');
     
     // If JWT is missing, return 401 Unauthorized response
     if (!token) {
-      console.error('No token provided');
+      console.error('No authentication token found in request');
       return res.status(401).json({ 
         success: false, 
         message: 'Authentication required. Please log in.' 
@@ -36,17 +48,26 @@ exports.auth = exports.protect = async (req, res, next) => {
     }
 
     try {
-      console.log("JWT_SECRET:", process.env.JWT_SECRET);
+      console.log('Verifying JWT token...');
       
       // Verify the JWT
-      const decoded = await jwt.verify(token, process.env.JWT_SECRET);
-      console.log("Decoded Token:", decoded);
+      const decoded = jwt.decode(token, { complete: true });
+      console.log('Decoded token header:', decoded?.header);
+      console.log('Decoded token payload:', decoded?.payload);
+      
+      const verified = await jwt.verify(token, process.env.JWT_SECRET);
+      console.log('JWT verification successful:', {
+        userId: verified?.id,
+        iat: verified?.iat ? new Date(verified.iat * 1000).toISOString() : null,
+        exp: verified?.exp ? new Date(verified.exp * 1000).toISOString() : null
+      });
       
       // Get user from the database
-      const user = await User.findById(decoded.id).select('-password');
+      console.log('Fetching user from database with ID:', verified.id);
+      const user = await User.findById(verified.id).select('-password');
       
       if (!user) {
-        console.error('User not found for token:', decoded.id);
+        console.error('User not found for token ID:', verified.id);
         return res.status(401).json({ 
           success: false, 
           message: 'User not found. Please log in again.' 

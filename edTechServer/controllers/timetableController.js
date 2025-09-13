@@ -1,0 +1,213 @@
+const Timetable = require('../models/Timetable');
+const UGPGCourse = require('../models/UGPGCourse');
+const asyncHandler = require('express-async-handler');
+const ApiError = require('../utils/ApiError');
+
+// @desc    Create a new timetable entry
+// @route   POST /api/v1/timetable
+// @access  Private/Admin
+exports.createTimetable = asyncHandler(async (req, res, next) => {
+  // Validate course exists
+  const course = await UGPGCourse.findById(req.body.course);
+  if (!course) {
+    return next(new ApiError(`No course found with id ${req.body.course}`, 404));
+  }
+
+  const timetable = await Timetable.create(req.body);
+  
+  // Populate the course field in the response
+  await timetable.populate('course', 'name code');
+  
+  res.status(201).json({
+    success: true,
+    data: timetable
+  });
+});
+
+// @desc    Get all timetable entries
+// @route   GET /api/v1/timetable
+// @access  Private
+exports.getTimetables = asyncHandler(async (req, res) => {
+  // Filtering
+  const { courseType, course, school, session, day, ...otherFilters } = req.query;
+  
+  // Build query with proper ObjectId conversion
+  const { ObjectId } = require('mongoose').Types;
+  let query = {};
+  
+  // Handle each query parameter with proper type conversion
+  if (courseType) query.courseType = courseType;
+  if (course) query.course = ObjectId.isValid(course) ? new ObjectId(course) : course;
+  if (school) query.school = ObjectId.isValid(school) ? new ObjectId(school) : school;
+  if (session) query.session = ObjectId.isValid(session) ? new ObjectId(session) : session;
+  if (day) query.day = day;
+  
+  // Log the final query
+  console.log('Final query:', JSON.stringify(query, null, 2));
+
+  // Pagination
+  const page = parseInt(req.query.page, 10) || 1;
+  const limit = parseInt(req.query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
+
+  // Sorting
+  let sort = {};
+  if (req.query.sortBy) {
+    const [field, order] = req.query.sortBy.split(':');
+    sort[field] = order === 'desc' ? -1 : 1;
+  } else {
+    sort = { createdAt: -1 }; // Default sort by newest
+  }
+
+  // Log the query for debugging
+  console.log('Executing query:', JSON.stringify(query, null, 2));
+  
+  // Execute query with pagination
+  const [timetables, total] = await Promise.all([
+    Timetable.find(query)
+      .populate({
+        path: 'school',
+        select: 'name',
+        strictPopulate: false
+      })
+      .populate({
+        path: 'session',
+        select: 'name',
+        strictPopulate: false
+      })
+      .populate({
+        path: 'course',
+        select: 'name code',
+        strictPopulate: false
+      })
+      .populate({
+        path: 'subject',
+        select: 'name code',
+        strictPopulate: false
+      })
+      .populate({
+        path: 'faculty',
+        select: 'name email',
+        strictPopulate: false
+      })
+      .sort(sort)
+      .skip(skip)
+      .limit(limit)
+      .lean(), // Convert to plain JavaScript objects
+    Timetable.countDocuments(query)
+  ]);
+  
+  console.log(`Found ${timetables.length} timetables out of ${total} total`);
+  console.log('Sample timetable:', timetables[0]);
+
+  // Calculate pagination values
+  const pages = Math.ceil(total / limit);
+  const hasNextPage = page < pages;
+  const hasPreviousPage = page > 1;
+
+  // Set pagination headers
+  res.set({
+    'X-Total-Count': total,
+    'X-Total-Pages': pages,
+    'X-Current-Page': page,
+    'X-Per-Page': limit,
+    'X-Has-Next-Page': hasNextPage,
+    'X-Has-Previous-Page': hasPreviousPage
+  });
+
+  res.status(200).json({
+    success: true,
+    count: timetables.length,
+    total,
+    pagination: {
+      total,
+      pages,
+      page,
+      limit,
+      hasNextPage,
+      hasPreviousPage
+    },
+    data: timetables
+  });
+});
+
+// @desc    Get single timetable entry
+// @route   GET /api/v1/timetable/:id
+// @access  Private
+exports.getTimetable = asyncHandler(async (req, res, next) => {
+  const timetable = await Timetable.findById(req.params.id)
+    .populate('school', 'name')
+    .populate('session', 'name')
+    .populate('course', 'name code')
+    .populate('subject', 'name code')
+    .populate('faculty', 'name email');
+
+  if (!timetable) {
+    return next(new ApiError(`No timetable found with id of ${req.params.id}`, 404));
+  }
+
+  res.status(200).json({
+    success: true,
+    data: timetable
+  });
+});
+
+// @desc    Update timetable entry
+// @route   PUT /api/v1/timetable/:id
+// @access  Private/Admin
+exports.updateTimetable = asyncHandler(async (req, res, next) => {
+  let timetable = await Timetable.findById(req.params.id);
+
+  if (!timetable) {
+    return next(new ApiError(`No timetable found with id of ${req.params.id}`, 404));
+  }
+
+  // If course is being updated, validate it exists
+  if (req.body.course) {
+    const course = await UGPGCourse.findById(req.body.course);
+    if (!course) {
+      return next(new ApiError(`No course found with id ${req.body.course}`, 404));
+    }
+  }
+
+  // First update the document
+  timetable = await Timetable.findByIdAndUpdate(
+    req.params.id, 
+    req.body, 
+    {
+      new: true,
+      runValidators: true
+    }
+  );
+  
+  // Then populate all necessary fields for the response
+  timetable = await Timetable.findById(timetable._id)
+    .populate('school', 'name')
+    .populate('session', 'name')
+    .populate('course', 'name code')
+    .populate('subject', 'name code')
+    .populate('faculty', 'name email');
+
+  res.status(200).json({
+    success: true,
+    data: timetable
+  });
+});
+
+// @desc    Delete timetable entry
+// @route   DELETE /api/v1/ugpg/timetable/:id
+// @access  Private/Admin
+exports.deleteTimetable = asyncHandler(async (req, res, next) => {
+  const timetable = await Timetable.findById(req.params.id);
+
+  if (!timetable) {
+    return next(new ApiError(`No timetable found with id of ${req.params.id}`, 404));
+  }
+
+  await timetable.remove();
+
+  res.status(200).json({
+    success: true,
+    data: {}
+  });
+});

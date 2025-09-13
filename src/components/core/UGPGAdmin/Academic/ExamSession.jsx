@@ -176,7 +176,7 @@ export default function ExamSession() {
         populate: 'session,school,subject'
       });
       
-      const response = await apiConnector("GET", "/api/v1/ugpg-exam/sessions", null, {}, { 
+      const response = await apiConnector("GET", "/api/v1/ugpg-exam", null, {}, { 
         page: currentPage,
         limit: EXAM_SESSION_LIMIT,
         search: searchQuery,
@@ -652,10 +652,10 @@ export default function ExamSession() {
       };
       
       if (editId) {
-        await apiConnector("PATCH", `/api/v1/ugpg-exam/sessions/${editId}`, payload);
+        await apiConnector("PATCH", `/api/v1/ugpg-exam/${editId}`, payload);
         showSuccess('Exam session updated successfully');
       } else {
-        await apiConnector("POST", "/api/v1/ugpg-exam/sessions", payload);
+        await apiConnector("POST", "/api/v1/ugpg-exam", payload);
         showSuccess('Exam session created successfully');
       }
       
@@ -736,7 +736,7 @@ export default function ExamSession() {
     
     try {
       setLoading(true);
-      await apiConnector("DELETE", `/api/v1/ugpg-exam/sessions/${id}`);
+      await apiConnector("DELETE", `/api/v1/ugpg-exam/${id}`);
       showSuccess('Exam session deleted successfully');
       await loadExamSessions();
     } catch (error) {

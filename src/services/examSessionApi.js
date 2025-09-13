@@ -1,6 +1,6 @@
 import { apiConnector } from "./apiConnector";
 
-const BASE = "/api/v1/ugpg-exam/sessions";
+const BASE = "/api/v1/ugpg-exam";
 
 export const listExamSessions = () => apiConnector("GET", `${BASE}`);
 
