@@ -84,6 +84,7 @@ import StudentReports from './components/core/SuperAdmin/StudentReports';
 import GuideManagement from './components/core/SuperAdmin/GuideManagement';
 import TimeTable from './pages/Dashboard/TimeTable';
 import RacMembers from './components/core/SuperAdmin/RacMembers';
+import ResultGeneration from './components/core/UGPGAdmin/Academic/ResultGeneration';
 import ExternalExperts from './components/core/SuperAdmin/ExternalExperts';
 import Leave from './pages/Dashboard/Leave';
 import FinalData from './components/core/SuperAdmin/FinalData';
@@ -335,6 +336,7 @@ function AppRoutes() {
         <Route path="academic/courses" element={<Courses />} />
         <Route path="academic/streams" element={<Streams />} />
         <Route path="academic/subjects-papers" element={<SubjectsPapers />} />
+        <Route path="academic/result-generation" element={<ResultGeneration />} />
         <Route path="front-desk" element={<UGPGFrontDesk />} />
         <Route path="admissions" element={<UGPGAdmissions />}>
           <Route path="enquiries" element={<AdmissionEnquiry />} />

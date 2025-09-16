@@ -224,6 +224,7 @@ const getSidebarLinks = (user, variant = 'default') => {
           { name: 'Subjects/Papers', path: '/ugpg-admin/academic/subjects-papers', icon: <VscLibrary style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Timetable', path: '/ugpg-admin/academic/timetable', icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Exam Session', path: '/ugpg-admin/academic/exam-session', icon: <VscListSelection style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Result Generation', path: '/ugpg-admin/academic/result-generation', icon: <VscGraph style={{ fontSize: 20, color: ED_TEAL }} /> },
 
         ]
       },

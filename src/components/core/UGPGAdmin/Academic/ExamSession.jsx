@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { showError, showSuccess } from "../../../../utils/toast";
 import { apiConnector } from "../../../../services/apiConnector";
+import { listExamSessions } from "../../../../services/examSessionApi";
 import { Edit as EditIcon, Delete as DeleteIcon, Search as SearchIcon, Add as AddIcon } from '@mui/icons-material';
 import {
   Box,
@@ -169,57 +170,76 @@ export default function ExamSession() {
         search: searchQuery 
       });
       
-      console.log('Making API request to /api/v1/ugpg-exam/sessions with params:', {
+      const result = await listExamSessions({
         page: currentPage,
         limit: EXAM_SESSION_LIMIT,
         search: searchQuery,
-        populate: 'session,school,subject'
+        populate: 'session,school,subject' // Ensure we're populating all related fields
       });
       
-      const response = await apiConnector("GET", "/api/v1/ugpg-exam", null, {}, { 
-        page: currentPage,
-        limit: EXAM_SESSION_LIMIT,
-        search: searchQuery,
-        populate: 'session,school,subject'
-      });
+      console.log('Exam sessions API result:', result);
       
-      console.log('Exam sessions response - full:', response);
-      console.log('Response data structure:', {
-        hasData: !!response?.data,
-        dataIsArray: Array.isArray(response?.data),
-        dataKeys: response?.data ? Object.keys(response.data) : 'no data',
-        firstItem: response?.data?.[0] ? {
-          keys: Object.keys(response.data[0]),
-          hasSession: 'session' in (response.data[0] || {}),
-          sessionType: typeof response.data[0]?.session,
-          sessionKeys: response.data[0]?.session ? Object.keys(response.data[0].session) : 'no session'
-        } : 'no items'
-      });
-      
-      if (response.data) {
-        const data = response.data.data || [];
-        const total = response.data.meta?.total || data.length;
-        
-        console.log('Raw API response data:', data);
-        
+      if (result.success) {
         // Transform the data to ensure we have the expected structure
-        const formattedSessions = data.map(session => {
+        const formattedSessions = (result.data || []).map(session => {
           console.log('Processing session:', session);
-          return {
+          
+          // Extract the actual data from the response
+          const sessionData = {
             ...session,
-            session: session.session || { _id: '', name: 'N/A' },
-            school: session.school || { _id: '', name: 'N/A' },
-            subject: session.subject || { _id: '', name: 'N/A' }
+            _id: session._id,
+            // Get session data from the populated field or use direct properties
+            sessionId: {
+              _id: session.session?._id || session.sessionId?._id || session._rawSession?._id || '',
+              name: session.session?.name || session.sessionId?.name || session._rawSession?.name || 'N/A'
+            },
+            
+            // Get school data from the populated field or use direct properties
+            schoolId: {
+              _id: session.school?._id || session.schoolId?._id || session._rawSchool?._id || '',
+              name: session.school?.name || session.schoolId?.name || session._rawSchool?.name || 'N/A'
+            },
+            
+            // Get subject data from the populated field or use direct properties
+            subjectId: {
+              _id: session.subject?._id || session.subjectId?._id || session._rawSubject?._id || '',
+              name: session.subject?.name || session.subjectId?.name || session._rawSubject?.name || 'N/A'
+            },
+            
+            // Other fields with defaults
+            semester: session.semester || 'N/A',
+            examDate: session.examDate,
+            examType: session.examType || 'theory',
+            status: session.status || 'Active'
           };
+          
+          console.log('Formatted session data:', sessionData);
+          return sessionData;
         });
         
-        console.log('Formatted sessions:', formattedSessions);
+        console.log('All formatted sessions:', formattedSessions);
+        
         setExamSessions(formattedSessions);
-        setTotalSessions(total);
+        setTotalSessions(result.pagination?.total || 0);
+        
+        // Update pagination if needed
+        if (result.pagination?.current) {
+          setPage(result.pagination.current);
+        }
+        if (result.pagination?.pageSize) {
+          setLimit(result.pagination.pageSize);
+        }
+      } else {
+        throw new Error(result.message || 'Failed to load exam sessions');
       }
     } catch (err) {
-      console.error('Failed to load exam sessions:', err);
-      const errorMessage = err?.response?.data?.message || err.message || 'Failed to load exam sessions';
+      console.error('Failed to load exam sessions:', {
+        message: err.message,
+        error: err,
+        stack: err.stack
+      });
+      
+      const errorMessage = err.message || 'Failed to load exam sessions';
       setError(errorMessage);
       setExamSessions([]);
       setTotalSessions(0);
@@ -809,92 +829,107 @@ export default function ExamSession() {
                 <td colSpan={9} style={{ padding: 16, textAlign: "center", color: "#64748b" }}>No data found</td>
               </tr>
             ) : (
-              paged.map((row, idx) => (
-                <tr key={idx} style={{ borderTop: "1px solid #f1f5f9" }}>
-                  <td style={{ padding: 12 }}>{row.sessionId?.name || 'N/A'}</td>
-                  <td style={{ padding: 12 }}>{row.subjectId?.name || 'N/A'}</td>
-                  <td style={{ padding: 12 }}>{row.schoolId?.name || 'N/A'}</td>
-                  <td style={{ padding: 12 }}>{row.semester || 'N/A'}</td>
-                  <td style={{ padding: 12, whiteSpace: 'nowrap' }}>
-                    {row.examDate ? new Date(row.examDate).toLocaleDateString('en-IN') : 'N/A'}
-                  </td>
-                  <td style={{ padding: 12, whiteSpace: 'nowrap' }}>
-                    {row.examDate ? new Date(row.examDate).toLocaleTimeString('en-IN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                      hour12: true
-                    }) : 'N/A'}
-                  </td>
-                  <td style={{ padding: 12 }}>
-                    <span style={{
-                      padding: '4px 8px',
-                      borderRadius: 12,
-                      fontSize: 12,
-                      fontWeight: 500,
-                      backgroundColor: row.examType === 'theory' ? '#dbeafe' : row.examType === 'practical' ? '#d1fae5' : '#f3e8ff',
-                      color: row.examType === 'theory' ? '#1e40af' : row.examType === 'practical' ? '#065f46' : '#6b21a8',
-                      textTransform: 'capitalize',
-                      display: 'inline-block',
-                      minWidth: '80px',
-                      textAlign: 'center'
-                    }}>
-                      {row.examType || 'N/A'}
-                    </span>
-                  </td>
-                  <td style={{ padding: 12 }}>
-                    <span style={{
-                      padding: '4px 12px',
-                      borderRadius: 12,
-                      fontSize: 12,
-                      fontWeight: 500,
-                      backgroundColor: row.status === 'active' ? '#d1fae5' : row.status === 'completed' ? '#fef3c7' : '#f3f4f6',
-                      color: row.status === 'active' ? '#065f46' : row.status === 'completed' ? '#92400e' : '#6b7280',
-                      display: 'inline-block',
-                      minWidth: '80px',
-                      textAlign: 'center',
-                      textTransform: 'capitalize'
-                    }}>
-                      {row.status || 'N/A'}
-                    </span>
-                  </td>
-                  <td style={{ padding: 12, whiteSpace: 'nowrap' }}>
-                    <button 
-                      onClick={() => handleEdit(row)}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: TEAL,
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
+              paged.map((row, idx) => {
+                // Log the data for debugging
+                console.log(`Rendering row ${idx}:`, {
+                  row,
+                  sessionName: row.sessionId?.name || row.sessionName,
+                  subjectName: row.subjectId?.name || row.subjectName,
+                  schoolName: row.schoolId?.name || row.schoolName
+                });
+                
+                // Get display names with fallbacks
+                const displaySession = row.sessionId?.name || row.sessionName || 'N/A';
+                const displaySubject = row.subjectId?.name || row.subjectName || 'N/A';
+                const displaySchool = row.schoolId?.name || row.schoolName || 'N/A';
+                
+                return (
+                  <tr key={idx} style={{ borderTop: "1px solid #f1f5f9" }}>
+                    <td style={{ padding: 12 }}>{displaySession}</td>
+                    <td style={{ padding: 12 }}>{displaySubject}</td>
+                    <td style={{ padding: 12 }}>{displaySchool}</td>
+                    <td style={{ padding: 12 }}>{row.semester || 'N/A'}</td>
+                    <td style={{ padding: 12, whiteSpace: 'nowrap' }}>
+                      {row.examDate ? new Date(row.examDate).toLocaleDateString('en-IN') : 'N/A'}
+                    </td>
+                    <td style={{ padding: 12, whiteSpace: 'nowrap' }}>
+                      {row.examDate ? new Date(row.examDate).toLocaleTimeString('en-IN', {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                      }) : 'N/A'}
+                    </td>
+                    <td style={{ padding: 12 }}>
+                      <span style={{
                         padding: '4px 8px',
-                        borderRadius: 4
-                      }}
-                    >
-                      <EditIcon fontSize="small" />
-                      <span>Edit</span>
-                    </button>
-                    <button 
-                      onClick={() => handleDelete(row._id)}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: '#ef4444',
-                        cursor: 'pointer',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: 4,
-                        padding: '4px 8px',
-                        borderRadius: 4
-                      }}
-                    >
-                      <DeleteIcon fontSize="small" />
-                      <span>Delete</span>
-                    </button>
-                  </td>
-                </tr>
-              ))
+                        borderRadius: 12,
+                        fontSize: 12,
+                        fontWeight: 500,
+                        backgroundColor: row.examType === 'theory' ? '#dbeafe' : row.examType === 'practical' ? '#d1fae5' : '#f3e8ff',
+                        color: row.examType === 'theory' ? '#1e40af' : row.examType === 'practical' ? '#065f46' : '#6b21a8',
+                        textTransform: 'capitalize',
+                        display: 'inline-block',
+                        minWidth: '80px',
+                        textAlign: 'center'
+                      }}>
+                        {row.examType || 'N/A'}
+                      </span>
+                    </td>
+                    <td style={{ padding: 12 }}>
+                      <span style={{
+                        padding: '4px 12px',
+                        borderRadius: 12,
+                        fontSize: 12,
+                        fontWeight: 500,
+                        backgroundColor: row.status === 'active' ? '#d1fae5' : row.status === 'completed' ? '#fef3c7' : '#f3f4f6',
+                        color: row.status === 'active' ? '#065f46' : row.status === 'completed' ? '#92400e' : '#6b7280',
+                        display: 'inline-block',
+                        minWidth: '80px',
+                        textAlign: 'center',
+                        textTransform: 'capitalize'
+                      }}>
+                        {row.status || 'N/A'}
+                      </span>
+                    </td>
+                    <td style={{ padding: 12, whiteSpace: 'nowrap' }}>
+                      <button 
+                        onClick={() => handleEdit(row)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: TEAL,
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          padding: '4px 8px',
+                          borderRadius: 4
+                        }}
+                      >
+                        <EditIcon fontSize="small" />
+                        <span>Edit</span>
+                      </button>
+                      <button 
+                        onClick={() => handleDelete(row._id)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: '#ef4444',
+                          cursor: 'pointer',
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: 4,
+                          padding: '4px 8px',
+                          borderRadius: 4
+                        }}
+                      >
+                        <DeleteIcon fontSize="small" />
+                        <span>Delete</span>
+                      </button>
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

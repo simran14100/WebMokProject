@@ -1,4 +1,5 @@
 const mongoose = require('mongoose');
+const mongoosePaginate = require('mongoose-paginate-v2');
 
 
 // Add these schemas at the top of your file
@@ -160,5 +161,8 @@ registeredStudentSchema.index({ aadharNumber: 1 });
 registeredStudentSchema.index({ email: 1 });
 registeredStudentSchema.index({ 'phone': 1 });
 registeredStudentSchema.index({ registrationNumber: 1 });
+
+// Add pagination plugin to the schema
+registeredStudentSchema.plugin(mongoosePaginate);
 
 module.exports = mongoose.model('UniversityRegisteredStudent', registeredStudentSchema);

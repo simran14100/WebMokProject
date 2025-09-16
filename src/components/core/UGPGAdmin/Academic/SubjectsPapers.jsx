@@ -30,7 +30,12 @@ export default function SubjectsPapers() {
     course: '',
     semester: '',
     name: '',
-    status: 'Active'
+    status: 'Active',
+    // New fields for theory and practical configuration
+    hasTheory: true,
+    theoryMaxMarks: 100,
+    hasPractical: false,
+    practicalMaxMarks: 0
   });
   
   // Memoized loadCourses function - FIXED
@@ -209,28 +214,57 @@ export default function SubjectsPapers() {
     try {
       setSEdit(row._id);
       setSForm({
-        school: row.school?._id || "",
-        course: row.course?._id || "",
-        semester: row.semester || "",
-        name: row.name || "",
-        status: row.status || "Active"
+        school: row.school?._id || row.school || '',
+        course: row.course?._id || row.course || '',
+        semester: row.semester || '',
+        name: row.name || '',
+        status: row.status || 'Active',
+        // New fields
+        hasTheory: row.hasTheory !== undefined ? row.hasTheory : true,
+        theoryMaxMarks: row.theoryMaxMarks || (row.hasTheory ? 100 : 0),
+        hasPractical: row.hasPractical || false,
+        practicalMaxMarks: row.practicalMaxMarks || 0
       });
       
-      // If we have a school, make sure its courses are loaded
-      if (row.school?._id) {
-        await loadCourses(row.school._id);
+      // Load courses for the school if not already loaded
+      if (row.school?._id || row.school) {
+        loadCourses(row.school?._id || row.school);
       }
       
       setSModal(true);
     } catch (err) {
-      console.error('Error opening edit subject:', err);
-      setError('Failed to load subject data. Please try again.');
+      console.error('Error preparing edit form:', err);
+      setError('Failed to load subject details');
     }
   };
 
   const saveSubject = async () => {
     if (!sForm.school || !sForm.course || !sForm.semester || !sForm.name.trim()) {
       setError('Please fill in all required fields');
+      return;
+    }
+    
+    // Validate marks
+    if (sForm.hasTheory && sForm.theoryMaxMarks <= 0) {
+      setError('Theory max marks must be greater than 0');
+      return;
+    }
+    
+    if (sForm.hasPractical && sForm.practicalMaxMarks <= 0) {
+      setError('Practical max marks must be greater than 0');
+      return;
+    }
+    
+    const totalMarks = (sForm.hasTheory ? sForm.theoryMaxMarks : 0) + 
+                      (sForm.hasPractical ? sForm.practicalMaxMarks : 0);
+    
+    if (totalMarks > 100) {
+      setError('Total marks (theory + practical) cannot exceed 100');
+      return;
+    }
+    
+    if (totalMarks <= 0) {
+      setError('At least one of theory or practical must be enabled with marks greater than 0');
       return;
     }
     
@@ -243,7 +277,12 @@ export default function SubjectsPapers() {
         school: sForm.school,
         course: sForm.course,
         semester: parseInt(sForm.semester),
-        status: sForm.status
+        status: sForm.status,
+        // New fields
+        hasTheory: sForm.hasTheory,
+        theoryMaxMarks: sForm.hasTheory ? sForm.theoryMaxMarks : 0,
+        hasPractical: sForm.hasPractical,
+        practicalMaxMarks: sForm.hasPractical ? sForm.practicalMaxMarks : 0
       };
       
       let response;
@@ -554,8 +593,28 @@ export default function SubjectsPapers() {
         </div>
 
         {sModal && (
-          <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.35)", display: "flex", alignItems: "center", justifyContent: "center", zIndex: 50 }}>
-            <div style={{ background: "#fff", borderRadius: 12, width: 520, maxWidth: "92vw", padding: 16, border: `1px solid ${BORDER}` }}>
+          <div style={{ 
+            position: "fixed", 
+            inset: 0, 
+            background: "rgba(0,0,0,0.35)", 
+            display: "flex", 
+            alignItems: "flex-start", 
+            justifyContent: "center", 
+            zIndex: 50,
+            padding: '20px 0',
+            overflowY: 'auto'
+          }}>
+            <div style={{ 
+              background: "#fff", 
+              borderRadius: 12, 
+              width: 520, 
+              maxWidth: "92vw", 
+              padding: 16, 
+              border: `1px solid ${BORDER}`,
+              margin: '20px 0',
+              maxHeight: '90vh',
+              overflowY: 'auto'
+            }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
                 <h4 style={{ fontSize: 16, fontWeight: 600, color: TEXT }}>{sEdit ? "Edit Subject" : "Add Subject"}</h4>
                 <button onClick={()=>setSModal(false)} style={{ padding: 6, borderRadius: 6, border: `1px solid ${BORDER}` }}>✕</button>
@@ -707,6 +766,122 @@ export default function SubjectsPapers() {
                     <option value="Active">Active</option>
                     <option value="Inactive">Inactive</option>
                   </select>
+                </div>
+
+                {/* Theory Configuration */}
+                <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: 12, marginTop: 8 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                    <input 
+                      type="checkbox" 
+                      id="hasTheory"
+                      checked={sForm.hasTheory}
+                      onChange={(e) => setSForm(v => ({ 
+                        ...v, 
+                        hasTheory: e.target.checked,
+                        // Reset theory marks when disabling theory
+                        theoryMaxMarks: e.target.checked ? (v.theoryMaxMarks || 100) : 0
+                      }))}
+                      style={{ marginRight: 8 }}
+                    />
+                    <label htmlFor="hasTheory" style={{ fontWeight: 500, color: TEXT }}>Has Theory</label>
+                  </div>
+                  
+                  {sForm.hasTheory && (
+                    <div style={{ marginLeft: 24, marginTop: 8 }}>
+                      <label style={{ display: 'block', color: TEXT, marginBottom: 6 }}>Max Theory Marks</label>
+                      <input 
+                        type="number" 
+                        min="0" 
+                        max="100"
+                        value={sForm.theoryMaxMarks}
+                        onChange={(e) => {
+                          const value = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                          setSForm(v => ({ 
+                            ...v, 
+                            theoryMaxMarks: value 
+                          }));
+                        }}
+                        style={{ 
+                          width: '100%', 
+                          border: `1px solid ${BORDER}`, 
+                          borderRadius: 8, 
+                          padding: 8,
+                          backgroundColor: '#fff'
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
+
+                {/* Practical Configuration */}
+                <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: 12 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
+                    <input 
+                      type="checkbox" 
+                      id="hasPractical"
+                      checked={sForm.hasPractical}
+                      onChange={(e) => setSForm(v => ({ 
+                        ...v, 
+                        hasPractical: e.target.checked,
+                        // Reset practical marks when disabling practical
+                        practicalMaxMarks: e.target.checked ? (v.practicalMaxMarks || 25) : 0
+                      }))}
+                      style={{ marginRight: 8 }}
+                    />
+                    <label htmlFor="hasPractical" style={{ fontWeight: 500, color: TEXT }}>Has Practical</label>
+                  </div>
+                  
+                  {sForm.hasPractical && (
+                    <div style={{ marginLeft: 24, marginTop: 8 }}>
+                      <label style={{ display: 'block', color: TEXT, marginBottom: 6 }}>Max Practical Marks</label>
+                      <input 
+                        type="number" 
+                        min="0" 
+                        max="100"
+                        value={sForm.practicalMaxMarks}
+                        onChange={(e) => {
+                          const value = Math.min(100, Math.max(0, parseInt(e.target.value) || 0));
+                          setSForm(v => ({ 
+                            ...v, 
+                            practicalMaxMarks: value 
+                          }));
+                        }}
+                        style={{ 
+                          width: '100%', 
+                          border: `1px solid ${BORDER}`, 
+                          borderRadius: 8, 
+                          padding: 8,
+                          backgroundColor: '#fff'
+                        }}
+                      />
+                      
+                      {/* Show warning if total marks exceed 100 */}
+                      {sForm.hasTheory && (sForm.theoryMaxMarks + sForm.practicalMaxMarks) > 100 && (
+                        <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>
+                          Total marks (theory + practical) cannot exceed 100
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                
+                {/* Total Marks Display */}
+                <div style={{ 
+                  padding: 12, 
+                  backgroundColor: '#f8fafc', 
+                  borderRadius: 8, 
+                  border: `1px solid ${BORDER}`,
+                  marginTop: 8
+                }}>
+                  <div style={{ fontWeight: 500, color: TEXT, marginBottom: 4 }}>Total Maximum Marks:</div>
+                  <div style={{ fontSize: 18, fontWeight: 600, color: ED_TEAL }}>
+                    {sForm.theoryMaxMarks + sForm.practicalMaxMarks} / 100
+                  </div>
+                  {(sForm.theoryMaxMarks + sForm.practicalMaxMarks) > 100 && (
+                    <div style={{ color: '#ef4444', fontSize: 12, marginTop: 4 }}>
+                      Warning: Total marks exceed 100
+                    </div>
+                  )}
                 </div>
               </div>
               <div style={{ display: "flex", justifyContent: "flex-end", gap: 12, marginTop: 24 }}>

@@ -1,0 +1,1348 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+  Form, 
+  Input, 
+  Select, 
+  Button, 
+  Card, 
+  Row, 
+  Col, 
+  Table, 
+  InputNumber, 
+  message, 
+  Tag,
+  Spin,
+  Alert 
+} from 'antd';
+import { 
+  PlusOutlined, 
+  MinusCircleOutlined 
+} from '@ant-design/icons';
+import axios from 'axios';
+import { createResult, updateResult } from '../../../../../services/resultApi';
+import { listStudents } from '../../../../../services/operations/studentApi';
+import { listUGPGSubjects } from '../../../../../services/ugpgSubjectApi';
+import PropTypes from 'prop-types';
+
+const { Option } = Select;
+
+const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions, initialStudents = [] }) => {
+  const [form] = Form.useForm();
+  const [loading, setLoading] = useState(false);
+  const [studentLoading, setStudentLoading] = useState(false);
+  // Ensure students is always an array
+  const [students, setStudents] = useState(Array.isArray(initialStudents) ? initialStudents : []);
+  const [filteredStudents, setFilteredStudents] = useState(Array.isArray(initialStudents) ? initialStudents : []);
+  
+  // Update students state when initialStudents prop changes
+  useEffect(() => {
+    if (Array.isArray(initialStudents)) {
+      setStudents(initialStudents);
+      setFilteredStudents(initialStudents);
+    }
+  }, [initialStudents]);
+  const [selectedCourse, setSelectedCourse] = useState('');
+  const [selectedStudent, setSelectedStudent] = useState('');
+  const [subjects, setSubjects] = useState([]);
+  const [studentError, setStudentError] = useState(null);
+  const [ugpgSubjects, setUgpgSubjects] = useState([]);
+  const [loadingSubjects, setLoadingSubjects] = useState(false);
+
+  // Fetch UG/PG subjects for the selected course and semester
+  const fetchUgpgSubjects = useCallback(async (courseId, semester) => {
+    if (!courseId) {
+      setUgpgSubjects([]);
+      return [];
+    }
+    
+    setLoadingSubjects(true);
+    try {
+      let response;
+      try {
+        const params = {
+          course: courseId,
+          status: 'Active',
+          limit: 1000,
+          populate: 'course,school',
+          sort: 'name'
+        };
+        
+        // Only add semester filter if it's provided and valid
+        if (semester && !isNaN(semester) && semester > 0) {
+          params.semester = semester;
+        }
+        
+        response = await listUGPGSubjects(params);
+        
+        console.log('UG/PG Subjects response:', response?.data);
+        
+        if (!response?.data?.success) {
+          throw new Error(response?.data?.message || 'Failed to fetch UG/PG subjects');
+        }
+        
+        const subjectsData = response.data.data || [];
+        setUgpgSubjects(subjectsData);
+        return subjectsData;
+        
+      } catch (ugpgError) {
+        console.warn('Error fetching UG/PG subjects, falling back to regular subjects:', ugpgError);
+        
+        // Fallback to regular subjects if UG/PG endpoint fails
+        const fallbackResponse = await axios.get(
+          `${process.env.REACT_APP_API_URL || 'http://localhost:4000/api/v1'}/subjects`,
+          {
+            params: {
+              course: courseId,
+              status: 'Active',
+              limit: 1000,
+              populate: 'course,school'
+            },
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('token')}`,
+              'Content-Type': 'application/json'
+            }
+          }
+        );
+        
+        const fallbackData = Array.isArray(fallbackResponse?.data?.data) 
+          ? fallbackResponse.data.data 
+          : [];
+          
+        setUgpgSubjects(fallbackData);
+        return fallbackData;
+      }
+      
+    } catch (error) {
+      console.error('Error in fetchUgpgSubjects:', error);
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to load subjects';
+      message.error(errorMsg);
+      setUgpgSubjects([]);
+      return [];
+    } finally {
+      setLoadingSubjects(false);
+    }
+  }, []);
+
+  // Fetch students from API
+  const fetchStudents = useCallback(async (options = {}) => {
+    const { signal, ...filters } = options;
+    
+    try {
+      setStudentLoading(true);
+      setStudentError(null);
+      console.log('Fetching students with filters:', filters);
+      
+      const response = await listStudents({
+        ...filters,
+        status: 'active', // Only fetch active students
+        populate: 'user,course', // Include user and course details
+        limit: 1000, // Increase limit to get more students
+        signal // Pass the AbortSignal to the API call
+      });
+      
+      // Check if the request was aborted
+      if (signal?.aborted) {
+        throw new DOMException('Aborted', 'AbortError');
+      }
+      
+      // Extract students array from response
+      const studentsData = Array.isArray(response?.data?.students) ? 
+        response.data.students : 
+        (Array.isArray(response?.data) ? response.data : []);
+      
+      console.log('Fetched students:', studentsData);
+      
+      // Only update state if we're still mounted and not aborted
+      if (!signal?.aborted) {
+        setStudents(studentsData);
+        setFilteredStudents(studentsData);
+      }
+      
+      return studentsData;
+    } catch (error) {
+      console.error('Error fetching students:', error);
+      setStudentError(error.response?.data?.message || error.message || 'Failed to load students');
+      message.error('Failed to load students. Please try again.');
+      return [];
+    } finally {
+      setStudentLoading(false);
+    }
+  }, []);
+
+  // Effect to handle initial values and data setup
+  useEffect(() => {
+    let isMounted = true;
+    let abortController = new AbortController();
+    
+    const processInitialStudents = async () => {
+      try {
+        console.log('Processing initial students...');
+        
+        if (!initialStudents || initialStudents.length === 0) {
+          console.log('No initial students provided, fetching students...');
+          const fetchedStudents = await fetchStudents({ signal: abortController.signal });
+          if (!isMounted) return;
+          
+          setStudents(fetchedStudents);
+          setFilteredStudents(fetchedStudents);
+        } else {
+          console.log('Using provided initial students');
+          const studentsData = Array.isArray(initialStudents) ? 
+            initialStudents : 
+            (initialStudents.students || []);
+          
+          if (isMounted) {
+            setStudents(studentsData);
+            setFilteredStudents(studentsData);
+          }
+        }
+      } catch (error) {
+        if (error.name === 'AbortError') {
+          console.log('Fetch aborted');
+          return;
+        }
+        console.error('Error processing initial students:', error);
+        if (isMounted) {
+          setStudentError('Failed to load students');
+        }
+      }
+    };
+    
+    // Only run this effect when component mounts
+    if (isMounted) {
+      processInitialStudents();
+    }
+    
+    // Cleanup function
+    return () => {
+      isMounted = false;
+      abortController.abort();
+    };
+  }, []); // Empty dependency array means this runs once on mount
+  
+  // Effect to handle initial form values
+  useEffect(() => {
+    if (initialValues) {
+      form.setFieldsValue(initialValues);
+      
+      if (initialValues.course) {
+        console.log('Setting initial course:', initialValues.course);
+        const course = courses?.find(c => c.value === initialValues.course || c._id === initialValues.course);
+        console.log('Found course:', course);
+        setSelectedCourse(initialValues.course);
+        // Fetch subjects for the initial course
+        fetchUgpgSubjects(initialValues.course);
+      }
+      
+      if (initialValues.student) {
+        console.log('Setting initial student:', initialValues.student);
+        setSelectedStudent(initialValues.student);
+      }
+      
+      // Always ensure subjects is an array, even if empty
+      const initialSubjects = Array.isArray(initialValues.subjects) ? initialValues.subjects : [];
+      console.log('Setting initial subjects:', initialSubjects);
+      setSubjects(initialSubjects);
+      
+      // If no subjects in initial values, add one empty subject by default
+      if (!initialValues.subjects || initialValues.subjects.length === 0) {
+        const newSubject = {
+          subject: '',
+          examType: 'theory',
+          marksObtained: 0,
+          maxMarks: 100,
+          passingMarks: 40,
+          grade: 'F',
+          isPassed: false,
+          attendance: 'present'
+        };
+        setSubjects([newSubject]);
+        form.setFieldsValue({ subjects: [newSubject] });
+      }
+    }
+    
+    // Initialize filtered students
+    if (students && students.length > 0) {
+      setFilteredStudents(students);
+    }
+  }, [initialValues, form, courses, examSessions, students, fetchUgpgSubjects]);
+
+  const handleCourseChange = async (courseId) => {
+    if (!courseId) {
+      setUgpgSubjects([]);
+      setSelectedCourse('');
+      form.setFieldsValue({ subjects: [] });
+      setSubjects([]);
+      return;
+    }
+
+    setSelectedCourse(courseId);
+    setStudentLoading(true);
+    setStudentError(null);
+    
+    try {
+      // Get the selected semester
+      const semester = form.getFieldValue('semester');
+      
+      // Fetch subjects for the selected course and semester
+      await fetchUgpgSubjects(courseId, semester);
+      
+      // Initialize with one empty subject
+      const newSubject = {
+        subject: '',
+        examType: 'theory',
+        marksObtained: 0,
+        maxMarks: 100,
+        passingMarks: 40,
+        grade: 'F',
+        isPassed: false,
+        attendance: 'present'
+      };
+      
+      // Update both form and local state
+      setSubjects([newSubject]);
+      form.setFieldsValue({ subjects: [newSubject] });
+      
+      // If there's a selected student, try to find matching exam sessions
+      const studentId = form.getFieldValue('studentId');
+      if (studentId) {
+        const student = students.find(s => s._id === studentId);
+        if (student) {
+          // Find exam sessions for this course and student's batch
+          const studentBatch = student.batch;
+          const sessions = Array.isArray(examSessions) ? examSessions : [];
+          const relevantSessions = sessions.filter(session => 
+            session.courseId === courseId && 
+            (!studentBatch || !session.batch || session.batch === studentBatch)
+          );
+          
+          if (relevantSessions.length > 0) {
+            // Set the most recent session as default
+            const latestSession = relevantSessions.sort((a, b) => 
+              new Date(b.examDate || 0) - new Date(a.examDate || 0)
+            )[0];
+            
+            form.setFieldsValue({
+              examSession: latestSession._id
+            });
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error in handleCourseChange:', error);
+      message.error('Failed to load course details');
+    }
+  };
+
+  const handleStudentSearch = async (value) => {
+    try {
+      setStudentLoading(true);
+      setStudentError(null);
+      
+      if (!value) {
+        // If search is cleared, show all students
+        setFilteredStudents(students);
+        return;
+      }
+      
+      // Search students by name or enrollment number in local state first
+      const searchTerm = value.toLowerCase();
+      const filtered = students.filter(student => {
+        const studentName = student.user?.name?.toLowerCase() || 
+                          `${student.firstName || ''} ${student.lastName || ''}`.toLowerCase();
+        const enrollmentNumber = student.enrollmentNumber?.toLowerCase() || '';
+        return (
+          studentName.includes(searchTerm) ||
+          enrollmentNumber.includes(searchTerm)
+        );
+      });
+      
+      // If no results in local state, try searching the API
+      if (filtered.length === 0) {
+        console.log('No local results, searching API...');
+        const searchResults = await fetchStudents({
+          $or: [
+            { 'user.name': { $regex: searchTerm, $options: 'i' } },
+            { enrollmentNumber: { $regex: searchTerm, $options: 'i' } },
+            { firstName: { $regex: searchTerm, $options: 'i' } },
+            { lastName: { $regex: searchTerm, $options: 'i' } }
+          ]
+        });
+        // No need to setFilteredStudents here as fetchStudents already does it
+      } else {
+        setFilteredStudents(filtered);
+      }
+    } catch (error) {
+      console.error('Error in handleStudentSearch:', error);
+      message.error('Failed to search students');
+      setStudentError('Error searching students');
+    } finally {
+      setStudentLoading(false);
+    }
+  };
+
+  const handleStudentSelect = async (studentId) => {
+    try {
+      const selected = students.find(s => s._id === studentId);
+      if (!selected) return;
+      
+      setSelectedStudent(selected);
+      form.setFieldsValue({ studentId });
+      
+      // Handle semester change
+      const handleSemesterChange = async (value) => {
+        form.setFieldsValue({ semester: value });
+        
+        // Get the current course ID
+        const courseId = form.getFieldValue('course');
+        
+        // If we have a course selected, refresh the subjects with the new semester filter
+        if (courseId) {
+          await fetchUgpgSubjects(courseId, value);
+        }
+      };
+      
+      // If student has a course, update the course field and fetch subjects
+      if (selected.course) {
+        const courseId = selected.course._id || selected.course;
+        form.setFieldsValue({ course: courseId });
+        setSelectedCourse(courseId);
+        setStudentLoading(true);
+        setStudentError(null);
+        
+        try {
+          // Fetch subjects for the selected course
+          await fetchUgpgSubjects(courseId);
+          
+          // Log relevant exam sessions if available
+          if (Array.isArray(examSessions) && examSessions.length > 0) {
+            const relevantSessions = examSessions.filter(session => 
+              session.courseId === courseId || 
+              (session.courseId?._id === courseId)
+            );
+            console.log('Relevant exam sessions:', relevantSessions);
+          }
+        } catch (error) {
+          console.error('Error fetching subjects:', error);
+          message.error('Failed to load course subjects');
+          throw error; // Re-throw to be caught by the outer catch
+        } finally {
+          setStudentLoading(false);
+        }
+      } else {
+        // If student has no course, clear subjects
+        setUgpgSubjects([]);
+        form.setFieldsValue({ subjects: [] });
+      }
+    } catch (error) {
+      console.error('Error in handleStudentSelect:', error);
+      message.error('Failed to load student details');
+      setStudentError(error.message);
+    }
+  };
+
+  const handleSubjectChange = (index, field, value, subjectId) => {
+    const currentSubjects = [...(form.getFieldValue('subjects') || [])];
+    const updatedSubjects = [...currentSubjects];
+    
+    // Initialize the subject object if it doesn't exist
+    if (!updatedSubjects[index]) {
+      updatedSubjects[index] = {
+        subject: '',
+        examType: 'theory',
+        marksObtained: 0,
+        maxMarks: 100,
+        passingMarks: 40,
+        grade: 'F',
+        isPassed: false
+      };
+    }
+    
+    if (field === 'subject' && value) {
+      const subject = ugpgSubjects.find(s => s._id === value || s._id === value._id);
+      if (subject) {
+        // Determine default exam type based on subject configuration
+        let defaultExamType = 'theory';
+        let defaultMaxMarks = 100; // Default fallback
+        
+        if (subject.hasTheory) {
+          defaultExamType = 'theory';
+          defaultMaxMarks = subject.theoryMaxMarks || 100;
+        } else if (subject.hasPractical) {
+          defaultExamType = 'practical';
+          defaultMaxMarks = subject.practicalMaxMarks || 100;
+        }
+        
+        // Update the subject with default values
+        updatedSubjects[index] = {
+          ...updatedSubjects[index],
+          subject: value,
+          examType: defaultExamType,
+          maxMarks: defaultMaxMarks,
+          marksObtained: 0,
+          subjectConfig: {
+            hasTheory: subject.hasTheory,
+            theoryMaxMarks: subject.theoryMaxMarks,
+            hasPractical: subject.hasPractical,
+            practicalMaxMarks: subject.practicalMaxMarks
+          }
+        };
+      }
+    } else if (field === 'examType') {
+      // When exam type changes, update max marks accordingly
+      const subjectId = updatedSubjects[index]?.subject?._id || updatedSubjects[index]?.subject;
+      if (subjectId) {
+        const subject = ugpgSubjects.find(s => s._id === subjectId);
+        if (subject) {
+          let newMaxMarks = 100; // Default fallback
+          
+          if (value === 'theory' && subject.hasTheory) {
+            newMaxMarks = subject.theoryMaxMarks || 100;
+          } else if (value === 'practical' && subject.hasPractical) {
+            newMaxMarks = subject.practicalMaxMarks || 100;
+          }
+          
+          updatedSubjects[index] = {
+            ...updatedSubjects[index],
+            examType: value,
+            maxMarks: newMaxMarks,
+            marksObtained: 0 // Reset marks when exam type changes
+          };
+        }
+      }
+    } else {
+      // For other fields, just update the value
+      updatedSubjects[index] = {
+        ...updatedSubjects[index],
+        [field]: value
+      };
+    }
+    
+    // Calculate grade based on percentage
+    if ((field === 'marksObtained' || field === 'maxMarks' || field === 'examType') && 
+        updatedSubjects[index].marksObtained !== undefined && 
+        updatedSubjects[index].maxMarks > 0) {
+      const percentage = (updatedSubjects[index].marksObtained / updatedSubjects[index].maxMarks) * 100;
+      let grade = 'F';
+      
+      if (percentage >= 90) grade = 'A+';
+      else if (percentage >= 80) grade = 'A';
+      else if (percentage >= 70) grade = 'B+';
+      else if (percentage >= 60) grade = 'B';
+      else if (percentage >= 50) grade = 'C';
+      else if (percentage >= 40) grade = 'D';
+      
+      updatedSubjects[index].grade = grade;
+      updatedSubjects[index].isPassed = percentage >= 40;
+    }
+    
+    // Update the form with the modified subjects
+    form.setFieldsValue({
+      subjects: updatedSubjects.map(subj => ({
+        ...subj,
+        maxMarks: subj.maxMarks || 100
+      }))
+    });
+    
+    // Update the local state
+    setSubjects(updatedSubjects);
+  };
+
+  const handleAddSubject = () => {
+    const newSubject = {
+      subject: '',
+      examType: 'theory',
+      marksObtained: 0,
+      maxMarks: 100,
+      passingMarks: 40,
+      grade: 'F',
+      isPassed: false,
+      attendance: 'present' // Default to present
+    };
+    
+    // Get current subjects from form
+    const currentFormSubjects = form.getFieldValue('subjects') || [];
+    const updatedSubjects = [...currentFormSubjects, newSubject];
+    
+    // Update form values first
+    form.setFieldsValue({
+      subjects: updatedSubjects
+    });
+    
+    // Then update local state
+    setSubjects(updatedSubjects);
+    
+    console.log('Added new subject. Current subjects:', updatedSubjects);
+  };
+
+  const handleRemoveSubject = (index) => {
+    // Get current subjects from form
+    const currentFormSubjects = [...(form.getFieldValue('subjects') || [])];
+    
+    // Remove the subject at the specified index
+    currentFormSubjects.splice(index, 1);
+    
+    // Update form values
+    form.setFieldsValue({
+      subjects: currentFormSubjects
+    });
+    
+    // Update local state
+    setSubjects(currentFormSubjects);
+    
+    console.log('Removed subject at index', index, '. Remaining subjects:', currentFormSubjects);
+  };
+
+  // Validate marks against subject configuration
+  const validateMarks = (subject, subjectData) => {
+    if (!subject || !subjectData) return true; // Skip validation if subject not found
+    
+    if (subject.examType === 'theory' && subjectData.hasTheory) {
+      return subject.marksObtained >= 0 && subject.marksObtained <= subjectData.theoryMaxMarks;
+    } 
+    
+    if (subject.examType === 'practical' && subjectData.hasPractical) {
+      return subject.marksObtained >= 0 && subject.marksObtained <= subjectData.practicalMaxMarks;
+    }
+    
+    return true; // For other exam types, use default validation
+  };
+
+  const onFinish = async (values) => {
+    try {
+      setLoading(true);
+      
+      // Validate subjects
+      if (!Array.isArray(values.subjects) || values.subjects.length === 0) {
+        message.error('Please add at least one subject');
+        setLoading(false);
+        return;
+      }
+      
+      // Validate marks against subject configuration
+      const invalidSubjects = [];
+      values.subjects.forEach((formSubject, index) => {
+        if (!formSubject) return;
+        
+        const subjectId = formSubject.subject?._id || formSubject.subject;
+        const subjectData = ugpgSubjects.find(s => s._id === subjectId);
+        
+        if (subjectData) {
+          const marksObtained = formSubject.marksObtained || 0;
+          const maxMarks = formSubject.examType === 'theory' ? 
+            (subjectData.theoryMaxMarks || 0) : 
+            (subjectData.practicalMaxMarks || 0);
+            
+          if (marksObtained < 0 || marksObtained > maxMarks) {
+            invalidSubjects.push({
+              index: index + 1,
+              name: subjectData.name,
+              examType: formSubject.examType,
+              maxMarks: maxMarks
+            });
+          }
+        }
+      });
+      
+      if (invalidSubjects.length > 0) {
+        const errorMsg = (
+          <div>
+            <p>Invalid marks for the following subjects:</p>
+            <ul>
+              {invalidSubjects.map((sub, i) => (
+                <li key={i}>
+                  {sub.name} ({sub.examType}): Marks must be between 0 and {sub.maxMarks}
+                </li>
+              ))}
+            </ul>
+          </div>
+        );
+        message.error({ content: errorMsg, duration: 10 });
+        setLoading(false);
+        return;
+      }
+      
+      // Get student details
+      const selectedStudent = students.find(s => s._id === values.studentId);
+      if (!selectedStudent) {
+        message.error('Selected student not found');
+        setLoading(false);
+        return;
+      }
+
+      // Get subject details for paper code and name
+      const subjectDetails = {};
+      values.subjects.forEach(subject => {
+        if (subject && subject.subject) {
+          const subjectId = subject.subject._id || subject.subject;
+          const subjectData = ugpgSubjects.find(s => s._id === subjectId);
+          if (subjectData) {
+            subjectDetails[subjectId] = {
+              paperCode: subjectData.code || '',
+              paperName: subjectData.name || ''
+            };
+          }
+        }
+      });
+
+      // Prepare the result data using the values parameter
+      const resultData = {
+        studentId: values.studentId,
+        studentName: `${selectedStudent.firstName || ''} ${selectedStudent.lastName || ''}`.trim(),
+        courseId: values.course,
+        semester: values.semester,
+        // Handle examSession which might be an object due to labelInValue
+        examSessionId: values.examSession?.value || values.examSession?._id || values.examSession,
+        remarks: values.remarks || '', // Ensure remarks is not undefined
+        subjectResults: values.subjects.map((formSubject, index) => {
+          if (!formSubject) return null;
+          
+          const subjectId = formSubject.subject?._id || formSubject.subject;
+          const subjectData = ugpgSubjects.find(s => s._id === subjectId);
+          
+          // Calculate max marks based on exam type
+          const maxMarks = formSubject.maxMarks || 
+            (formSubject.examType === 'theory' && subjectData?.hasTheory ? subjectData.theoryMaxMarks :
+             formSubject.examType === 'practical' && subjectData?.hasPractical ? subjectData.practicalMaxMarks :
+             100);
+          
+          // Ensure passing marks is set and valid
+          const passingMarks = formSubject.passingMarks || Math.ceil(maxMarks * 0.4); // Default to 40%
+          
+          // Calculate percentage and grade
+          const marksObtained = formSubject.marksObtained || 0;
+          const percentage = (marksObtained / maxMarks) * 100;
+          let grade = 'F';
+          if (percentage >= 90) grade = 'A+';
+          else if (percentage >= 80) grade = 'A';
+          else if (percentage >= 70) grade = 'B';
+          else if (percentage >= 60) grade = 'C';
+          else if (percentage >= 50) grade = 'D';
+          else if (percentage >= 40) grade = 'E';
+          
+          // Get subject details for paper code and name
+          const subjectInfo = subjectDetails[subjectId] || {};
+          
+          // Create subject result object with correct field names
+          const subjectResult = {
+            subject: subjectId, // Changed from subjectId to subject
+            examType: formSubject.examType || 'theory',
+            marksObtained: formSubject.attendance === 'absent' ? 0 : Math.min(marksObtained, maxMarks),
+            maxMarks: maxMarks,
+            passingMarks: Math.min(passingMarks, maxMarks),
+            grade: formSubject.attendance === 'absent' ? 'F' : grade,
+            percentage: formSubject.attendance === 'absent' ? 0 : percentage,
+            isPassed: formSubject.attendance === 'present' && percentage >= 40,
+            attendance: formSubject.attendance || 'present'
+          };
+          
+          // Add subject configuration if available
+          if (subjectData) {
+            subjectResult.subjectConfig = {
+              hasTheory: subjectData.hasTheory,
+              theoryMaxMarks: subjectData.theoryMaxMarks,
+              hasPractical: subjectData.hasPractical,
+              practicalMaxMarks: subjectData.practicalMaxMarks
+            };
+          }
+          
+          return subjectResult;
+        }).filter(Boolean) // Remove any null entries
+      };
+
+      console.log('Submitting result data:', resultData);
+      
+      // Submit the form
+      let response;
+      if (initialValues?._id) {
+        response = await updateResult(initialValues._id, resultData);
+        console.log('Update response:', response);
+        if (response?.success) {
+          message.success('Result updated successfully');
+        } else {
+          throw new Error(response?.message || 'Failed to update result');
+        }
+      } else {
+        response = await createResult(resultData);
+        console.log('Create response:', response);
+        if (response?.success) {
+          message.success('Result created successfully');
+        } else {
+          throw new Error(response?.message || 'Failed to create result');
+        }
+      }
+      
+      // Call success callback if provided
+      if (onSuccess) {
+        onSuccess();
+      }
+      
+      return response;
+    } catch (error) {
+      console.error('Error saving result:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to save result';
+      message.error(errorMessage);
+      setStudentError(`Submission failed: ${errorMessage}`);
+      throw error; // Re-throw to allow form to catch it
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const columns = [
+    {
+      title: 'Subject',
+      dataIndex: 'subject',
+      key: 'subject',
+      render: (_, record, index) => (
+        <Form.Item
+          name={['subjects', index, 'subject']}
+          rules={[{ required: true, message: 'Please select subject' }]}
+          noStyle
+        >
+          <Select
+            showSearch
+            optionFilterProp="children"
+            filterOption={(input, option) =>
+              option.children.toString().toLowerCase().includes(input.toLowerCase())
+            }
+            style={{ width: '100%' }}
+            placeholder={loadingSubjects ? 'Loading subjects...' : 'Select subject'}
+            loading={loadingSubjects}
+            onChange={(value) => {
+              // Pass both the ID and the full subject object
+              const subject = ugpgSubjects.find(s => s._id === value);
+              handleSubjectChange(index, 'subject', subject?._id, subject?._id);
+            }}
+            value={record.subject?._id || record.subject}
+          >
+            {ugpgSubjects && ugpgSubjects.length > 0 ? (
+              ugpgSubjects.map((subject) => {
+                const label = [
+                  subject.name,
+                  subject.code && `(${subject.code})`,
+                  subject.school?.name && `[${subject.school.name}]`,
+                  subject.hasTheory && subject.hasPractical ? 
+                    `(T:${subject.theoryMaxMarks}/P:${subject.practicalMaxMarks})` :
+                    subject.hasTheory ? `(Theory: ${subject.theoryMaxMarks} marks)` :
+                    subject.hasPractical ? `(Practical: ${subject.practicalMaxMarks} marks)` : ''
+                ].filter(Boolean).join(' ');
+                
+                return (
+                  <Option 
+                    key={subject._id} 
+                    value={subject._id}
+                    title={`${subject.description || ''}\nTheory: ${subject.hasTheory ? 'Yes' : 'No'}${subject.hasTheory ? ` (${subject.theoryMaxMarks} marks)` : ''}\nPractical: ${subject.hasPractical ? 'Yes' : 'No'}${subject.hasPractical ? ` (${subject.practicalMaxMarks} marks)` : ''}`}
+                  >
+                    {label}
+                  </Option>
+                );
+              })
+            ) : (
+              <Option key="no-subjects" disabled>
+                {selectedCourse 
+                  ? 'No active subjects found for this course' 
+                  : 'Please select a course first'}
+              </Option>
+            )}
+          </Select>
+        </Form.Item>
+      ),
+    },
+    {
+      title: 'Exam Type',
+      dataIndex: 'examType',
+      key: 'examType',
+      width: 200,
+      render: (_, record, index) => {
+        const subjectId = record.subject || form.getFieldValue(['subjects', index, 'subject']);
+        const subject = ugpgSubjects.find(s => s?._id === subjectId || s?._id === subjectId?._id);
+        
+        if (!subject) {
+          return <span style={{ color: '#ff4d4f' }}>Select subject first</span>;
+        }
+        
+        // Determine available exam types based on subject configuration
+        const availableExamTypes = [];
+        
+        if (subject.hasTheory) {
+          availableExamTypes.push({
+            value: 'theory',
+            label: `Theory (${subject.theoryMaxMarks} marks)`,
+            maxMarks: subject.theoryMaxMarks
+          });
+        }
+        
+        if (subject.hasPractical) {
+          availableExamTypes.push({
+            value: 'practical',
+            label: `Practical (${subject.practicalMaxMarks} marks)`,
+            maxMarks: subject.practicalMaxMarks
+          });
+        }
+        
+        // If no theory or practical, allow other exam types
+        if (availableExamTypes.length === 0) {
+          availableExamTypes.push(
+            { value: 'viva', label: 'Viva', maxMarks: 100 },
+            { value: 'project', label: 'Project', maxMarks: 100 },
+            { value: 'assignment', label: 'Assignment', maxMarks: 100 }
+          );
+        }
+        
+        // Get current values from form
+        const currentSubjects = form.getFieldValue('subjects') || [];
+        const currentSubject = currentSubjects[index] || {};
+        
+        // Set default exam type if not set
+        if (!currentSubject.examType && availableExamTypes.length > 0) {
+          const updatedSubjects = [...currentSubjects];
+          updatedSubjects[index] = {
+            ...updatedSubjects[index],
+            examType: availableExamTypes[0].value,
+            maxMarks: availableExamTypes[0].maxMarks
+          };
+          form.setFieldsValue({ subjects: updatedSubjects });
+        }
+        
+        return (
+          <Form.Item
+            name={['subjects', index, 'examType']}
+            rules={[{ required: true, message: 'Required' }]}
+            noStyle
+          >
+            <Select 
+              style={{ width: '100%' }}
+              onChange={(value) => {
+                const selectedExam = availableExamTypes.find(t => t.value === value);
+                const updatedSubjects = [...(form.getFieldValue('subjects') || [])];
+                updatedSubjects[index] = {
+                  ...(updatedSubjects[index] || {}),
+                  examType: value,
+                  maxMarks: selectedExam?.maxMarks || 100,
+                  marksObtained: 0 // Reset marks when exam type changes
+                };
+                form.setFieldsValue({ subjects: updatedSubjects });
+              }}
+              placeholder="Select exam type"
+              value={currentSubject.examType}
+            >
+              {availableExamTypes.map(type => (
+                <Option key={type.value} value={type.value}>
+                  {type.label}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        );
+      },
+    },
+    {
+      title: 'Marks Obtained',
+      dataIndex: 'marksObtained',
+      key: 'marksObtained',
+      width: 150,
+      render: (_, record, index) => (
+        <Form.Item
+          name={['subjects', index, 'marksObtained']}
+          rules={[{ required: true, message: 'Required' }]}
+          initialValue={0}
+          noStyle
+        >
+          <InputNumber
+            min={0}
+            max={record.maxMarks || 100}
+            style={{ width: '100%' }}
+            onChange={(value) => handleSubjectChange(index, 'marksObtained', value)}
+          />
+        </Form.Item>
+      ),
+    },
+    {
+      title: 'Max Marks',
+      dataIndex: 'maxMarks',
+      key: 'maxMarks',
+      width: 100,
+      render: (_, record, index) => (
+        <Form.Item
+          name={['subjects', index, 'maxMarks']}
+          rules={[{ required: true, message: 'Required' }]}
+          initialValue={100}
+          noStyle
+        >
+          <InputNumber
+            min={1}
+            style={{ width: '100%' }}
+            onChange={(value) => handleSubjectChange(index, 'maxMarks', value)}
+          />
+        </Form.Item>
+      ),
+    },
+    {
+      title: 'Passing Marks',
+      dataIndex: 'passingMarks',
+      key: 'passingMarks',
+      width: 120,
+      render: (_, record, index) => (
+        <Form.Item
+          name={['subjects', index, 'passingMarks']}
+          rules={[{ required: true, message: 'Required' }]}
+          initialValue={40}
+          noStyle
+        >
+          <InputNumber
+            min={0}
+            max={record.maxMarks || 100}
+            style={{ width: '100%' }}
+          />
+        </Form.Item>
+      ),
+    },
+    {
+      title: 'Attendance',
+      dataIndex: 'attendance',
+      key: 'attendance',
+      width: 120,
+      render: (_, record, index) => (
+        <Form.Item
+          name={['subjects', index, 'attendance']}
+          rules={[{ required: true, message: 'Required' }]}
+          initialValue="present"
+          noStyle
+        >
+          <Select style={{ width: '100%' }}>
+            <Option value="present">Present</Option>
+            <Option value="absent">Absent</Option>
+          </Select>
+        </Form.Item>
+      ),
+    },
+    {
+      title: 'Grade',
+      dataIndex: 'grade',
+      key: 'grade',
+      width: 100,
+      render: (grade) => (
+        <Tag color={grade === 'F' ? 'red' : 'green'}>
+          {grade}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Action',
+      key: 'action',
+      width: 80,
+      render: (_, __, index) => (
+        <Button
+          type="text"
+          danger
+          icon={<MinusCircleOutlined />}
+          onClick={() => handleRemoveSubject(index)}
+        />
+      ),
+    },
+  ];
+
+  // Show error card if there's a student error
+  if (studentError) {
+    return (
+      <Card title="Error Loading Form">
+        <Alert
+          message="Error Loading Students"
+          description={`Failed to load student data: ${studentError}. Please try refreshing the page.`}
+          type="error"
+          showIcon
+          action={
+            <Button type="primary" onClick={() => window.location.reload()}>
+              Refresh Page
+            </Button>
+          }
+        />
+      </Card>
+    );
+  }
+
+  return (
+    <Form
+      form={form}
+      layout="vertical"
+      onFinish={onFinish}
+      initialValues={initialValues}
+    >
+      {studentLoading && (
+        <div style={{ textAlign: 'center', margin: '20px 0' }}>
+          <Spin tip="Loading students..." size="large" />
+        </div>
+      )}
+      <Card title="Student Information" className="mb-4">
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
+            <Form.Item
+              name="studentId"
+              label="Student"
+              rules={[{ required: true, message: 'Please select student' }]}
+            >
+              <div>
+                <Select
+                  showSearch
+                  placeholder="Search student by name..."
+                  optionFilterProp="children"
+                  onSearch={handleStudentSearch}
+                  onChange={handleStudentSelect}
+                  filterOption={false}
+                  style={{ 
+                    width: '100%',
+                    textAlign: 'left',
+                    height: '40px',
+                    borderRadius: '6px'
+                  }}
+                  dropdownStyle={{
+                    padding: '8px 0',
+                    borderRadius: '8px',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)'
+                  }}
+                  notFoundContent={
+                    studentLoading 
+                      ? <div style={{ padding: '8px 16px', color: '#666' }}>Searching...</div>
+                      : studentError 
+                        ? <div style={{ padding: '8px 16px', color: '#ff4d4f' }}>Error loading students</div>
+                        : <div style={{ padding: '8px 16px', color: '#666' }}>No students found</div>
+                  }
+                  loading={studentLoading}
+                  disabled={studentLoading}
+                  allowClear
+                  showArrow={!studentLoading}
+                  optionLabelProp="label"
+                >
+                  {Array.isArray(filteredStudents) && filteredStudents.length > 0 ? (
+                  filteredStudents.map(student => {
+                    if (!student) return null;
+                    
+                    const studentName = student.user?.name || 
+                                     `${student.firstName || ''} ${student.lastName || ''}`.trim();
+                    
+                    return (
+                      <Option 
+                        key={student._id || Math.random().toString(36).substr(2, 9)}
+                        value={student._id}
+                        label={studentName}
+                        title={studentName}
+                        style={{ 
+                          padding: '8px 12px',
+                          margin: '2px 0'
+                        }}
+                      >
+                        <div style={{ 
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                          fontWeight: 500,
+                          padding: '4px 0'
+                        }}>
+                          {studentName}
+                        </div>
+                      </Option>
+                    );
+                  })
+                ) : (
+                  <Option disabled value="no-students">
+                    No students found
+                  </Option>
+                )}
+                </Select>
+                {studentError && (
+                  <div style={{ color: '#ff4d4f', marginTop: '4px', fontSize: '12px' }}>
+                    {studentError}
+                  </div>
+                )}
+              </div>
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={6}>
+            <Form.Item
+              name="course"
+              label="Course"
+              rules={[{ required: true, message: 'Please select course' }]}
+            >
+              <Select
+                placeholder="Select Course"
+                onChange={handleCourseChange}
+                showSearch
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  (option.children?.toString() || '').toLowerCase().includes(input.toLowerCase())
+                }
+                style={{ width: '100%' }}
+                notFoundContent={loading ? 'Loading...' : 'No courses found'}
+                loading={loading}
+              >
+                {courses && courses.length > 0 ? (
+                  courses.map(course => {
+                    const displayLabel = [
+                      course.courseName || course.name,
+                      course.courseType && `(${course.courseType})`,
+                      course.school?.name && `- ${course.school.name}`
+                    ].filter(Boolean).join(' ');
+                    
+                    return (
+                      <Option 
+                        key={course._id}
+                        value={course._id}
+                        label={displayLabel}
+                      >
+                        {displayLabel}
+                      </Option>
+                    );
+                  })
+                ) : (
+                  <Option disabled value="">
+                    {loading ? 'Loading courses...' : 'No courses available'}
+                  </Option>
+                )}
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={6}>
+            <Form.Item
+              name="semester"
+              label="Semester"
+              rules={[{ required: true, message: 'Please select semester' }]}
+            >
+              <Select 
+                placeholder="Select Semester"
+                onChange={async (value) => {
+                  const courseId = form.getFieldValue('course');
+                  if (courseId) {
+                    await fetchUgpgSubjects(courseId, value);
+                  }
+                }}
+              >
+                {[...Array(8).keys()].map(sem => (
+                  <Option key={sem + 1} value={sem + 1}>
+                    Semester {sem + 1}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
+        </Row>
+        <Row gutter={16}>
+          <Col xs={24} md={12}>
+            <Form.Item
+              name="examSession"
+              label="Exam Session"
+              rules={[{ required: true, message: 'Please select exam session' }]}
+            >
+              <Select
+                placeholder="Select Exam Session"
+                showSearch
+                optionFilterProp="children"
+                filterOption={(input, option) =>
+                  option.children.toLowerCase().includes(input.toLowerCase())
+                }
+                labelInValue
+                loading={loading}
+                style={{ width: '100%' }}
+              >
+                {!Array.isArray(examSessions) || examSessions.length === 0 ? (
+                  <Option disabled value="no-sessions">
+                    No exam sessions available
+                  </Option>
+                ) : (
+                  // Sort by exam date (newest first)
+                  [...examSessions]
+                    .sort((a, b) => new Date(b.examDate || 0) - new Date(a.examDate || 0))
+                    .map(session => {
+                      const sessionId = session._id || session.value;
+                      const sessionName = session.name || session.label || 
+                                       `Session ${sessionId?.substring(0, 6) || ''}`;
+                      
+                      return (
+                        <Option 
+                          key={sessionId}
+                          value={sessionId}
+                          label={sessionName}
+                        >
+                          {sessionName}
+                        </Option>
+                      );
+                    })
+                )}
+              </Select>
+            </Form.Item>
+          </Col>
+          <Col xs={24} md={12}>
+            <Form.Item
+              name="remarks"
+              label="Remarks"
+            >
+              <Input.TextArea rows={2} placeholder="Any additional remarks" />
+            </Form.Item>
+          </Col>
+        </Row>
+      </Card>
+
+      <Card 
+        title="Subject-wise Marks"
+        className="mb-4"
+        extra={
+          <Button
+            type="dashed"
+            onClick={handleAddSubject}
+            icon={<PlusOutlined />}
+          >
+            Add Subject
+          </Button>
+        }
+      >
+        <Table
+          columns={columns}
+          dataSource={subjects}
+          rowKey={(record, index) => index}
+          pagination={false}
+          size="middle"
+          scroll={{ x: 'max-content' }}
+        />
+      </Card>
+
+      <div className="flex justify-end space-x-4">
+        <Button onClick={onCancel}>
+          Cancel
+        </Button>
+        <Button type="primary" htmlType="submit" loading={loading}>
+          Save Result
+        </Button>
+      </div>
+    </Form>
+  );
+};
+
+ResultForm.propTypes = {
+  initialValues: PropTypes.object,
+  onSuccess: PropTypes.func,
+  onCancel: PropTypes.func.isRequired,
+  courses: PropTypes.arrayOf(PropTypes.shape({
+    _id: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired
+  })).isRequired,
+  examSessions: PropTypes.arrayOf(PropTypes.shape({
+    _id: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    examDate: PropTypes.string
+  })).isRequired,
+  initialStudents: PropTypes.arrayOf(PropTypes.shape({
+    _id: PropTypes.string.isRequired,
+    firstName: PropTypes.string,
+    lastName: PropTypes.string,
+    enrollmentNumber: PropTypes.string,
+    course: PropTypes.string,
+    batch: PropTypes.string
+  }))
+};
+
+ResultForm.defaultProps = {
+  initialValues: {},
+  initialStudents: []
+};
+
+export default ResultForm;

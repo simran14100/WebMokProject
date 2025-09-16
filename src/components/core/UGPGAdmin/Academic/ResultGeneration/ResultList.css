@@ -1,0 +1,202 @@
+/* Result List Container */
+.result-list-container {
+  @apply bg-white rounded-lg shadow-sm border border-gray-100 overflow-hidden;
+  transition: all 0.3s ease;
+}
+
+/* Table Styles */
+.result-table {
+  @apply w-full border-collapse;
+}
+
+.result-table .ant-table-thead > tr > th {
+  @apply bg-gray-50 text-xs font-semibold text-gray-500 uppercase tracking-wider border-b border-gray-100;
+  padding: 12px 16px;
+  white-space: nowrap;
+}
+
+.result-table .ant-table-tbody > tr > td {
+  @apply border-b border-gray-100;
+  padding: 16px;
+  transition: background-color 0.2s ease;
+}
+
+/* Row Hover Effect */
+.result-table .result-row:hover > td {
+  @apply bg-blue-50;
+}
+
+/* Parent Row Styling */
+.result-table .parent-row {
+  @apply bg-white font-medium;
+}
+
+/* Child Row Styling */
+.result-table .child-row > td {
+  @apply bg-gray-50;
+  padding: 12px 16px 12px 64px;
+}
+
+/* Expand Icon */
+.expand-icon {
+  @apply text-gray-400 hover:text-blue-500 transition-colors;
+  margin-right: 8px;
+}
+
+/* Status Badge */
+.status-badge {
+  @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium;
+}
+
+.status-badge.pass {
+  @apply bg-green-100 text-green-800;
+}
+
+.status-badge.fail {
+  @apply bg-red-100 text-red-800;
+}
+
+/* Action Buttons */
+.action-btn {
+  @apply opacity-70 hover:opacity-100 transition-opacity;
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.action-btn:hover {
+  @apply bg-gray-100;
+}
+
+/* Progress Bar */
+.progress-bar {
+  @apply bg-gray-200 rounded-full h-2 overflow-hidden;
+}
+
+.progress-bar-fill {
+  @apply h-full rounded-full transition-all duration-500;
+}
+
+/* Responsive Design */
+@media (max-width: 1024px) {
+  .result-table .ant-table-thead > tr > th,
+  .result-table .ant-table-tbody > tr > td {
+    padding: 12px 8px;
+  }
+  
+  .result-table .ant-table-expanded-row > td {
+    padding: 0 !important;
+  }
+}
+
+/* Empty State */
+.empty-state {
+  @apply py-12 text-center;
+}
+
+/* Loading State */
+.skeleton-row {
+  @apply py-4 border-b border-gray-100;
+}
+
+/* Card Styles */
+.result-card {
+  @apply rounded-lg shadow-sm border border-gray-100 overflow-hidden;
+}
+
+/* Animation for expand/collapse */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.result-table .ant-table-expanded-row {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Custom scrollbar for table */
+.result-table .ant-table-body::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+
+.result-table .ant-table-body::-webkit-scrollbar-track {
+  @apply bg-gray-100 rounded-full;
+}
+
+.result-table .ant-table-body::-webkit-scrollbar-thumb {
+  @apply bg-gray-300 rounded-full;
+}
+
+.result-table .ant-table-body::-webkit-scrollbar-thumb:hover {
+  @apply bg-gray-400;
+}
+
+/* Pagination Styles */
+.pagination-container .ant-pagination-item {
+  @apply border-gray-200 rounded-md;
+}
+
+.pagination-container .ant-pagination-item-active {
+  @apply border-blue-500 bg-blue-50;
+}
+
+.pagination-container .ant-pagination-item-active a {
+  @apply text-blue-600 font-medium;
+}
+
+.pagination-container .ant-pagination-item:hover {
+  @apply border-blue-300;
+}
+
+/* Hover effects for table cells */
+.result-table .ant-table-tbody > tr > td {
+  transition: all 0.2s ease;
+}
+
+.result-table .ant-table-tbody > tr:hover > td {
+  @apply bg-blue-50;
+}
+
+/* Custom styles for tags */
+.ant-tag {
+  @apply rounded-full text-xs px-2.5 py-0.5 border-0;
+}
+
+/* Custom styles for buttons */
+.ant-btn-sm {
+  @apply h-8 text-sm rounded-md;
+}
+
+/* Responsive adjustments for small screens */
+@media (max-width: 768px) {
+  .result-table .ant-table-thead {
+    display: none;
+  }
+  
+  .result-table .ant-table-tbody > tr > td {
+    display: block;
+    padding: 8px 12px;
+    text-align: right;
+    border-bottom: 1px solid #f0f0f0;
+  }
+  
+  .result-table .ant-table-tbody > tr > td:before {
+    content: attr(data-label);
+    float: left;
+    font-weight: 500;
+    text-transform: uppercase;
+    font-size: 0.7rem;
+    color: #6b7280;
+  }
+  
+  /* Hide some columns on mobile */
+  .result-table .ant-table-tbody > tr > td.ant-table-cell-fix-right,
+  .result-table .ant-table-tbody > tr > td:nth-child(3),
+  .result-table .ant-table-tbody > tr > td:nth-child(4) {
+    display: none;
+  }
+}

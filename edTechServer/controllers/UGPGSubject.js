@@ -3,7 +3,17 @@ const UGPGSubject = require("../models/UGPGSubject");
 // Create UGPG Subject
 exports.createSubject = async (req, res) => {
   try {
-    const { name, school, course, semester, status } = req.body;
+    const { 
+      name, 
+      school, 
+      course, 
+      semester, 
+      status, 
+      hasTheory = true, 
+      theoryMaxMarks = 100, 
+      hasPractical = false, 
+      practicalMaxMarks = 0 
+    } = req.body;
     
     // Validate required fields
     if (!name || !school || !course || !semester) {
@@ -13,11 +23,43 @@ exports.createSubject = async (req, res) => {
       });
     }
 
+    // Validate marks
+    if (hasTheory && (!theoryMaxMarks || theoryMaxMarks <= 0)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Theory max marks must be greater than 0 when hasTheory is true" 
+      });
+    }
+
+    if (hasPractical && (!practicalMaxMarks || practicalMaxMarks <= 0)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Practical max marks must be greater than 0 when hasPractical is true" 
+      });
+    }
+
+    const totalMarks = (hasTheory ? Number(theoryMaxMarks) : 0) + 
+                      (hasPractical ? Number(practicalMaxMarks) : 0);
+    
+    if (totalMarks > 100) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Total marks (theory + practical) cannot exceed 100" 
+      });
+    }
+
+    if (totalMarks <= 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "At least one of theory or practical must be enabled with marks greater than 0" 
+      });
+    }
+
     // Check if subject with same name exists for the same course and semester
     const exists = await UGPGSubject.findOne({ 
       name: name.trim(), 
       course,
-      semester
+      semester: Number(semester)
     });
     
     if (exists) {
@@ -33,7 +75,11 @@ exports.createSubject = async (req, res) => {
       school,
       course,
       semester: Number(semester),
-      status: status === "Inactive" ? "Inactive" : "Active", 
+      status: status === "Inactive" ? "Inactive" : "Active",
+      hasTheory: Boolean(hasTheory),
+      theoryMaxMarks: hasTheory ? Number(theoryMaxMarks) : 0,
+      hasPractical: Boolean(hasPractical),
+      practicalMaxMarks: hasPractical ? Number(practicalMaxMarks) : 0,
       createdBy: req.user ? req.user.id : undefined 
     });
     
@@ -107,13 +153,55 @@ exports.getSubjectById = async (req, res) => {
 exports.updateSubject = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, school, course, semester, status } = req.body;
+    const { 
+      name, 
+      school, 
+      course, 
+      semester, 
+      status, 
+      hasTheory, 
+      theoryMaxMarks, 
+      hasPractical, 
+      practicalMaxMarks 
+    } = req.body;
 
     // Validate required fields
     if (!name || !school || !course || !semester) {
       return res.status(400).json({ 
         success: false, 
         message: "name, school, course, and semester are required" 
+      });
+    }
+
+    // Validate marks
+    if (hasTheory && (!theoryMaxMarks || theoryMaxMarks <= 0)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Theory max marks must be greater than 0 when hasTheory is true" 
+      });
+    }
+
+    if (hasPractical && (!practicalMaxMarks || practicalMaxMarks <= 0)) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Practical max marks must be greater than 0 when hasPractical is true" 
+      });
+    }
+
+    const totalMarks = (hasTheory ? Number(theoryMaxMarks) : 0) + 
+                      (hasPractical ? Number(practicalMaxMarks) : 0);
+    
+    if (totalMarks > 100) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "Total marks (theory + practical) cannot exceed 100" 
+      });
+    }
+
+    if (totalMarks <= 0) {
+      return res.status(400).json({ 
+        success: false, 
+        message: "At least one of theory or practical must be enabled with marks greater than 0" 
       });
     }
 
@@ -133,15 +221,21 @@ exports.updateSubject = async (req, res) => {
     }
 
     // Update subject
+    const updateData = { 
+      name: name.trim(), 
+      school,
+      course,
+      semester: Number(semester),
+      status: status === "Inactive" ? "Inactive" : "Active",
+      hasTheory: Boolean(hasTheory),
+      theoryMaxMarks: hasTheory ? Number(theoryMaxMarks) : 0,
+      hasPractical: Boolean(hasPractical),
+      practicalMaxMarks: hasPractical ? Number(practicalMaxMarks) : 0
+    };
+
     const doc = await UGPGSubject.findByIdAndUpdate(
       id,
-      { 
-        name: name.trim(), 
-        school,
-        course,
-        semester: Number(semester),
-        status: status === "Inactive" ? "Inactive" : "Active" 
-      },
+      updateData,
       { new: true, runValidators: true }
     ).populate(["school", "course"]);
 

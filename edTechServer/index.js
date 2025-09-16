@@ -50,7 +50,7 @@ const ugpgSubjectRoutes = require("./routes/ugpgSubject");
 const superAdminRoutes = require("./routes/superAdmin");
 const leaveRequestRoutes = require("./routes/leaveRequestRoutes");
 const documentRoutes = require("./routes/document");
-
+const resultRoutes = require('./routes/resultRoutes');
 const languageRoutes = require("./routes/language");
 const ugpgVisitorLogRoutes = require("./routes/ugpgVisitorLog");
 const visitPurposeRoutes = require("./routes/visitPurpose");
@@ -257,6 +257,7 @@ app.use("/api/v1/university/fee-types", feeTypeRoutes);
 app.use("/api/v1/university/fee-assignments", feeAssignmentRoutes);
 app.use("/api/v1/leave-requests", leaveRequestRoutes);
 app.use("/api/v1/timetable", timetableRoutes);
+app.use("/api/v1/results", resultRoutes);
 // Direct binding for critical profile update route (temporary safeguard)
 const { auth } = require("./middlewares/auth");
 const { updateProfile } = require("./controllers/Profile");
