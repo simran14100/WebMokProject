@@ -1,17 +1,34 @@
 const express = require('express');
 const router = express.Router();
+
+console.log('Result routes initialized');
+
 const {
   createResult,
   updateResult,
   getResults,
   getResultById,
   getResultsByStudent,
-  deleteResult
+  getMyResults,
+  deleteResult,
+  getResultPdf
 } = require('../controllers/resultController');
 const { protect, authorize } = require('../middlewares/auth');
 
-// Apply protect and authorize middleware to all routes
+// Apply protect middleware to all routes
 router.use(protect);
+
+// Student routes
+console.log('Registering GET /my-results route');
+router.get('/my-results', (req, res, next) => {
+  console.log('GET /my-results route hit');
+  next();
+}, getMyResults);
+
+// Download result PDF (accessible to student who owns the result or admin)
+router.get('/:id/download', getResultPdf);
+
+// Admin routes
 router.use(authorize('admin', 'SuperAdmin'));
 
 // @route   POST /api/v1/results
@@ -30,7 +47,7 @@ router.put('/:id', updateResult);
 router.get('/', getResults);
 
 // @route   GET /api/v1/results/student/:studentId
-// @desc    Get results for a specific student
+// @desc    Get results for a specific student (Admin only)
 // @access  Private/Admin
 router.get('/student/:studentId', getResultsByStudent);
 

@@ -138,7 +138,7 @@ import UniversityEnrolledStudent from "./pages/SuperAdmin/UniversityEnrolledStud
 import { withEnrollmentVerification } from "./middleware/enrollmentMiddleware";
 import DashboardLayout from './components/common/DashboardLayout';
 import Accounts from "./pages/Dashboard/Accounts";
-
+import StudentResults from "./pages/Dashboard/StudentResults"; 
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
 console.log("App starting - localStorage debug:");
@@ -241,7 +241,7 @@ function AppRoutes() {
         <Route path="leave-requests" element={
             <Leave />
         } />
-        <Route path="results" element={<div>Results</div>} />
+         <Route path="results" element={<StudentResults />} />
         <Route path="fees" element={<div>Fees & Payments</div>} />
         <Route path="change-password" element={<div>Change Password</div>} />
         <Route path="notification-settings" element={<div>Notification Settings</div>} />

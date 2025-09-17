@@ -3,8 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const xlsx = require('xlsx');
 const PDFDocument = require('pdfkit');
-const Result = require('../models/resultModel');
 const UniversityRegisteredStudent = require('../models/UniversityRegisteredStudent');
+const Result = require('../models/resultModel');
 const UGPGSubject = require('../models/UGPGSubject');
 const ExamSession = require('../models/ExamSession');
 const { getExamTypeByCode } = require('../config/examTypes');
@@ -995,13 +995,218 @@ const generateMarksheet = async (data) => {
   });
 };
 
+// @desc    Get results for the currently authenticated student
+// @route   GET /api/v1/results/my-results
+// @access  Private/Student
+// @desc    Download result as PDF
+// @route   GET /api/v1/results/:id/download
+// @access  Private (Student who owns the result or Admin)
+const getResultPdf = asyncHandler(async (req, res) => {
+  try {
+    const result = await Result.findById(req.params.id)
+      .populate('student', 'name email')
+      .populate('course', 'name code')
+      .populate('subject', 'name code');
+
+    if (!result) {
+      res.status(404);
+      throw new Error('Result not found');
+    }
+
+    // Check if the user is the student who owns this result or an admin
+    if (result.student._id.toString() !== req.user.id && 
+        !['admin', 'SuperAdmin'].includes(req.user.role)) {
+      res.status(403);
+      throw new Error('Not authorized to access this result');
+    }
+
+    // Generate PDF
+    const doc = new PDFDocument();
+    
+    // Set response headers
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename=result_${result._id}.pdf`);
+    
+    // Pipe the PDF to the response
+    doc.pipe(res);
+    
+    // Add content to the PDF
+    doc.fontSize(20).text('Result Details', { align: 'center' });
+    doc.moveDown();
+    doc.fontSize(14).text(`Student: ${result.student.name}`);
+    doc.text(`Course: ${result.course.name} (${result.course.code})`);
+    doc.text(`Subject: ${result.subject.name} (${result.subject.code})`);
+    doc.text(`Marks Obtained: ${result.marksObtained}`);
+    doc.text(`Total Marks: ${result.totalMarks || 100}`);
+    doc.text(`Percentage: ${result.percentage || 0}%`);
+    doc.text(`Grade: ${result.grade || 'N/A'}`);
+    doc.text(`Status: ${result.status || 'N/A'}`);
+    
+    // Finalize the PDF and end the stream
+    doc.end();
+    
+  } catch (error) {
+    console.error('Error generating PDF:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error generating PDF',
+      error: process.env.NODE_ENV === 'development' ? error : {}
+    });
+  }
+});
+
+// @desc    Get results for the currently authenticated student
+// @route   GET /api/v1/results/my-results
+// @access  Private/Student
+const getMyResults = asyncHandler(async (req, res) => {
+  console.log('getMyResults controller called');
+  console.log('Request user:', req.user);
+  
+  try {
+    // Check if user is a student
+    if (req.user.role !== 'Student') {
+      console.log('Access denied - user is not a student');
+      return res.status(403).json({
+        success: false,
+        message: 'Only students can access their results through this endpoint'
+      });
+    }
+
+    // Get student record using email from authenticated user
+    const student = await UniversityRegisteredStudent.findOne({
+      email: req.user.email.toLowerCase()
+    }).select('_id course');
+
+    if (!student) {
+      console.log('Student not found with email:', req.user.email);
+      return res.status(404).json({
+        success: false,
+        message: 'Student record not found. Please complete your student registration.'
+      });
+    }
+
+    console.log('Found student with ID:', student._id, 'and course:', student.course);
+    
+    // Build query to find results for this student
+    const query = { 
+      student: student._id,
+      status: { $ne: 'draft' } // Only fetch published results
+    };
+
+    // First get the results with proper population
+    let results = await Result.find(query)
+      .populate({
+        path: 'course',
+        model: 'UGPGCourse',
+        select: 'courseName code',
+        // Force population even if the field is empty
+        options: { allowEmptyArray: true }
+      })
+      .populate({
+        path: 'examSession',
+        model: 'ExamSession',
+        select: 'name session',
+        options: { allowEmptyArray: true }
+      })
+      .populate({
+        path: 'subjectResults.subject',
+        model: 'UGPGSubject',
+        select: 'name code',
+        options: { allowEmptyArray: true }
+      })
+      .sort({ examSession: -1, semester: 1 })
+      .lean();
+
+    // Process the results to ensure we have proper course data
+    results = results.map(result => {
+      // If course is an empty object but we have course ID in the raw data
+      if (result.course && Object.keys(result.course).length === 0 && result.course.constructor === Object) {
+        // Try to find the course ID in the raw data
+        const courseId = result._doc?.course?.toString();
+        if (courseId) {
+          // Fetch the course directly with the correct field name
+          return mongoose.model('UGPGCourse').findById(courseId)
+            .select('courseName code')
+            .lean()
+            .then(course => ({
+              ...result,
+              course: course ? { 
+                _id: courseId, 
+                name: course.courseName, // Map courseName to name for frontend
+                code: course.code 
+              } : { _id: courseId, name: `Course ${courseId}` },
+              examSession: result.examSession || { name: 'N/A' }
+            }));
+        }
+      }
+      // If course exists but has courseName instead of name, normalize it
+      if (result.course && result.course.courseName) {
+        result.course = {
+          ...result.course,
+          name: result.course.courseName
+        };
+      }
+      return Promise.resolve({
+        ...result,
+        examSession: result.examSession || { name: 'N/A' }
+      });
+    });
+
+    // Wait for all async operations to complete
+    results = await Promise.all(results);
+      
+    console.log('Found', results.length, 'results for student');
+
+    if (results.length === 0) {
+      console.log('No results found for student');
+      return res.status(200).json({
+        success: true,
+        count: 0,
+        data: [],
+        message: 'No results found for your account. Please check back later.'
+      });
+    }
+
+    // Format the response
+    const formattedResults = results.map(result => ({
+      _id: result._id,
+      semester: result.semester,
+      course: result.course,
+      examSession: result.examSession,
+      subjectResults: result.subjectResults,
+      totalMarks: result.totalMarks,
+      percentage: result.percentage,
+      grade: result.grade,
+      status: result.status,
+      createdAt: result.createdAt
+    }));
+
+    console.log('Sending', formattedResults.length, 'results to client');
+    res.status(200).json({
+      success: true,
+      count: formattedResults.length,
+      data: formattedResults,
+      message: 'Results retrieved successfully'
+    });
+  } catch (error) {
+    console.error('Error in getMyResults:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to fetch student results',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 module.exports = {
   createResult,
   updateResult,
   getResults,
   getResultById,
   getResultsByStudent,
+  getMyResults,
   deleteResult,
   generateMarksheet,
-  calculateGrade
+  calculateGrade,
+  getResultPdf
 };
