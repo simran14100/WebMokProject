@@ -372,14 +372,33 @@ const deleteResult = asyncHandler(async (req, res) => {
   });
 });
 
+// Define grade order for comparison
+const GRADE_ORDER = ['F', 'D', 'C', 'B', 'B+', 'A', 'A+'];
+
+// Helper function to get the higher of two grades
+const getHigherGrade = (grade1, grade2) => {
+  if (!grade1 && !grade2) return '';
+  if (!grade1) return grade2;
+  if (!grade2) return grade1;
+  
+  const index1 = GRADE_ORDER.indexOf(grade1.toUpperCase());
+  const index2 = GRADE_ORDER.indexOf(grade2.toUpperCase());
+  
+  if (index1 === -1 && index2 === -1) return '';
+  if (index1 === -1) return grade2;
+  if (index2 === -1) return grade1;
+  
+  return index1 > index2 ? grade1 : grade2;
+};
+
 // Helper function to calculate grade based on percentage
 const calculateGrade = (percentage) => {
   if (percentage >= 90) return 'A+';
   if (percentage >= 80) return 'A';
-  if (percentage >= 70) return 'B';
-  if (percentage >= 60) return 'C';
-  if (percentage >= 50) return 'D';
-  if (percentage >= 40) return 'E';
+  if (percentage >= 70) return 'B+';
+  if (percentage >= 60) return 'B';
+  if (percentage >= 50) return 'C';
+  if (percentage >= 40) return 'D';
   return 'F';
 };
 
@@ -937,56 +956,151 @@ const generateMarksheet = async (data) => {
   const writeStream = fs.createWriteStream(filePath);
   doc.pipe(writeStream);
 
-  // Header
-  doc.fontSize(16).text('UNIVERSITY MARKSHEET', { align: 'center' }).moveDown(0.5);
+  // Set response headers
+  doc.setHeader('Content-Type', 'application/pdf');
+  doc.setHeader('Content-Disposition', `attachment; filename=Result_${data.student.enrollmentNo}.pdf`);
   
-  // Student Info
-  doc.fontSize(10)
-     .text(`Name: ${data.student.name}`)
-     .text(`Enrollment: ${data.student.enrollmentNo}`)
-     .text(`Course: ${data.student.course}`)
-     .text(`Semester: ${data.semester} | Session: ${data.examSession}`)
-     .moveDown(1);
+  // Pipe PDF to response
+  doc.pipe(res);
   
-  // Subjects Table
-  const tableTop = 180;
-  const colWidths = [30, 200, 80, 80, 50]; // S.No, Subject, Marks, Max, Grade
-  
-  // Table Header
-  doc.font('Helvetica-Bold').fontSize(9)
-     .text('S.No', 50, tableTop)
-     .text('Subject', 80, tableTop)
-     .text('Marks', 280, tableTop, { width: 80, align: 'right' })
-     .text('Max', 360, tableTop, { width: 50, align: 'right' })
-     .text('Grade', 410, tableTop, { width: 50, align: 'center' });
-  
-  // Table Rows
-  doc.font('Helvetica').fontSize(9);
-  data.subjects.forEach((subj, i) => {
-    const y = tableTop + 20 + (i * 20);
-    if (i % 2 === 0) doc.fill('#f5f5f5').rect(50, y - 5, 500, 20).fill();
-    doc.fill('#000')
-       .text((i + 1).toString(), 55, y)
-       .text(subj.subjectCode || `Subject ${i + 1}`, 80, y)
-       .text(subj.marksObtained.toString(), 280, y, { width: 80, align: 'right' })
-       .text(subj.maxMarks.toString(), 360, y, { width: 50, align: 'right' })
-       .text(subj.grade, 410, y, { width: 50, align: 'center' });
+  // Add WEBMOK University header
+  doc
+    .fontSize(16)
+    .font('Helvetica-Bold')
+    .fillColor('#1a365d') // Dark blue color
+    .text('WEBMOK UNIVERSITY', { align: 'center' })
+    .moveDown(0.3);
+      
+  doc
+    .fontSize(12)
+    .fillColor('#2d3748') // Dark gray color
+    .text('Statement of Marks', { align: 'center' })
+    .moveDown(0.5);
+      
+  // Add student details in a box
+  const studentStartY = doc.y;
+  doc
+    .rect(50, studentStartY, 500, 100) // Reduced height since we removed course and duration
+    .stroke('#e2e8f0') // Light gray border
+    .fill('#f8fafc'); // Light blue background
+      
+  // Student details
+  doc
+    .fontSize(10)
+    .fillColor('#1a202c') // Dark text
+    .text('Name of Student:', 60, studentStartY + 15, { width: 120, align: 'left' })
+    .text(data.student.name, 190, studentStartY + 15, { width: 350, align: 'left' })
+      
+    .text('Enrollment No.:', 60, studentStartY + 35, { width: 120, align: 'left' })
+    .text(data.student.enrollmentNo, 190, studentStartY + 35, { width: 350, align: 'left' });
+      
+  doc.y = studentStartY + 80; // Move cursor below student details
+    
+  // Add semester only (removed session)
+  doc
+    .fontSize(10)
+    .text(`Semester: ${data.semester}`, 60, doc.y, { width: 200, align: 'left' })
+    .moveDown(1);
+      
+  // Add table header with background
+  const headerY = doc.y;
+  doc
+    .fill('#1e40af') // Blue header background
+    .rect(50, headerY, 500, 25)
+    .fill();
+      
+  doc
+    .fillColor('#ffffff') // White text
+    .font('Helvetica-Bold')
+    .fontSize(10)
+    .text('SUBJECT', 55, headerY + 8, { width: 200, align: 'left' })
+    .text('THEORY', 255, headerY + 8, { width: 60, align: 'center' })
+    .text('PRACTICAL', 315, headerY + 8, { width: 80, align: 'center' })
+    .text('TOTAL', 405, headerY + 8, { width: 60, align: 'center' })
+    .text('GRADE', 475, headerY + 8, { width: 60, align: 'center' });
+      
+  doc.y = headerY + 30; // Move cursor below header
+      
+  // Add subject results
+  doc.font('Helvetica').fontSize(10).fillColor('#1a202c');
+    
+  // Group subject results by subject ID
+  const subjects = {};
+  data.subjects.forEach(item => {
+    if (!subjects[item.subject._id]) {
+      subjects[item.subject._id] = {
+        name: item.subject.name,
+        theory: '-',
+        practical: '-',
+        total: 0,
+        grade: '-'
+      };
+    }
+      
+    if (item.examType === 'theory') {
+      subjects[item.subject._id].theory = item.marksObtained;
+      subjects[item.subject._id].total += item.marksObtained;
+    } else if (item.examType === 'practical') {
+      subjects[item.subject._id].practical = item.marksObtained;
+      subjects[item.subject._id].total += item.marksObtained;
+    }
+      
+    if (item.grade) {
+      subjects[item.subject._id].grade = item.grade;
+    }
   });
-  
-  // Summary
-  const summaryY = tableTop + (data.subjects.length * 20) + 30;
-  doc.font('Helvetica-Bold').fontSize(10)
-     .text('SUMMARY', 50, summaryY, { underline: true })
-     .font('Helvetica')
-     .text(`Total Marks: ${data.totalMarks} / ${data.maxMarks}`, 70, summaryY + 20)
-     .text(`Percentage: ${data.percentage}%`, 70, summaryY + 40)
-     .font('Helvetica-Bold')
-     .text(`Result: ${data.status}`, 70, summaryY + 60);
-  
-  // Footer
-  doc.fontSize(8)
-     .text(`Generated on: ${new Date().toLocaleDateString()}`, 50, 750, { align: 'center' });
-  
+    
+  // Add rows for each subject
+  Object.values(subjects).forEach((subject, index) => {
+    const rowY = doc.y;
+      
+    // Alternate row background
+    if (index % 2 === 0) {
+      doc
+        .fill('#f8fafc')
+        .rect(50, rowY, 500, 20)
+        .fill();
+    }
+      
+    doc
+      .fillColor('#1a202c')
+      .text(subject.name, 55, rowY + 5, { width: 190, align: 'left' })
+      .text(subject.theory.toString(), 255, rowY + 5, { width: 60, align: 'center' })
+      .text(subject.practical.toString(), 315, rowY + 5, { width: 80, align: 'center' })
+      .text(subject.total.toString(), 405, rowY + 5, { width: 60, align: 'center' })
+      .text(subject.grade, 475, rowY + 5, { width: 60, align: 'center' });
+        
+    doc.y = rowY + 20;
+  });
+    
+  // Add total marks and percentage
+  const totalY = doc.y + 10;
+  doc
+    .font('Helvetica-Bold')
+    .text('TOTAL', 405, totalY, { width: 60, align: 'center' })
+    .text(data.totalMarks.toString(), 475, totalY, { width: 60, align: 'center' });
+      
+  doc
+    .font('Helvetica')
+    .text(`Percentage: ${data.percentage}%`, 350, totalY + 30, { align: 'right' })
+    .text(`Result: ${data.status}`, 350, totalY + 50, { align: 'right' });
+      
+  // Add signature line
+  const signY = totalY + 80;
+  doc
+    .moveTo(50, signY + 20)
+    .lineTo(200, signY + 20)
+    .stroke();
+      
+  doc
+    .fontSize(10)
+    .text('Controller of Examinations', 50, signY + 25);
+      
+  // Add date
+  doc
+    .text(`Date: ${new Date().toLocaleDateString()}`, 350, signY + 25, { align: 'right' });
+      
+  // Finalize PDF
   doc.end();
   
   return new Promise((resolve, reject) => {
@@ -1003,44 +1117,645 @@ const generateMarksheet = async (data) => {
 // @access  Private (Student who owns the result or Admin)
 const getResultPdf = asyncHandler(async (req, res) => {
   try {
-    const result = await Result.findById(req.params.id)
-      .populate('student', 'name email')
-      .populate('course', 'name code')
-      .populate('subject', 'name code');
+    console.log('=== PDF Download Request ===');
+    console.log('Request params:', req.params);
+    console.log('Authenticated user:', {
+      id: req.user?._id || req.user?.id,
+      email: req.user?.email,
+      accountType: req.user?.accountType
+    });
+    
+    // Get the raw result first to check the data
+    const rawResult = await Result.findById(req.params.id).lean();
+    console.log('Raw result data:', {
+      _id: rawResult?._id,
+      student: rawResult?.student,
+      course: rawResult?.course,
+      examSession: rawResult?.examSession,
+      semester: rawResult?.semester,
+      subjectResults: rawResult?.subjectResults?.map(sr => ({
+        subject: sr.subject,
+        examType: sr.examType,
+        marksObtained: sr.marksObtained,
+        maxMarks: sr.maxMarks,
+        grade: sr.grade
+      }))
+    });
+
+    // Verify student data exists in the database
+    if (rawResult?.student) {
+      const studentData = await mongoose.model('UniversityRegisteredStudent')
+        .findById(rawResult.student)
+        .select('firstName middleName lastName email enrollmentNumber')
+        .lean();
+      
+      console.log('Student data from database:', studentData);
+      
+      if (!studentData) {
+        console.error('Student not found in database for ID:', rawResult.student);
+      } else {
+        // Combine name fields
+        const fullName = [studentData.firstName, studentData.middleName, studentData.lastName]
+          .filter(Boolean)
+          .join(' ');
+          
+        if (!fullName || !studentData.enrollmentNumber) {
+          console.error('Student data is incomplete:', {
+            hasName: !!fullName,
+            hasEnrollment: !!studentData.enrollmentNumber,
+            hasEmail: !!studentData.email,
+            nameFields: {
+              firstName: studentData.firstName,
+              middleName: studentData.middleName,
+              lastName: studentData.lastName
+            }
+          });
+        }
+      }
+    }
+    
+    // Verify course data exists in the database
+    if (rawResult?.course) {
+      const courseData = await mongoose.model('UGPGCourse')
+        .findById(rawResult.course)
+        .select('name code')
+        .lean();
+      
+      console.log('Course data from database:', courseData);
+      
+      if (!courseData) {
+        console.error('Course not found in database for ID:', rawResult.course);
+      } else if (!courseData.name || !courseData.code) {
+        console.error('Course data is incomplete:', {
+          hasName: !!courseData.name,
+          hasCode: !!courseData.code
+        });
+      }
+    }
+    
+    if (!rawResult) {
+      console.error('Result not found for ID:', req.params.id);
+      res.status(404);
+      throw new Error('Result not found');
+    }
+    
+    // First, get the result with basic population
+    let result = await Result.findById(req.params.id)
+      .populate({
+        path: 'student',
+        model: 'UniversityRegisteredStudent',
+        select: 'firstName middleName lastName email enrollmentNumber',
+        options: { lean: true }
+      })
+      .populate({
+        path: 'course',
+        model: 'UGPGCourse',
+        select: 'name code fullName session courseName',
+        populate: {
+          path: 'session',
+          model: 'UGPGSession',
+          select: 'name startDate endDate enrollmentSeries',
+          options: { lean: true }
+        },
+        options: { lean: true }
+      })
+      .populate({
+        path: 'subjectResults.subject',
+        model: 'UGPGSubject',
+        select: 'name code',
+        options: { lean: true }
+      })
+      .populate({
+        path: 'examSession',
+        model: 'ExamSession',
+        select: 'name startDate endDate academicYear',
+        options: { lean: true }
+      })
+      .lean();
+      
+    console.log('Course after initial population:', result?.course); // Debug log
+
+    // If course has a session reference, populate it
+    if (result?.course?.session) {
+      try {
+        // Check if session is already populated or just an ID
+        if (typeof result.course.session === 'string' || result.course.session instanceof mongoose.Types.ObjectId) {
+          const session = await mongoose.model('UGPGSession')
+            .findById(result.course.session)
+            .select('name startDate endDate enrollmentSeries')
+            .lean();
+          
+          if (session) {
+            result.course.session = session;
+          }
+        }
+        
+        // Also fetch course details if not already populated
+        if (typeof result.course === 'string' || result.course instanceof mongoose.Types.ObjectId) {
+          const course = await mongoose.model('UGPGCourse')
+            .findById(result.course)
+            .populate('session', 'name startDate endDate enrollmentSeries')
+            .select('name fullName code session')
+            .lean();
+          
+          if (course) {
+            result.course = course;
+          }
+        }
+      } catch (error) {
+        console.error('Error populating course/session:', error);
+      }
+    }
+    
+    // Ensure we have the student's full name
+    if (result.student) {
+      result.student.fullName = [
+        result.student.firstName,
+        result.student.middleName,
+        result.student.lastName
+      ].filter(Boolean).join(' ');
+    }
 
     if (!result) {
+      console.error('Result not found for ID:', req.params.id);
       res.status(404);
       throw new Error('Result not found');
     }
 
-    // Check if the user is the student who owns this result or an admin
-    if (result.student._id.toString() !== req.user.id && 
-        !['admin', 'SuperAdmin'].includes(req.user.role)) {
+    // Log the populated data for debugging
+    const logData = {
+      student: result.student ? {
+        id: result.student._id,
+        name: result.student.name,
+        email: result.student.email,
+        enrollmentNumber: result.student.enrollmentNumber
+      } : 'No student data',
+      course: result.course ? {
+        id: result.course._id,
+        name: result.course.name,
+        code: result.course.code
+      } : 'No course data',
+      examSession: result.examSession ? {
+        id: result.examSession._id,
+        name: result.examSession.name,
+        startDate: result.examSession.startDate,
+        endDate: result.examSession.endDate
+      } : 'No exam session data',
+      subjectResults: result.subjectResults.map(sr => ({
+        subject: sr.subject ? {
+          id: sr.subject._id,
+          name: sr.subject.name,
+          code: sr.subject.code
+        } : 'No subject data',
+        examType: sr.examType,
+        marksObtained: sr.marksObtained,
+        maxMarks: sr.maxMarks,
+        grade: sr.grade
+      })),
+      semester: result.semester,
+      totalMarksObtained: result.totalMarksObtained,
+      totalMaxMarks: result.totalMaxMarks,
+      percentage: result.percentage,
+      status: result.status
+    };
+
+    console.log('Populated result data:', JSON.stringify(logData, null, 2));
+
+    // Get user ID and email from JWT payload
+    const userId = req.user._id || req.user.id;
+    const userEmail = req.user.email?.toLowerCase();
+    
+    if (!userId) {
+      res.status(401);
+      throw new Error('User ID not found in request');
+    }
+
+    // Get student ID and email from result
+    const studentId = result.student?._id?.toString() || result.student?.toString();
+    const studentEmail = result.student?.email?.toLowerCase();
+    
+    if (!studentId) {
+      res.status(400);
+      throw new Error('Invalid result: Missing student information');
+    }
+    
+    // Check if user is admin
+    const isAdmin = ['Admin', 'SuperAdmin'].includes(req.user.accountType);
+    
+    // Check ownership by ID or email
+    const isOwnerById = studentId === userId.toString();
+    const isOwnerByEmail = userEmail && studentEmail && userEmail === studentEmail;
+    const isOwner = isOwnerById || isOwnerByEmail;
+    
+    console.log('Authorization check:', {
+      studentId,
+      studentEmail,
+      userId: userId.toString(),
+      userEmail,
+      isOwner,
+      isOwnerById,
+      isOwnerByEmail,
+      isAdmin,
+      accountType: req.user.accountType
+    });
+    
+    if (!isOwner && !isAdmin) {
       res.status(403);
       throw new Error('Not authorized to access this result');
     }
 
-    // Generate PDF
-    const doc = new PDFDocument();
+    // Generate PDF with proper margins
+    const doc = new PDFDocument({ margin: 50 });
     
     // Set response headers
     res.setHeader('Content-Type', 'application/pdf');
-    res.setHeader('Content-Disposition', `attachment; filename=result_${result._id}.pdf`);
+    res.setHeader('Content-Disposition', `attachment; filename=Result_${result._id}.pdf`);
     
     // Pipe the PDF to the response
     doc.pipe(res);
     
-    // Add content to the PDF
-    doc.fontSize(20).text('Result Details', { align: 'center' });
-    doc.moveDown();
-    doc.fontSize(14).text(`Student: ${result.student.name}`);
-    doc.text(`Course: ${result.course.name} (${result.course.code})`);
-    doc.text(`Subject: ${result.subject.name} (${result.subject.code})`);
-    doc.text(`Marks Obtained: ${result.marksObtained}`);
-    doc.text(`Total Marks: ${result.totalMarks || 100}`);
-    doc.text(`Percentage: ${result.percentage || 0}%`);
-    doc.text(`Grade: ${result.grade || 'N/A'}`);
-    doc.text(`Status: ${result.status || 'N/A'}`);
+    // Add WEBMOK University header
+    doc
+      .fontSize(18)
+      .font('Helvetica-Bold')
+      .fillColor('#1a365d')
+      .text('WEBMOK UNIVERSITY', { align: 'center' })
+      .moveDown(0.3);
+      
+    doc
+      .fontSize(14)
+      .fillColor('#2d3748')
+      .text('Statement of Marks', { align: 'center' })
+      .moveDown(0.5);
+    
+    // Student details box with fixed height
+    const studentBoxHeight = 80; // Increased height to include course
+    
+    const studentStartY = doc.y;
+    doc
+      .rect(50, studentStartY, 500, studentBoxHeight)
+      .stroke('#e2e8f0')
+      .fill('#f8fafc');
+    
+    // Student details section - simplified
+    doc
+      .fontSize(10)
+      .fillColor('#1a202c');
+    
+    // Student Name
+    doc
+      .font('Helvetica-Bold')
+      .text('Name of Student:', 60, studentStartY + 10, { width: 120 })
+      .font('Helvetica')
+      .text(result.student?.fullName || 'Not Available', 190, studentStartY + 10, { width: 350 });
+    
+    // Enrollment
+    doc
+      .font('Helvetica-Bold')
+      .text('Enrollment No:', 60, studentStartY + 30, { width: 120 })
+      .font('Helvetica')
+      .text(result.student?.enrollmentNumber || 'Not Available', 190, studentStartY + 30, { width: 350 });
+    
+    // Course
+    const courseName = result.course?.courseName || result.course?.name || 'Not Available';
+    doc
+      .font('Helvetica-Bold')
+      .text('Course:', 60, studentStartY + 50, { width: 120 })
+      .font('Helvetica')
+      .text(courseName, 190, studentStartY + 50, { width: 350 });
+    
+    // Semester information below the box
+    const semesterStartY = studentStartY + studentBoxHeight + 10;
+    doc
+      .font('Helvetica-Bold')
+      .text('Semester:', 60, semesterStartY, { width: 120 })
+      .font('Helvetica')
+      .text(`Semester ${result.semester || 'N/A'}`, 190, semesterStartY, { width: 350 });
+    
+    // Set the Y position for the next element
+    doc.y = semesterStartY + 20;
+    
+    // Session details with better formatting and fallbacks
+    const sessionY = doc.y;
+    
+    // Get session name from either examSession or course.session
+    let sessionName = 'Not Available';
+    let sessionDates = '';
+    
+    if (result.course?.session) {
+      const session = result.course.session;
+      if (typeof session === 'object') {
+        sessionName = session.name || 'Not Available';
+        if (session.startDate || session.endDate) {
+          const start = session.startDate ? new Date(session.startDate).toLocaleDateString() : 'N/A';
+          const end = session.endDate ? new Date(session.endDate).toLocaleDateString() : 'N/A';
+          sessionDates = `${start} - ${end}`;
+        }
+      }
+    } else if (result.examSession) {
+      sessionName = result.examSession.name || 
+                   (result.examSession.academicYear ? 
+                    `Academic Year ${result.examSession.academicYear}` : 
+                    'Not Available');
+    }
+    
+    // Semester and Session info
+    doc
+      .fontSize(10)
+      .fillColor('#1a202c')
+      .font('Helvetica-Bold')
+      .text('Semester:', 60, sessionY, { width: 80 })
+      .font('Helvetica')
+      .text(`Semester ${result.semester || 'N/A'}`, 140, sessionY, { width: 120 })
+      
+      .font('Helvetica-Bold')
+      .text('Session:', 350, sessionY, { width: 80 })
+      .font('Helvetica')
+      .text(sessionName, 430, sessionY, { width: 120 });
+    
+    // Add session dates if available
+    if (sessionDates) {
+      doc
+        .font('Helvetica-Bold')
+        .text('Duration:', 60, sessionY + 20, { width: 80 })
+        .font('Helvetica')
+        .text(sessionDates, 140, sessionY + 20, { width: 300 });
+    }
+    
+    // Add exam session date range if available
+    if (result.examSession?.startDate || result.examSession?.endDate) {
+      const startDate = result.examSession.startDate ? 
+                       new Date(result.examSession.startDate).toLocaleDateString() : 'N/A';
+      const endDate = result.examSession.endDate ? 
+                     new Date(result.examSession.endDate).toLocaleDateString() : 'N/A';
+      
+      doc
+        .font('Helvetica-Bold')
+        .text('Period:', 60, sessionY + 15, { width: 80 })
+        .font('Helvetica')
+        .text(`${startDate} - ${endDate}`, 140, sessionY + 15, { width: 200 });
+    }
+    
+    doc.moveDown(1);
+    
+    // Add a divider line
+    doc
+      .moveTo(50, doc.y)
+      .lineTo(550, doc.y)
+      .lineWidth(1)
+      .stroke('#e2e8f0')
+      .moveDown(0.5);
+    
+    // Table header with better styling
+    const headerY = doc.y;
+    doc
+      .fill('#1e40af')
+      .rect(50, headerY, 500, 25, { radius: 2 })
+      .fill();
+    
+    doc
+      .fillColor('#ffffff')
+      .font('Helvetica-Bold')
+      .fontSize(10)
+      .text('SUBJECT', 55, headerY + 8, { width: 200 })
+      .text('THEORY', 255, headerY + 8, { width: 60, align: 'center' })
+      .text('PRACTICAL', 315, headerY + 8, { width: 80, align: 'center' })
+      .text('TOTAL', 405, headerY + 8, { width: 60, align: 'center' })
+      .text('GRADE', 475, headerY + 8, { width: 60, align: 'center' });
+    
+    doc.y = headerY + 30;
+    
+    // Group subject results by subject with better data handling
+    const subjects = {};
+    
+    // First pass: Organize data by subject
+    result.subjectResults.forEach(item => {
+      const subjectId = item.subject?._id?.toString() || 'unknown';
+      const subjectName = item.subject?.name || 'Unknown Subject';
+      const subjectCode = item.subject?.code || '';
+      const examType = String(item.examType || 'theory').toLowerCase();
+      
+      if (!subjects[subjectId]) {
+        subjects[subjectId] = {
+          name: subjectName,
+          code: subjectCode,
+          theory: { marks: null, max: null, grade: null },
+          practical: { marks: null, max: null, grade: null },
+          total: { marks: 0, max: 0, grade: null },
+          isPassed: true
+        };
+      }
+      
+      // Handle both theory and practical marks
+      if (['theory', 'practical'].includes(examType)) {
+        const marks = parseFloat(item.marksObtained) || 0;
+        const maxMarks = parseFloat(item.maxMarks) || 0;
+        
+        subjects[subjectId][examType] = {
+          marks: marks,
+          max: maxMarks,
+          grade: item.grade || ''
+        };
+        
+        // Update totals if we have valid numbers
+        if (!isNaN(marks) && !isNaN(maxMarks)) {
+          subjects[subjectId].total.marks += marks;
+          subjects[subjectId].total.max += maxMarks;
+        }
+      }
+      
+      // Update pass/fail status
+      if (item.isPassed === false) {
+        subjects[subjectId].isPassed = false;
+      }
+    });
+    
+    // Second pass: Calculate grades if not provided
+    Object.values(subjects).forEach(subject => {
+      if (!subject.theory.grade && !subject.practical.grade && subject.total.max > 0) {
+        const percentage = (subject.total.marks / subject.total.max) * 100;
+        subject.total.grade = calculateGrade(percentage);
+      } else {
+        // Use the higher grade between theory and practical
+        subject.total.grade = getHigherGrade(subject.theory.grade, subject.practical.grade);
+      }
+    });
+    
+    // Add subject rows with better formatting
+    Object.values(subjects).forEach((subject, index) => {
+      const rowY = doc.y;
+      const rowHeight = 24; // Slightly taller rows for better readability
+      
+      // Alternate row background
+      doc
+        .fill(index % 2 === 0 ? '#ffffff' : '#f8fafc')
+        .rect(50, rowY, 500, rowHeight)
+        .fill();
+      
+      // Subject name and code
+      doc
+        .fillColor('#1a202c')
+        .font('Helvetica')
+        .fontSize(9)
+        .text(subject.name, 55, rowY + 5, { width: 180 })
+        .fontSize(8)
+        .fillColor('#4a5568')
+        .text(subject.code, 55, rowY + 15, { width: 180 });
+      
+      // Theory marks (if exists)
+      if (subject.theory.marks !== null) {
+        doc
+          .fillColor('#1a202c')
+          .fontSize(9)
+          .text(
+            `${subject.theory.marks}/${subject.theory.max}`, 
+            255, 
+            rowY + 10, 
+            { width: 60, align: 'center' }
+          );
+      }
+      
+      // Practical marks (if exists)
+      if (subject.practical.marks !== null) {
+        doc
+          .fillColor('#1a202c')
+          .fontSize(9)
+          .text(
+            `${subject.practical.marks}/${subject.practical.max}`, 
+            315, 
+            rowY + 10, 
+            { width: 80, align: 'center' }
+          );
+      }
+      
+      // Total marks for the subject
+      doc
+        .fillColor('#1a202c')
+        .fontSize(9)
+        .font('Helvetica-Bold')
+        .text(
+          `${subject.total.marks}/${subject.total.max}`, 
+          405, 
+          rowY + 10, 
+          { width: 60, align: 'center' }
+        );
+      
+      // Grade
+      if (subject.total.grade) {
+        doc
+          .fillColor(subject.isPassed === false ? '#e53e3e' : '#1a202c')
+          .fontSize(10)
+          .font('Helvetica-Bold')
+          .text(
+            subject.total.grade, 
+            475, 
+            rowY + 10, 
+            { width: 60, align: 'center' }
+          );
+      }
+      
+      // Add border
+      doc
+        .rect(50, rowY, 500, rowHeight)
+        .stroke('#e2e8f0');
+      
+      doc.y = rowY + rowHeight;
+    });
+    
+    // Add total marks with better formatting
+    const totalY = doc.y + 15;
+    
+    // Add a horizontal line above total
+    doc
+      .moveTo(400, totalY - 5)
+      .lineTo(540, totalY - 5)
+      .lineWidth(0.5)
+      .stroke('#4a5568');
+    
+    // Total marks obtained and max marks
+    doc
+      .font('Helvetica-Bold')
+      .text('TOTAL', 405, totalY, { width: 60, align: 'center' })
+      .text(`${result.totalMarksObtained} / ${result.totalMaxMarks}`, 475, totalY, { 
+        width: 60, 
+        align: 'center' 
+      });
+    
+    // Add percentage and status with better formatting
+    const resultBoxY = totalY + 25;
+    
+    // Result box
+    doc
+      .rect(350, resultBoxY, 200, 60)
+      .fill('#f8fafc')
+      .stroke('#e2e8f0');
+    
+    // Percentage
+    doc
+      .font('Helvetica-Bold')
+      .fillColor('#2d3748')
+      .text('Percentage:', 360, resultBoxY + 10, { width: 90 })
+      .font('Helvetica')
+      .text(`${result.percentage || '0.00'}%`, 460, resultBoxY + 10, { width: 80, align: 'right' });
+    
+    // Status with color coding
+    const statusColor = result.status === 'PASS' ? '#38a169' : '#e53e3e';
+    doc
+      .font('Helvetica-Bold')
+      .fillColor('#2d3748')
+      .text('Result Status:', 360, resultBoxY + 35, { width: 90 })
+      .fillColor(statusColor)
+      .text(result.status || 'N/A', 460, resultBoxY + 35, { width: 80, align: 'right' });
+    
+    // Add signature line with better positioning
+    const signY = resultBoxY + 70;
+    doc
+      .moveTo(50, signY + 20)
+      .lineTo(200, signY + 20)
+      .stroke();
+    
+    doc
+      .fontSize(10)
+      .text('Controller of Examinations', 50, signY + 25);
+    
+    // Add date
+    doc
+      .text(`Date: ${new Date().toLocaleDateString()}`, 350, signY + 25, { align: 'right' });
+    
+    // Add result summary
+    const summaryY = doc.y + 20;
+    doc
+      .font('Helvetica-Bold')
+      .fontSize(11)
+      .fillColor('#1a365d')
+      .text('RESULT SUMMARY', 50, summaryY, { width: 500, align: 'center' });
+      
+    // Summary box
+    const boxY = summaryY + 15;
+    doc
+      .rect(50, boxY, 500, 80)
+      .stroke('#e2e8f0')
+      .fill('#f8fafc');
+      
+    // Summary content
+    doc
+      .font('Helvetica')
+      .fontSize(10)
+      .fillColor('#1a202c')
+      .text('Total Marks Obtained:', 60, boxY + 15, { width: 200 })
+      .text(result.totalMarksObtained?.toString() || '0', 260, boxY + 15, { width: 100 })
+      
+      .text('Maximum Marks:', 60, boxY + 35, { width: 200 })
+      .text(result.totalMaxMarks?.toString() || '0', 260, boxY + 35, { width: 100 })
+      
+      .text('Percentage:', 60, boxY + 55, { width: 200 })
+      .text(`${result.percentage?.toFixed(2) || '0.00'}%`, 260, boxY + 55, { width: 100 })
+      
+      .text('Grade:', 350, boxY + 35, { width: 100 })
+      .text(result.overallGrade || '', 400, boxY + 35, { width: 140 })
+      
+      .text('Status:', 350, boxY + 55, { width: 100 })
+      .text(result.status || 'N/A', 400, boxY + 55, { width: 140 });
     
     // Finalize the PDF and end the stream
     doc.end();
