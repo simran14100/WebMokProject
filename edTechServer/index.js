@@ -55,6 +55,7 @@ const languageRoutes = require("./routes/language");
 const ugpgVisitorLogRoutes = require("./routes/ugpgVisitorLog");
 const visitPurposeRoutes = require("./routes/visitPurpose");
 const honoraryEnquiryRoutes = require("./routes/honoraryEnquiryRoutes");
+const guideRoutes = require("./routes/guide");
 
 const meetingTypeRoutes = require("./routes/meetingTypeRoutes");
 const universityRegisteredStudentRoutes = require("./routes/universityRegisteredStudent");
@@ -257,11 +258,8 @@ app.use("/api/v1/university/fee-types", feeTypeRoutes);
 app.use("/api/v1/university/fee-assignments", feeAssignmentRoutes);
 app.use("/api/v1/leave-requests", leaveRequestRoutes);
 app.use("/api/v1/timetable", timetableRoutes);
+app.use("/api/v1/guide", guideRoutes);
 console.log('Mounting results routes at /api/v1/results');
-app.use("/api/v1/results", (req, res, next) => {
-  console.log(`Request to results API: ${req.method} ${req.path}`);
-  next();
-}, resultRoutes);
 // Direct binding for critical profile update route (temporary safeguard)
 const { auth } = require("./middlewares/auth");
 const { updateProfile } = require("./controllers/Profile");

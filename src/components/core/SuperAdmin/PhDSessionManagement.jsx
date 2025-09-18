@@ -27,7 +27,10 @@ export default function PhDSessionManagement() {
       try {
         const tId = showLoading('Loading sessions...');
         const res = await listSessions();
-        const items = (res?.data?.data || []).map((s) => ({
+        console.log('API Response:', res); // Debug log
+        
+        // The response structure is { success: true, data: [...] }
+        const items = (res.data || []).map((s) => ({
           id: s._id,
           name: s.name,
           startDate: s.startDate ? String(s.startDate).slice(0, 10) : '',
@@ -35,10 +38,13 @@ export default function PhDSessionManagement() {
           series: s.series || '',
           status: s.status || 'Active',
         }));
+        
+        console.log('Processed items:', items); // Debug log
         setSessions(items);
         dismissToast(tId);
       } catch (e) {
-        showError(e?.response?.data?.message || 'Failed to load sessions');
+        console.error('Error loading sessions:', e);
+        showError(e?.message || 'Failed to load sessions');
       }
     };
     load();
@@ -96,7 +102,8 @@ export default function PhDSessionManagement() {
       }
       // Refresh list
       const res = await listSessions();
-      const items = (res?.data?.data || []).map((s) => ({
+      console.log('Refresh response:', res); // Debug log
+      const items = (res.data || []).map((s) => ({
         id: s._id,
         name: s.name,
         startDate: s.startDate ? String(s.startDate).slice(0, 10) : '',
@@ -104,6 +111,7 @@ export default function PhDSessionManagement() {
         series: s.series || '',
         status: s.status || 'Active',
       }));
+      console.log('Refreshed items:', items); // Debug log
       setSessions(items);
       setModalOpen(false);
     } catch (err) {

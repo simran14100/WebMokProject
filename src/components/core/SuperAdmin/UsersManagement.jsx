@@ -50,25 +50,53 @@ export default function UsersManagement() {
   const [formErrors, setFormErrors] = useState({});
 
   const fetchUsers = async () => {
+    console.log('fetchUsers called with:', { page, limit, search, dataset });
     setLoading(true);
     setError('');
     try {
       const params = new URLSearchParams({ page, limit, search });
       const endpoint = dataset === 'phd' ? adminApi.GET_PHD_ENROLLED_STUDENTS_API : adminApi.GET_REGISTERED_USERS_API;
       const url = `${endpoint}?${params}`;
+      console.log('Making API call to:', url);
+      
       const res = await apiConnector(
         'GET',
         url,
         null,
         token ? { Authorization: `Bearer ${token}` } : undefined
       );
+      
+      console.log('API Response:', {
+        status: res?.status,
+        data: res?.data,
+        success: res?.data?.success,
+        hasData: !!res?.data?.data
+      });
+      
       if (res?.data?.success !== false) {
         const data = res?.data?.data ?? {};
-        const list = data.users || data.students || data.items || data.results || Array.isArray(data) ? data : [];
+        console.log('Response data structure:', {
+          data,
+          hasUsers: !!data.users,
+          hasStudents: !!data.students,
+          hasItems: !!data.items,
+          hasResults: !!data.results,
+          isArray: Array.isArray(data)
+        });
+        
+        const list = data.users || data.students || data.items || data.results || (Array.isArray(data) ? data : []);
         const usersArr = Array.isArray(list) ? list : [];
+        
+        console.log('Processed users list:', {
+          listLength: usersArr.length,
+          firstUser: usersArr[0],
+          totalPages: data.totalPages || 1
+        });
+        
         setUsers(usersArr);
         setTotalPages(data.totalPages || 1);
       } else {
+        console.error('API returned success:false', res?.data);
         setUsers([]);
         setError('Failed to load users');
       }
@@ -140,15 +168,30 @@ export default function UsersManagement() {
 
   const submitNewUser = async (e) => {
     e.preventDefault();
-    if (submitting) return;
-    if (!validate()) return;
-    if (!token) {
-      toast.error('Session expired. Please log in again.');
+    console.log('submitNewUser called');
+    if (submitting) {
+      console.log('Already submitting, returning');
       return;
     }
+    if (!validate()) {
+      console.log('Validation failed');
+      return;
+    }
+    if (!token) {
+      const errorMsg = 'Session expired. Please log in again.';
+      console.error(errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+    
     setSubmitting(true);
+    console.log('Creating user with data:', {
+      ...form,
+      password: '***', // Don't log actual password
+      confirmPassword: '***'
+    });
+    
     try {
-      // Create user via Super Admin endpoint
       const roleLabel = (DEFAULT_USER_TYPES.find(t => t._id === form.userTypeId)?.name) || 'Admin';
       const payload = {
         firstName: form.firstName,
@@ -157,29 +200,57 @@ export default function UsersManagement() {
         contactNumber: form.contactNumber,
         password: form.password,
         confirmPassword: form.confirmPassword,
-        userTypeId: form.userTypeId, // still captured if backend needs mapping
+        userTypeId: form.userTypeId,
         role: roleLabel,
         program: 'PhD',
       };
+      
+      console.log('Sending request to:', superAdminApi.CREATE_USER_API);
       const res = await apiConnector(
         'POST',
         superAdminApi.CREATE_USER_API,
         payload,
         token ? { Authorization: `Bearer ${token}` } : {}
       );
+      
+      console.log('Create user response:', {
+        status: res?.status,
+        data: res?.data,
+        success: res?.data?.success
+      });
+      
       if (res?.data?.success) {
-        toast.success(res.data?.message || 'PhD student created successfully');
+        const successMsg = res.data?.message || 'User created successfully';
+        console.log(successMsg);
+        toast.success(successMsg);
+        
+        // Close modal and reset form
+        closeModal();
+        
+        // Reset search and pagination
+        console.log('Resetting search and pagination');
+        setSearch('');
+        setPage(1);
+        
+        // Force refresh the users list
+        console.log('Refreshing users list...');
+        await fetchUsers();
+        console.log('Users list refreshed');
       } else {
-        const msg = res?.data?.message || 'Failed to create PhD student';
+        const msg = res?.data?.message || 'Failed to create user';
+        console.error('Create user failed:', msg);
         toast.error(msg);
         throw new Error(msg);
       }
-      closeModal();
-      // refresh list
-      fetchUsers();
-    } catch (_) {
-      // errors handled by service toasts
+    } catch (error) {
+      console.error('Error in submitNewUser:', {
+        error,
+        message: error.message,
+        response: error.response?.data
+      });
+      // Error toast is already handled by the API interceptor
     } finally {
+      console.log('submitNewUser completed');
       setSubmitting(false);
     }
   };

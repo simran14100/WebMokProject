@@ -237,13 +237,13 @@ const getSidebarLinks = (user, variant = 'default') => {
         subLinks: [
           { name: 'Visitor Logs', path: '/ugpg-admin/front-desk/visitor-logs', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Phone Logs', path: '/ugpg-admin/front-desk/phone-logs', icon: <VscBell style={{ fontSize: 20, color: ED_TEAL }} /> },
-          { name: 'Grievances', path: '/ugpg-admin/front-desk/grievances', icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
-          { name: 'Postal Exchange', path: '/ugpg-admin/front-desk/postal-exchange', icon: <VscFiles style={{ fontSize: 20, color: ED_TEAL }} /> },
+          // { name: 'Grievances', path: '/ugpg-admin/front-desk/grievances', icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
+          // { name: 'Postal Exchange', path: '/ugpg-admin/front-desk/postal-exchange', icon: <VscFiles style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Visit Purpose', path: '/ugpg-admin/front-desk/visit-purpose', icon: <VscListSelection style={{ fontSize: 20, color: ED_TEAL }} /> },
-          { name: 'Enquiry Source', path: '/ugpg-admin/front-desk/enquiry-source', icon: <VscListTree style={{ fontSize: 20, color: ED_TEAL }} /> },
+          // { name: 'Enquiry Source', path: '/ugpg-admin/front-desk/enquiry-source', icon: <VscListTree style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Enquiry References', path: '/ugpg-admin/front-desk/enquiry-references', icon: <VscVersions style={{ fontSize: 20, color: ED_TEAL }} /> },
-          { name: 'Grievance Type', path: '/ugpg-admin/front-desk/grievance-types', icon: <VscListFlat style={{ fontSize: 20, color: ED_TEAL }} /> },
-          { name: 'Postal Types', path: '/ugpg-admin/front-desk/postal-types', icon: <VscListFlat style={{ fontSize: 20, color: ED_TEAL }} /> },
+          // { name: 'Grievance Type', path: '/ugpg-admin/front-desk/grievance-types', icon: <VscListFlat style={{ fontSize: 20, color: ED_TEAL }} /> },
+          // { name: 'Postal Types', path: '/ugpg-admin/front-desk/postal-types', icon: <VscListFlat style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Meeting Types', path: '/ugpg-admin/front-desk/meeting-types', icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} /> },
         ]
       },

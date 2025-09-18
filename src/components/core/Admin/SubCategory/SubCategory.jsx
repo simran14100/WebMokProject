@@ -1,14 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { apiConnector } from '../../../../services/apiConnector';
-import { categories } from '../../../../services/apis';
+import { categories, subCategory } from '../../../../services/apis';
 import DashboardLayout from '../../../common/DashboardLayout';
 
 const ED_TEAL = '#07A698';
 const TEXT_DARK = '#2d3748';
 
-const SubCategory = () => {
+const SubCategory = ({ onSubCategoryCreated }) => {
   const [loading, setLoading] = useState(false);
   const [parentCategories, setParentCategories] = useState([]);
   const { register, handleSubmit, formState: { errors }, reset } = useForm();
@@ -31,12 +32,17 @@ const SubCategory = () => {
   const onSubmit = async (data) => {
     setLoading(true);
     try {
-      const response = await apiConnector('POST', `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/subCategory/createSubCategory`, data);
+      const response = await apiConnector('POST', subCategory.CREATE_SUBCATEGORY_API, data);
       if (response.data.success) {
         toast.success('Sub-category created successfully');
-        reset();       
+        reset();
+        // Optionally refresh the sub-categories list if needed
+        // You might want to pass a callback prop from the parent component
+        if (typeof onSubCategoryCreated === 'function') {
+          onSubCategoryCreated();
+        }
       } else {
-        toast.error(response.data.message || 'Failed to create sub-category');
+        throw new Error(response.data.message || 'Failed to create sub-category');
       }
     } catch (error) {
       toast.error('An error occurred');
@@ -139,6 +145,14 @@ const SubCategory = () => {
       </div>
     </DashboardLayout>
   );
+};
+
+SubCategory.propTypes = {
+  onSubCategoryCreated: PropTypes.func
+};
+
+SubCategory.defaultProps = {
+  onSubCategoryCreated: null
 };
 
 export default SubCategory;

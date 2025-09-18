@@ -149,11 +149,18 @@ const AdmissionEnquiry = () => {
       console.log('Pagination:', { current, pageSize });
 
       try {
-        // Fetch all enquiries using the debug endpoint
-        console.log('Fetching all enquiries using debug endpoint...');
+        // Fetch non-PHD enquiries
+        console.log('Fetching non-PHD enquiries...');
         const response = await apiConnector({
           method: 'GET',
-          url: '/api/v1/admission-enquiries/debug',
+          url: '/api/v1/admission-enquiries',
+          params: {
+            programType: 'UG,PG', // Only fetch UG and PG enquiries
+            status,
+            page: current,
+            limit: pageSize,
+            search: search || undefined
+          },
           headers: {
             'Content-Type': 'application/json',
             ...(token && { Authorization: `Bearer ${token}` })
@@ -196,6 +203,19 @@ const AdmissionEnquiry = () => {
           );
         }
 
+        console.log('Raw enquiries before filtering:', allEnquiries);
+        
+        // Always filter out PHD enquiries
+        filteredEnquiries = filteredEnquiries.filter(enquiry => {
+          const isPhd = enquiry.programType?.toUpperCase() === 'PHD';
+          if (isPhd) {
+            console.log('Filtering out PHD enquiry:', enquiry);
+          }
+          return !isPhd;
+        });
+        
+        console.log('Enquiries after PHD filter:', filteredEnquiries);
+        
         // Apply program type filter
         if (programType) {
           filteredEnquiries = filteredEnquiries.filter(enquiry => 
@@ -297,6 +317,15 @@ const AdmissionEnquiry = () => {
   useEffect(() => {
     // Add a small delay to ensure state updates before fetching
     const timer = setTimeout(() => {
+      // Ensure we're not showing PHD enquiries
+      if (filters.programType === 'PHD') {
+        setFilters(prev => ({
+          ...prev,
+          programType: undefined
+        }));
+        return;
+      }
+      
       fetchEnquiries();
       // Check for any enquiries in the database (debugging)
       fetchAllEnquiries();
@@ -453,8 +482,8 @@ const AdmissionEnquiry = () => {
 
   const programTypeOptions = [
     { value: 'UG', label: 'UG', color: 'blue' },
-    { value: 'PG', label: 'PG', color: 'purple' },
-    { value: 'PHD', label: 'PhD', color: 'orange' }
+    { value: 'PG', label: 'PG', color: 'purple' }
+    // Removed PHD option as we only want UG and PG
   ];
 
   const handleMenuClick = (key, record) => {
@@ -778,9 +807,15 @@ const AdmissionEnquiry = () => {
       newFilters.status = tableFilters.status[0] || '';
     }
     
-    // Update program type filter if changed
+    // Update program type filter if changed, but only allow UG or PG
     if (tableFilters.programType) {
-      newFilters.programType = tableFilters.programType[0] || '';
+      const selectedType = tableFilters.programType[0] || '';
+      // Only set the filter if it's UG or PG
+      if (['UG', 'PG'].includes(selectedType)) {
+        newFilters.programType = selectedType;
+      } else {
+        newFilters.programType = '';
+      }
     }
     
     // Update pagination
@@ -815,6 +850,11 @@ const AdmissionEnquiry = () => {
 
   // Handle filter changes
   const handleFilterChange = (filterName, value) => {
+    // If changing program type, ensure it's only UG or PG
+    if (filterName === 'programType' && value && !['UG', 'PG'].includes(value)) {
+      value = ''; // Reset to show all if somehow an invalid value is passed
+    }
+    
     setFilters(prevFilters => ({
       ...prevFilters,
       [filterName]: value,

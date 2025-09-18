@@ -1,8 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { FiEye } from 'react-icons/fi';
 import { ED_TEAL, ED_TEAL_DARK } from '../../../utils/theme';
-import { listEnquiries } from '../../../services/enquiryApi';
 import { listDepartments } from '../../../services/departmentApi';
+import { 
+  getAllAdmissionEnquiries, 
+  updateEnquiryStatus,
+  deleteAdmissionEnquiry 
+} from '../../../services/operations/admissionEnquiryApi';
 import { showSuccess, showError, showLoading, dismissToast } from '../../../utils/toast';
 
 const PAGE_SIZE = 10;
@@ -28,28 +32,108 @@ export default function NewApplications() {
     const init = async () => {
       let tId;
       try {
-        tId = showLoading('Loading...');
-        const [deptRes, listRes] = await Promise.all([
-          listDepartments(),
-          listEnquiries({ q: query, status, department, page, limit: PAGE_SIZE })
-        ]);
-        const deptItems = (deptRes?.data?.data || []).map((d) => ({ id: d._id, name: d.name }));
-        setDepartments(deptItems);
-        const resData = listRes?.data || {};
-        const mapped = (resData.data || []).map((e) => ({
-          id: e._id,
-          name: e.name,
-          email: e.email || '',
-          phone: e.phone || '',
-          departmentId: e.department?._id || '',
-          departmentName: e.department?.name || '',
-          status: e.status || 'New',
-          createdAt: e.createdAt,
-          message: e.message || '',
-          source: e.source || '',
+        tId = showLoading('Loading PhD admission enquiries...');
+        
+        console.log('=== FETCHING PHD ADMISSION ENQUIRIES ===');
+        console.log('API Endpoint:', '/api/v1/admission-enquiries/program/PHD');
+        console.log('Query Params:', {
+          status,
+          page,
+          limit: PAGE_SIZE,
+          search: query || '(none)'
+        });
+        
+        // Get departments (for reference)
+        console.log('Fetching departments...');
+        const deptRes = await listDepartments();
+        console.log('Departments API Response:', {
+          status: deptRes?.status,
+          dataCount: Array.isArray(deptRes?.data) ? deptRes.data.length : 'N/A'
+        });
+        
+        const deptData = deptRes?.data || [];
+        const deptItems = (Array.isArray(deptData) ? deptData : deptData.data || []).map((d) => ({
+          id: d._id || d.id,
+          name: d.name || ''
         }));
+        
+        setDepartments(deptItems);
+        
+        // Get PhD admission enquiries
+        console.log('\nFetching PhD admission enquiries...');
+        const token = localStorage.getItem('token');
+        console.log('Using token:', token ? '***' + token.slice(-8) : 'No token found');
+        
+        // Convert status to lowercase to match database
+        const statusFilter = status ? status.toLowerCase() : undefined;
+        
+        const listRes = await getAllAdmissionEnquiries({
+          programType: 'PHD',
+          status: statusFilter,
+          page,
+          limit: PAGE_SIZE,
+          search: query || undefined
+        }, token);
+        
+        console.log('\n=== PHD ADMISSION ENQUIRIES RESPONSE ===');
+        console.log('Response Status:', listRes?.status);
+        console.log('Response Data Structure:', {
+          success: listRes?.data?.success,
+          dataCount: listRes?.data?.data?.length || 0,
+          total: listRes?.data?.total || 0,
+          page: listRes?.data?.page,
+          limit: listRes?.data?.limit
+        });
+        
+        // Handle both response formats: data.data and data.enquiries
+        const enquiryData = listRes?.data?.data || listRes?.data?.enquiries || [];
+        console.log('\nProcessing Enquiries:', enquiryData.length);
+        console.log('Sample Enquiry:', enquiryData[0] ? JSON.stringify(enquiryData[0], null, 2) : 'No enquiries found');
+        
+        const mapped = enquiryData.map((enquiry, index) => {
+          const processedEnquiry = {
+            id: enquiry._id || enquiry.id || `temp-${index}`,
+            name: (enquiry.firstName && enquiry.lastName) 
+              ? `${enquiry.firstName} ${enquiry.lastName}`.trim() 
+              : enquiry.name || 'No Name',
+            email: enquiry.email || 'No Email',
+            phone: enquiry.phone || enquiry.phoneNumber || 'No Phone',
+            programType: enquiry.programType || 'PHD',
+            status: enquiry.status || 'pending',
+            createdAt: enquiry.createdAt || new Date().toISOString(),
+            fatherName: enquiry.fatherName || '',
+            dateOfBirth: enquiry.dateOfBirth 
+              ? new Date(enquiry.dateOfBirth).toLocaleDateString() 
+              : 'N/A',
+            qualification: enquiry.lastClass || enquiry.qualification || '',
+            boardSchoolName: enquiry.boardSchoolName || enquiry.schoolName || '',
+            percentage: enquiry.percentage || '',
+            address: [
+              enquiry.address,
+              enquiry.city,
+              enquiry.state,
+              enquiry.pincode
+            ].filter(Boolean).join(', ') || 'Not provided',
+            _raw: enquiry
+          };
+          
+          console.log(`\nEnquiry #${index + 1}:`, {
+            id: processedEnquiry.id,
+            name: processedEnquiry.name,
+            status: processedEnquiry.status,
+            program: processedEnquiry.programType,
+            contact: `${processedEnquiry.email} | ${processedEnquiry.phone}`
+          });
+          
+          return processedEnquiry;
+        });
+        
         setItems(mapped);
-        setMeta(resData.meta || { total: mapped.length, page, limit: PAGE_SIZE });
+        setMeta({
+          total: listRes?.data?.total || mapped.length,
+          page: listRes?.data?.page || page,
+          limit: listRes?.data?.limit || PAGE_SIZE
+        });
       } catch (e) {
         showError(e?.response?.data?.message || 'Failed to load enquiries');
       } finally {
@@ -61,27 +145,137 @@ export default function NewApplications() {
   }, []);
 
   // load on filters/page/query
+  // Handle status update
+  const handleStatusUpdate = async (id, newStatus) => {
+    try {
+      const tId = showLoading('Updating status...');
+      const token = localStorage.getItem('token');
+      
+      // Update status using the API
+      await updateEnquiryStatus(id, { status: newStatus }, token);
+      
+      dismissToast(tId);
+      showSuccess('Status updated successfully');
+      
+      // Refresh the list
+      const listRes = await getAllAdmissionEnquiries({
+        programType: 'PHD',
+        status: status || undefined,
+        page,
+        limit: PAGE_SIZE,
+        search: query || undefined
+      }, token);
+      
+      // Process the response
+      const enquiryData = listRes?.data?.data || [];
+      const mapped = enquiryData.map((enquiry, index) => ({
+        id: enquiry._id || enquiry.id || `temp-${index}`,
+        name: (enquiry.firstName && enquiry.lastName) 
+          ? `${enquiry.firstName} ${enquiry.lastName}`.trim() 
+          : enquiry.name || 'No Name',
+        email: enquiry.email || 'No Email',
+        phone: enquiry.phone || enquiry.phoneNumber || 'No Phone',
+        programType: enquiry.programType || 'PHD',
+        status: enquiry.status || 'pending',
+        createdAt: enquiry.createdAt || new Date().toISOString(),
+        fatherName: enquiry.fatherName || '',
+        dateOfBirth: enquiry.dateOfBirth 
+          ? new Date(enquiry.dateOfBirth).toLocaleDateString() 
+          : 'N/A',
+        qualification: enquiry.lastClass || enquiry.qualification || '',
+        boardSchoolName: enquiry.boardSchoolName || enquiry.schoolName || '',
+        percentage: enquiry.percentage || '',
+        address: enquiry.address || '',
+        city: enquiry.city || '',
+        state: enquiry.state || '',
+        _raw: enquiry
+      }));
+      
+      setItems(mapped);
+      setMeta({
+        total: listRes?.data?.total || mapped.length,
+        page: listRes?.data?.page || page,
+        limit: listRes?.data?.limit || PAGE_SIZE
+      });
+    } catch (error) {
+      console.error('Error updating status:', error);
+      showError(error.message || 'Failed to update status');
+    }
+  };  
+
   useEffect(() => {
     const load = async () => {
       let tId;
       try {
-        tId = showLoading('Loading enquiries...');
-        const listRes = await listEnquiries({ q: query, status, department, page, limit: PAGE_SIZE });
-        const resData = listRes?.data || {};
-        const mapped = (resData.data || []).map((e) => ({
-          id: e._id,
-          name: e.name,
-          email: e.email || '',
-          phone: e.phone || '',
-          departmentId: e.department?._id || '',
-          departmentName: e.department?.name || '',
-          status: e.status || 'New',
-          createdAt: e.createdAt,
-          message: e.message || '',
-          source: e.source || '',
-        }));
+        tId = showLoading('Loading PhD admission enquiries...');
+        const token = localStorage.getItem('token');
+        // Convert status to lowercase to match database
+        const statusFilter = status ? status.toLowerCase() : undefined;
+        
+        const listRes = await getAllAdmissionEnquiries({ 
+          programType: 'PHD',
+          status: statusFilter,
+          page,
+          limit: PAGE_SIZE,
+          search: query || undefined
+        }, token);
+        
+        console.log('\n=== LOADING PHD ENQUIRIES ===');
+        console.log('API Response:', {
+          status: listRes?.status,
+          success: listRes?.data?.success,
+          dataCount: listRes?.data?.data?.length || 0
+        });
+        
+        // Handle both response formats: data.data and data.enquiries
+        const enquiryData = listRes?.data?.data || listRes?.data?.enquiries || [];
+        console.log(`Found ${enquiryData.length} PhD enquiries`);
+        console.log('Sample Enquiry:', enquiryData[0] ? JSON.stringify(enquiryData[0], null, 2) : 'No enquiries found');
+        
+        const mapped = enquiryData.map((enquiry, index) => {
+          const processedEnquiry = {
+            id: enquiry._id || enquiry.id || `temp-${index}`,
+            name: (enquiry.firstName && enquiry.lastName) 
+              ? `${enquiry.firstName} ${enquiry.lastName}`.trim() 
+              : enquiry.name || 'No Name',
+            email: enquiry.email || 'No Email',
+            phone: enquiry.phone || enquiry.phoneNumber || 'No Phone',
+            programType: enquiry.programType || 'PHD',
+            status: enquiry.status || 'pending',
+            createdAt: enquiry.createdAt || new Date().toISOString(),
+            fatherName: enquiry.fatherName || '',
+            dateOfBirth: enquiry.dateOfBirth 
+              ? new Date(enquiry.dateOfBirth).toLocaleDateString() 
+              : 'N/A',
+            qualification: enquiry.lastClass || enquiry.qualification || '',
+            boardSchoolName: enquiry.boardSchoolName || enquiry.schoolName || '',
+            percentage: enquiry.percentage || '',
+            address: [
+              enquiry.address,
+              enquiry.city,
+              enquiry.state,
+              enquiry.pincode
+            ].filter(Boolean).join(', ') || 'Not provided',
+            _raw: enquiry
+          };
+          
+          console.log(`\nEnquiry #${index + 1}:`, {
+            id: processedEnquiry.id,
+            name: processedEnquiry.name,
+            status: processedEnquiry.status,
+            program: processedEnquiry.programType,
+            contact: `${processedEnquiry.email} | ${processedEnquiry.phone}`
+          });
+          
+          return processedEnquiry;
+        });
+        
         setItems(mapped);
-        setMeta(resData.meta || { total: mapped.length, page, limit: PAGE_SIZE });
+        setMeta({
+          total: listRes?.data?.total || mapped.length,
+          page: listRes?.data?.page || page,
+          limit: listRes?.data?.limit || PAGE_SIZE
+        });
       } catch (e) {
         showError(e?.response?.data?.message || 'Failed to load enquiries');
       } finally {
@@ -95,8 +289,8 @@ export default function NewApplications() {
 
   // Export helpers (Copy/CSV/Print)
   const copyTable = async () => {
-    const header = 'Date\tSchool\tName\tEmail\tPhone\tStatus';
-    const rows = items.map(i => `${formatDate(i.createdAt)}\t${i.departmentName}\t${i.name}\t${i.email}\t${i.phone}\t${i.status}`).join('\n');
+    const header = 'Date\tName\tEmail\tPhone\tStatus';
+    const rows = items.map(i => `${formatDate(i.createdAt)}\t${i.name}\t${i.email}\t${i.phone}\t${i.status}`).join('\n');
     const text = `${header}\n${rows}`;
     try {
       if (navigator.clipboard && window.isSecureContext) {
@@ -113,8 +307,8 @@ export default function NewApplications() {
   };
 
   const exportCSV = () => {
-    const header = 'Date,School,Name,Email,Phone,Status\n';
-    const rows = items.map(i => [formatDate(i.createdAt), i.departmentName, i.name, i.email, i.phone, i.status].map(escapeCsv).join(',')).join('\n');
+    const header = 'Date,Name,Email,Phone,Status\n';
+    const rows = items.map(i => [formatDate(i.createdAt), i.name, i.email, i.phone, i.status].map(escapeCsv).join(',')).join('\n');
     const bom = '\uFEFF';
     const blob = new Blob([bom + header + rows], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -124,24 +318,56 @@ export default function NewApplications() {
   const printTable = () => {
     const win = window.open('', 'PRINT', 'height=700,width=1000');
     if (!win) return;
-    const tableRows = items.map(i => `<tr><td>${escapeHtml(formatDate(i.createdAt))}</td><td>${escapeHtml(i.departmentName)}</td><td>${escapeHtml(i.name)}</td><td>${escapeHtml(i.email)}</td><td>${escapeHtml(i.phone)}</td><td>${escapeHtml(i.status)}</td></tr>`).join('');
+    const tableRows = items.map(i => `<tr><td>${escapeHtml(formatDate(i.createdAt))}</td><td>${escapeHtml(i.name)}</td><td>${escapeHtml(i.email)}</td><td>${escapeHtml(i.phone)}</td><td>${escapeHtml(i.status)}</td></tr>`).join('');
     const html = `<!doctype html>
 <html><head><meta charset="utf-8" /><title>New Applications</title>
 <style>body{font-family:Arial,sans-serif;padding:16px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left}thead{background:#f1f5f9}</style>
 </head><body>
 <h3>New Applications</h3>
-<table><thead><tr><th>Date</th><th>School</th><th>Name</th><th>Email</th><th>Phone</th><th>Status</th></tr></thead><tbody>${tableRows}</tbody></table>
+<table><thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Phone</th><th>Status</th></tr></thead><tbody>${tableRows}</tbody></table>
 </body></html>`;
     win.document.open(); win.document.write(html); win.document.close();
     win.onload = () => { win.focus(); win.print(); win.close(); };
   };
 
+  // Check if there are any items to show
+  const hasItems = items.length > 0;
+  const hasFilters = status !== 'New' || department || query;
+
   return (
     <div style={{ padding: '1rem', marginTop: '14rem' }}>
-    {/* Header */}
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-      <h1 style={{ fontSize: '22px', fontWeight: 600, color: TEXT_DARK , marginLeft: '100px'}}>New Applications</h1>
-    </div>
+      {/* Header */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: 600, color: TEXT_DARK, marginLeft: '100px' }}>New Applications</h1>
+        {!hasItems && (
+          <div style={{ marginRight: '100px', color: '#666', fontStyle: 'italic' }}>
+            {hasFilters 
+              ? 'No applications found matching your filters.'
+              : 'No new applications found.'
+            }
+            {hasFilters && (
+              <button 
+                onClick={() => {
+                  setStatus('New');
+                  setDepartment('');
+                  setQuery('');
+                  setPage(1);
+                }}
+                style={{
+                  marginLeft: '10px',
+                  color: ED_TEAL,
+                  textDecoration: 'underline',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                }}
+              >
+                Clear filters
+              </button>
+            )}
+          </div>
+        )}
+      </div>
   
     {/* Toolbar */}
     <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 8, marginBottom: 12 , marginLeft: '100px'}}>
@@ -232,7 +458,7 @@ export default function NewApplications() {
       <div
         style={{
           display: 'grid',
-          gridTemplateColumns: '1.2fr 2fr 2fr 2fr 2fr 2fr 1.5fr',
+          gridTemplateColumns: '100px 1.5fr 2fr 1.5fr 150px',
           backgroundColor: ED_TEAL,
           color: 'white',
           fontSize: '14px',
@@ -242,10 +468,8 @@ export default function NewApplications() {
       >
         <div>Action</div>
         <div>Date</div>
-        <div>School</div>
         <div>Applicant</div>
         <div>Email</div>
-        <div>Phone</div>
         <div>Status</div>
       </div>
   
@@ -256,7 +480,7 @@ export default function NewApplications() {
             key={i.id}
             style={{
               display: 'grid',
-              gridTemplateColumns: '1.2fr 2fr 2fr 2fr 2fr 2fr 1.5fr',
+              gridTemplateColumns: '100px 1.5fr 2fr 1.5fr 150px',
               alignItems: 'center',
               padding: '12px 16px',
               backgroundColor: idx % 2 === 0 ? '#fafafa' : 'white',
@@ -280,56 +504,69 @@ export default function NewApplications() {
                 onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = ED_TEAL; e.currentTarget.style.color = 'white'; }}
                 onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.color = ED_TEAL; }}
                 onClick={() => setViewId(i.id)}
-                title="View"
               >
                 <FiEye />
               </button>
             </div>
-            <div>{formatDate(i.createdAt)}</div>
-            <div>{i.departmentName}</div>
-            <div>{i.name}</div>
+            <div style={{ color: '#555' }}>{i.createdAt ? formatDate(i.createdAt) : 'N/A'}</div>
+            <div>
+              <div style={{ fontWeight: 500 }}>{i.name}</div>
+              <div style={{ fontSize: '12px', color: '#666' }}>{i.phone}</div>
+            </div>
             <div>{i.email}</div>
-            <div>{i.phone}</div>
-            <div>{i.status}</div>
+            <div>
+              <span 
+                style={{
+                  display: 'inline-block',
+                  padding: '4px 8px',
+                  borderRadius: '12px',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  backgroundColor: i.status === 'approved' ? '#DCFCE7' : i.status === 'rejected' ? '#FEE2E2' : '#E0F2FE',
+                  color: i.status === 'approved' ? '#166534' : i.status === 'rejected' ? '#991B1B' : '#075985',
+                }}
+              >
+                {i.status || 'Pending'}
+              </span>
+            </div>
           </div>
         ))}
       </div>
-    </div>
   
-    {/* Pagination */}
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 12 , marginRight: '30px' }}>
-      <button
-        disabled={page <= 1}
-        onClick={() => setPage(p => Math.max(1, p - 1))}
-        style={{
-          padding: '6px 12px',
-          borderRadius: 6,
-          background: page <= 1 ? '#cbd5e1' : ED_TEAL,
-          color: 'white',
-          fontWeight: 500,
-        }}
-      >
-        Previous
-      </button>
-      <span style={{ padding: '6px 12px', borderRadius: 6, background: ED_TEAL, color: 'white', fontWeight: 500 }}>
-        {page}
-      </span>
-      <button
-        disabled={items.length < PAGE_SIZE}
-        onClick={() => setPage(p => p + 1)}
-        style={{
-          padding: '6px 12px',
-          borderRadius: 6,
-          background: items.length < PAGE_SIZE ? '#cbd5e1' : ED_TEAL,
-          color: 'white',
-          fontWeight: 500,
-        }}
-      >
-        Next
-      </button>
+      {/* Pagination */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 12 , marginRight: '30px' }}>
+        <button
+          disabled={page <= 1}
+          onClick={() => setPage(p => Math.max(1, p - 1))}
+          style={{
+            padding: '6px 12px',
+            borderRadius: 6,
+            background: page <= 1 ? '#cbd5e1' : ED_TEAL,
+            color: 'white',
+            fontWeight: 500,
+          }}
+        >
+          Previous
+        </button>
+        <span style={{ padding: '6px 12px', borderRadius: 6, background: ED_TEAL, color: 'white', fontWeight: 500 }}>
+          {page}
+        </span>
+        <button
+          disabled={items.length < PAGE_SIZE}
+          onClick={() => setPage(p => p + 1)}
+          style={{
+            padding: '6px 12px',
+            borderRadius: 6,
+            background: items.length < PAGE_SIZE ? '#cbd5e1' : ED_TEAL,
+            color: 'white',
+            fontWeight: 500,
+          }}
+        >
+          Next
+        </button>
+      </div>
+      </div>
     </div>
-  </div>
-  
   );
 }
 

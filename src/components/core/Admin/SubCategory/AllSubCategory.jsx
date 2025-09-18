@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { toast } from 'react-hot-toast';
 import { apiConnector } from '../../../../services/apiConnector';
+import { subCategory } from '../../../../services/apis';
 import DashboardLayout from '../../../common/DashboardLayout';
 
 const ED_TEAL = '#07A698';
@@ -18,10 +19,11 @@ const [searchTerm, setSearchTerm] = useState('');
     const fetchSubCategories = async () => {
       setLoading(true);
       try {
-        const response = await apiConnector('GET', `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/subCategory/showAllSubCategories`);
+        const response = await apiConnector('GET', subCategory.SHOW_ALL_SUBCATEGORIES_API);
         setSubCategories(response.data.data || []);
       } catch (error) {
-        toast.error('Failed to fetch sub-categories');
+        console.error('Fetch sub-categories error:', error);
+        toast.error(error.response?.data?.message || 'Failed to fetch sub-categories');
         console.error('Fetch sub-categories error:', error);
       }
       setLoading(false);

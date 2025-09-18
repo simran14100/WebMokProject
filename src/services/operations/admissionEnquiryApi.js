@@ -20,22 +20,54 @@ const {
  */
 export const getAllAdmissionEnquiries = async (params = {}, token, headers = {}) => {
   try {
+    // Extract programType from params if it exists
+    const { programType, ...queryParams } = params;
+    
+    // Build the URL based on whether programType is provided
+    let url = GET_ALL_ENQUIRIES;
+    if (programType) {
+      url = `${admissionEnquiry.GET_ENQUIRIES_BY_PROGRAM}/${programType.toUpperCase()}`;
+    }
+    
+    console.log('\n=== API REQUEST ===');
+    console.log('URL:', url);
+    console.log('Params:', queryParams);
+    
     const response = await apiConnector(
       'GET',
-      GET_ALL_ENQUIRIES,
+      url,
       null, // No request body for GET
       {
         ...headers,
         ...(token && { Authorization: `Bearer ${token}` })
       },
-      params // Pass query parameters as an object
+      queryParams // Pass remaining query parameters
     );
 
+    console.log('\n=== API RESPONSE ===');
+    console.log('Status:', response.status);
+    console.log('Raw Response:', JSON.stringify(response.data, null, 2));
+    
     if (!response?.data?.success) {
       throw new Error(response?.data?.message || 'Failed to fetch admission enquiries');
     }
 
-    return response.data;
+    // Ensure we're returning the data in the expected format
+    const responseData = {
+      ...response.data,
+      // Use the enquiries array if it exists, otherwise use data or empty array
+      data: response.data.enquiries || response.data.data || []
+    };
+    
+    // If we're using the enquiries array, make sure to include pagination data
+    if (response.data.enquiries && !response.data.data) {
+      responseData.total = response.data.total || response.data.totalDocs || 0;
+      responseData.page = response.data.page || 1;
+      responseData.limit = response.data.limit || 10;
+    }
+    
+    console.log('Processed Response:', JSON.stringify(responseData, null, 2));
+    return responseData;
   } catch (error) {
     console.error('GET ALL ADMISSION ENQUIRIES ERROR............', error);
     const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch admission enquiries';

@@ -21,9 +21,9 @@ exports.getEnquiriesByProgramType = asyncHandler(async (req, res, next) => {
 
     const query = { programType: programType.toUpperCase() };
     
-    // Status filter
+    // Status filter (case-insensitive)
     if (status) {
-      query.status = status;
+      query.status = { $regex: new RegExp(`^${status}$`, 'i') };
     }
 
     const options = {

@@ -45,15 +45,14 @@ export default function ExternalExperts() {
       try {
         const [expRes, subRes] = await Promise.all([
           apiConnector("GET", "/api/v1/external-experts"),
-          apiConnector("GET", "/api/v1/subject"),
+          apiConnector("GET", "/api/v1/subjects"),
         ]);
         setExperts(Array.isArray(expRes?.data?.data) ? expRes.data.data : []);
-        const subs = Array.isArray(subRes?.data?.data?.subjects)
-          ? subRes.data.data.subjects
-          : Array.isArray(subRes?.data?.data)
-          ? subRes.data.data
+        // The subject API returns { success: true, data: [...] }
+        const subjects = Array.isArray(subRes?.data?.data) 
+          ? subRes.data.data 
           : [];
-        setSubjects(subs);
+        setSubjects(subjects);
       } catch (e) {
         console.error("Failed to load experts/subjects", e);
         setServerError("Failed to load data");

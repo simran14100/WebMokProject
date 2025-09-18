@@ -1,13 +1,13 @@
-import { apiConnector } from "./apiConnector";
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api/v1';
-const BASE = "/api/v1/session";
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+const BASE = "/api/v1/sessions";
 
 // List sessions with filters and pagination
 export const listSessions = async (filters = {}) => {
   try {
-    const response = await axios.get(`${API_URL}/session`, {
+    console.log('Fetching sessions from:', `${API_URL}${BASE}`);
+    const response = await axios.get(`${API_URL}${BASE}`, {
       params: {
         ...filters,
         status: 'active'
@@ -18,11 +18,14 @@ export const listSessions = async (filters = {}) => {
       }
     });
 
+    console.log('Sessions API Response:', response.data);
+    
+    // The server returns { success: true, data: [...] }
     return {
       success: true,
-      data: response.data.data || response.data.sessions || [],
+      data: response.data.data || [],
       pagination: response.data.pagination || {
-        total: response.data.total || 0,
+        total: response.data.total || (response.data.data ? response.data.data.length : 0),
         current: response.data.page || 1,
         pageSize: response.data.limit || 10,
       },
@@ -37,16 +40,40 @@ export const listSessions = async (filters = {}) => {
   }
 };
 
-export const createSession = (payload) => apiConnector("POST", `${BASE}`, payload);
+export const createSession = async (payload) => {
+  const response = await axios.post(`${API_URL}${BASE}`, payload, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  return response.data;
+};
 
-export const updateSession = (id, payload) => apiConnector("PATCH", `${BASE}/${id}`, payload);
+export const updateSession = async (id, payload) => {
+  const response = await axios.patch(`${API_URL}${BASE}/${id}`, payload, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  return response.data;
+};
 
-export const deleteSession = (id) => apiConnector("DELETE", `${BASE}/${id}`);
+export const deleteSession = async (id) => {
+  const response = await axios.delete(`${API_URL}${BASE}/${id}`, {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      'Content-Type': 'application/json'
+    }
+  });
+  return response.data;
+};
 
 // Get session by ID
 export const getSessionById = async (sessionId) => {
   try {
-    const response = await axios.get(`${API_URL}/session/${sessionId}`, {
+    const response = await axios.get(`${API_URL}${BASE}/${sessionId}`, {
       headers: {
         'Authorization': `Bearer ${localStorage.getItem('token')}`
       }

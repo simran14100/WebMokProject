@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Table, Button, Space, Input, Switch, Modal, Form, InputNumber, Popconfirm, message, Card, Row, Col, Typography, Select, ColorPicker, Tooltip } from 'antd';
 import { useSelector } from 'react-redux';
 import { PlusOutlined, EditOutlined, DeleteOutlined, SearchOutlined, CheckOutlined, CloseOutlined, ClockCircleOutlined } from '@ant-design/icons';
-import { meetingTypeEndpoints } from '../../../../services/apis';
-import { apiConnector } from '../../../../services/apiConnector';
+import axios from 'axios';
 import { toast } from 'react-hot-toast';
+const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000/api/v1';
+
 
 const { Title, Text } = Typography;
 const { Search } = Input;
@@ -25,12 +26,16 @@ const MeetingTypes = () => {
       setLoading(true);
       const { current, pageSize } = pagination;
       
-      const response = await apiConnector('GET', meetingTypeEndpoints.GET_ALL_MEETING_TYPES, null, {
+      const response = await axios.get(`${API_URL}/meeting-types`, {
         params: { 
           page: current, 
           limit: pageSize, 
           search: searchText,
           isActive: statusFilter === 'all' ? '' : statusFilter === 'active'
+        },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
 
@@ -104,15 +109,30 @@ const MeetingTypes = () => {
         description: values.description || '',
         duration: parseInt(values.duration),
         isActive: values.isActive !== false,
-        color: '#1890ff', // Default color since we removed the color picker
+        color: '#1890ff',
         createdBy: user._id
       };
 
+      const config = {
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      };
+
       if (editingMeetingType) {
-        await apiConnector('PUT', `${meetingTypeEndpoints.UPDATE_MEETING_TYPE}/${editingMeetingType._id}`, meetingTypeData);
+        await axios.put(
+          `${API_URL}/meeting-types/${editingMeetingType._id}`,
+          meetingTypeData,
+          config
+        );
         toast.success('Meeting type updated successfully');
       } else {
-        await apiConnector('POST', meetingTypeEndpoints.CREATE_MEETING_TYPE, meetingTypeData);
+        await axios.post(
+          `${API_URL}/meeting-types`,
+          meetingTypeData,
+          config
+        );
         toast.success('Meeting type created successfully');
       }
       
@@ -123,7 +143,6 @@ const MeetingTypes = () => {
       if (error.errorFields) return;
       console.error('Error saving meeting type:', error);
       
-      // Handle validation errors from server
       if (error.response?.data?.errors) {
         const errorMessages = error.response.data.errors.map(err => err.msg || err.message);
         toast.error(`Validation error: ${errorMessages.join(', ')}`);
@@ -136,7 +155,11 @@ const MeetingTypes = () => {
 
   const handleDelete = async (id) => {
     try {
-      await apiConnector('DELETE', `${meetingTypeEndpoints.DELETE_MEETING_TYPE}/${id}`);
+      await axios.delete(`${API_URL}/meeting-types/${id}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
       toast.success('Meeting type deleted successfully');
       fetchMeetingTypes();
     } catch (error) {
@@ -147,9 +170,16 @@ const MeetingTypes = () => {
 
   const handleToggleStatus = async (id, currentStatus) => {
     try {
-      await apiConnector('PUT', `${meetingTypeEndpoints.UPDATE_MEETING_TYPE}/${id}`, {
-        isActive: !currentStatus
-      });
+      await axios.put(
+        `${API_URL}/meeting-types/${id}`,
+        { isActive: !currentStatus },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        }
+      );
       toast.success(`Meeting type ${currentStatus ? 'deactivated' : 'activated'} successfully`);
       fetchMeetingTypes();
     } catch (error) {

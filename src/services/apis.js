@@ -280,7 +280,7 @@ export const ENQUIRY_API = {
 
 
 // Enquiry Reference API endpoints
-export const ENQUIRY_REFERENCE_API = "/api/v1/enquiry-references";
+export const ENQUIRY_REFERENCE_API = "/enquiry-references";
 
 export const cart = {
   GET_CART_DETAILS_API: "/api/v1/cart",
