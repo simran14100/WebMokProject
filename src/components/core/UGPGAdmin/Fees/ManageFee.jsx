@@ -26,9 +26,28 @@ const ManageFee = () => {
     try {
       setLoading(true);
       console.log('Fetching fee assignments...');
+      
+      // Log the exact URL being called
+      const apiUrl = `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-assignments`;
+      console.log('API URL:', apiUrl);
+      
+      // Add query parameters for pagination and sorting
+      const params = {
+        page: currentPage,
+        limit: itemsPerPage,
+        sortBy: 'createdAt',
+        sortOrder: 'desc'
+      };
+      
+      // Convert params to query string
+      const queryString = new URLSearchParams(params).toString();
+      const urlWithParams = `${apiUrl}?${queryString}`;
+      
+      console.log('Fetching from URL:', urlWithParams);
+      
       const response = await apiConnector(
         "GET",
-        `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-assignments`,
+        urlWithParams,
         null,
         {
           'Authorization': `Bearer ${token}`,
@@ -39,14 +58,35 @@ const ManageFee = () => {
       console.log('Fee assignments API response:', response);
       
       if (response.data?.success) {
-        console.log('Setting fee assignments:', response.data.data);
+        console.log('Raw fee assignments data:', response.data.data);
+        
+        // Log course data for each assignment
+        if (response.data.data && Array.isArray(response.data.data)) {
+          response.data.data.forEach((assignment, index) => {
+            console.log(`Assignment ${index} course data:`, assignment.course);
+          });
+        }
+        
         setFeeAssignments(response.data.data || []);
       } else {
-        throw new Error(response.data?.message || 'Failed to fetch fee assignments');
+        const errorMessage = response.data?.message || 'Failed to fetch fee assignments';
+        console.error('API Error:', errorMessage, response.data);
+        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error("Error fetching fee assignments:", error);
-      toast.error(error.response?.data?.message || 'Failed to fetch fee assignments');
+      const errorMessage = error.response?.data?.message || 
+                         error.message || 
+                         'Failed to fetch fee assignments. Please try again.';
+      
+      console.error('Full error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        config: error.config
+      });
+      
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -92,18 +132,72 @@ const ManageFee = () => {
   };
 
 
+  // Map of known course IDs to their display names
+  const courseNameMap = {
+    '68c00f3f897d026b46cdf21f': 'B.Tech in Computer Science',
+    'btech_it': 'B.Tech in Information Technology',
+    // Add more course mappings as needed
+  };
+
+  // Process fee assignments to ensure consistent data structure
+  const processedFeeAssignments = feeAssignments.map(item => {
+    // Initialize course data with defaults
+    let courseData = {
+      _id: 'N/A',
+      name: 'N/A',
+      code: 'N/A',
+      type: 'N/A',
+      semester: item.semester || 'N/A'
+    };
+    
+    // Process course information if it exists
+    if (item.course) {
+      const course = item.course;
+      const isCourseObject = typeof course === 'object' && course !== null;
+      
+      courseData = {
+        _id: isCourseObject ? course._id : course,
+        name: isCourseObject ? (course.courseName || course.name || 'Unnamed Course') : `Course (${course.slice(-4)})`,
+        code: isCourseObject ? (course.courseCode || course.code || 'N/A') : course.slice(-6).toUpperCase(),
+      
+        semester: item.semester || (isCourseObject ? course.semester : 'N/A') || 'N/A'
+      };
+    }
+    // Handle semester
+    let semester = 'N/A';
+    if (item.semester) {
+      semester = item.semester;
+    } else if (item.course?.semester) {
+      semester = item.course.semester;
+    } else if (item.feeType?.semester) {
+      semester = item.feeType.semester;
+    }
+    
+    return {
+      ...item,
+      course: courseData,
+      semester: semester.toString(),
+      // Add a display name that combines course name and code if available
+      displayName: courseData.code 
+        ? `${courseData.name} (${courseData.code})`
+        : courseData.name
+    };
+  });
+
   // Filter and search logic
-  const filteredData = feeAssignments.filter(item => {
+  const filteredData = processedFeeAssignments.filter(item => {
     console.log('Filtering item:', item);
     
+    const searchLower = searchTerm.toLowerCase();
     const matchesSearch = 
-      item.feeType?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.course?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.session?.toLowerCase().includes(searchTerm.toLowerCase());
+      (item.feeType?.name?.toLowerCase().includes(searchLower)) ||
+      (typeof item.course === 'object' ? item.course?.name?.toLowerCase().includes(searchLower) : String(item.course).toLowerCase().includes(searchLower)) ||
+      (item.session?.toLowerCase().includes(searchLower)) ||
+      (item.semester?.toString().toLowerCase().includes(searchLower));
       
     const matchesFilters = 
       (!filters.session || item.session === filters.session) &&
-      (!filters.course || item.course?.name === filters.course) &&
+      (!filters.course || (typeof item.course === 'object' ? item.course?.name === filters.course : item.course === filters.course)) &&
       (!filters.type || item.feeType?.type === filters.type);
     
     console.log('Item matches search:', matchesSearch, 'matches filters:', matchesFilters);
@@ -199,7 +293,7 @@ const ManageFee = () => {
       try {
         await apiConnector(
           'DELETE',
-          `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-assignments/${id}`,
+          `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-types/assignments/${id}`,
           null,
           {
             'Authorization': `Bearer ${token}`,
@@ -434,9 +528,10 @@ const ManageFee = () => {
         boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
         overflow: 'hidden'
       }}>
+        {/* Table Header */}
         <div style={{
           display: 'grid',
-          gridTemplateColumns: '60px 1fr 1fr 1fr 1fr 1fr 100px',
+          gridTemplateColumns: '60px 1fr 1fr 1fr 1fr 1fr 1fr 100px',
           backgroundColor: '#f9f9f9',
           borderBottom: '1px solid #f0f0f0',
           fontWeight: '600',
@@ -448,16 +543,17 @@ const ManageFee = () => {
           <div style={{ padding: '16px' }}>Fee Type</div>
           <div style={{ padding: '16px' }}>Session</div>
           <div style={{ padding: '16px' }}>Course</div>
-          <div style={{ padding: '16px' }}>Amount</div>
+          <div style={{ padding: '16px' }}>Semester</div>
+          <div style={{ padding: '16px', textAlign: 'right' }}>Amount</div>
           <div style={{ padding: '16px', textAlign: 'center' }}>Action</div>
         </div>
-
+        {/* Table Rows */}
         {loading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#757575' }}>
             Loading fee assignments...
           </div>
         ) : currentItems.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#757575' }}>
+          <div style={{ padding: '40px', textAlign: 'center', color: '#757575', gridColumn: '1 / -1' }}>
             No fee assignments found. Try adjusting your filters or add a new fee assignment.
           </div>
         ) : (
@@ -466,7 +562,7 @@ const ManageFee = () => {
               key={item._id || index}
               style={{
                 display: 'grid',
-                gridTemplateColumns: '60px 1fr 1fr 1fr 1fr 1fr 100px',
+                gridTemplateColumns: '60px 1fr 1fr 1fr 1fr 1fr 1fr 100px',
                 borderBottom: '1px solid #f5f5f5',
                 transition: 'background-color 0.2s',
                 ':hover': {
@@ -517,7 +613,67 @@ const ManageFee = () => {
                 display: 'flex',
                 alignItems: 'center'
               }}>
-                {item.course?.name || 'N/A'}
+                {item.course ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ fontWeight: 500 }}>
+                      {item.course?.name || `Course (${item.course?._id || 'N/A'})`}
+                    </div>
+                    {item.course && (
+                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+                        {item.course.code && item.course.code !== 'N/A' && (
+                          <span style={{ 
+                            fontSize: '12px',
+                            backgroundColor: '#e0f2fe',
+                            color: '#0369a1',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center'
+                          }}>
+                            {item.course.code}
+                          </span>
+                        )}
+                        {item.course.type && (
+                          <span style={{ 
+                            fontSize: '12px',
+                            backgroundColor: '#dcfce7',
+                            color: '#166534',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center'
+                          }}>
+                            {item.course.type}
+                          </span>
+                        )}
+                        {item.semester && (
+                          <span style={{ 
+                            fontSize: '12px',
+                            backgroundColor: '#f3e8ff',
+                            color: '#6b21a8',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            display: 'inline-flex',
+                            alignItems: 'center'
+                          }}>
+                            Sem {item.semester}
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <span style={{ color: '#757575', fontSize: '14px' }}>No course assigned</span>
+                )}
+              </div>
+              <div style={{ 
+                padding: '16px',
+                color: '#666',
+                fontSize: '14px',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                {item.semester || 'N/A'}
               </div>
               <div style={{ 
                 padding: '16px',
@@ -525,7 +681,9 @@ const ManageFee = () => {
                 fontSize: '14px',
                 fontWeight: '500',
                 display: 'flex',
-                alignItems: 'center'
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                paddingRight: '24px'
               }}>
                 ₹{item.amount?.toLocaleString('en-IN') || '0'}
               </div>

@@ -28,6 +28,7 @@ import {
   VscCalendar,
   VscGraph,
   VscBell,
+  VscCreditCard,
 } from "react-icons/vsc";
 import { FaRegMoneyBillAlt, FaRegFileAlt, FaTasks, FaSchool } from "react-icons/fa";
 import { MdOutlineManageAccounts, MdPayment, MdSummarize } from "react-icons/md";
@@ -258,6 +259,7 @@ const getSidebarLinks = (user, variant = 'default') => {
           { name: 'Verification', path: '/ugpg-admin/admissions/verification', icon: <VscVerified style={{ fontSize: 20, color: ED_TEAL }} /> },
 
           { name: 'Enrolled Students', path: '/ugpg-admin/admissions/enrolled', icon: <VscOrganization style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Pay Fee', path: '/ugpg-admin/admissions/enrolled/fees/payment', icon: <VscCreditCard style={{ fontSize: 20, color: ED_TEAL }} /> },
         ]
       },
       // Newly added: Timetable link right after Admissions

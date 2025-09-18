@@ -3,25 +3,206 @@ import { useSelector } from 'react-redux';
 import axios from 'axios';
 import { refreshToken } from '../../services/operations/authApi';
 import { toast } from 'react-hot-toast';
-import { FiDownload } from 'react-icons/fi';
-import { Table, Button, Input, Select, Space, Modal, Form, message } from 'antd';
+import { FiDownload, FiEye, FiUser, FiMail, FiPhone, FiBook, FiAward, FiCalendar, FiMapPin, FiInfo, FiCheckCircle, FiXCircle, FiClock, FiPrinter, FiDollarSign } from 'react-icons/fi';
+import { PrinterOutlined } from '@ant-design/icons';
+import { useNavigate } from 'react-router-dom';
+import { API_URL } from '../../services/config';
+import { Table, Button, Input, Select, Space, Modal, Form, Descriptions, Tag, Divider, Card, Typography } from 'antd';
 
 const { Option } = Select;
 
-// API endpoints
-const API_BASE_URL = `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1`;
-
 const UniversityEnrolledStudent = () => {
+  const navigate = useNavigate();
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
   const [searchText, setSearchText] = useState('');
-  const [searchField, setSearchField] = useState('all'); // 'all', 'registrationNumber', 'name', 'email', 'phone', 'status'
+  const [searchField, setSearchField] = useState('all');
+  const [viewModalVisible, setViewModalVisible] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState(null);
+  const [sessions, setSessions] = useState([]);
+  const [loadingSessions, setLoadingSessions] = useState(false);
   const [filters, setFilters] = useState({
     program: '',
     batch: '',
     status: ''
   });
   const { token } = useSelector((state) => state.auth);
+
+  const showStudentDetails = (student) => {
+    console.log('Selected Student:', student);
+    console.log('Student verification details:', student.verificationDetails);
+    console.log('Registration fee value:', student.verificationDetails?.registrationFee);
+    console.log('Type of registration fee:', typeof student.verificationDetails?.registrationFee);
+    console.log('Student Course Session ID:', student.course?.session);
+    setSelectedStudent(student);
+    setViewModalVisible(true);
+  };
+
+  const handleViewModalCancel = () => {
+    setViewModalVisible(false);
+    setSelectedStudent(null);
+  };
+
+  const handlePrint = () => {
+    const printContent = document.getElementById('student-details-print');
+    const printWindow = window.open('', '', 'width=900,height=600');
+    
+    // Get the current date for the printout
+    const currentDate = new Date().toLocaleDateString('en-IN', {
+      day: '2-digit',
+      month: 'long',
+      year: 'numeric'
+    });
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Admission Confirmation - ${selectedStudent.registrationNumber}</title>
+          <style>
+            @page { 
+              margin: 10mm 10mm 10mm 10mm; 
+              size: A4 portrait;
+            }
+            body { 
+              font-family: Arial, sans-serif;
+              color: #333;
+              line-height: 1.3;
+              font-size: 12px;
+              -webkit-print-color-adjust: exact !important;
+              print-color-adjust: exact !important;
+            }
+            .print-header {
+              text-align: center;
+              margin-bottom: 10px;
+              padding-bottom: 10px;
+              border-bottom: 1px solid #eee;
+              page-break-after: avoid;
+            }
+            .print-header h1 {
+              color: #1a365d;
+              margin: 0 0 5px 0;
+              font-size: 22px;
+            }
+            .print-header .student-photo {
+              width: 80px;
+              height: 100px;
+              border: 1px solid #ddd;
+              border-radius: 2px;
+              margin: 0 auto 5px;
+              overflow: hidden;
+            }
+            .print-header .student-photo img {
+              width: 100%;
+              height: 100%;
+              object-fit: cover;
+            }
+            .print-header .app-id {
+              color: #666;
+              font-size: 14px;
+              margin-top: 5px;
+            }
+            .print-date {
+              text-align: right;
+              font-size: 14px;
+              color: #666;
+              margin-bottom: 20px;
+            }
+            .ant-card {
+              margin-bottom: 10px;
+              border: 1px solid #f0f0f0;
+              border-radius: 2px;
+              page-break-inside: avoid;
+            }
+            .ant-card-head {
+              background-color: #f8f9fa !important;
+              border-bottom: 1px solid #f0f0f0;
+              padding: 0 12px;
+              min-height: 36px;
+              margin-bottom: 0;
+            }
+            .ant-card-head-title {
+              font-weight: 600;
+              color: #1a365d;
+              padding: 8px 0;
+              font-size: 14px;
+            }
+            .ant-descriptions-title {
+              font-size: 16px;
+              color: #1a365d;
+              margin-bottom: 16px;
+            }
+            .ant-descriptions-item-label {
+              font-weight: 500;
+              color: #4a5568;
+              width: 25%;
+              padding: 4px 8px !important;
+              background-color: #f8f9fa !important;
+            }
+            .ant-descriptions-item-content {
+              padding: 4px 8px !important;
+            }
+            .ant-tag {
+              margin: 2px 4px 2px 0;
+            }
+            @media print {
+              @page { size: A4 portrait; margin: 10mm; }
+              body { 
+                margin: 0;
+                padding: 0;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+              }
+              .no-print { display: none !important; }
+              .ant-card { 
+                margin: 5px 0 !important;
+                border: 1px solid #e8e8e8 !important;
+              }
+              .ant-descriptions-row > th, 
+              .ant-descriptions-row > td { 
+                padding: 4px 8px !important;
+              }
+              .ant-descriptions-view {
+                border: 1px solid #f0f0f0;
+              }
+              .ant-tag {
+                margin: 0 4px 2px 0;
+                padding: 0 6px;
+                font-size: 11px;
+                line-height: 18px;
+                height: 20px;
+              }
+            }
+          </style>
+        </head>
+        <body>
+          <div class="print-header">
+            <h1>Admission Confirmation</h1>
+            ${selectedStudent.photo ? `
+              <div class="student-photo">
+                <img src="${selectedStudent.photo}" alt="Student Photo" onerror="this.src='https://via.placeholder.com/100x125?text=No+Photo'">
+              </div>
+            ` : ''}
+            <div class="app-id">Application ID: ${selectedStudent.registrationNumber || 'N/A'}</div>
+          </div>
+          <div class="print-date">Date: ${currentDate}</div>
+          ${printContent.outerHTML}
+          <script>
+            window.onload = function() {
+              // Close the print window after printing
+              window.onafterprint = function() {
+                window.close();
+              };
+              // Trigger print
+              setTimeout(function() { 
+                window.print();
+              }, 300);
+            };
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   const fetchApprovedStudents = async () => {
     try {
@@ -47,7 +228,7 @@ const UniversityEnrolledStudent = () => {
         }
       }
 
-      const response = await axios.get(`${API_BASE_URL}/university/enrolled-students`, {
+      const response = await axios.get(`${API_URL}/university/enrolled-students`, {
         params: searchParams,
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -109,10 +290,56 @@ const UniversityEnrolledStudent = () => {
 
   useEffect(() => {
     fetchApprovedStudents();
+    fetchSessions();
   }, [searchText]); // Add searchText as a dependency to refetch when search changes
+
+  const fetchSessions = async () => {
+    try {
+      setLoadingSessions(true);
+      console.log('Fetching sessions...');
+      const response = await axios.get(`${API_URL}/ugpg/sessions`, {
+        params: {
+          status: 'Active',
+          sort: '-startDate',
+          limit: 10
+        },
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      if (response.data?.success) {
+        console.log('Fetched sessions:', response.data.data);
+        setSessions(response.data.data || []);
+      } else {
+        console.error('Failed to fetch sessions:', response.data?.message);
+        toast.error('Failed to load academic sessions');
+      }
+    } catch (error) {
+      console.error('Error fetching sessions:', error);
+      toast.error('Failed to load academic sessions');
+    } finally {
+      setLoadingSessions(false);
+    }
+  };
 
 
   const columns = [
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <Space size="middle">
+          <Button 
+            type="link" 
+            icon={<FiEye />} 
+            onClick={() => showStudentDetails(record)}
+            title="View Details"
+          />
+        </Space>
+      ),
+    },
     {
       title: 'Registration No.',
       dataIndex: 'registrationNumber',
@@ -216,8 +443,211 @@ const UniversityEnrolledStudent = () => {
     return fieldValue ? fieldValue.toString().toLowerCase().includes(searchTerm) : false;
   });
 
+  const renderStatusBadge = (status) => {
+    const statusMap = {
+      active: { color: 'green', text: 'Active' },
+      pending: { color: 'orange', text: 'Pending' },
+      suspended: { color: 'red', text: 'Suspended' },
+      graduated: { color: 'blue', text: 'Graduated' },
+      inactive: { color: 'gray', text: 'Inactive' }
+    };
+    
+    const statusInfo = statusMap[status?.toLowerCase()] || { color: 'default', text: status || 'N/A' };
+    
+    return (
+      <Tag color={statusInfo.color}>
+        {statusInfo.text}
+      </Tag>
+    );
+  };
+
   return (
     <div className="p-6">
+      {/* Student Details Modal */}
+      <Modal 
+  title={
+    <div style={{ display: "flex", flexDirection: "column", width: "100%", marginTop: "4rem" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", width: "100%" }}>
+        <div>
+          <div style={{ display: "flex", alignItems: "center" }}>
+            <FiUser style={{ marginRight: "8px" }} />
+            <span style={{ fontSize: "18px", fontWeight: "600" }}>Admission Form</span>
+          </div>
+          <div style={{ marginTop: "8px", fontSize: "14px", color: "#6b7280" }}>
+            Application ID: {selectedStudent?.registrationNumber || 'N/A'}
+          </div>
+        </div>
+        {selectedStudent?.photo && (
+          <div style={{ 
+            width: "80px", 
+            height: "100px", 
+            borderRadius: "4px", 
+            overflow: "hidden", 
+            border: "1px solid #e5e7eb",
+            boxShadow: "0 1px 3px rgba(0,0,0,0.1)"
+          }}>
+            <img 
+              src={selectedStudent.photo} 
+              alt="Student" 
+              style={{ 
+                width: "100%", 
+                height: "100%", 
+                objectFit: "cover" 
+              }}
+              onError={(e) => {
+                e.target.onerror = null;
+                e.target.src = 'https://via.placeholder.com/80x100';
+              }}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  }
+  open={viewModalVisible}
+  onCancel={handleViewModalCancel}
+  footer={[
+    <Button key="print" type="primary" icon={<PrinterOutlined />} onClick={handlePrint}>
+      Print
+    </Button>,
+    <Button key="close" onClick={handleViewModalCancel}>
+      Close
+    </Button>
+  ]}
+  width={800}
+>
+  {selectedStudent && (
+    <div id="student-details-print" style={{ marginTop: "16px" }}>
+      {/* Personal Information */}
+      <Card style={{ marginBottom: "16px" }} title="Personal Information">
+        <Descriptions column={2} bordered>
+          <Descriptions.Item label="Registration Number">{selectedStudent.registrationNumber}</Descriptions.Item>
+          <Descriptions.Item label="Full Name">
+            {selectedStudent.firstName} {selectedStudent.lastName}
+          </Descriptions.Item>
+          <Descriptions.Item label="Email">
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <FiMail style={{ marginRight: "8px" }} />
+              {selectedStudent.email}
+            </div>
+          </Descriptions.Item>
+          <Descriptions.Item label="Phone">
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <FiPhone style={{ marginRight: "8px" }} />
+              {selectedStudent.phone}
+            </div>
+          </Descriptions.Item>
+          <Descriptions.Item label="Date of Birth">
+            {selectedStudent.dateOfBirth ? new Date(selectedStudent.dateOfBirth).toLocaleDateString('en-IN') : 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Gender">
+            {selectedStudent.gender || 'N/A'}
+          </Descriptions.Item>
+        </Descriptions>
+      </Card>
+
+      {/* Academic Information */}
+      <Card style={{ marginBottom: "16px" }} title="Academic Information">
+        <Descriptions column={2} bordered>
+          <Descriptions.Item label="Course">
+            <div style={{ display: "flex", alignItems: "center" }}>
+              <FiBook style={{ marginRight: "8px", color: "#3b82f6" }} />
+              <div>
+                <div style={{ fontWeight: 600, color: "#1e40af" }}>
+                  {selectedStudent.course?.courseName || 'N/A'}
+                </div>
+                {selectedStudent.course?.category && (
+                  <div style={{ fontSize: "0.875rem", color: "#4b5563" }}>
+                    {selectedStudent.course.category}
+                  </div>
+                )}
+              </div>
+            </div>
+          </Descriptions.Item>
+          <Descriptions.Item label="Specialization">
+            {selectedStudent.specialization || 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Course Type">
+            {selectedStudent.course?.courseType || 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Registration Date">
+            {selectedStudent.registrationDate ? new Date(selectedStudent.registrationDate).toLocaleDateString('en-IN') : 'N/A'}
+          </Descriptions.Item>
+          <Descriptions.Item label="Scholarship">
+            {selectedStudent.isScholarship ? (
+              <Tag icon={<FiAward />} color="green">Yes</Tag>
+            ) : (
+              <Tag color="default">No</Tag>
+            )}
+          </Descriptions.Item>
+          <Descriptions.Item label="Status">
+            {renderStatusBadge(selectedStudent.status)}
+          </Descriptions.Item>
+        </Descriptions>
+      </Card>
+
+      {/* Contact Information */}
+      <Card title="Contact Information">
+        <Descriptions column={1} bordered>
+          <Descriptions.Item label="Address">
+            <div style={{ display: "flex", alignItems: "flex-start" }}>
+              <FiMapPin style={{ marginTop: "4px", marginRight: "8px", flexShrink: 0 }} />
+              <div>
+                {selectedStudent.address?.street && <div>{selectedStudent.address.street}</div>}
+                {selectedStudent.address?.city && <div>{selectedStudent.address.city}</div>}
+                {selectedStudent.address?.state && <div>{selectedStudent.address.state}</div>}
+                {selectedStudent.address?.pincode && <div>PIN: {selectedStudent.address.pincode}</div>}
+                {!selectedStudent.address && 'N/A'}
+              </div>
+            </div>
+          </Descriptions.Item>
+          <Descriptions.Item label="Alternate Phone">
+            {selectedStudent.alternatePhone || 'N/A'}
+          </Descriptions.Item>
+        </Descriptions>
+      </Card>
+
+      {/* Verification Details */}
+      <Card style={{ marginTop: "16px" }} title="Verification Details">
+        <Descriptions column={1} bordered>
+          <Descriptions.Item label="Registration Fee">
+            {selectedStudent.verificationDetails?.documents?.registrationFee ? (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Tag color="green" icon={<FiCheckCircle />}>Paid</Tag>
+                {selectedStudent.verificationDetails?.verifiedAt && (
+                  <span style={{ fontSize: '0.875rem', color: '#4b5563' }}>
+                    Verified on {new Date(selectedStudent.verificationDetails.verifiedAt).toLocaleDateString('en-IN')}
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Tag color="red" icon={<FiXCircle />}>Pending</Tag>
+                <span style={{ fontSize: '0.875rem', color: '#4b5563' }}>
+                  Fee not received
+                </span>
+              </div>
+            )}
+          </Descriptions.Item>
+          <Descriptions.Item label="12th Marksheet">
+            {selectedStudent.verificationDetails?.documents?.srSecondaryMarksheet ? (
+              <Tag color="green" icon={<FiCheckCircle />}>Submitted</Tag>
+            ) : (
+              <Tag color="red" icon={<FiXCircle />}>Not Submitted</Tag>
+            )}
+          </Descriptions.Item>
+          {selectedStudent.verificationDetails?.verifiedBy && (
+            <Descriptions.Item label="Verified By">
+              {selectedStudent.verificationDetails.verifiedBy}
+            </Descriptions.Item>
+          )}
+        </Descriptions>
+      </Card>
+    </div>
+  )}
+</Modal>
+
+     
       <h1 className="text-2xl font-bold mb-6">Enrolled Students</h1>
       
       {/* Enhanced Search Bar */}

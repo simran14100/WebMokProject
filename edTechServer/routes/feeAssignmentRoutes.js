@@ -1,5 +1,5 @@
 const express = require('express');
-const { assignFeeType, getFeeAssignments } = require('../controllers/feeTypeController');
+const { assignFeeType, getFeeAssignments, deleteFeeAssignment } = require('../controllers/feeTypeController');
 const { protect } = require('../middlewares/auth');
 
 const router = express.Router();
@@ -28,5 +28,8 @@ router.post('/', assignFeeType);
 
 // Get all fee assignments for the university
 router.get('/', getFeeAssignments);
+
+// Delete a fee assignment
+router.delete('/:id', deleteFeeAssignment);
 
 module.exports = router;

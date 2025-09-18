@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useSelector, useDispatch } from 'react-redux';
 import { toast } from 'react-hot-toast';
+import axios from 'axios';
 import { FiEdit2, FiTrash2, FiDollarSign, FiCheckCircle, FiXCircle, FiX, FiCheck, FiPlus } from 'react-icons/fi';
 import { apiConnector } from '../../../../services/apiConnector';
 import { fee } from '../../../../services/apis';
@@ -41,6 +42,8 @@ const FeeTypePage = () => {
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [feeTypes, setFeeTypes] = useState([]);
+  const [courses, setCourses] = useState([]);
+  const [sessions, setSessions] = useState([]);
   const [totalItems, setTotalItems] = useState(0);
   const [selectedItem, setSelectedItem] = useState(null);
   const entriesPerPage = 10;
@@ -53,10 +56,120 @@ const FeeTypePage = () => {
     refundable: 'No',
     session: '',
     course: '',
+    semester: '',
     amount: ''
   });
+  
+  // Reset form data when modal is closed
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      category: '',
+      type: '',
+      refundable: 'No',
+      session: '',
+      course: '',
+      semester: '',
+      amount: ''
+    });
+  };
 
-  // Check authentication and fetch fee types
+  // Generate semester options based on selected course
+  const semesterOptions = [];
+  if (formData.course) {
+    const selectedCourse = courses.find(c => c._id === formData.course);
+    const totalSemesters = selectedCourse?.semester || selectedCourse?.durationYear * 2 || 0;
+    
+    for (let i = 1; i <= totalSemesters; i++) {
+      semesterOptions.push({
+        value: i,
+        label: `Semester ${i}`
+      });
+    }
+  }
+
+  // Fetch all UG/PG courses using the UGPGCourse API
+  const fetchCourses = async () => {
+    const API_BASE_URL = process.env.REACT_APP_BASE_URL || 'http://localhost:4000';
+    const coursesEndpoint = `${API_BASE_URL}/api/v1/ugpg/courses`;
+    const sessionsEndpoint = `${API_BASE_URL}/api/v1/ugpg/sessions`;
+    
+    // Fallback static data in case API is not available
+    const fallbackCourses = [
+      {
+        _id: '1',
+        courseName: 'BTech',
+        durationYear: 4,
+        category: 'Bachelor Degree',
+        status: 'Active'
+      },
+      {
+        _id: '2',
+        courseName: 'MTech',
+        durationYear: 2,
+        category: 'Master Degree',
+        status: 'Active'
+      }
+    ];
+    
+    const headers = {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json'
+    };
+    
+    try {
+      // Fetch courses
+      console.log(`Fetching courses from: ${coursesEndpoint}`);
+      const coursesResponse = await axios.get(coursesEndpoint, { headers });
+      
+      if (coursesResponse.data?.success && coursesResponse.data.data) {
+        const coursesData = Array.isArray(coursesResponse.data.data) ? 
+          coursesResponse.data.data : [coursesResponse.data.data];
+        console.log('Courses loaded successfully:', coursesData);
+        setCourses(coursesData);
+      } else {
+        throw new Error('Invalid courses response format');
+      }
+      
+      // Fetch sessions
+      console.log(`Fetching sessions from: ${sessionsEndpoint}`);
+      const sessionsResponse = await axios.get(sessionsEndpoint, { headers });
+      
+      if (sessionsResponse.data?.success && sessionsResponse.data.data) {
+        const sessionsData = Array.isArray(sessionsResponse.data.data) ? 
+          sessionsResponse.data.data : [sessionsResponse.data.data];
+        
+        // Log detailed session information
+        console.log('Sessions loaded successfully:', sessionsData.map(s => ({
+          _id: s._id,
+          name: s.name,
+          status: s.status,
+          startDate: s.startDate,
+          endDate: s.endDate
+        })));
+        
+        setSessions(sessionsData);
+      } else {
+        throw new Error('Invalid sessions response format');
+      }
+      
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      console.warn('Using fallback data');
+      toast.warning('Using fallback data. Some features may be limited.');
+      setCourses(fallbackCourses);
+      
+      // Fallback sessions
+      const fallbackSessions = [
+        { _id: '1', name: '2023-24', status: 'Active' },
+        { _id: '2', name: '2024-25', status: 'Active' },
+        { _id: '3', name: '2025-26', status: 'Active' }
+      ];
+      setSessions(fallbackSessions);
+    }
+  };
+
+  // Check authentication and fetch data
   const checkAuthAndFetchData = async () => {
     console.log('Checking authentication status...');
     console.log('Token exists:', !!token);
@@ -68,14 +181,14 @@ const FeeTypePage = () => {
       try {
         await refreshToken();
         // After refresh, fetch the data
-        await fetchFeeTypes();
+        await Promise.all([fetchFeeTypes(), fetchCourses()]);
       } catch (refreshError) {
         console.error('Token refresh failed:', refreshError);
         toast.error('Your session has expired. Please log in again.');
         // Redirect to login or handle as needed
       }
     } else {
-      await fetchFeeTypes();
+      await Promise.all([fetchFeeTypes(), fetchCourses()]);
     }
   };
 
@@ -106,7 +219,7 @@ const FeeTypePage = () => {
           search: searchText,
         }
       );
-      
+      console.log('Fee types response:', response.data);
       if (response.data.success) {
         setFeeTypes(response.data.data);
         setTotalItems(response.data.pagination?.total || response.data.data?.length || 0);
@@ -141,13 +254,24 @@ const FeeTypePage = () => {
     setCurrentPage(1);
   };
 
-  // Handle form input change
+  // Handle input changes
   const handleInputChange = (e) => {
-    const { name, value } = e.target;
-    setFormData({
-      ...formData,
-      [name]: value,
-    });
+    const { name, value, type } = e.target;
+    
+    // For select elements, get the selected option text if needed
+    if (type === 'select-one') {
+      const selectedOption = e.target.options[e.target.selectedIndex];
+      setFormData({
+        ...formData,
+        [name]: value,
+        [`${name}Name`]: selectedOption.text
+      });
+    } else {
+      setFormData({
+        ...formData,
+        [name]: value
+      });
+    }
   };
 
   // Handle form submission for adding new fee type
@@ -241,19 +365,145 @@ const FeeTypePage = () => {
   // Handle assign fee
   const handleAssignFee = async (e) => {
     e.preventDefault();
-    if (!selectedItem) return;
+    
+    if (!selectedItem) {
+      toast.error('No fee type selected');
+      return;
+    }
+
+    if (!formData.course) {
+      toast.error('Please select a course');
+      return;
+    }
+
+    if (!formData.session) {
+      toast.error('Please select a session');
+      return;
+    }
+
+    const selectedCourse = courses.find(c => c._id === formData.course);
+    const selectedSession = sessions.find(s => s._id === formData.session);
+    console.log('Selected Session:', selectedSession); // Debug log
+      
+    if (!selectedSession) {
+      console.error('No matching session found for ID:', formData.session);
+      console.log('Available sessions:', sessions);
+      toast.error('Invalid session selected');
+      return;
+    }
+      
+    const isSemesterBased = selectedCourse?.courseType === 'Semester';
+
+    if (isSemesterBased && !formData.semester) {
+      toast.error('Please select a semester');
+      return;
+    }
+
+    if (!formData.amount || isNaN(parseFloat(formData.amount)) || parseFloat(formData.amount) <= 0) {
+      toast.error('Please enter a valid amount');
+      return;
+    }
 
     try {
+      setLoading(true);
+      
+      // Get the session name and clean it up
+      let sessionName = selectedSession.name.trim();
+      const originalSession = sessionName;
+      console.log('Original session name:', sessionName);
+      
+      // First, try to extract years using a more flexible pattern
+      const yearMatch = sessionName.match(/(\d{4})\s*[\-–—]\s*(\d{2,4})/);
+      
+      if (yearMatch) {
+        // If we have a match like "2025 - 2030" or "2025-30"
+        const [, startYear, endYear] = yearMatch;
+        
+        // If end year is 4 digits, convert to 2 digits
+        const shortEndYear = endYear.length === 4 ? endYear.slice(2) : endYear;
+        
+        // Format as YYYY-YY
+        sessionName = `${startYear}-${shortEndYear}`;
+      }
+      
+      // Remove any remaining non-digit characters except dash
+      sessionName = sessionName.replace(/[^0-9-]/g, '');
+      
+      // Handle different session formats
+      let formattedSession;
+      
+      // Case 1: Already in correct format "YYYY-YY"
+      if (/^\d{4}-\d{2}$/.test(sessionName)) {
+        formattedSession = sessionName;
+      }
+      // Case 2: Format "YYYY-YYYY" (e.g., 2025-2026)
+      else if (/^\d{4}-\d{4}$/.test(sessionName)) {
+        const [startYear, endYear] = sessionName.split('-');
+        formattedSession = `${startYear}-${endYear.slice(2)}`;
+      }
+      // Case 3: Single year "YYYY" (e.g., 2025)
+      else if (/^\d{4}$/.test(sessionName)) {
+        const startYear = sessionName;
+        const endYear = (parseInt(startYear) + 1).toString().slice(2);
+        formattedSession = `${startYear}-${endYear}`;
+      }
+      // Case 4: Handle "YYYY - YYYY" with spaces (already removed spaces, but just in case)
+      else if (/^\d{4}-\d{4}$/.test(sessionName.replace(/\s+/g, ''))) {
+        const [startYear, endYear] = sessionName.replace(/\s+/g, '').split('-');
+        formattedSession = `${startYear}-${endYear.slice(2)}`;
+      }
+      // Case 5: Handle "YYYY-YY" with spaces (e.g., "2025 - 26")
+      else if (/^\d{4}\s*-\s*\d{2}$/.test(sessionName)) {
+        formattedSession = sessionName.replace(/\s+/g, '');
+      }
+      // If no pattern matches, use the original but clean it up
+      else {
+        formattedSession = sessionName.replace(/[^0-9-]/g, '');
+        // If we end up with just 4 digits, treat as a single year
+        if (/^\d{4}$/.test(formattedSession)) {
+          const startYear = formattedSession;
+          const endYear = (parseInt(startYear) + 1).toString().slice(2);
+          formattedSession = `${startYear}-${endYear}`;
+        }
+      }
+      
+      // Debug log the transformation
+      console.log('Session transformation:', {
+        original: selectedSession.name,
+        cleaned: sessionName,
+        formatted: formattedSession,
+        matchesPattern: /^\d{4}-\d{2}$/.test(formattedSession)
+      });
+
+      // Final validation
+      const sessionRegex = /^\d{4}-\d{2}$/;
+      if (!sessionRegex.test(formattedSession)) {
+        console.error('Invalid session format after processing:', { 
+          original: selectedSession.name,
+          cleaned: sessionName,
+          formatted: formattedSession,
+          sessionObject: selectedSession
+        });
+        toast.error('Session must be in format YYYY-YY (e.g., 2023-24)');
+        return;
+      }
+
+      const feeData = {
+        feeType: selectedItem._id,
+        session: formattedSession, // Now properly formatted as YYYY-YY
+        course: formData.course,
+        amount: parseFloat(formData.amount),
+        assigneeId: user._id,
+        assigneeType: 'Admin',
+        ...(formData.semester && { semester: parseInt(formData.semester) })
+      };
+      
+      console.log('Submitting fee data:', JSON.stringify(feeData, null, 2));
+
       const response = await apiConnector(
         'POST',
         `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-assignments`,
-        {
-          feeType: selectedItem._id,
-          session: formData.session,
-          course: formData.course,
-          amount: parseFloat(formData.amount),
-          assigneeId: user._id // The current user assigning the fee
-        },
+        feeData,
         { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
@@ -263,29 +513,26 @@ const FeeTypePage = () => {
       if (response.data?.success) {
         toast.success('Fee assigned successfully');
         setShowAssignModal(false);
-        // Reset form
+        
+        // Reset form data
         setFormData({
           ...formData,
           session: '',
           course: '',
+          semester: '',
           amount: ''
         });
+        
         // Refresh the fee types list
-        fetchFeeTypes();
+        await fetchFeeTypes();
       } else {
         throw new Error(response.data?.message || 'Failed to assign fee');
       }
-      
-      // Reset form data
-      setFormData({
-        ...formData,
-        session: '',
-        course: '',
-        amount: ''
-      });
     } catch (error) {
       console.error('Error assigning fee:', error);
-      toast.error(error.response?.data?.message || 'Failed to assign fee');
+      toast.error(error.response?.data?.message || 'Failed to assign fee. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -443,11 +690,20 @@ const FeeTypePage = () => {
               onChange={handleInputChange}
               className="w-full rounded-md border border-gray-300 p-2 focus:ring-indigo-500 focus:border-indigo-500"
               required
+              disabled={loading}
             >
               <option value="">Select Session</option>
-              <option value="2023-24">2023-24</option>
-              <option value="2024-25">2024-25</option>
-              <option value="2025-26">2025-26</option>
+              {loading ? (
+                <option value="" disabled>Loading sessions...</option>
+              ) : sessions.length > 0 ? (
+                sessions.map(session => (
+                  <option key={session._id} value={session._id}>
+                    {session.name} {session.status === 'Inactive' ? '(Inactive)' : ''}
+                  </option>
+                ))
+              ) : (
+                <option value="" disabled>No sessions available</option>
+              )}
             </select>
           </div>
           
@@ -461,43 +717,46 @@ const FeeTypePage = () => {
               onChange={handleInputChange}
               className="w-full rounded-md border border-gray-300 p-2 focus:ring-indigo-500 focus:border-indigo-500"
               required
+              disabled={loading}
             >
               <option value="">Select Course</option>
-              {/* Bachelor's Degrees */}
-              <optgroup label="Bachelor's Degrees">
-                <option value="btech_cs">B.Tech Computer Science (4 Years)</option>
-                <option value="btech_it">B.Tech Information Technology (4 Years)</option>
-                <option value="btech_me">B.Tech Mechanical Engineering (4 Years)</option>
-                <option value="btech_ce">B.Tech Civil Engineering (4 Years)</option>
-                <option value="btech_eee">B.Tech Electrical & Electronics (4 Years)</option>
-                <option value="btech_ece">B.Tech Electronics & Communication (4 Years)</option>
-                <option value="bca">BCA - Bachelor of Computer Applications (3 Years)</option>
-                <option value="bsc_cs">B.Sc Computer Science (3 Years)</option>
-                <option value="bcom">B.Com (3 Years)</option>
-                <option value="bba">BBA - Bachelor of Business Administration (3 Years)</option>
-                <option value="bsc_it">B.Sc Information Technology (3 Years)</option>
-                <option value="ba">BA - Bachelor of Arts (3 Years)</option>
-                <option value="bsc">B.Sc (3 Years)</option>
-                <option value="bpharm">B.Pharm (4 Years)</option>
-                <option value="llb">LLB - Bachelor of Law (3/5 Years)</option>
-              </optgroup>
-              
-              {/* Master's Degrees */}
-              <optgroup label="Master's Degrees">
-                <option value="mtech_cs">M.Tech Computer Science (2 Years)</option>
-                <option value="mtech_it">M.Tech Information Technology (2 Years)</option>
-                <option value="mca">MCA - Master of Computer Applications (2/3 Years)</option>
-                <option value="msc_cs">M.Sc Computer Science (2 Years)</option>
-                <option value="mcom">M.Com (2 Years)</option>
-                <option value="mba">MBA - Master of Business Administration (2 Years)</option>
-                <option value="ma">MA - Master of Arts (2 Years)</option>
-                <option value="msc">M.Sc (2 Years)</option>
-                <option value="mpharm">M.Pharm (2 Years)</option>
-                <option value="llm">LLM - Master of Law (2 Years)</option>
-              </optgroup>
-              
+              {loading ? (
+                <option value="" disabled>Loading courses...</option>
+              ) : courses.length > 0 ? (
+                courses.map(course => (
+                  <option key={course._id} value={course._id}>
+                    {course.courseName} ({course.durationYear || course.duration || 'N/A'} Years)
+                  </option>
+                ))
+              ) : (
+                <option value="" disabled>No courses available</option>
+              )}
             </select>
           </div>
+          
+          {/* Semester Selection */}
+          {formData.course && semesterOptions.length > 0 && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Semester <span className="text-red-500">*</span>
+              </label>
+              <select
+                name="semester"
+                value={formData.semester || ''}
+                onChange={handleInputChange}
+                className="w-full rounded-md border border-gray-300 p-2 focus:ring-indigo-500 focus:border-indigo-500"
+                required
+                disabled={loading}
+              >
+                <option value="">Select Semester</option>
+                {semesterOptions.map(sem => (
+                  <option key={sem.value} value={sem.value}>
+                    {sem.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
           
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -549,13 +808,16 @@ const FeeTypePage = () => {
           </tr>
         </thead>
         <tbody>
-          {feeTypes.filter(item => 
-            !searchText || 
-            item.name.toLowerCase().includes(searchText.toLowerCase()) ||
-            item.category.toLowerCase().includes(searchText.toLowerCase()) ||
-            item.type.toLowerCase().includes(searchText.toLowerCase())
-          ).map((item) => (
-            <tr key={item.id} style={{ borderBottom: "1px solid #eee" }}>
+          {feeTypes
+            .filter(item => {
+              const search = searchText.toLowerCase();
+              return !searchText || 
+                (item.name || '').toLowerCase().includes(search) ||
+                (item.category || '').toLowerCase().includes(search) ||
+                (item.type || '').toLowerCase().includes(search);
+            })
+            .map((item) => (
+            <tr key={item._id} style={{ borderBottom: "1px solid #eee" }}>
               <td style={tdStyle}>
                 <div className="flex space-x-2">
                   <button

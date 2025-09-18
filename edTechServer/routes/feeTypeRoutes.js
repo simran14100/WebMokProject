@@ -7,6 +7,7 @@ const {
   deleteFeeType,
   getFeeTypeStatistics,
   assignFeeType,
+  deleteFeeAssignment
 } = require('../controllers/feeTypeController');
 const { protect, isSuperAdmin } = require('../middlewares/auth');
 
@@ -46,5 +47,8 @@ router
 
 // Assign fee type to course/student
 router.post('/:id/assign', assignFeeType);
+
+// Delete a fee assignment
+router.delete('/assignments/:id', deleteFeeAssignment);
 
 module.exports = router;

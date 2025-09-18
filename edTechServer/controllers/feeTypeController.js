@@ -2,6 +2,7 @@ import asyncHandler from 'express-async-handler';
 import mongoose from 'mongoose';
 import FeeType from '../models/feeTypeModel.js';
 import FeeAssignment from '../models/feeAssignmentModel.js';
+import UGPGCourse from '../models/UGPGCourse.js';
 import { validateCreateFeeType, validateUpdateFeeType } from '../validations/feeTypeValidation.js';
 
 // @desc    Create a new fee type
@@ -231,42 +232,41 @@ const deleteFeeType = asyncHandler(async (req, res) => {
 // @route   GET /api/v1/university/fee-types/statistics
 // @access  Private/University
 const getFeeTypeStatistics = asyncHandler(async (req, res) => {
-  const stats = await FeeType.aggregate([
-    {
-      $match: {
-        university: req.user.university,
+  try {
+    const universityId = req.user.university;
+    
+    const stats = await FeeType.aggregate([
+      {
+        $match: { university: new mongoose.Types.ObjectId(universityId) }
       },
-    },
-    {
-      $group: {
-        _id: '$category',
-        count: { $sum: 1 },
-      },
-    },
-  ]);
+      {
+        $group: {
+          _id: '$type',
+          count: { $sum: 1 },
+          totalAmount: { $sum: '$amount' }
+        }
+      }
+    ]);
 
-  const total = await FeeType.countDocuments({ university: req.user.university });
-  const active = await FeeType.countDocuments({
-    university: req.user.university,
-    status: 'Active',
-  });
-
-  res.json({
-    success: true,
-    data: {
-      total,
-      active,
-      inactive: total - active,
-      byCategory: stats,
-    },
-  });
+    res.status(200).json({
+      success: true,
+      data: stats
+    });
+  } catch (error) {
+    console.error('Error getting fee type statistics:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error getting fee type statistics',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
 });
 
 // @desc    Assign a fee type to a course/student
 // @route   POST /api/v1/university/fee-assignments
 // @access  Private/University
 const assignFeeType = asyncHandler(async (req, res) => {
-  const { feeType, session, course, amount } = req.body;
+  const { feeType, session, course, amount, semester } = req.body;
   const universityId = req.user.university;
 
   // Validate input
@@ -275,6 +275,17 @@ const assignFeeType = asyncHandler(async (req, res) => {
       success: false,
       message: 'Please provide all required fields: feeType, session, course, and amount',
     });
+  }
+  
+  // If semester is provided, validate it's a valid number between 1 and 12
+  if (semester !== undefined) {
+    const semesterNum = parseInt(semester);
+    if (isNaN(semesterNum) || semesterNum < 1 || semesterNum > 12) {
+      return res.status(400).json({
+        success: false,
+        message: 'Semester must be a number between 1 and 12',
+      });
+    }
   }
 
   // Validate session format (YYYY-YY)
@@ -310,29 +321,51 @@ const assignFeeType = asyncHandler(async (req, res) => {
     }
 
     // Check for duplicate assignment
-    const existingAssignment = await FeeAssignment.findOne({
+    const query = {
       feeType,
       session,
       course,
       university: universityId
-    });
+    };
+
+    // Include semester in the query if it's provided
+    if (semester !== undefined) {
+      query.semester = semester;
+    } else {
+      // If semester is not provided, only match documents where semester doesn't exist
+      query.semester = { $exists: false };
+    }
+
+    const existingAssignment = await FeeAssignment.findOne(query);
 
     if (existingAssignment) {
+      const errorMessage = semester 
+        ? `This fee type is already assigned to the selected course for session ${session}, semester ${semester}`
+        : `This fee type is already assigned to the selected course for session ${session}`;
+        
       return res.status(400).json({
         success: false,
-        message: 'This fee type is already assigned to the selected course for this session'
+        message: errorMessage
       });
     }
 
-    // Create new assignment
-    const assignment = await FeeAssignment.create({
+    // Create assignment data object
+    const assignmentData = {
       feeType,
       session,
       course,
       amount: amountValue,
       assigneeId: req.user._id,
       university: universityId
-    });
+    };
+    
+    // Add semester to the assignment if provided
+    if (semester !== undefined) {
+      assignmentData.semester = parseInt(semester);
+    }
+    
+    // Create new assignment
+    const assignment = await FeeAssignment.create(assignmentData);
 
     // Populate the feeType field for the response
     await assignment.populate('feeType', 'name type category');
@@ -343,11 +376,33 @@ const assignFeeType = asyncHandler(async (req, res) => {
       data: assignment
     });
   } catch (error) {
-    console.error('Error creating fee assignment:', error);
+    console.error('Error creating fee assignment:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code,
+      keyValue: error.keyValue,
+      errors: error.errors,
+      body: req.body,
+      user: req.user ? { _id: req.user._id, university: req.user.university } : 'No user in request'
+    });
+    
+    // More specific error messages for common issues
+    let errorMessage = 'Error creating fee assignment';
+    
+    if (error.name === 'ValidationError') {
+      errorMessage = 'Validation error: ' + Object.values(error.errors).map(e => e.message).join(', ');
+    } else if (error.code === 11000) {
+      errorMessage = 'Duplicate fee assignment. This fee type is already assigned with the same parameters.';
+    }
+    
     res.status(500).json({
       success: false,
-      message: 'Error creating fee assignment',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+      message: process.env.NODE_ENV === 'development' ? errorMessage : 'Server error. Please try again later.',
+      error: process.env.NODE_ENV === 'development' ? {
+        message: error.message,
+        details: error.keyValue || error.errors || error.name
+      } : undefined
     });
   }
 });
@@ -365,9 +420,16 @@ const getFeeAssignments = asyncHandler(async (req, res) => {
     
     // Add search functionality if search term is provided
     if (search && typeof search === 'string') {
+      // First try to find matching courses by name
+      const matchingCourses = await UGPGCourse.find({
+        courseName: { $regex: search, $options: 'i' }
+      }).select('_id');
+      
+      const courseIds = matchingCourses.map(course => course._id);
+      
       query.$or = [
         { 'feeType.name': { $regex: search, $options: 'i' } },
-        { course: { $regex: search, $options: 'i' } },
+        { course: { $in: courseIds } },
         { session: { $regex: search, $options: 'i' } }
       ];
     }
@@ -383,6 +445,11 @@ const getFeeAssignments = asyncHandler(async (req, res) => {
     // Get fee assignments with pagination and sorting
     const feeAssignments = await FeeAssignment.find(query)
       .populate('feeType', 'name type category refundable')
+      .populate({
+        path: 'course',
+        select: 'courseName courseCode courseType durationYear semester',
+        model: 'UGPGCourse' // Using UGPGCourse model instead of Course
+      })
       .sort({ [sortField]: sortOrder === 'desc' ? -1 : 1 })
       .skip(skip)
       .limit(parseInt(limit) || 10);
@@ -425,13 +492,57 @@ const getFeeAssignments = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Delete a fee assignment
+// @route   DELETE /api/v1/university/fee-assignments/:id
+// @access  Private/University
+const deleteFeeAssignment = asyncHandler(async (req, res) => {
+  try {
+    const { id } = req.params;
+    const universityId = req.user.university;
+
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid fee assignment ID format'
+      });
+    }
+
+    // Find and delete the fee assignment
+    const assignment = await FeeAssignment.findOneAndDelete({
+      _id: id,
+      university: universityId
+    });
+
+    if (!assignment) {
+      return res.status(404).json({
+        success: false,
+        message: 'Fee assignment not found or you do not have permission to delete it'
+      });
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Fee assignment deleted successfully',
+      data: assignment
+    });
+  } catch (error) {
+    console.error('Error deleting fee assignment:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error deleting fee assignment',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
 export {
   createFeeType,
   getFeeTypes,
   getFeeType,
   updateFeeType,
   deleteFeeType,
-  getFeeTypeStatistics,
   assignFeeType,
   getFeeAssignments,
+  deleteFeeAssignment,
+  getFeeTypeStatistics
 };
