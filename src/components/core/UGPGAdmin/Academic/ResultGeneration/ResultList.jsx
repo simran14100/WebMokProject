@@ -372,33 +372,16 @@ const ResultList = ({ data = [], loading, pagination, onChange, onDownload, onVi
       width: 150,
       render: (_, record) => (
         <div className="flex items-center justify-end space-x-2">
-          <Tooltip title="View Details">
-            <Button 
-              type="text" 
-              icon={<EyeOutlined className="text-blue-600" />} 
-              size="small"
-              className="action-btn"
-              onClick={() => onView && onView(record)}
-            />
-          </Tooltip>
           <Tooltip title="Edit">
             <Button 
               type="text" 
-              icon={<EditOutlined className="text-yellow-600" />} 
+              icon={<EditOutlined className="text-blue-600" />} 
               size="small"
               className="action-btn"
               onClick={() => onView && onView(record)}
             />
           </Tooltip>
-          <Tooltip title="Download Marksheet">
-            <Button 
-              type="text" 
-              icon={<DownloadOutlined className="text-green-600" />} 
-              size="small"
-              className="action-btn"
-              onClick={() => onDownload && onDownload(record._id)}
-            />
-          </Tooltip>
+         
         </div>
       ),
     },

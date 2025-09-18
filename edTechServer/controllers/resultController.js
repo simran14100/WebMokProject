@@ -214,7 +214,7 @@ const updateResult = asyncHandler(async (req, res) => {
   }
 
   // Check if the user has permission to update this result
-  if (result.createdBy.toString() !== req.user.id && req.user.role !== 'super_admin') {
+  if (result.createdBy.toString() !== req.user._id && req.user.role !== 'SuperAdmin') {
     res.status(403);
     throw new Error('Not authorized to update this result');
   }
@@ -238,7 +238,7 @@ const updateResult = asyncHandler(async (req, res) => {
   if (examSessionId) result.examSession = examSessionId;
   if (remarks) result.remarks = remarks;
 
-  // Update subjects if provided
+  // Update subjectResults if provided
   if (subjects && Array.isArray(subjects)) {
     // Get subject details for all subjects
     const subjectIds = subjects.map(s => s.subjectId || s.subject?._id).filter(Boolean);
@@ -249,7 +249,7 @@ const updateResult = asyncHandler(async (req, res) => {
     // Create a map of subject IDs to their details for quick lookup
     const subjectMap = new Map(subjectDetails.map(sub => [sub._id.toString(), sub]));
     
-    result.subjects = [];
+    result.subjectResults = [];
     
     for (const subject of subjects) {
       const subjectId = subject.subjectId || subject.subject?._id;
@@ -274,7 +274,7 @@ const updateResult = asyncHandler(async (req, res) => {
       const percentage = (marksObtained / maxMarks) * 100;
       const isPassed = marksObtained >= passingMarks;
       
-      result.subjects.push({
+      result.subjectResults.push({
         subject: subjectId,
         examType,
         marksObtained,
@@ -294,11 +294,11 @@ const updateResult = asyncHandler(async (req, res) => {
     }
 
     // Recalculate overall result
-    result.totalMarksObtained = result.subjects.reduce((sum, sub) => sum + sub.marksObtained, 0);
-    result.totalMaxMarks = result.subjects.reduce((sum, sub) => sum + (sub.maxMarks || 100), 0);
+    result.totalMarksObtained = result.subjectResults.reduce((sum, sub) => sum + sub.marksObtained, 0);
+    result.totalMaxMarks = result.subjectResults.reduce((sum, sub) => sum + (sub.maxMarks || 100), 0);
     result.percentage = (result.totalMarksObtained / result.totalMaxMarks) * 100;
-    result.isPassed = result.subjects.every(sub => sub.isPassed);
-    result.status = result.isPassed ? 'PASSED' : 'FAILED';
+    result.isPassed = result.subjectResults.every(sub => sub.isPassed);
+    result.status = result.isPassed ? 'PASS' : 'FAIL';
   }
 
   const updatedResult = await result.save();

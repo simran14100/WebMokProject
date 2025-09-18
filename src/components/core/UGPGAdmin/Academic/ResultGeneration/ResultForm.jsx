@@ -222,32 +222,84 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
   
   // Effect to handle initial form values
   useEffect(() => {
+    // Clear form when initialValues is empty (add mode)
+    if (!initialValues || Object.keys(initialValues).length === 0) {
+      form.resetFields();
+      setSubjects([{
+        key: `subject-${Date.now()}`,
+        subject: '',
+        subjectName: 'Subject',
+        examType: 'theory',
+        marksObtained: 0,
+        maxMarks: 100,
+        passingMarks: 40,
+        grade: 'F',
+        isPassed: false,
+        attendance: 'present'
+      }]);
+      return;
+    }
+    
+    // Handle edit mode with initial values
     if (initialValues) {
-      form.setFieldsValue(initialValues);
-      
-      if (initialValues.course) {
-        console.log('Setting initial course:', initialValues.course);
-        const course = courses?.find(c => c.value === initialValues.course || c._id === initialValues.course);
-        console.log('Found course:', course);
-        setSelectedCourse(initialValues.course);
-        // Fetch subjects for the initial course
-        fetchUgpgSubjects(initialValues.course);
-      }
-      
-      if (initialValues.student) {
-        console.log('Setting initial student:', initialValues.student);
-        setSelectedStudent(initialValues.student);
-      }
-      
-      // Always ensure subjects is an array, even if empty
-      const initialSubjects = Array.isArray(initialValues.subjects) ? initialValues.subjects : [];
-      console.log('Setting initial subjects:', initialSubjects);
-      setSubjects(initialSubjects);
-      
-      // If no subjects in initial values, add one empty subject by default
-      if (!initialValues.subjects || initialValues.subjects.length === 0) {
+      // If we have subjectResults in initialValues (editing existing result)
+      if (initialValues.subjectResults && initialValues.subjectResults.length > 0) {
+        console.log('Setting initial subjects from subjectResults:', initialValues.subjectResults);
+        
+        // First, ensure we have the subject data loaded
+        const loadSubjectData = async () => {
+          try {
+            const courseId = initialValues.course?._id || initialValues.course;
+            if (courseId) {
+              await fetchUgpgSubjects(courseId, initialValues.semester);
+              
+              // After loading subjects, format them with proper names
+              const formattedSubjects = initialValues.subjectResults.map(sub => {
+                const subject = ugpgSubjects.find(s => s._id === (sub.subject?._id || sub.subject));
+                return {
+                  ...sub,
+                  subject: sub.subject?._id || sub.subject,
+                  subjectName: subject?.name || sub.subject?.name || 'Subject',
+                  examType: sub.examType || 'theory',
+                  marksObtained: sub.marksObtained || 0,
+                  maxMarks: sub.maxMarks || 100,
+                  passingMarks: sub.passingMarks || 40,
+                  grade: sub.grade || 'F',
+                  isPassed: sub.isPassed || false,
+                  attendance: sub.attendance || 'present',
+                  key: sub._id || `subject-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+                };
+              });
+              
+              setSubjects(formattedSubjects);
+              form.setFieldsValue({ subjects: formattedSubjects });
+            }
+          } catch (error) {
+            console.error('Error loading subject data:', error);
+          }
+        };
+        
+        loadSubjectData();
+      } 
+      // If we have subjects array in initialValues
+      else if (initialValues.subjects && initialValues.subjects.length > 0) {
+        console.log('Setting initial subjects from subjects array:', initialValues.subjects);
+        const formattedSubjects = initialValues.subjects.map((sub, index) => ({
+          ...sub,
+          key: sub.key || `subject-${index}-${Date.now()}`,
+          subjectName: sub.subjectName || 'Subject'
+        }));
+        
+        setSubjects(formattedSubjects);
+        form.setFieldsValue({ subjects: formattedSubjects });
+      } 
+      // If no subjects, add an empty one
+      else {
+        console.log('No initial subjects found, adding default subject');
         const newSubject = {
+          key: `subject-${Date.now()}`,
           subject: '',
+          subjectName: 'Subject',
           examType: 'theory',
           marksObtained: 0,
           maxMarks: 100,
@@ -259,6 +311,61 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
         setSubjects([newSubject]);
         form.setFieldsValue({ subjects: [newSubject] });
       }
+      
+      // Set other form values
+      const formValues = { ...initialValues };
+      
+      // Handle course
+      if (initialValues.course) {
+        const courseId = initialValues.course?._id || initialValues.course;
+        console.log('Setting initial course:', courseId);
+        setSelectedCourse(courseId);
+        formValues.course = courseId;
+        
+        // Only fetch subjects if we don't have any saved subjects
+        if (!initialValues.subjectResults || initialValues.subjectResults.length === 0) {
+          fetchUgpgSubjects(courseId, initialValues.semester);
+        }
+      }
+      
+      // Handle student
+      if (initialValues.student) {
+        const studentId = initialValues.student?._id || initialValues.student;
+        const studentName = initialValues.student?.user?.name || 
+                          `${initialValues.student.firstName || ''} ${initialValues.student.lastName || ''}`.trim();
+        
+        console.log('Setting initial student:', { id: studentId, name: studentName });
+        
+        // Add student to the students list if not already present
+        setStudents(prev => {
+          const studentExists = prev.some(s => s._id === studentId);
+          if (!studentExists && initialValues.student) {
+            return [...prev, initialValues.student];
+          }
+          return prev;
+        });
+        
+        setFilteredStudents(prev => {
+          const studentExists = prev.some(s => s._id === studentId);
+          if (!studentExists && initialValues.student) {
+            return [...prev, initialValues.student];
+          }
+          return prev;
+        });
+        
+        setSelectedStudent({
+          value: studentId,
+          label: studentName
+        });
+        
+        form.setFieldsValue({
+          studentId: studentId,
+          studentName: studentName
+        });
+      }
+      
+      // Set all form values
+      form.setFieldsValue(formValues);
     }
     
     // Initialize filtered students
@@ -381,13 +488,30 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
     }
   };
 
-  const handleStudentSelect = async (studentId) => {
+  const handleStudentSelect = async (value) => {
     try {
+      const studentId = value?.value || value;
+      if (!studentId) {
+        setSelectedStudent(null);
+        form.setFieldsValue({ studentId: null });
+        return;
+      }
+      
       const selected = students.find(s => s._id === studentId);
       if (!selected) return;
       
-      setSelectedStudent(selected);
-      form.setFieldsValue({ studentId });
+      const studentName = selected.user?.name || 
+                         `${selected.firstName || ''} ${selected.lastName || ''}`.trim();
+      
+      setSelectedStudent({
+        value: studentId,
+        label: studentName
+      });
+      
+      form.setFieldsValue({ 
+        studentId: studentId,
+        studentName: studentName 
+      });
       
       // Handle semester change
       const handleSemesterChange = async (value) => {
@@ -494,19 +618,18 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
       if (subjectId) {
         const subject = ugpgSubjects.find(s => s._id === subjectId);
         if (subject) {
-          let newMaxMarks = 100; // Default fallback
-          
-          if (value === 'theory' && subject.hasTheory) {
-            newMaxMarks = subject.theoryMaxMarks || 100;
-          } else if (value === 'practical' && subject.hasPractical) {
-            newMaxMarks = subject.practicalMaxMarks || 100;
-          }
+          const isTheory = value === 'theory';
+          const newMaxMarks = isTheory ? 75 : (subject.practicalMaxMarks || 100);
+          const newPassingMarks = Math.ceil(newMaxMarks * 0.4); // 40% of max marks
           
           updatedSubjects[index] = {
             ...updatedSubjects[index],
             examType: value,
             maxMarks: newMaxMarks,
-            marksObtained: 0 // Reset marks when exam type changes
+            passingMarks: newPassingMarks,
+            marksObtained: 0, // Reset marks when exam type changes
+            isPassed: false, // Reset pass status
+            grade: 'F' // Reset grade
           };
         }
       }
@@ -549,12 +672,16 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
   };
 
   const handleAddSubject = () => {
+    const isTheory = true; // Default to theory for new subjects
+    const defaultMaxMarks = 75; // Default max marks for theory
+    const defaultPassingMarks = Math.ceil(defaultMaxMarks * 0.4); // 40% of max marks
+    
     const newSubject = {
       subject: '',
       examType: 'theory',
       marksObtained: 0,
-      maxMarks: 100,
-      passingMarks: 40,
+      maxMarks: defaultMaxMarks,
+      passingMarks: defaultPassingMarks,
       grade: 'F',
       isPassed: false,
       attendance: 'present' // Default to present
@@ -670,31 +797,24 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
         return;
       }
 
-      // Get subject details for paper code and name
-      const subjectDetails = {};
-      values.subjects.forEach(subject => {
-        if (subject && subject.subject) {
-          const subjectId = subject.subject._id || subject.subject;
-          const subjectData = ugpgSubjects.find(s => s._id === subjectId);
-          if (subjectData) {
-            subjectDetails[subjectId] = {
-              paperCode: subjectData.code || '',
-              paperName: subjectData.name || ''
-            };
-          }
-        }
-      });
+      // Prepare the result data for submission
+      // Extract exam session ID - handle both object and ID formats
+      const getExamSessionId = (examSession) => {
+        if (!examSession) return null;
+        if (typeof examSession === 'string') return examSession;
+        if (examSession._id) return examSession._id;
+        if (examSession.value) return examSession.value;
+        return null;
+      };
 
-      // Prepare the result data using the values parameter
       const resultData = {
         studentId: values.studentId,
-        studentName: `${selectedStudent.firstName || ''} ${selectedStudent.lastName || ''}`.trim(),
+        studentName: selectedStudent?.name || '',
         courseId: values.course,
         semester: values.semester,
-        // Handle examSession which might be an object due to labelInValue
-        examSessionId: values.examSession?.value || values.examSession?._id || values.examSession,
-        remarks: values.remarks || '', // Ensure remarks is not undefined
-        subjectResults: values.subjects.map((formSubject, index) => {
+        examSessionId: getExamSessionId(values.examSession),
+        remarks: values.remarks || '',
+        subjects: values.subjects.map(formSubject => {
           if (!formSubject) return null;
           
           const subjectId = formSubject.subject?._id || formSubject.subject;
@@ -702,12 +822,12 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
           
           // Calculate max marks based on exam type
           const maxMarks = formSubject.maxMarks || 
-            (formSubject.examType === 'theory' && subjectData?.hasTheory ? subjectData.theoryMaxMarks :
-             formSubject.examType === 'practical' && subjectData?.hasPractical ? subjectData.practicalMaxMarks :
+            (formSubject.examType === 'theory' && subjectData?.theoryMaxMarks ? subjectData.theoryMaxMarks :
+             formSubject.examType === 'practical' && subjectData?.practicalMaxMarks ? subjectData.practicalMaxMarks :
              100);
           
           // Ensure passing marks is set and valid
-          const passingMarks = formSubject.passingMarks || Math.ceil(maxMarks * 0.4); // Default to 40%
+          const passingMarks = formSubject.passingMarks || Math.ceil(maxMarks * 0.4);
           
           // Calculate percentage and grade
           const marksObtained = formSubject.marksObtained || 0;
@@ -720,12 +840,9 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
           else if (percentage >= 50) grade = 'D';
           else if (percentage >= 40) grade = 'E';
           
-          // Get subject details for paper code and name
-          const subjectInfo = subjectDetails[subjectId] || {};
-          
-          // Create subject result object with correct field names
-          const subjectResult = {
-            subject: subjectId, // Changed from subjectId to subject
+          // Create subject result object
+          return {
+            subjectId: subjectId,
             examType: formSubject.examType || 'theory',
             marksObtained: formSubject.attendance === 'absent' ? 0 : Math.min(marksObtained, maxMarks),
             maxMarks: maxMarks,
@@ -733,23 +850,12 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
             grade: formSubject.attendance === 'absent' ? 'F' : grade,
             percentage: formSubject.attendance === 'absent' ? 0 : percentage,
             isPassed: formSubject.attendance === 'present' && percentage >= 40,
-            attendance: formSubject.attendance || 'present'
+            attendance: formSubject.attendance || 'present',
+            status: formSubject.attendance === 'present' && percentage >= 40 ? 'PASS' : 'FAIL'
           };
-          
-          // Add subject configuration if available
-          if (subjectData) {
-            subjectResult.subjectConfig = {
-              hasTheory: subjectData.hasTheory,
-              theoryMaxMarks: subjectData.theoryMaxMarks,
-              hasPractical: subjectData.hasPractical,
-              practicalMaxMarks: subjectData.practicalMaxMarks
-            };
-          }
-          
-          return subjectResult;
         }).filter(Boolean) // Remove any null entries
       };
-
+      
       console.log('Submitting result data:', resultData);
       
       // Submit the form
@@ -794,60 +900,90 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
       title: 'Subject',
       dataIndex: 'subject',
       key: 'subject',
-      render: (_, record, index) => (
-        <Form.Item
-          name={['subjects', index, 'subject']}
-          rules={[{ required: true, message: 'Please select subject' }]}
-          noStyle
-        >
-          <Select
-            showSearch
-            optionFilterProp="children"
-            filterOption={(input, option) =>
-              option.children.toString().toLowerCase().includes(input.toLowerCase())
-            }
-            style={{ width: '100%' }}
-            placeholder={loadingSubjects ? 'Loading subjects...' : 'Select subject'}
-            loading={loadingSubjects}
-            onChange={(value) => {
-              // Pass both the ID and the full subject object
-              const subject = ugpgSubjects.find(s => s._id === value);
-              handleSubjectChange(index, 'subject', subject?._id, subject?._id);
-            }}
-            value={record.subject?._id || record.subject}
+      render: (_, record, index) => {
+        // Get the current subject ID from the record
+        const subjectId = record.subject?._id || record.subject;
+        // Find the full subject object
+        const subject = ugpgSubjects.find(s => s._id === subjectId);
+        
+        // Get the display name for the selected subject
+        const displayName = subject?.name || 
+                          record.subject?.name || 
+                          (typeof record.subject === 'string' ? 'Loading...' : 'Select subject');
+        
+        return (
+          <Form.Item
+            name={['subjects', index, 'subject']}
+            rules={[{ required: true, message: 'Please select subject' }]}
+            noStyle
           >
-            {ugpgSubjects && ugpgSubjects.length > 0 ? (
-              ugpgSubjects.map((subject) => {
-                const label = [
-                  subject.name,
-                  subject.code && `(${subject.code})`,
-                  subject.school?.name && `[${subject.school.name}]`,
-                  subject.hasTheory && subject.hasPractical ? 
-                    `(T:${subject.theoryMaxMarks}/P:${subject.practicalMaxMarks})` :
-                    subject.hasTheory ? `(Theory: ${subject.theoryMaxMarks} marks)` :
-                    subject.hasPractical ? `(Practical: ${subject.practicalMaxMarks} marks)` : ''
-                ].filter(Boolean).join(' ');
-                
-                return (
-                  <Option 
-                    key={subject._id} 
-                    value={subject._id}
-                    title={`${subject.description || ''}\nTheory: ${subject.hasTheory ? 'Yes' : 'No'}${subject.hasTheory ? ` (${subject.theoryMaxMarks} marks)` : ''}\nPractical: ${subject.hasPractical ? 'Yes' : 'No'}${subject.hasPractical ? ` (${subject.practicalMaxMarks} marks)` : ''}`}
-                  >
-                    {label}
-                  </Option>
-                );
-              })
-            ) : (
-              <Option key="no-subjects" disabled>
-                {selectedCourse 
-                  ? 'No active subjects found for this course' 
-                  : 'Please select a course first'}
-              </Option>
-            )}
-          </Select>
-        </Form.Item>
-      ),
+            <Select
+              showSearch
+              optionFilterProp="children"
+              filterOption={(input, option) =>
+                option.children.toString().toLowerCase().includes(input.toLowerCase())
+              }
+              style={{ width: '100%' }}
+              placeholder={loadingSubjects ? 'Loading subjects...' : 'Select subject'}
+              loading={loadingSubjects}
+              onChange={(value) => {
+                // Update both the form value and the subject name
+                const selectedSubject = ugpgSubjects.find(s => s._id === value);
+                if (selectedSubject) {
+                  // Update the subject name in the form
+                  const updatedSubjects = [...subjects];
+                  updatedSubjects[index] = {
+                    ...updatedSubjects[index],
+                    subject: selectedSubject._id,
+                    subjectName: selectedSubject.name
+                  };
+                  setSubjects(updatedSubjects);
+                  
+                  // Update the form values
+                  form.setFieldsValue({
+                    subjects: updatedSubjects.map(s => ({
+                      ...s,
+                      subject: s.subject,
+                      subjectName: s.subjectName
+                    }))
+                  });
+                }
+              }}
+              value={subjectId}
+            >
+              {ugpgSubjects && ugpgSubjects.length > 0 ? (
+                ugpgSubjects.map((subject) => {
+                  const label = [
+                    subject.name,
+                    subject.code && `(${subject.code})`,
+                    subject.school?.name && `[${subject.school.name}]`,
+                    subject.hasTheory && subject.hasPractical ? 
+                      `(T:${subject.theoryMaxMarks}/P:${subject.practicalMaxMarks})` :
+                      subject.hasTheory ? `(Theory: ${subject.theoryMaxMarks} marks)` :
+                      subject.hasPractical ? `(Practical: ${subject.practicalMaxMarks} marks)` : ''
+                  ].filter(Boolean).join(' ');
+                  
+                  return (
+                    <Option 
+                      key={subject._id} 
+                      value={subject._id}
+                      title={`${subject.description || ''}\nTheory: ${subject.hasTheory ? 'Yes' : 'No'}${subject.hasTheory ? ` (${subject.theoryMaxMarks} marks)` : ''}\nPractical: ${subject.hasPractical ? 'Yes' : 'No'}${subject.hasPractical ? ` (${subject.practicalMaxMarks} marks)` : ''}`}
+                    >
+                      {label}
+                    </Option>
+                  );
+                })
+              ) : (
+                <Option key="no-subjects" disabled>
+                  {selectedCourse 
+                    ? 'No active subjects found for this course' 
+                    : 'Please select a course first'}
+                </Option>
+              )}
+            </Select>
+          </Form.Item>
+        );
+      },
     },
     {
       title: 'Exam Type',
@@ -963,40 +1099,75 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
       dataIndex: 'maxMarks',
       key: 'maxMarks',
       width: 100,
-      render: (_, record, index) => (
-        <Form.Item
-          name={['subjects', index, 'maxMarks']}
-          rules={[{ required: true, message: 'Required' }]}
-          initialValue={100}
-          noStyle
-        >
-          <InputNumber
-            min={1}
-            style={{ width: '100%' }}
-            onChange={(value) => handleSubjectChange(index, 'maxMarks', value)}
-          />
-        </Form.Item>
-      ),
+      render: (_, record, index) => {
+        const isTheory = record.examType === 'theory';
+        const maxAllowedMarks = isTheory ? 75 : 100;
+        
+        return (
+          <Form.Item
+            name={['subjects', index, 'maxMarks']}
+            rules={[{
+              required: true,
+              message: 'Required'
+            }, {
+              validator: (_, value) => {
+                if (isTheory && value !== 75) {
+                  return Promise.reject('Max marks for theory must be 75');
+                }
+                return Promise.resolve();
+              }
+            }]}
+            initialValue={isTheory ? 75 : (record.maxMarks || 100)}
+            noStyle
+          >
+            <InputNumber
+              min={1}
+              max={maxAllowedMarks}
+              style={{ width: '100%' }}
+              onChange={(value) => {
+                const finalValue = isTheory ? 75 : value;
+                handleSubjectChange(index, 'maxMarks', finalValue);
+              }}
+            />
+          </Form.Item>
+        );
+      },
     },
     {
       title: 'Passing Marks',
       dataIndex: 'passingMarks',
       key: 'passingMarks',
       width: 120,
-      render: (_, record, index) => (
-        <Form.Item
-          name={['subjects', index, 'passingMarks']}
-          rules={[{ required: true, message: 'Required' }]}
-          initialValue={40}
-          noStyle
-        >
-          <InputNumber
-            min={0}
-            max={record.maxMarks || 100}
-            style={{ width: '100%' }}
-          />
-        </Form.Item>
-      ),
+      render: (_, record, index) => {
+        const isTheory = record.examType === 'theory';
+        const maxMarks = isTheory ? 75 : (record.maxMarks || 100);
+        
+        return (
+          <Form.Item
+            name={['subjects', index, 'passingMarks']}
+            rules={[{ 
+              required: true, 
+              message: 'Required' 
+            }, {
+              validator: (_, value) => {
+                if (value > maxMarks) {
+                  return Promise.reject(`Passing marks cannot exceed ${maxMarks}`);
+                }
+                return Promise.resolve();
+              }
+            }]}
+            initialValue={Math.ceil(maxMarks * 0.4)}
+            noStyle
+          >
+            <InputNumber
+              min={0}
+              max={maxMarks}
+              style={{ width: '100%' }}
+              onChange={(value) => handleSubjectChange(index, 'passingMarks', value)}
+            />
+          </Form.Item>
+        );
+      },
     },
     {
       title: 'Attendance',
@@ -1112,6 +1283,8 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
                   disabled={studentLoading}
                   allowClear
                   showArrow={!studentLoading}
+                  value={selectedStudent?.value || form.getFieldValue('studentId')}
+                  labelInValue
                   optionLabelProp="label"
                 >
                   {Array.isArray(filteredStudents) && filteredStudents.length > 0 ? (

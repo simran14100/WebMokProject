@@ -166,6 +166,14 @@ const ResultGeneration = () => {
   const [editingResult, setEditingResult] = useState(null);
   const [loading, setLoading] = useState(false);
   
+  const handleTabChange = (key) => {
+    if (key === 'add') {
+      // Clear editing state when switching to add mode
+      setEditingResult(null);
+    }
+    setActiveTab(key);
+  };
+  
   // Table columns configuration
   const columns = [
     {
@@ -875,8 +883,10 @@ const ResultGeneration = () => {
               type="primary"
               icon={<PlusOutlined />}
               onClick={() => {
+                // Clear any existing form data and switch to add tab
                 setEditingResult(null);
-                setActiveTab("add");
+                setActiveTab('list'); // First switch to list to reset the form
+                setTimeout(() => setActiveTab('add'), 0); // Then switch to add tab in the next tick
               }}
             >
               Add Result
@@ -896,7 +906,7 @@ const ResultGeneration = () => {
           borderRadius: "8px",
         }}
       >
-        <Tabs activeKey={activeTab} onChange={setActiveTab}>
+        <Tabs activeKey={activeTab} onChange={handleTabChange}>
           <TabPane tab="Results List" key="list">
             <div style={{ marginBottom: 16 }}>
               <Row gutter={[16, 16]}>
