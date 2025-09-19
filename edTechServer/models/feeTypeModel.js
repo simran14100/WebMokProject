@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const feeTypeSchema = new mongoose.Schema({
   name: {
@@ -12,7 +12,7 @@ const feeTypeSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please provide a fee category'],
     enum: {
-      values: ['Course', 'Hostel', 'Transport', 'Miscellaneous', 'Other'],
+      values: ['Course', 'Registration', 'Miscellaneous', 'Other'],
       message: 'Please select a valid fee category'
     }
   },
@@ -20,8 +20,8 @@ const feeTypeSchema = new mongoose.Schema({
     type: String,
     required: [true, 'Please provide a fee type'],
     enum: {
-      values: ['Semester Wise', 'Yearly', 'After Course'],
-      message: 'Please select a valid fee type (Semester Wise, Yearly, or After Course)'
+      values: ['Semester Wise', 'Yearly', 'Before Course'],
+      message: 'Please select a valid fee type (Semester Wise, Yearly, or Before Course)'
     }
   },
   refundable: {
@@ -47,4 +47,4 @@ feeTypeSchema.index({ name: 1 }, { unique: true });
 
 const FeeType = mongoose.model('FeeType', feeTypeSchema);
 
-export default FeeType;
+module.exports = FeeType;

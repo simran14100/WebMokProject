@@ -343,6 +343,7 @@ function AppRoutes() {
           <Route path="all-registered" element={<AllRegisteredStudents />} />
           <Route path="verification" element={<VerifiedStudents />} />
           <Route path="enrolled" element={<UniversityEnrolledStudent/>} />
+          
         </Route>
         <Route path="front-desk/visitor-logs" element={<VisitorLogs />} />
         <Route path="front-desk/phone-logs" element={<PhoneLogs />} />
@@ -368,6 +369,7 @@ function AppRoutes() {
             <ManageFee />
           </ProtectedRoute>
         } />
+        
         
         {/* Teacher Management */}
         <Route path="teachers">

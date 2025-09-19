@@ -44,7 +44,7 @@ const AdmissionEnquiry = () => {
   const [filters, setFilters] = useState({ 
     search: '', 
     status: '',
-    programType: '' // No default program type
+    programType: '' // Will store 'UG' or 'PG' or empty for all
   });
   const [selectedEnquiry, setSelectedEnquiry] = useState(null);
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -149,13 +149,13 @@ const AdmissionEnquiry = () => {
       console.log('Pagination:', { current, pageSize });
 
       try {
-        // Fetch non-PHD enquiries
-        console.log('Fetching non-PHD enquiries...');
+        // Fetch enquiries with filters
+        console.log('Fetching enquiries with filters:', { programType, status });
         const response = await apiConnector({
           method: 'GET',
           url: '/api/v1/admission-enquiries',
           params: {
-            programType: 'UG,PG', // Only fetch UG and PG enquiries
+            programType: programType || 'UG,PG', // Filter by selected program type or both UG/PG
             status,
             page: current,
             limit: pageSize,
@@ -169,58 +169,97 @@ const AdmissionEnquiry = () => {
 
         console.log('Debug API Response:', response);
         
-        if (!response?.data?.success) {
-          throw new Error('Failed to fetch enquiries: Invalid response format');
+        console.log('Raw API Response:', JSON.stringify(response.data, null, 2));
+        
+        // Handle case where response or response.data is not as expected
+        if (!response || !response.data) {
+          throw new Error('Invalid API response format: No data received');
         }
 
-        let allEnquiries = response.data.data || [];
+        let allEnquiries = [];
+        
+        // Extract the enquiries array from the response
+        if (response.data.data && response.data.data.enquiries) {
+          // Response format: { data: { enquiries: [...] } }
+          allEnquiries = response.data.data.enquiries;
+        } else if (response.data.enquiries) {
+          // Response format: { enquiries: [...] }
+          allEnquiries = response.data.enquiries;
+        } else if (Array.isArray(response.data)) {
+          // Response format: [...]
+          allEnquiries = response.data;
+        } else if (response.data.data && Array.isArray(response.data.data)) {
+          // Response format: { data: [...] }
+          allEnquiries = response.data.data;
+        } else if (response.data.results) {
+          // Response format: { results: [...] }
+          allEnquiries = response.data.results;
+        } else if (typeof response.data === 'object') {
+          // Single object response, wrap in array
+          allEnquiries = [response.data];
+        }
+        
         console.log('Total Enquiries in DB:', allEnquiries.length);
         
         if (allEnquiries.length > 0) {
           console.log('Sample Enquiry:', allEnquiries[0]);
         } else {
           console.log('No enquiries found in the database.');
+          // Set empty arrays to avoid iteration errors
+          setEnquiries([]);
+          setPagination(prev => ({ ...prev, total: 0 }));
+          return;
         }
 
-        // Apply client-side filtering
+        // Start with all enquiries
         let filteredEnquiries = [...allEnquiries];
+        console.log('Initial enquiries count:', filteredEnquiries.length);
 
-        // Apply search filter
+        // Log sample data to understand the structure
+        if (filteredEnquiries.length > 0) {
+          console.log('First enquiry sample:', JSON.stringify(filteredEnquiries[0], null, 2));
+        }
+
+        // Apply search filter if search term exists
         if (search) {
           const searchLower = search.toLowerCase();
+          const searchFields = ['name', 'email', 'phone', 'fatherName', 'motherName', 'phone', 'alternatePhone'];
+          
           filteredEnquiries = filteredEnquiries.filter(enquiry => 
-            (enquiry.name && enquiry.name.toLowerCase().includes(searchLower)) ||
-            (enquiry.email && enquiry.email.toLowerCase().includes(searchLower)) ||
-            (enquiry.phone && enquiry.phone.includes(search)) ||
-            (enquiry.fatherName && enquiry.fatherName.toLowerCase().includes(searchLower))
+            searchFields.some(field => 
+              enquiry[field] && String(enquiry[field]).toLowerCase().includes(searchLower)
+            )
           );
+          console.log('After search filter:', filteredEnquiries.length);
         }
 
-        // Apply status filter
+        // Apply status filter if status is selected
         if (status) {
           filteredEnquiries = filteredEnquiries.filter(enquiry => 
-            enquiry.status && enquiry.status.toLowerCase() === status.toLowerCase()
+            enquiry.status && String(enquiry.status).toLowerCase() === status.toLowerCase()
           );
+          console.log('After status filter:', filteredEnquiries.length);
         }
-
-        console.log('Raw enquiries before filtering:', allEnquiries);
         
-        // Always filter out PHD enquiries
+        // Apply program type filter if selected
+        if (programType) {
+          filteredEnquiries = filteredEnquiries.filter(enquiry => 
+            enquiry.programType && 
+            String(enquiry.programType).toUpperCase() === programType.toUpperCase()
+          );
+          console.log('After program type filter:', filteredEnquiries.length);
+        }
+        
+        // Filter out PHD enquiries if needed
         filteredEnquiries = filteredEnquiries.filter(enquiry => {
-          const isPhd = enquiry.programType?.toUpperCase() === 'PHD';
-          if (isPhd) {
-            console.log('Filtering out PHD enquiry:', enquiry);
-          }
+          const enquiryProgramType = String(enquiry.programType || '').toUpperCase();
+          const isPhd = enquiryProgramType === 'PHD';
           return !isPhd;
         });
         
-        console.log('Enquiries after PHD filter:', filteredEnquiries);
-        
-        // Apply program type filter
-        if (programType) {
-          filteredEnquiries = filteredEnquiries.filter(enquiry => 
-            enquiry.programType && enquiry.programType.toUpperCase() === programType.toUpperCase()
-          );
+        console.log('Final filtered count:', filteredEnquiries.length);
+        if (filteredEnquiries.length > 0) {
+          console.log('Sample filtered enquiry:', JSON.stringify(filteredEnquiries[0], null, 2));
         }
 
         // Apply pagination
@@ -228,16 +267,28 @@ const AdmissionEnquiry = () => {
         const paginatedEnquiries = filteredEnquiries.slice(startIndex, startIndex + pageSize);
         
         // Format the enquiries for the table
-        const formattedEnquiries = paginatedEnquiries.map(enquiry => ({
-          ...enquiry,
-          key: enquiry._id || enquiry.id,
-          fullName: enquiry.name,
-          contact: enquiry.phone,
-          email: enquiry.email,
-          programType: enquiry.programType || 'N/A',
-          status: enquiry.status || 'new',
-          createdAt: enquiry.createdAt ? new Date(enquiry.createdAt).toLocaleDateString() : 'N/A'
-        }));
+        const formattedEnquiries = paginatedEnquiries.map(enquiry => {
+          // Ensure we have a valid enquiry object
+          if (!enquiry || typeof enquiry !== 'object') {
+            console.warn('Invalid enquiry data:', enquiry);
+            return null;
+          }
+          
+          return {
+            ...enquiry,
+            key: enquiry._id || enquiry.id || Math.random().toString(36).substr(2, 9),
+            fullName: enquiry.name || 'N/A',
+            contact: enquiry.phone || enquiry.alternateNumber || 'N/A',
+            email: enquiry.email || 'N/A',
+            programType: enquiry.programType || 'N/A',
+            status: enquiry.status || 'new',
+            createdAt: enquiry.createdAt ? new Date(enquiry.createdAt).toLocaleDateString() : 'N/A',
+            // Add any additional fields needed for the table
+            parentName: enquiry.parentName || 'N/A',
+            address: [enquiry.address, enquiry.city, enquiry.state].filter(Boolean).join(', ') || 'N/A',
+            academicInfo: `${enquiry.lastClass || ''} (${enquiry.percentage || ''}%)`.trim() || 'N/A'
+          };
+        }).filter(Boolean); // Remove any null entries
         
         // Update state with the filtered and paginated data
         setEnquiries(formattedEnquiries);
@@ -921,39 +972,27 @@ const AdmissionEnquiry = () => {
               allowClear
             />
             <Select
-              placeholder="Program Type"
-              style={{ width: 120 }}
-              value={filters.programType}
-              onChange={(value) => handleFilterChange('programType', value)}
-              styles={{
-                popup: {
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }
-              }}
+              placeholder="Status"
+              value={filters.status || undefined}
+              onChange={(value) => handleFilterChange('status', value)}
+              style={{ width: 150 }}
+              allowClear
             >
-              <Option value="UG">UG</Option>
-              <Option value="PG">PG</Option>
-              <Option value="PHD">PhD</Option>
+              <Option value="pending">Pending</Option>
+              <Option value="contacted">Contacted</Option>
+              <Option value="converted">Converted</Option>
+              <Option value="rejected">Rejected</Option>
             </Select>
             <Select
-              placeholder="Status"
-              style={{ width: 150 }}
-              value={filters.status}
-              onChange={(value) => handleFilterChange('status', value)}
+              placeholder="Program Type"
+              value={filters.programType || undefined}
+              onChange={(value) => handleFilterChange('programType', value)}
+              style={{ width: 180 }}
               allowClear
-              styles={{
-                popup: {
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)'
-                }
-              }}
             >
-              <Option value="new">New</Option>
-              <Option value="contacted">Contacted</Option>
-              <Option value="follow up">Follow Up</Option>
-              <Option value="admitted">Admitted</Option>
-              <Option value="rejected">Rejected</Option>
+              <Option value="UG">Undergraduate (UG)</Option>
+              <Option value="PG">Postgraduate (PG)</Option>
+              <Option value="">All Programs</Option>
             </Select>
           </div>
         }

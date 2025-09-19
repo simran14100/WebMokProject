@@ -1,4 +1,4 @@
-import mongoose from 'mongoose';
+const mongoose = require('mongoose');
 
 const feeAssignmentSchema = new mongoose.Schema({
   feeType: {
@@ -32,6 +32,38 @@ const feeAssignmentSchema = new mongoose.Schema({
     required: [true, 'Amount is required'],
     min: [0, 'Amount cannot be negative'],
     set: v => parseFloat(v).toFixed(2)
+  },
+  paidAmount: {
+    type: Number,
+    default: 0,
+    min: [0, 'Paid amount cannot be negative']
+  },
+  balance: {
+    type: Number,
+    default: function() { return this.amount; },
+    min: [0, 'Balance cannot be negative']
+  },
+  paidAmount: {
+    type: Number,
+    default: 0,
+    min: [0, 'Paid amount cannot be negative']
+  },
+  balance: {
+    type: Number,
+    default: function() { return this.amount; },
+    min: [0, 'Balance cannot be negative']
+  },
+  isYearly: {
+    type: Boolean,
+    default: false
+  },
+  academicYear: {
+    type: String,
+    required: [
+      function() { return this.isYearly; },
+      'Academic year is required for yearly fees'
+    ],
+    match: [/^\d{4}-\d{2}$/, 'Please enter a valid academic year in format YYYY-YY']
   }
 }, {
   timestamps: true,
@@ -41,7 +73,23 @@ const feeAssignmentSchema = new mongoose.Schema({
 
 // Virtual for formatted amount
 feeAssignmentSchema.virtual('formattedAmount').get(function() {
-  return `₹${this.amount.toLocaleString('en-IN')}`;
+  return `₹${parseFloat(this.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+});
+
+// Virtual for formatted paid amount
+feeAssignmentSchema.virtual('formattedPaidAmount').get(function() {
+  return `₹${parseFloat(this.paidAmount || 0).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+});
+
+// Virtual for formatted balance
+feeAssignmentSchema.virtual('formattedBalance').get(function() {
+  return `₹${parseFloat(this.balance || this.amount).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+});
+
+// Virtual for semester display
+feeAssignmentSchema.virtual('semesterDisplay').get(function() {
+  if (!this.semester) return 'N/A';
+  return `Semester ${this.semester}`;
 });
 
 // Virtual for course name
@@ -57,13 +105,28 @@ feeAssignmentSchema.virtual('courseName', {
 feeAssignmentSchema.set('toJSON', { virtuals: true });
 // feeAssignmentSchema.set('toObject', { virtuals: true });
 
-// Add a pre-find hook to always populate the course name
+// Add a pre-find hook to always populate the course and fee type
 feeAssignmentSchema.pre(/^find/, function(next) {
-  this.populate({
-    path: 'course',
-    select: 'courseName courseCode courseType durationYear semester',
-    model: 'UGPGCourse'
-  });
+  this.populate([
+    {
+      path: 'course',
+      select: 'courseName courseCode courseType durationYear semesters',
+      model: 'UGPGCourse'
+    },
+    {
+      path: 'feeType',
+      select: 'name category type',
+      model: 'FeeType'
+    }
+  ]);
+  next();
+});
+
+// Pre-save hook to update balance
+feeAssignmentSchema.pre('save', function(next) {
+  if (this.isModified('paidAmount') || this.isNew) {
+    this.balance = Math.max(0, this.amount - (this.paidAmount || 0));
+  }
   next();
 });
 
@@ -82,19 +145,15 @@ feeAssignmentSchema.index(
   }
 );
 
-// Add a separate index for non-semester based fees
-feeAssignmentSchema.index(
-  { 
-    feeType: 1, 
-    course: 1, 
-    session: 1
-  }, 
-  { 
-    unique: true,
-    partialFilterExpression: { semester: { $exists: false } } // Only enforce when semester doesn't exist
-  }
-);
+// Add index for balance queries
+feeAssignmentSchema.index({ balance: 1 });
+
+// Add index for paid amount queries
+feeAssignmentSchema.index({ paidAmount: 1 });
+
+// Add index for academic year queries
+feeAssignmentSchema.index({ academicYear: 1 });
 
 const FeeAssignment = mongoose.model('FeeAssignment', feeAssignmentSchema);
 
-export default FeeAssignment;
+module.exports = FeeAssignment;

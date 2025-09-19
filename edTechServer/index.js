@@ -63,6 +63,8 @@ const universityEnrolledStudentRoutes = require("./routes/universityEnrolledStud
 const feeTypeRoutes = require("./routes/feeTypeRoutes");
 const feeAssignmentRoutes = require("./routes/feeAssignmentRoutes");
 const timetableRoutes = require("./routes/timetableRoutes");
+const universityPaymentRoutes = require("./routes/universityPaymentRoutes");
+const debugRoutes = require("./routes/debugRoutes");
 
 const database = require("./config/database");
 const cookieParser = require("cookie-parser");
@@ -256,9 +258,13 @@ app.use("/api/v1/university/registered-students", universityRegisteredStudentRou
 app.use("/api/v1/university/enrolled-students", universityEnrolledStudentRoutes);
 app.use("/api/v1/university/fee-types", feeTypeRoutes);
 app.use("/api/v1/university/fee-assignments", feeAssignmentRoutes);
+app.use("/api/v1/university/payments", universityPaymentRoutes);
 app.use("/api/v1/leave-requests", leaveRequestRoutes);
 app.use("/api/v1/timetable", timetableRoutes);
 app.use("/api/v1/guide", guideRoutes);
+
+// Debug routes - remove in production
+app.use("/api/v1/debug", debugRoutes);
 console.log('Mounting results routes at /api/v1/results');
 // Direct binding for critical profile update route (temporary safeguard)
 const { auth } = require("./middlewares/auth");
@@ -303,8 +309,12 @@ app.use((err, req, res, next) => {
   });
 });
 
+// Mount result routes
+app.use('/api/v1/results', resultRoutes);
+
 // 404 handler
 app.use((req, res) => {
+  console.log(`404 - Route not found: ${req.method} ${req.originalUrl}`);
   res.status(404).json({
     success: false,
     message: 'Route not found'

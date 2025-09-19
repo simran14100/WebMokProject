@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { toast } from "react-hot-toast";
-import { FiEdit2, FiTrash2, FiSearch, FiFilter, FiPlus } from "react-icons/fi";
+import { FiEdit2, FiTrash2, FiSearch, FiFilter, FiPlus, FiChevronDown, FiChevronUp, FiDollarSign, FiBookOpen, FiCalendar, FiLayers } from "react-icons/fi";
 import { apiConnector } from "../../../../services/apiConnector";
 import { useSelector } from "react-redux";
 
@@ -139,70 +139,156 @@ const ManageFee = () => {
     // Add more course mappings as needed
   };
 
-  // Process fee assignments to ensure consistent data structure
-  const processedFeeAssignments = feeAssignments.map(item => {
-    // Initialize course data with defaults
-    let courseData = {
-      _id: 'N/A',
-      name: 'N/A',
-      code: 'N/A',
-      type: 'N/A',
-      semester: item.semester || 'N/A'
-    };
-    
-    // Process course information if it exists
-    if (item.course) {
-      const course = item.course;
-      const isCourseObject = typeof course === 'object' && course !== null;
-      
-      courseData = {
-        _id: isCourseObject ? course._id : course,
-        name: isCourseObject ? (course.courseName || course.name || 'Unnamed Course') : `Course (${course.slice(-4)})`,
-        code: isCourseObject ? (course.courseCode || course.code || 'N/A') : course.slice(-6).toUpperCase(),
-      
-        semester: item.semester || (isCourseObject ? course.semester : 'N/A') || 'N/A'
+  // Process fee assignments to group by course and semester
+  const processFeeAssignments = (assignments) => {
+    // First, process each assignment to ensure consistent data structure
+    const processed = assignments.map(item => {
+      // Initialize course data with defaults
+      let courseData = {
+        _id: 'N/A',
+        name: 'N/A',
+        code: 'N/A',
+        type: 'N/A',
+        semester: item.semester || 'N/A'
       };
-    }
-    // Handle semester
-    let semester = 'N/A';
-    if (item.semester) {
-      semester = item.semester;
-    } else if (item.course?.semester) {
-      semester = item.course.semester;
-    } else if (item.feeType?.semester) {
-      semester = item.feeType.semester;
-    }
+      
+      // Process course information if it exists
+      if (item.course) {
+        const course = item.course;
+        const isCourseObject = typeof course === 'object' && course !== null;
+        
+        courseData = {
+          _id: isCourseObject ? course._id : course,
+          name: isCourseObject ? (course.courseName || course.name || 'Unnamed Course') : `Course (${course.slice(-4)})`,
+          code: isCourseObject ? (course.courseCode || course.code || 'N/A') : course.slice(-6).toUpperCase(),
+          type: isCourseObject ? (course.type || course.courseType || 'N/A') : 'N/A',
+          semester: item.semester || (isCourseObject ? course.semester : 'N/A') || 'N/A'
+        };
+      }
+      
+      // Handle semester
+      let semester = 'N/A';
+      if (item.semester) {
+        semester = item.semester;
+      } else if (item.course?.semester) {
+        semester = item.course.semester;
+      } else if (item.feeType?.semester) {
+        semester = item.feeType.semester;
+      }
+      
+      return {
+        ...item,
+        course: courseData,
+        semester: semester.toString(),
+        displayName: courseData.code 
+          ? `${courseData.name} (${courseData.code})`
+          : courseData.name
+      };
+    });
+
+    // Group by course and then by semester
+    const groupedByCourse = {};
     
-    return {
-      ...item,
-      course: courseData,
-      semester: semester.toString(),
-      // Add a display name that combines course name and code if available
-      displayName: courseData.code 
-        ? `${courseData.name} (${courseData.code})`
-        : courseData.name
-    };
-  });
+    processed.forEach(item => {
+      const courseId = item.course?._id || 'unknown';
+      const semester = item.semester || 'unknown';
+      
+      if (!groupedByCourse[courseId]) {
+        groupedByCourse[courseId] = {
+          _id: courseId,
+          name: item.course?.name || 'Unknown Course',
+          code: item.course?.code || 'N/A',
+          type: item.course?.type || 'N/A',
+          semesters: {},
+          totalFees: 0,
+          isExpanded: true
+        };
+      }
+      
+      if (!groupedByCourse[courseId].semesters[semester]) {
+        groupedByCourse[courseId].semesters[semester] = {
+          semester,
+          fees: [],
+          total: 0
+        };
+      }
+      
+      groupedByCourse[courseId].semesters[semester].fees.push(item);
+      const amount = parseFloat(item.amount) || 0;
+      groupedByCourse[courseId].semesters[semester].total += amount;
+      groupedByCourse[courseId].totalFees += amount;
+    });
+    
+    // Convert to array and sort by course name
+    return Object.values(groupedByCourse).sort((a, b) => 
+      a.name.localeCompare(b.name)
+    );
+  };
+  
+  const [expandedCourses, setExpandedCourses] = useState({});
+  const [expandedSemesters, setExpandedSemesters] = useState({});
+  
+  // Toggle course expansion
+  const toggleCourse = useCallback((courseId) => {
+    setExpandedCourses(prev => ({
+      ...prev,
+      [courseId]: !prev[courseId]
+    }));
+  }, []);
+  
+  // Toggle semester expansion
+  const toggleSemester = useCallback((courseId, semester) => {
+    setExpandedSemesters(prev => ({
+      ...prev,
+      [`${courseId}-${semester}`]: !prev[`${courseId}-${semester}`]
+    }));
+  }, []);
+  
+  // Process fee assignments with grouping
+  const groupedFeeAssignments = processFeeAssignments(feeAssignments);
 
   // Filter and search logic
-  const filteredData = processedFeeAssignments.filter(item => {
-    console.log('Filtering item:', item);
+  const filterAndSearchAssignments = (assignments) => {
+    if (!searchTerm && !filters.session && !filters.course && !filters.type) {
+      return assignments;
+    }
     
     const searchLower = searchTerm.toLowerCase();
-    const matchesSearch = 
-      (item.feeType?.name?.toLowerCase().includes(searchLower)) ||
-      (typeof item.course === 'object' ? item.course?.name?.toLowerCase().includes(searchLower) : String(item.course).toLowerCase().includes(searchLower)) ||
-      (item.session?.toLowerCase().includes(searchLower)) ||
-      (item.semester?.toString().toLowerCase().includes(searchLower));
-      
-    const matchesFilters = 
-      (!filters.session || item.session === filters.session) &&
-      (!filters.course || (typeof item.course === 'object' ? item.course?.name === filters.course : item.course === filters.course)) &&
-      (!filters.type || item.feeType?.type === filters.type);
     
-    console.log('Item matches search:', matchesSearch, 'matches filters:', matchesFilters);
-    return matchesSearch && matchesFilters;
-  });
+    return assignments.filter(course => {
+      // Check if course matches search
+      const courseMatchesSearch = 
+        course.name.toLowerCase().includes(searchLower) ||
+        course.code.toLowerCase().includes(searchLower);
+      
+      // Check if any semester matches search
+      const semesterMatchesSearch = Object.values(course.semesters).some(semester => {
+        return semester.fees.some(fee => 
+          fee.feeType?.name?.toLowerCase().includes(searchLower) ||
+          fee.session?.toLowerCase().includes(searchLower) ||
+          semester.semester.toString().toLowerCase().includes(searchLower)
+        );
+      });
+      
+      // Check filters
+      const matchesFilters = 
+        (!filters.session || 
+          Object.values(course.semesters).some(s => 
+            s.fees.some(f => f.session === filters.session)
+          )
+        ) &&
+        (!filters.course || course.name === filters.course) &&
+        (!filters.type || 
+          Object.values(course.semesters).some(s => 
+            s.fees.some(f => f.feeType?.type === filters.type)
+          )
+        );
+      
+      return (courseMatchesSearch || semesterMatchesSearch) && matchesFilters;
+    });
+  };
+  
+  const filteredData = filterAndSearchAssignments(groupedFeeAssignments);
   
   console.log('Filtered data:', filteredData);
 
@@ -526,217 +612,524 @@ const ManageFee = () => {
         backgroundColor: 'white',
         borderRadius: '8px',
         boxShadow: '0 2px 4px rgba(0,0,0,0.05)',
-        overflow: 'hidden'
+        overflow: 'hidden',
+        marginBottom: '24px'
       }}>
-        {/* Table Header */}
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: '60px 1fr 1fr 1fr 1fr 1fr 1fr 100px',
-          backgroundColor: '#f9f9f9',
-          borderBottom: '1px solid #f0f0f0',
-          fontWeight: '600',
-          color: '#4a4a4a',
-          fontSize: '14px'
-        }}>
-          <div style={{ padding: '16px', textAlign: 'center' }}>#</div>
-          <div style={{ padding: '16px' }}>Fee Name</div>
-          <div style={{ padding: '16px' }}>Fee Type</div>
-          <div style={{ padding: '16px' }}>Session</div>
-          <div style={{ padding: '16px' }}>Course</div>
-          <div style={{ padding: '16px' }}>Semester</div>
-          <div style={{ padding: '16px', textAlign: 'right' }}>Amount</div>
-          <div style={{ padding: '16px', textAlign: 'center' }}>Action</div>
-        </div>
-        {/* Table Rows */}
         {loading ? (
           <div style={{ padding: '40px', textAlign: 'center', color: '#757575' }}>
             Loading fee assignments...
           </div>
-        ) : currentItems.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center', color: '#757575', gridColumn: '1 / -1' }}>
-            No fee assignments found. Try adjusting your filters or add a new fee assignment.
-          </div>
-        ) : (
-          currentItems.map((item, index) => (
-            <div 
-              key={item._id || index}
+        ) : filteredData.length === 0 ? (
+          <div style={{ 
+            padding: '40px', 
+            textAlign: 'center', 
+            color: '#757575', 
+            backgroundColor: '#fafafa',
+            borderRadius: '8px',
+            border: '1px dashed #e0e0e0',
+            margin: '16px'
+          }}>
+            <div style={{ fontSize: '48px', marginBottom: '16px' }}>📊</div>
+            <h3 style={{ margin: '0 0 8px', color: '#4a4a4a' }}>No fee assignments found</h3>
+            <p style={{ margin: '0 0 16px', color: '#757575' }}>
+              Try adjusting your search or filters, or add a new fee assignment.
+            </p>
+            <button 
+              onClick={handleAddNew}
               style={{
-                display: 'grid',
-                gridTemplateColumns: '60px 1fr 1fr 1fr 1fr 1fr 1fr 100px',
-                borderBottom: '1px solid #f5f5f5',
+                backgroundColor: '#6c5ce7',
+                color: 'white',
+                border: 'none',
+                padding: '8px 20px',
+                borderRadius: '6px',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                cursor: 'pointer',
+                fontWeight: '500',
+                fontSize: '14px',
                 transition: 'background-color 0.2s',
                 ':hover': {
-                  backgroundColor: '#fafafa'
+                  backgroundColor: '#5a4fcf'
                 }
               }}
             >
-              <div style={{ 
-                padding: '16px', 
-                color: '#757575',
-                fontSize: '14px',
-                textAlign: 'center'
-              }}>
-                {indexOfFirstItem + index + 1}
-              </div>
-              <div style={{ 
-                padding: '16px',
-                color: '#333',
-                fontSize: '14px',
-                fontWeight: '500',
-                display: 'flex',
-                alignItems: 'center'
-              }}>
-                {item.feeType?.name || 'N/A'}
-              </div>
-              <div style={{ 
-                padding: '16px',
-                color: '#666',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center'
-              }}>
-                {item.feeType?.type || 'N/A'}
-              </div>
-              <div style={{ 
-                padding: '16px',
-                color: '#666',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center'
-              }}>
-                {item.session || 'N/A'}
-              </div>
-              <div style={{ 
-                padding: '16px',
-                color: '#666',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center'
-              }}>
-                {item.course ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                    <div style={{ fontWeight: 500 }}>
-                      {item.course?.name || `Course (${item.course?._id || 'N/A'})`}
+              <FiPlus size={16} />
+              Add New Fee Assignment
+            </button>
+          </div>
+        ) : (
+          <div>
+            {/* Table Header */}
+            <div style={{
+              display: 'grid',
+              gridTemplateColumns: '40px 1fr 1fr 120px 100px',
+              backgroundColor: '#f5f7fa',
+              borderBottom: '1px solid #e0e0e0',
+              fontWeight: '600',
+              color: '#4a4a4a',
+              fontSize: '14px',
+              position: 'sticky',
+              top: 0,
+              zIndex: 10
+            }}>
+              <div style={{ padding: '16px', textAlign: 'center' }}></div>
+              <div style={{ padding: '16px' }}>Course Details</div>
+              <div style={{ padding: '16px' }}>Fee Structure</div>
+              <div style={{ padding: '16px', textAlign: 'right' }}>Total Fees</div>
+              <div style={{ padding: '16px', textAlign: 'center' }}>Actions</div>
+            </div>
+            
+            {/* Course Rows */}
+            {filteredData.map((course, courseIndex) => {
+              const isExpanded = expandedCourses[course._id] !== false; // Default to expanded
+              const semesters = Object.values(course.semesters).sort((a, b) => 
+                parseInt(a.semester) - parseInt(b.semester)
+              );
+              
+              return (
+                <div key={course._id || courseIndex} style={{
+                  borderBottom: '1px solid #f0f0f0',
+                  backgroundColor: isExpanded ? '#ffffff' : '#fafafa',
+                  transition: 'all 0.2s ease',
+                  ':hover': {
+                    backgroundColor: isExpanded ? '#ffffff' : '#f5f7fa',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
+                  },
+                  borderRadius: '8px',
+                  margin: '4px 0',
+                  overflow: 'hidden'
+                }}>
+                  {/* Course Summary Row */}
+                  <div 
+                    onClick={() => toggleCourse(course._id)}
+                    style={{
+                      display: 'grid',
+                      gridTemplateColumns: '40px 1fr 1fr 120px 100px',
+                      cursor: 'pointer',
+                      alignItems: 'center',
+                      padding: '12px 0',
+                      borderBottom: isExpanded ? '1px solid #f0f0f0' : 'none',
+                      backgroundColor: isExpanded ? '#f9f9f9' : 'transparent',
+                      transition: 'all 0.2s ease',
+                      ':hover': {
+                        backgroundColor: isExpanded ? '#f0f4f8' : '#f5f7fa'
+                      }
+                    }}
+                  >
+                    <div style={{ 
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      color: '#6c5ce7',
+                      transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
+                      transition: 'transform 0.2s ease',
+                      padding: '4px',
+                      borderRadius: '4px',
+                      ':hover': {
+                        backgroundColor: 'rgba(108, 92, 231, 0.1)'
+                      }
+                    }}>
+                      <FiChevronDown size={20} />
                     </div>
-                    {item.course && (
-                      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
-                        {item.course.code && item.course.code !== 'N/A' && (
-                          <span style={{ 
+                    
+                    <div style={{ padding: '0 8px' }}>
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        marginBottom: '4px'
+                      }}>
+                        <FiBookOpen size={16} style={{ marginRight: '8px', color: '#6c5ce7' }} />
+                        <span style={{ 
+                          fontWeight: '600',
+                          color: isExpanded ? '#4a4a4a' : '#333',
+                          fontSize: '15px'
+                        }}>
+                          {course.name}
+                        </span>
+                        {course.code && course.code !== 'N/A' && (
+                          <span style={{
+                            marginLeft: '8px',
                             fontSize: '12px',
                             backgroundColor: '#e0f2fe',
                             color: '#0369a1',
                             padding: '2px 6px',
                             borderRadius: '4px',
-                            display: 'inline-flex',
-                            alignItems: 'center'
+                            fontWeight: '500'
                           }}>
-                            {item.course.code}
-                          </span>
-                        )}
-                        {item.course.type && (
-                          <span style={{ 
-                            fontSize: '12px',
-                            backgroundColor: '#dcfce7',
-                            color: '#166534',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            display: 'inline-flex',
-                            alignItems: 'center'
-                          }}>
-                            {item.course.type}
-                          </span>
-                        )}
-                        {item.semester && (
-                          <span style={{ 
-                            fontSize: '12px',
-                            backgroundColor: '#f3e8ff',
-                            color: '#6b21a8',
-                            padding: '2px 6px',
-                            borderRadius: '4px',
-                            display: 'inline-flex',
-                            alignItems: 'center'
-                          }}>
-                            Sem {item.semester}
+                            {course.code}
                           </span>
                         )}
                       </div>
-                    )}
+                      <div style={{ 
+                        display: 'flex', 
+                        alignItems: 'center',
+                        fontSize: '13px',
+                        color: '#666',
+                        marginLeft: '24px'
+                      }}>
+                        {course.type && (
+                          <span style={{
+                            backgroundColor: '#dcfce7',
+                            color: '#166534',
+                            padding: '2px 8px',
+                            borderRadius: '4px',
+                            fontSize: '12px',
+                            marginRight: '8px'
+                          }}>
+                            {course.type}
+                          </span>
+                        )}
+                        <span style={{ display: 'flex', alignItems: 'center' }}>
+                          <FiLayers size={12} style={{ marginRight: '4px' }} />
+                          {Object.keys(course.semesters).length} Semester{Object.keys(course.semesters).length !== 1 ? 's' : ''}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <div style={{ padding: '0 8px', fontSize: '14px', color: '#666' }}>
+                      {semesters.length} fee structure{semesters.length !== 1 ? 's' : ''} defined
+                    </div>
+                    
+                    <div style={{ 
+                      padding: '0 8px',
+                      textAlign: 'right',
+                      fontWeight: '600',
+                      color: '#4a4a4a',
+                      fontSize: '16px'
+                    }}>
+                      ₹{course.totalFees?.toLocaleString('en-IN') || '0'}
+                    </div>
+                    
+                    <div style={{ 
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      gap: '8px'
+                    }}>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEdit({
+                            ...course,
+                            semester: semesters[0]?.semester || '1',
+                            feeType: semesters[0]?.fees[0]?.feeType || {}
+                          });
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#6c5ce7',
+                          cursor: 'pointer',
+                          padding: '6px',
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          ':hover': {
+                            backgroundColor: 'rgba(108, 92, 231, 0.1)'
+                          }
+                        }}
+                        title="Edit Course Fees"
+                      >
+                        <FiEdit2 size={16} />
+                      </button>
+                      <button 
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (window.confirm(`Are you sure you want to delete all fee assignments for ${course.name}?`)) {
+                            // Delete all semesters for this course
+                            Promise.all(
+                              semesters.flatMap(sem => 
+                                sem.fees.map(fee => 
+                                  handleDelete(fee._id)
+                                )
+                              )
+                            ).then(() => {
+                              fetchFeeAssignments();
+                            });
+                          }
+                        }}
+                        style={{
+                          background: 'none',
+                          border: 'none',
+                          color: '#ff5252',
+                          cursor: 'pointer',
+                          padding: '6px',
+                          borderRadius: '4px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          ':hover': {
+                            backgroundColor: 'rgba(255, 82, 82, 0.1)'
+                          }
+                        }}
+                        title="Delete All Fees for Course"
+                      >
+                        <FiTrash2 size={16} />
+                      </button>
+                    </div>
                   </div>
-                ) : (
-                  <span style={{ color: '#757575', fontSize: '14px' }}>No course assigned</span>
-                )}
-              </div>
-              <div style={{ 
-                padding: '16px',
-                color: '#666',
-                fontSize: '14px',
-                display: 'flex',
-                alignItems: 'center'
-              }}>
-                {item.semester || 'N/A'}
-              </div>
-              <div style={{ 
-                padding: '16px',
-                color: '#333',
-                fontSize: '14px',
-                fontWeight: '500',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'flex-end',
-                paddingRight: '24px'
-              }}>
-                ₹{item.amount?.toLocaleString('en-IN') || '0'}
-              </div>
-              <div style={{ 
-                padding: '16px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '8px'
-              }}>
-                <button 
-                  onClick={() => handleEdit(item)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#6c5ce7',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    borderRadius: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    ':hover': {
-                      backgroundColor: 'rgba(108, 92, 231, 0.1)'
-                    }
-                  }}
-                  title="Edit"
-                >
-                  <FiEdit2 size={16} />
-                </button>
-                <button 
-                  onClick={() => handleDelete(item._id)}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: '#ff5252',
-                    cursor: 'pointer',
-                    padding: '4px',
-                    borderRadius: '4px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    ':hover': {
-                      backgroundColor: 'rgba(255, 82, 82, 0.1)'
-                    }
-                  }}
-                  title="Delete"
-                >
-                  <FiTrash2 size={16} />
-                </button>
-              </div>
-            </div>
-          ))
+                  
+                  {/* Semester Rows - Only show if expanded */}
+                  {isExpanded && semesters.map((semester, semIndex) => {
+                    const isSemesterExpanded = expandedSemesters[`${course._id}-${semester.semester}`] !== false;
+                    
+                    return (
+                      <div key={`${course._id}-${semester.semester}-${semIndex}`}>
+                        {/* Semester Summary Row */}
+                        <div 
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            toggleSemester(course._id, semester.semester);
+                          }}
+                          style={{
+                            display: 'grid',
+                            gridTemplateColumns: '60px 1fr 1fr 120px 100px',
+                            backgroundColor: isSemesterExpanded ? '#f9f9f9' : '#f5f7fa',
+                            borderBottom: isSemesterExpanded ? '1px solid #f0f0f0' : 'none',
+                            cursor: 'pointer',
+                            padding: '10px 0',
+                            transition: 'all 0.2s ease',
+                            ':hover': {
+                              backgroundColor: isSemesterExpanded ? '#f0f4f8' : '#f0f4f8',
+                              boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
+                            },
+                            paddingLeft: '16px'
+                          }}
+                        >
+                          <div style={{ display: 'flex', justifyContent: 'center' }}>
+                            <div style={{
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '50%',
+                              backgroundColor: '#e0e7ff',
+                              color: '#4f46e5',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: '12px',
+                              fontWeight: '600'
+                            }}>
+                              S{semester.semester}
+                            </div>
+                          </div>
+                          
+                          <div style={{ padding: '0 8px', display: 'flex', alignItems: 'center' }}>
+                            <span style={{ 
+                              fontWeight: '500',
+                              color: '#4a4a4a',
+                              fontSize: '14px'
+                            }}>
+                              Semester {semester.semester} Fees
+                            </span>
+                          </div>
+                          
+                          <div style={{ 
+                            padding: '0 8px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            fontSize: '13px',
+                            color: '#666'
+                          }}>
+                            {semester.fees.length} fee component{semester.fees.length !== 1 ? 's' : ''}
+                          </div>
+                          
+                          <div style={{ 
+                            padding: '0 8px',
+                            textAlign: 'right',
+                            fontWeight: '600',
+                            color: '#4a4a4a',
+                            fontSize: '15px'
+                          }}>
+                            ₹{semester.total.toLocaleString('en-IN')}
+                          </div>
+                          
+                          <div style={{ 
+                            display: 'flex',
+                            justifyContent: 'center',
+                            alignItems: 'center',
+                            gap: '8px'
+                          }}>
+                            <div style={{
+                              transform: isSemesterExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                              transition: 'transform 0.2s',
+                              color: '#6c5ce7',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              width: '24px',
+                              height: '24px',
+                              borderRadius: '4px',
+                              ':hover': {
+                                backgroundColor: 'rgba(108, 92, 231, 0.1)'
+                              }
+                            }}>
+                              <FiChevronDown size={16} />
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {/* Fee Components - Only show if semester is expanded */}
+                        {isSemesterExpanded && (
+                          <div style={{
+                            backgroundColor: '#fcfcff',
+                            borderBottom: '1px solid #f0f0f0',
+                            padding: '8px 0'
+                          }}>
+                            <div style={{
+                              display: 'grid',
+                              gridTemplateColumns: '60px 1fr 1fr 1fr 100px',
+                              backgroundColor: '#f5f7fa',
+                              padding: '8px 0',
+                              margin: '0 16px 8px',
+                              borderRadius: '6px',
+                              fontWeight: '500',
+                              fontSize: '13px',
+                              color: '#4a4a4a'
+                            }}>
+                              <div style={{ padding: '0 8px' }}>#</div>
+                              <div style={{ padding: '0 8px' }}>Fee Type</div>
+                              <div style={{ padding: '0 8px' }}>Session</div>
+                              <div style={{ padding: '0 8px' }}>Amount</div>
+                              <div style={{ padding: '0 8px', textAlign: 'center' }}>Actions</div>
+                            </div>
+                            
+                            {semester.fees.map((fee, feeIndex) => (
+                              <div 
+                                key={fee._id || feeIndex}
+                                style={{
+                                  display: 'grid',
+                                  gridTemplateColumns: '60px 1fr 1fr 1fr 100px',
+                                  padding: '12px 0',
+                                  margin: '0 16px',
+                                  borderBottom: '1px solid #f5f5f5',
+                                  ':last-child': {
+                                    borderBottom: 'none'
+                                  },
+                                  ':hover': {
+                                    backgroundColor: '#f8f9ff'
+                                  }
+                                }}
+                              >
+                                <div style={{ 
+                                  padding: '0 8px',
+                                  color: '#757575',
+                                  fontSize: '13px',
+                                  display: 'flex',
+                                  alignItems: 'center'
+                                }}>
+                                  {feeIndex + 1}.
+                                </div>
+                                
+                                <div style={{ 
+                                  padding: '0 8px',
+                                  display: 'flex',
+                                  flexDirection: 'column',
+                                  justifyContent: 'center'
+                                }}>
+                                  <div style={{ 
+                                    fontWeight: '500',
+                                    color: '#333',
+                                    fontSize: '14px',
+                                    marginBottom: '2px'
+                                  }}>
+                                    {fee.feeType?.name || 'N/A'}
+                                  </div>
+                                  <div style={{ 
+                                    fontSize: '12px',
+                                    color: '#666',
+                                    backgroundColor: '#f0f0f0',
+                                    padding: '2px 6px',
+                                    borderRadius: '4px',
+                                    display: 'inline-block',
+                                    width: 'fit-content'
+                                  }}>
+                                    {fee.feeType?.type || 'N/A'}
+                                  </div>
+                                </div>
+                                
+                                <div style={{ 
+                                  padding: '0 8px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  fontSize: '13px',
+                                  color: '#666'
+                                }}>
+                                  <FiCalendar size={14} style={{ marginRight: '6px', color: '#6c5ce7' }} />
+                                  {fee.session || 'N/A'}
+                                </div>
+                                
+                                <div style={{ 
+                                  padding: '0 8px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  fontSize: '14px',
+                                  color: '#4a4a4a',
+                                  fontWeight: '500'
+                                }}>
+                                  <FiDollarSign size={14} style={{ marginRight: '4px', color: '#10b981' }} />
+                                  ₹{fee.amount?.toLocaleString('en-IN') || '0'}
+                                </div>
+                                
+                                <div style={{ 
+                                  padding: '0 8px',
+                                  display: 'flex',
+                                  justifyContent: 'center',
+                                  alignItems: 'center',
+                                  gap: '8px'
+                                }}>
+                                  <button 
+                                    onClick={() => handleEdit(fee)}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: '#6c5ce7',
+                                      cursor: 'pointer',
+                                      padding: '4px',
+                                      borderRadius: '4px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      ':hover': {
+                                        backgroundColor: 'rgba(108, 92, 231, 0.1)'
+                                      }
+                                    }}
+                                    title="Edit"
+                                  >
+                                    <FiEdit2 size={16} />
+                                  </button>
+                                  <button 
+                                    onClick={() => handleDelete(fee._id)}
+                                    style={{
+                                      background: 'none',
+                                      border: 'none',
+                                      color: '#ff5252',
+                                      cursor: 'pointer',
+                                      padding: '4px',
+                                      borderRadius: '4px',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      ':hover': {
+                                        backgroundColor: 'rgba(255, 82, 82, 0.1)'
+                                      }
+                                    }}
+                                    title="Delete"
+                                  >
+                                    <FiTrash2 size={16} />
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )})}
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
@@ -753,7 +1146,7 @@ const ManageFee = () => {
           boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
         }}>
           <div style={{ color: '#757575', fontSize: '14px' }}>
-            Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredData.length)} of {filteredData.length} entries
+            Showing {indexOfFirstItem + 1} to {Math.min(indexOfLastItem, filteredData.length)} of {filteredData.length} courses
           </div>
           
           <div style={{ display: 'flex', gap: '8px' }}>
@@ -768,8 +1161,10 @@ const ManageFee = () => {
                 cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                 opacity: currentPage === 1 ? 0.6 : 1,
                 color: currentPage === 1 ? '#9e9e9e' : '#4a4a4a',
+                transition: 'all 0.2s',
                 ':hover': {
-                  backgroundColor: currentPage === 1 ? 'white' : '#f5f5f5'
+                  backgroundColor: currentPage === 1 ? 'white' : '#f5f5f5',
+                  borderColor: currentPage === 1 ? '#e0e0e0' : '#c0c0c0'
                 }
               }}
             >
@@ -794,13 +1189,15 @@ const ManageFee = () => {
                   onClick={() => setCurrentPage(pageNum)}
                   style={{
                     padding: '6px 12px',
-                    border: '1px solid #e0e0e0',
+                    border: `1px solid ${currentPage === pageNum ? '#6c5ce7' : '#e0e0e0'}`,
                     backgroundColor: currentPage === pageNum ? '#6c5ce7' : 'white',
                     color: currentPage === pageNum ? 'white' : '#4a4a4a',
                     borderRadius: '4px',
                     cursor: 'pointer',
+                    transition: 'all 0.2s',
                     ':hover': {
-                      backgroundColor: currentPage === pageNum ? '#5a4fcf' : '#f5f5f5'
+                      backgroundColor: currentPage === pageNum ? '#5a4fcf' : '#f5f5f5',
+                      borderColor: currentPage === pageNum ? '#5a4fcf' : '#c0c0c0'
                     }
                   }}
                 >
@@ -820,8 +1217,10 @@ const ManageFee = () => {
                 cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
                 opacity: currentPage === totalPages ? 0.6 : 1,
                 color: currentPage === totalPages ? '#9e9e9e' : '#4a4a4a',
+                transition: 'all 0.2s',
                 ':hover': {
-                  backgroundColor: currentPage === totalPages ? 'white' : '#f5f5f5'
+                  backgroundColor: currentPage === totalPages ? 'white' : '#f5f5f5',
+                  borderColor: currentPage === totalPages ? '#e0e0e0' : '#c0c0c0'
                 }
               }}
             >
@@ -837,12 +1236,20 @@ const ManageFee = () => {
                   setCurrentPage(1);
                 }}
                 style={{
-                  padding: '6px',
+                  padding: '6px 8px',
                   border: '1px solid #e0e0e0',
                   borderRadius: '4px',
                   backgroundColor: 'white',
                   outline: 'none',
-                  cursor: 'pointer'
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  ':hover': {
+                    borderColor: '#c0c0c0'
+                  },
+                  ':focus': {
+                    borderColor: '#6c5ce7',
+                    boxShadow: '0 0 0 2px rgba(108, 92, 231, 0.2)'
+                  }
                 }}
               >
                 <option value={5}>5</option>
@@ -851,7 +1258,7 @@ const ManageFee = () => {
                 <option value={50}>50</option>
                 <option value={100}>100</option>
               </select>
-              <span style={{ marginLeft: '8px', fontSize: '14px', color: '#757575' }}>entries</span>
+              <span style={{ marginLeft: '8px', fontSize: '14px', color: '#757575' }}>courses per page</span>
             </div>
           </div>
         </div>

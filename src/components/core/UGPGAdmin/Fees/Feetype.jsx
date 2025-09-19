@@ -278,9 +278,18 @@ const FeeTypePage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
+      // Ensure all required fields are present
+      if (!formData.name || !formData.category || !formData.type) {
+        toast.error('Please fill in all required fields');
+        return;
+      }
+      
+      // Prepare the payload with proper data types
       const payload = {
-        ...formData,
-        refundable: formData.refundable === 'Yes'
+        name: formData.name.trim(),
+        category: formData.category,
+        type: formData.type,
+        refundable: formData.refundable === 'Yes' || formData.refundable === true
       };
       
       console.log('Sending payload:', payload); // Log the payload being sent
@@ -332,9 +341,19 @@ const FeeTypePage = () => {
     try {
       setLoading(true);
       
+      // Ensure all required fields are present
+      if (!formData.name || !formData.category || !formData.type) {
+        toast.error('Please fill in all required fields');
+        setLoading(false);
+        return;
+      }
+      
+      // Prepare the payload with proper data types
       const payload = {
-        ...formData,
-        refundable: formData.refundable === 'Yes'
+        name: formData.name.trim(),
+        category: formData.category,
+        type: formData.type,
+        refundable: formData.refundable === 'Yes' || formData.refundable === true
       };
 
       const response = await apiConnector(
@@ -392,11 +411,14 @@ const FeeTypePage = () => {
       return;
     }
       
-    const isSemesterBased = selectedCourse?.courseType === 'Semester';
-
-    if (isSemesterBased && !formData.semester) {
-      toast.error('Please select a semester');
-      return;
+    // Only require semester for 'Semester Wise' fee type
+    if (formData.type === 'Semester Wise') {
+      const isSemesterBased = selectedCourse?.courseType === 'Semester';
+      
+      if (isSemesterBased && !formData.semester) {
+        toast.error('Please select a semester');
+        return;
+      }
     }
 
     if (!formData.amount || isNaN(parseFloat(formData.amount)) || parseFloat(formData.amount) <= 0) {
@@ -734,8 +756,8 @@ const FeeTypePage = () => {
             </select>
           </div>
           
-          {/* Semester Selection */}
-          {formData.course && semesterOptions.length > 0 && (
+          {/* Semester Selection - Only show for Semester Wise fee type */}
+          {formData.type === 'Semester Wise' && formData.course && semesterOptions.length > 0 && (
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 Semester <span className="text-red-500">*</span>
@@ -745,7 +767,7 @@ const FeeTypePage = () => {
                 value={formData.semester || ''}
                 onChange={handleInputChange}
                 className="w-full rounded-md border border-gray-300 p-2 focus:ring-indigo-500 focus:border-indigo-500"
-                required
+                required={formData.type === 'Semester Wise'}
                 disabled={loading}
               >
                 <option value="">Select Semester</option>
@@ -919,8 +941,7 @@ const FeeTypePage = () => {
             >
               <option value="">-- Select Fee Category --</option>
               <option value="Course">Course</option>
-              <option value="Hostel">Hostel</option>
-              <option value="Transport">Transport</option>
+              <option value="Registration">Registration</option>
               <option value="Miscellaneous">Miscellaneous</option>
               <option value="Other">Other</option>
             </select>
@@ -940,7 +961,7 @@ const FeeTypePage = () => {
               <option value="">-- Select Fee Type --</option>
               <option value="Semester Wise">Semester Wise</option>
               <option value="Yearly">Yearly</option>
-              <option value="After Course">After Course</option>
+              <option value="Before Course">Before Course</option>
             </select>
           </div>
           

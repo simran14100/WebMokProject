@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import { useSelector } from 'react-redux';
+import moment from 'moment';
 import axios from 'axios';
 import { refreshToken } from '../../services/operations/authApi';
 import { toast } from 'react-hot-toast';
-import { FiDownload, FiEye, FiUser, FiMail, FiPhone, FiBook, FiAward, FiCalendar, FiMapPin, FiInfo, FiCheckCircle, FiXCircle, FiClock, FiPrinter, FiDollarSign } from 'react-icons/fi';
+import { FiDownload, FiEye, FiUser, FiMail, FiPhone, FiBook, FiAward, FiCalendar, FiMapPin, FiInfo, FiCheckCircle, FiXCircle, FiClock, FiPrinter, FiDollarSign, FiCreditCard } from 'react-icons/fi';
 import { PrinterOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { API_URL } from '../../services/config';
-import { Table, Button, Input, Select, Space, Modal, Form, Descriptions, Tag, Divider, Card, Typography } from 'antd';
+import { Table, Button, Input, Select, Space, Modal, Form, Descriptions, Tag, Divider, Card, Typography, Checkbox, DatePicker, InputNumber, Row, Col } from 'antd';
+const { TextArea } = Input;
 
 const { Option } = Select;
 
@@ -26,7 +28,15 @@ const UniversityEnrolledStudent = () => {
     batch: '',
     status: ''
   });
-  const { token } = useSelector((state) => state.auth);
+  
+  // Fee modal states
+  const [feeModalVisible, setFeeModalVisible] = useState(false);
+  const [feeData, setFeeData] = useState([]);
+  const [feeLoading, setFeeLoading] = useState(false);
+  const [selectedStudentForFee, setSelectedStudentForFee] = useState(null);
+  const [paymentAmount, setPaymentAmount] = useState('');
+  const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const { token, user } = useSelector((state) => state.auth);
 
   const showStudentDetails = (student) => {
     console.log('Selected Student:', student);
@@ -41,6 +51,121 @@ const UniversityEnrolledStudent = () => {
   const handleViewModalCancel = () => {
     setViewModalVisible(false);
     setSelectedStudent(null);
+  };
+  
+  // Handle payment submission
+  const handlePayment = async () => {
+    if (!paymentAmount || isNaN(paymentAmount) || parseFloat(paymentAmount) <= 0) {
+      toast.error('Please enter a valid payment amount');
+      return;
+    }
+
+    try {
+      setIsProcessingPayment(true);
+      const response = await axios.post(
+        `${API_URL}/payments/student/${selectedStudentForFee._id}`,
+        { amount: parseFloat(paymentAmount) },
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (response.data?.success) {
+        toast.success('Payment processed successfully');
+        // Refresh the fee data
+        await fetchFeeDetails(selectedStudentForFee);
+        setPaymentAmount('');
+      }
+    } catch (error) {
+      console.error('Error processing payment:', error);
+      toast.error(error.response?.data?.message || 'Error processing payment');
+    } finally {
+      setIsProcessingPayment(false);
+    }
+  };
+
+  // Fetch fee details for a student
+  const fetchFeeDetails = async (student) => {
+    try {
+      setFeeLoading(true);
+      setSelectedStudentForFee(student);
+      
+      const url = `${API_URL}/university/payments/fee-details/${student._id}`;
+      console.log('Fetching fee details from:', url);
+      console.log('Student ID:', student._id);
+      
+      const response = await axios.get(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        withCredentials: true
+      });
+      
+      console.log('Response status:', response.status);
+      console.log('Response data:', response.data);
+      
+      if (response.data?.success) {
+        // Format the fee data from the backend
+        const formattedData = response.data.data.map(item => {
+          // Extract fee type name, default to 'General Fee' if not available
+          let feeTypeName = 'General Fee';
+          if (item.feeType) {
+            if (typeof item.feeType === 'string') {
+              feeTypeName = item.feeType;
+            } else if (typeof item.feeType === 'object' && item.feeType !== null) {
+              feeTypeName = item.feeType.name || 'General Fee';
+            }
+          }
+          
+          return {
+            id: item.id || item._id,
+            key: item.id || item._id,
+            feeType: feeTypeName, // Store just the name as a string
+            feeTypeId: typeof item.feeType === 'object' ? item.feeType._id : null, // Store the ID separately if needed
+            amount: item.amount || 0,
+            paid: item.paid || 0,
+            balance: item.balance || 0,
+            status: item.status || (item.balance <= 0 ? 'paid' : (item.paid > 0 ? 'partial' : 'pending')),
+            dueDate: item.dueDate ? moment(item.dueDate).format('DD/MM/YYYY') : 'N/A',
+            semester: item.semester || 'N/A',
+            session: item.session || 'N/A',
+            feeAssignmentId: item.id || item._id
+          };
+        });
+        
+        console.log('Formatted fee data:', formattedData);
+        setFeeData(formattedData);
+        setSelectedFees(formattedData);
+      } else {
+        // If no data is returned but the request was successful
+        setFeeData([]);
+        setSelectedFees([]);
+      }
+      // Always show the modal, even if there's no data
+      setFeeModalVisible(true);
+    } catch (error) {
+      console.error('Error fetching fee details:', error);
+      if (error.response?.status === 404) {
+        // Handle the case where no fee assignments are found
+        setFeeData([]);
+        setSelectedFees([]);
+        toast('No fee assignments found for this student', { type: 'info' });
+      } else {
+        toast.error(error.response?.data?.message || 'Error loading fee details');
+      }
+    } finally {
+      setFeeLoading(false);
+    }
+  };
+  
+  const handleFeeModalCancel = () => {
+    setFeeModalVisible(false);
+    setFeeData([]);
+    setSelectedStudentForFee(null);
   };
 
   const handlePrint = () => {
@@ -337,6 +462,13 @@ const UniversityEnrolledStudent = () => {
             onClick={() => showStudentDetails(record)}
             title="View Details"
           />
+          <Button 
+            type="link" 
+            icon={<FiCreditCard />}
+            onClick={() => fetchFeeDetails(record)}
+            title="Pay Fee"
+            loading={feeLoading && selectedStudentForFee?._id === record._id}
+          />
         </Space>
       ),
     },
@@ -461,8 +593,713 @@ const UniversityEnrolledStudent = () => {
     );
   };
 
+  // State for selected fees
+  const [selectedFees, setSelectedFees] = useState([]);
+  const [isPaying, setIsPaying] = useState(false);
+  const [paymentModalVisible, setPaymentModalVisible] = useState(false);
+  const [paymentForm] = Form.useForm();
+  const [currentPaymentData, setCurrentPaymentData] = useState(null);
+  const [paymentModes] = useState(['Cash', 'UPI', 'Bank Transfer', 'Card', 'Cheque', 'DD']);
+
+  // Handle fee selection
+  const handleFeeSelect = (feeId, amount, isSelected) => {
+    if (isSelected) {
+      setSelectedFees([...selectedFees, { id: feeId, amount }]);
+    } else {
+      setSelectedFees(selectedFees.filter(fee => fee.id !== feeId));
+    }
+  };
+
+  // Handle payment submission
+  const handlePaymentSubmit = async (values) => {
+    try {
+      setIsPaying(true);
+      
+      // Get the selected fee assignment to get the feeType ID
+      const selectedFeeAssignment = feeData.find(fee => fee._id === selectedFees[0]?.id);
+      
+      if (!selectedFeeAssignment) {
+        throw new Error('No valid fee assignment selected');
+      }
+
+      // Prepare payment data
+      const paymentData = {
+        amount: values.paidAmount || 0,
+        paymentMethod: values.modeOfPayment,
+        paymentDate: values.paymentDate.toISOString(),
+        receiptDate: values.receiptDate.toISOString(),
+        remarks: values.remarks || '',
+        scholarshipAmount: values.scholarshipAmount || 0,
+        discountAmount: values.discountAmount || 0,
+        transactionId: values.transactionId || undefined,
+        feeType: selectedFeeAssignment.feeTypeId, // Use the preserved feeTypeId
+        receiptNo: `RCPT-${Date.now().toString().slice(-6)}`,
+        feeAssignmentId: selectedFeeAssignment._id
+      };
+
+      // Debug: Log the original API_URL
+      console.log('Original API_URL:', API_URL);
+      
+      // Create a URL object to handle path construction properly
+      const baseUrl = new URL(API_URL);
+      
+      // Remove any existing /api/v1 from the pathname
+      let pathname = baseUrl.pathname.replace(/\/api\/v1$/, '');
+      
+      // Construct the final URL
+      const url = new URL(
+        `api/v1/university/payments/${currentPaymentData?.studentId}`,
+        baseUrl.origin + pathname
+      ).toString();
+      
+      console.log('Constructed URL:', url);
+      
+      console.log('Making request to:', url);
+      console.log('Request data:', paymentData);
+      
+      // Call the payment API with the full path
+      const response = await axios.post(
+        url,
+        paymentData,
+        {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          },
+          withCredentials: true // Ensure cookies are sent with the request
+        }
+      );
+
+      if (response.data?.success) {
+        toast.success('Payment recorded successfully!');
+        await fetchFeeDetails(selectedStudentForFee);
+        setPaymentModalVisible(false);
+        setSelectedFees([]);
+      } else {
+        throw new Error(response.data?.message || 'Failed to record payment');
+      }
+    } catch (error) {
+      console.error('Payment submission error:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to record payment';
+      toast.error(`Payment failed: ${errorMessage}`);
+    } finally {
+      setIsPaying(false);
+    }
+  };
+
+  // Handle pay now
+  const handlePayNow = () => {
+    if (selectedFees.length === 0) {
+      toast.error('Please select at least one fee to pay');
+      return;
+    }
+
+    if (!selectedStudentForFee) {
+      toast.error('No student selected for payment');
+      return;
+    }
+
+    // Calculate payment summary
+    const totalAmount = selectedFees.reduce((sum, fee) => sum + (fee.amount || 0), 0);
+    const paidAmount = selectedFees.reduce((sum, fee) => sum + (fee.paid || 0), 0);
+    const balanceAmount = totalAmount - paidAmount;
+    
+    // Set current payment data
+    setCurrentPaymentData({
+      studentId: selectedStudentForFee._id,
+      registrationNumber: selectedStudentForFee.registrationNumber,
+      course: selectedStudentForFee.course?.courseName || 'N/A',
+      session: selectedStudentForFee.course?.session || 'N/A',
+      semester: selectedStudentForFee.semester || '1',
+      feeAssignments: selectedFees.map(fee => ({
+        feeAssignmentId: fee.id,
+        feeType: fee.feeType || 'Registration Fee',
+        amount: fee.amount || 0,
+        paid: fee.paid || 0,
+        balance: (fee.amount || 0) - (fee.paid || 0)
+      })),
+      totalAmount: balanceAmount, // Only the remaining balance to be paid
+      paidAmount: 0,
+      balanceAmount: balanceAmount,
+      paymentDate: new Date().toISOString(),
+      receiptDate: new Date().toISOString(),
+      modeOfPayment: 'Cash',
+      status: balanceAmount > 0 ? 'Partial' : 'Paid',
+      remarks: ''
+    });
+
+    // Reset form with initial values
+    paymentForm.setFieldsValue({
+      paymentDate: moment(),
+      receiptDate: moment(),
+      modeOfPayment: 'Cash',
+      status: balanceAmount > 0 ? 'Partial' : 'Paid',
+      remarks: '',
+      discountReason: '',
+      discountAmount: 0,
+      scholarshipAmount: 0,
+      paidAmount: balanceAmount,
+      balanceAmount: 0,
+      totalAmount: balanceAmount
+    });
+
+    // Show the payment details modal
+    setPaymentModalVisible(true);
+  };
+
+  // Fee columns for the fee modal
+  const feeColumns = [
+    {
+      title: '',
+      key: 'selection',
+      width: 50,
+      render: (_, record) => {
+        const isPaid = (record.amount || 0) - (record.paid || 0) <= 0;
+        return (
+          <Checkbox 
+            disabled={isPaid}
+            onChange={(e) => handleFeeSelect(record._id, record.amount - (record.paid || 0), e.target.checked)}
+            checked={selectedFees.some(fee => fee.id === record._id)}
+          />
+        );
+      }
+    },
+    {
+      title: 'Semester',
+      dataIndex: 'semester',
+      key: 'semester',
+      width: 120,
+      render: (semester) => (
+        <div style={{ textAlign: 'center' }}>
+          {semester ? `Semester ${semester}` : '-'}
+        </div>
+      )
+    },
+    {
+      title: 'Fee Type',
+      dataIndex: 'feeType',
+      key: 'feeType',
+      render: (text, record) => (
+        <div>
+          <div style={{ fontWeight: 500 }}>{text || 'Registration Fee'}</div>
+          {record.dueDate && (
+            <div style={{ fontSize: '12px', color: '#666' }}>
+              Due: {new Date(record.dueDate).toLocaleDateString()}
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      title: 'Amount Details',
+      key: 'amountDetails',
+      width: 200,
+      render: (_, record) => {
+        const amount = record.amount || 0;
+        const paid = record.paid || 0;
+        const balance = amount - paid;
+        const isPaid = balance <= 0;
+        
+        return (
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ marginBottom: 4 }}>
+              <span style={{ color: '#666', fontSize: '0.9em' }}>Total: </span>
+              <span style={{ fontWeight: 500 }}>₹{amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div style={{ marginBottom: 4 }}>
+              <span style={{ color: '#666', fontSize: '0.9em' }}>Paid: </span>
+              <span style={{ color: '#52c41a' }}>₹{paid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 4 }}>
+              <span style={{ color: '#666', fontSize: '0.9em' }}>Balance: </span>
+              <span style={{
+                color: isPaid ? '#52c41a' : '#f5222d',
+                fontWeight: 600
+              }}>
+                ₹{Math.abs(balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+                {isPaid && ' (Paid)'}
+              </span>
+            </div>
+          </div>
+        );
+      }
+    },
+    {
+      title: 'Status',
+      dataIndex: 'status',
+      key: 'status',
+      width: 150,
+      render: (status) => {
+        const statusConfig = {
+          'paid': { color: 'green', text: 'PAID' },
+          'partially_paid': { color: 'blue', text: 'PARTIALLY PAID' },
+          'pending': { color: 'orange', text: 'PENDING' },
+          'overdue': { color: 'red', text: 'OVERDUE' }
+        };
+        const config = statusConfig[status?.toLowerCase()] || { color: 'default', text: status || 'PENDING' };
+        return (
+          <div style={{ textAlign: 'center' }}>
+            <Tag color={config.color} style={{ margin: 0, width: '100%', textAlign: 'center' }}>
+              {config.text}
+            </Tag>
+          </div>
+        );
+      }
+    }
+  ];
+
+  // Fee Modal component
+  const FeeModal = (
+    <Modal
+      title={
+        <div className="flex items-center">
+          <FiDollarSign className="mr-2" />
+          <span>Fee Details - {selectedStudentForFee?.registrationNumber || ''}</span>
+        </div>
+      }
+      open={feeModalVisible}
+      onCancel={handleFeeModalCancel}
+      footer={[
+        <Button key="cancel" onClick={handleFeeModalCancel}>
+          Cancel
+        </Button>,
+        <Button 
+          key="pay" 
+          type="primary" 
+          icon={<FiCreditCard />}
+          loading={isPaying}
+          onClick={handlePayNow}
+          disabled={selectedFees.length === 0}
+        >
+          Pay Now {selectedFees.length > 0 && `(₹${selectedFees.reduce((sum, fee) => sum + fee.amount, 0).toLocaleString('en-IN')})`}
+        </Button>
+      ]}
+      width={800}
+    >
+      {feeLoading ? (
+        <div className="text-center py-8">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-2 text-gray-600">Loading fee details...</p>
+        </div>
+      ) : feeData.length === 0 ? (
+        <div className="text-center py-8">
+          <FiInfo className="mx-auto h-8 w-8 text-gray-400" />
+          <p className="mt-2 text-gray-600">No fee records found</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          <div className="bg-gray-50 p-4 rounded-lg">
+            <h4 className="font-medium">
+              {selectedStudentForFee?.course?.courseName || 'N/A'} - {selectedStudentForFee?.course?.session || 'Current Session'}
+            </h4>
+            <p className="text-sm text-gray-600">
+              {selectedStudentForFee?.firstName} {selectedStudentForFee?.lastName}
+            </p>
+          </div>
+          <Table
+            columns={feeColumns}
+            dataSource={feeData}
+            rowKey="_id"
+            pagination={false}
+            bordered
+            size="small"
+          />
+          <div className="mt-4 text-right">
+            <div className="text-sm text-gray-500 mb-2">
+              Select fees to pay from the list above
+            </div>
+            {selectedFees.length > 0 && (
+              <div className="bg-blue-50 p-3 rounded-md mb-4">
+                <div className="font-medium text-blue-800">
+                  Total Selected: ₹{selectedFees.reduce((sum, fee) => sum + fee.amount, 0).toLocaleString('en-IN')}
+                </div>
+              </div>
+            )}
+          </div>
+          <div className="flex justify-end mt-4">
+            <div className="bg-gray-50 p-4 rounded-lg w-72 border border-gray-200">
+              <div className="flex justify-between mb-2">
+                <span className="font-medium">Total Payable:</span>
+                <span className="font-semibold">
+                  ₹{feeData.reduce((sum, fee) => sum + (fee.amount || 0), 0).toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div className="flex justify-between mb-2">
+                <span className="font-medium">Total Paid:</span>
+                <span className="text-green-600 font-semibold">
+                  ₹{feeData.reduce((sum, fee) => sum + (fee.paid || 0), 0).toLocaleString('en-IN')}
+                </span>
+              </div>
+              <div className="flex justify-between border-t border-gray-300 pt-2 mt-2">
+                <span className="font-medium">Balance Due:</span>
+                <span className="font-bold">
+                  ₹{feeData.reduce((sum, fee) => sum + ((fee.amount || 0) - (fee.paid || 0)), 0).toLocaleString('en-IN')}
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+    </Modal>
+  );
+
+  // Payment details modal component
+  const PaymentDetailsModal = () => (
+    <Modal
+      title={
+        <div className="flex items-center">
+          <FiDollarSign className="mr-2" />
+          <span>Fee Payment</span>
+        </div>
+      }
+      open={paymentModalVisible}
+      onCancel={() => setPaymentModalVisible(false)}
+      width={800}
+      footer={[
+        <Button key="cancel" onClick={() => setPaymentModalVisible(false)}>
+          Cancel
+        </Button>,
+        <Button 
+          key="submit" 
+          type="primary" 
+          loading={isPaying}
+          onClick={() => paymentForm.submit()}
+          className="bg-blue-600 hover:bg-blue-700"
+        >
+          Save Payment
+        </Button>,
+      ]}
+    >
+      <div className="bg-gray-50 p-4 rounded-lg mb-4">
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <div>
+            <p className="text-sm text-gray-500">Student Name</p>
+            <p className="font-medium">
+              {selectedStudentForFee?.firstName} {selectedStudentForFee?.lastName}
+            </p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Registration No.</p>
+            <p className="font-medium">{currentPaymentData?.registrationNumber || 'N/A'}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Course</p>
+            <p className="font-medium">{currentPaymentData?.course || 'N/A'}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Session</p>
+            <p className="font-medium">{currentPaymentData?.session || 'N/A'}</p>
+          </div>
+          <div>
+            <p className="text-sm text-gray-500">Semester</p>
+            <p className="font-medium">Semester {currentPaymentData?.semester || 'N/A'}</p>
+          </div>
+        </div>
+      </div>
+
+      <Form
+        form={paymentForm}
+        layout="vertical"
+        onFinish={handlePaymentSubmit}
+        initialValues={{
+          paymentDate: moment(),
+          receiptDate: moment(),
+          modeOfPayment: 'Cash',
+          status: 'Paid',
+          paidAmount: currentPaymentData?.totalAmount || 0,
+          balanceAmount: 0,
+          discountAmount: 0,
+          scholarshipAmount: 0,
+          receiptNo: `RCPT-${Date.now().toString().slice(-6)}`
+        }}
+      >
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <Form.Item 
+            label="Payment Date" 
+            name="paymentDate" 
+            rules={[{ required: true, message: 'Payment date is required' }]}
+            className="mb-0"
+          >
+            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+          </Form.Item>
+          
+          <Form.Item 
+            label="Receipt No." 
+            name="receiptNo"
+            rules={[{ required: true, message: 'Receipt number is required' }]}
+            className="mb-0"
+          >
+            <Input placeholder="Auto-generated" disabled />
+          </Form.Item>
+        </div>
+
+        <div className="bg-white p-4 rounded border mb-4">
+          <h4 className="text-base font-medium mb-4">Fee Details</h4>
+          
+          <div className="space-y-4">
+            {currentPaymentData?.feeAssignments?.map((fee, index) => (
+              <div key={index} className="grid grid-cols-12 gap-4 items-end">
+                <div className="col-span-5">
+                  <p className="text-sm text-gray-500 mb-1">Fee Type</p>
+                  <Input 
+                    value={fee.feeType} 
+                    disabled 
+                    addonBefore={<FiCreditCard className="text-gray-400" />}
+                  />
+                </div>
+                <div className="col-span-3">
+                  <p className="text-sm text-gray-500 mb-1">Amount (₹)</p>
+                  <InputNumber 
+                    value={fee.amount}
+                    disabled
+                    style={{ width: '100%' }}
+                    formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  />
+                </div>
+                <div className="col-span-3">
+                  <p className="text-sm text-gray-500 mb-1">Paid (₹)</p>
+                  <InputNumber 
+                    value={fee.paid || 0}
+                    disabled
+                    style={{ width: '100%' }}
+                    formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  />
+                </div>
+                <div className="col-span-1 flex items-center h-10">
+                  <span className="text-gray-400">=</span>
+                </div>
+              </div>
+            ))}
+            
+            <div className="border-t border-gray-200 pt-4">
+              <div className="grid grid-cols-12 gap-4">
+                <div className="col-span-5">
+                  <p className="text-sm text-gray-500 mb-1">Total Fee</p>
+                  <InputNumber 
+                    value={currentPaymentData?.totalAmount || 0}
+                    disabled
+                    style={{ width: '100%' }}
+                    className="font-medium"
+                    formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  />
+                </div>
+                <div className="col-span-3">
+                  <Form.Item 
+                    label="Scholarship Applicable" 
+                    name="hasScholarship"
+                    initialValue="No"
+                    className="mb-0"
+                  >
+                    <Select 
+                      style={{ width: '100%' }}
+                      onChange={(value) => {
+                        if (value === 'No') {
+                          paymentForm.setFieldsValue({
+                            scholarshipAmount: 0,
+                            paidAmount: currentPaymentData?.totalAmount - (paymentForm.getFieldValue('discountAmount') || 0)
+                          });
+                        }
+                      }}
+                    >
+                      <Option value="Yes">Yes</Option>
+                      <Option value="No">No</Option>
+                    </Select>
+                  </Form.Item>
+                  {paymentForm.getFieldValue('hasScholarship') === 'Yes' && (
+                    <Form.Item 
+                      label="Scholarship Amount (₹)" 
+                      name="scholarshipAmount"
+                      className="mb-0 mt-2"
+                      rules={[{
+                        validator: (_, value) => {
+                          if (paymentForm.getFieldValue('hasScholarship') === 'Yes' && (!value || value <= 0)) {
+                            return Promise.reject('Please enter a valid scholarship amount');
+                          }
+                          return Promise.resolve();
+                        }
+                      }]}
+                    >
+                      <InputNumber 
+                        min={0}
+                        max={currentPaymentData?.totalAmount || 0}
+                        style={{ width: '100%' }}
+                        onChange={(value) => {
+                          const discount = paymentForm.getFieldValue('discountAmount') || 0;
+                          const total = (currentPaymentData?.totalAmount || 0) - (value || 0) - discount;
+                          paymentForm.setFieldsValue({
+                            paidAmount: total,
+                            balanceAmount: 0
+                          });
+                        }}
+                      />
+                    </Form.Item>
+                  )}
+                </div>
+                <div className="col-span-3">
+                  <Form.Item 
+                    label="Discount (₹)" 
+                    name="discountAmount"
+                    className="mb-0"
+                  >
+                    <InputNumber 
+                      min={0}
+                      max={currentPaymentData?.totalAmount || 0}
+                      style={{ width: '100%' }}
+                      onChange={(value) => {
+                        const scholarship = paymentForm.getFieldValue('scholarshipAmount') || 0;
+                        const total = (currentPaymentData?.totalAmount || 0) - (value || 0) - scholarship;
+                        paymentForm.setFieldsValue({
+                          paidAmount: total,
+                          balanceAmount: 0
+                        });
+                      }}
+                    />
+                  </Form.Item>
+                </div>
+                <div className="col-span-1 flex items-end h-10">
+                  <span className="text-gray-400">=</span>
+                </div>
+              </div>
+              
+              <div className="grid grid-cols-12 gap-4 mt-4">
+                <div className="col-span-5">
+                  <p className="text-sm text-gray-500 mb-1">Payable Amount (₹)</p>
+                  <InputNumber 
+                    value={currentPaymentData?.totalAmount || 0}
+                    disabled
+                    style={{ width: '100%' }}
+                    className="font-medium text-blue-600"
+                    formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                  />
+                </div>
+                <div className="col-span-3">
+                  <Form.Item 
+                    label="Paid Amount (₹)" 
+                    name="paidAmount"
+                    rules={[{ required: true, message: 'Paid amount is required' }]}
+                    className="mb-0"
+                  >
+                    <InputNumber 
+                      min={0}
+                      max={currentPaymentData?.totalAmount || 0}
+                      style={{ width: '100%' }}
+                      className="font-medium"
+                      onChange={(value) => {
+                        const total = currentPaymentData?.totalAmount || 0;
+                        paymentForm.setFieldsValue({
+                          balanceAmount: total - (value || 0)
+                        });
+                      }}
+                    />
+                  </Form.Item>
+                </div>
+                <div className="col-span-3">
+                  <Form.Item 
+                    label="Balance (₹)" 
+                    name="balanceAmount"
+                    className="mb-0"
+                  >
+                    <InputNumber 
+                      disabled
+                      style={{ width: '100%' }}
+                      className="font-medium"
+                      formatter={value => `₹ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
+                    />
+                  </Form.Item>
+                </div>
+                <div className="col-span-1"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-4 mb-4">
+          <Form.Item 
+            label="Payment Mode" 
+            name="modeOfPayment" 
+            rules={[{ required: true, message: 'Payment mode is required' }]}
+          >
+            <Select
+              onChange={(value) => {
+                // Reset transaction ID when switching to Cash
+                if (value === 'Cash') {
+                  paymentForm.setFieldsValue({ transactionId: '' });
+                }
+              }}
+            >
+              <Option value="Cash">Cash</Option>
+              <Option value="UPI">UPI</Option>
+              <Option value="Bank Transfer">Bank Transfer</Option>
+              <Option value="Card">Card</Option>
+              <Option value="Cheque">Cheque</Option>
+              <Option value="DD">Demand Draft</Option>
+            </Select>
+          </Form.Item>
+          
+          {paymentForm?.getFieldValue('modeOfPayment') !== 'Cash' && (
+            <Form.Item 
+              label="Transaction ID" 
+              name="transactionId"
+              rules={[{
+                validator: (_, value) => {
+                  const mode = paymentForm?.getFieldValue('modeOfPayment');
+                  if ((mode === 'UPI' || mode === 'Bank Transfer' || mode === 'Card') && !value) {
+                    return Promise.reject('Transaction ID is required for this payment mode');
+                  }
+                  return Promise.resolve();
+                }
+              }]}
+            >
+              <Input placeholder="Enter transaction reference number" />
+            </Form.Item>
+          )}
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <Form.Item 
+            label="Status" 
+            name="status" 
+            rules={[{ required: true }]}
+          >
+            <Select>
+              <Option value="Paid">Paid</Option>
+              <Option value="Pending">Pending</Option>
+              <Option value="Partial">Partial</Option>
+              <Option value="Refunded">Refunded</Option>
+            </Select>
+          </Form.Item>
+          
+          <Form.Item 
+            label="Receipt Date" 
+            name="receiptDate" 
+            rules={[{ required: true, message: 'Receipt date is required' }]}
+          >
+            <DatePicker style={{ width: '100%' }} format="DD/MM/YYYY" />
+          </Form.Item>
+        </div>
+
+        <Form.Item 
+          label="Discount/Adjustment Reason" 
+          name="discountReason"
+          className="mb-4"
+        >
+          <TextArea rows={2} placeholder="Enter reason for discount/adjustment" />
+        </Form.Item>
+
+        <Form.Item 
+          label="Remarks" 
+          name="remarks"
+          className="mb-0"
+        >
+          <TextArea rows={2} placeholder="Enter any additional remarks" />
+        </Form.Item>
+      </Form>
+    </Modal>
+  );
+
   return (
     <div className="p-6">
+      <PaymentDetailsModal />
       {/* Student Details Modal */}
       <Modal 
   title={
@@ -693,6 +1530,7 @@ const UniversityEnrolledStudent = () => {
           className="min-h-[400px]"
         />
       </div>
+      {FeeModal}
     </div>
   );
 };

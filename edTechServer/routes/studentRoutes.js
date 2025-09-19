@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { protect, authorize } = require('../middlewares/auth');
-const { handleStudentFiles, handleUploadErrors } = require('../middleware/fileUpload');
+const { handleStudentFiles, handleUploadErrors } = require('../middlewares/fileUpload');
 const {
   registerStudent,
   getRegisteredStudents,

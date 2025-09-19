@@ -9,17 +9,17 @@ export const validateCreateFeeType = (data) => {
       'string.max': 'Fee type name cannot be longer than 100 characters',
     }),
     category: Joi.string()
-      .valid('Course', 'Hostel', 'Transport', 'Miscellaneous', 'Other')
+      .valid('Course', 'Registration', 'Miscellaneous', 'Other')
       .required()
       .messages({
         'any.only': 'Invalid category selected',
         'any.required': 'Category is required',
       }),
     type: Joi.string()
-      .valid('Semester Wise', 'Yearly', 'After Course')
+      .valid('Semester Wise', 'Yearly', 'Before Course')
       .required()
       .messages({
-        'any.only': 'Please select a valid fee type (Semester Wise, Yearly, or After Course)',
+        'any.only': 'Please select a valid fee type (Semester Wise, Yearly, or Before Course)',
         'any.required': 'Fee type is required',
       }),
     refundable: Joi.boolean().default(false),
@@ -37,14 +37,14 @@ export const validateUpdateFeeType = (data) => {
       'string.max': 'Fee type name cannot be longer than 100 characters',
     }),
     category: Joi.string()
-      .valid('Course', 'Hostel', 'Transport', 'Miscellaneous', 'Other')
+      .valid('Course', 'Registration', 'Miscellaneous', 'Other')
       .messages({
         'any.only': 'Invalid category selected',
       }),
     type: Joi.string()
-      .valid('Semester Wise', 'Yearly', 'After Course')
+      .valid('Semester Wise', 'Yearly', 'Before Course')
       .messages({
-        'any.only': 'Please select a valid fee type (Semester Wise, Yearly, or After Course)',
+        'any.only': 'Please select a valid fee type (Semester Wise, Yearly, or Before Course)',
       }),
     refundable: Joi.boolean(),
     status: Joi.string().valid('Active', 'Inactive').messages({
