@@ -87,30 +87,50 @@ const UniversityEnrolledStudent = () => {
     }
   };
 
-  // Fetch fee details for a student
+  // Fetch fee details for a student with enhanced error handling and logging
   const fetchFeeDetails = async (student) => {
     try {
       setFeeLoading(true);
       setSelectedStudentForFee(student);
       
       const url = `${API_URL}/university/payments/fee-details/${student._id}`;
-      console.log('Fetching fee details from:', url);
-      console.log('Student ID:', student._id);
+      console.log('🔍 [fetchFeeDetails] Fetching fee details from:', url);
+      console.log('👤 [fetchFeeDetails] Student ID:', student._id);
       
       const response = await axios.get(url, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
-        withCredentials: true
+        withCredentials: true,
+        // Add timeout to prevent hanging
+        timeout: 10000
       });
       
-      console.log('Response status:', response.status);
-      console.log('Response data:', response.data);
+      console.log('✅ [fetchFeeDetails] Response status:', response.status);
+      console.log('📊 [fetchFeeDetails] Response data:', response.data);
       
       if (response.data?.success) {
+        // Log raw data for debugging
+        console.log('📦 [fetchFeeDetails] Raw fee data from backend:', 
+          JSON.stringify(response.data.data, null, 2));
+        
+        if (!Array.isArray(response.data.data)) {
+          console.error('❌ [fetchFeeDetails] Expected array but got:', typeof response.data.data);
+          throw new Error('Invalid data format: expected array of fee items');
+        }
+        
         // Format the fee data from the backend
-        const formattedData = response.data.data.map(item => {
+        const formattedData = response.data.data.map((item, index) => {
+          if (!item) {
+            console.warn(`⚠️ [fetchFeeDetails] Undefined item at index ${index}`);
+            return null;
+          }
+          
+          // Log each item being processed
+          console.log(`🔄 [fetchFeeDetails] Processing fee item ${index + 1}:`, 
+            JSON.stringify(item, null, 2));
+          
           // Extract fee type name, default to 'General Fee' if not available
           let feeTypeName = 'General Fee';
           if (item.feeType) {
@@ -121,42 +141,111 @@ const UniversityEnrolledStudent = () => {
             }
           }
           
-          return {
-            id: item.id || item._id,
-            key: item.id || item._id,
-            feeType: feeTypeName, // Store just the name as a string
-            feeTypeId: typeof item.feeType === 'object' ? item.feeType._id : null, // Store the ID separately if needed
-            amount: item.amount || 0,
-            paid: item.paid || 0,
-            balance: item.balance || 0,
-            status: item.status || (item.balance <= 0 ? 'paid' : (item.paid > 0 ? 'partial' : 'pending')),
+          const feeId = item.id || item._id || `temp-${Date.now()}-${index}`;
+          const amount = Number(item.amount) || 0;
+          
+          // Calculate paid amount from payments array if it exists
+          let paid = 0;
+          if (item.payments && Array.isArray(item.payments)) {
+            paid = item.payments.reduce((sum, payment) => {
+              return sum + (Number(payment.paidAmount) || 0);
+            }, 0);
+          } else {
+            // Fallback to item.paid if payments array is not available
+            paid = Number(item.paid) || 0;
+          }
+          
+          const balance = amount - paid;
+          const status = balance <= 0 ? 'Paid' : (paid > 0 ? 'Partial' : 'Unpaid');
+          
+          const feeData = {
+            id: feeId,
+            key: feeId,
+            feeType: feeTypeName,
+            feeTypeId: typeof item.feeType === 'object' ? (item.feeType._id || null) : null,
+            amount: amount,
+            paid: paid,
+            balance: Math.max(0, balance), // Ensure balance is not negative
+            status: status,
             dueDate: item.dueDate ? moment(item.dueDate).format('DD/MM/YYYY') : 'N/A',
             semester: item.semester || 'N/A',
             session: item.session || 'N/A',
-            feeAssignmentId: item.id || item._id
+            feeAssignmentId: feeId,
+            // Include raw data for debugging
+            _raw: item
           };
-        });
+          
+          console.log(`✅ [fetchFeeDetails] Processed fee item ${index + 1}:`, 
+            JSON.stringify(feeData, null, 2));
+          
+          return feeData;
+        }).filter(Boolean); // Remove any null items
         
-        console.log('Formatted fee data:', formattedData);
+        console.log('📋 [fetchFeeDetails] Final formatted fee data:', 
+          JSON.stringify(formattedData, null, 2));
+          
         setFeeData(formattedData);
         setSelectedFees(formattedData);
       } else {
-        // If no data is returned but the request was successful
+        console.warn('⚠️ [fetchFeeDetails] No success in response or no data returned');
         setFeeData([]);
         setSelectedFees([]);
       }
-      // Always show the modal, even if there's no data
+      
       setFeeModalVisible(true);
     } catch (error) {
-      console.error('Error fetching fee details:', error);
-      if (error.response?.status === 404) {
-        // Handle the case where no fee assignments are found
-        setFeeData([]);
-        setSelectedFees([]);
-        toast('No fee assignments found for this student', { type: 'info' });
+      const errorDetails = {
+        message: error.message,
+        name: error.name,
+        stack: error.stack,
+        response: error.response ? {
+          status: error.response.status,
+          statusText: error.response.statusText,
+          data: error.response.data,
+          headers: error.response.headers
+        } : 'No response',
+        config: error.config ? {
+          url: error.config.url,
+          method: error.config.method,
+          params: error.config.params,
+          data: error.config.data,
+          headers: error.config.headers
+        } : 'No config',
+        isAxiosError: error.isAxiosError
+      };
+      
+      console.error('❌ [fetchFeeDetails] Error details:', JSON.stringify(errorDetails, null, 2));
+      
+      if (error.response) {
+        // The request was made and the server responded with a status code
+        // that falls out of the range of 2xx
+        if (error.response.status === 401) {
+          toast.error('Session expired. Please log in again.');
+          // Handle unauthorized (e.g., redirect to login)
+        } else if (error.response.status === 404) {
+          console.warn('⚠️ [fetchFeeDetails] No fee details found for student');
+          toast.info('No fee details found for this student');
+        } else if (error.response.status >= 500) {
+          toast.error('Server error. Please try again later.');
+        } else {
+          toast.error(error.response.data?.message || 'Error loading fee details');
+        }
+      } else if (error.request) {
+        // The request was made but no response was received
+        console.error('❌ [fetchFeeDetails] No response received:', error.request);
+        toast.error('No response from server. Please check your connection.');
+      } else if (error.code === 'ECONNABORTED') {
+        console.error('❌ [fetchFeeDetails] Request timeout:', error.message);
+        toast.error('Request timed out. Please try again.');
       } else {
-        toast.error(error.response?.data?.message || 'Error loading fee details');
+        // Something happened in setting up the request that triggered an Error
+        console.error('❌ [fetchFeeDetails] Request setup error:', error.message);
+        toast.error('Error setting up request: ' + error.message);
       }
+      
+      setFeeData([]);
+      setSelectedFees([]);
+      setFeeModalVisible(true);
     } finally {
       setFeeLoading(false);
     }
@@ -602,12 +691,35 @@ const UniversityEnrolledStudent = () => {
   const [paymentModes] = useState(['Cash', 'UPI', 'Bank Transfer', 'Card', 'Cheque', 'DD']);
 
   // Handle fee selection
-  const handleFeeSelect = (feeId, amount, isSelected) => {
-    if (isSelected) {
-      setSelectedFees([...selectedFees, { id: feeId, amount }]);
-    } else {
-      setSelectedFees(selectedFees.filter(fee => fee.id !== feeId));
+  const handleFeeSelect = (feeId, fee, isSelected) => {
+    if (!feeId) {
+      console.error('Cannot process fee selection: feeId is undefined');
+      return;
     }
+    
+    console.log('--- handleFeeSelect ---');
+    console.log('feeId:', feeId);
+    console.log('fee:', fee);
+    console.log('isSelected:', isSelected);
+    console.log('Current selectedFees before update:', selectedFees);
+    
+    setSelectedFees(prevFees => {
+      if (isSelected) {
+        // Check if fee is already selected to avoid duplicates
+        if (prevFees.some(f => f.id === feeId)) {
+          console.log('Fee already selected, skipping duplicate');
+          return prevFees;
+        }
+        // Include the full fee object with paid amount
+        const newFees = [...prevFees, { ...fee, id: feeId }];
+        console.log('Adding fee. New selectedFees:', newFees);
+        return newFees;
+      } else {
+        const newFees = prevFees.filter(f => f.id !== feeId);
+        console.log('Removing fee. New selectedFees:', newFees);
+        return newFees;
+      }
+    });
   };
 
   // Handle payment submission
@@ -615,49 +727,95 @@ const UniversityEnrolledStudent = () => {
     try {
       setIsPaying(true);
       
-      // Get the selected fee assignment to get the feeType ID
-      const selectedFeeAssignment = feeData.find(fee => fee._id === selectedFees[0]?.id);
-      
-      if (!selectedFeeAssignment) {
-        throw new Error('No valid fee assignment selected');
+      if (!selectedFees || selectedFees.length === 0) {
+        throw new Error('No fee items selected for payment');
       }
 
-      // Prepare payment data
+      // Get the total amount from the form
+      const totalPaid = Number(values.paidAmount) || 0;
+      
+      if (totalPaid <= 0) {
+        throw new Error('Payment amount must be greater than 0');
+      }
+
+      // Prepare payment data for each selected fee
+      const payments = selectedFees.map(fee => {
+        const feeAmount = Number(fee.amount) || 0;
+        const feePaid = Number(fee.paid) || 0;
+        const feeBalance = feeAmount - feePaid;
+        
+        // Calculate amount to pay for this fee (minimum of remaining balance and remaining payment)
+        const amountToPay = Math.min(feeBalance, totalPaid);
+        
+        return {
+          feeAssignmentId: fee.id,
+          feeType: fee.feeTypeId,
+          feeTypeName: fee.feeType,
+          amount: feeAmount,
+          paid: feePaid,
+          balance: feeBalance,
+          amountToPay: amountToPay
+        };
+      });
+
+      // Sort by balance (highest first) to maximize payments
+      payments.sort((a, b) => b.balance - a.balance);
+
+      // Distribute the payment amount across the fees
+      let remainingPayment = totalPaid;
+      const paymentDistribution = [];
+      
+      for (const payment of payments) {
+        if (remainingPayment <= 0) break;
+        
+        const payAmount = Math.min(payment.balance, remainingPayment);
+        if (payAmount > 0) {
+          paymentDistribution.push({
+            feeAssignmentId: payment.feeAssignmentId,
+            feeType: payment.feeType,
+            amount: payAmount
+          });
+          remainingPayment -= payAmount;
+        }
+      }
+
+      if (paymentDistribution.length === 0) {
+        throw new Error('No valid fee assignments to apply payment to');
+      }
+
+      // Prepare the payment data for the first fee assignment
+      // Note: The backend expects one payment at a time for a fee assignment
+      const firstPayment = paymentDistribution[0];
+      
       const paymentData = {
-        amount: values.paidAmount || 0,
+        amount: firstPayment.amount,
         paymentMethod: values.modeOfPayment,
         paymentDate: values.paymentDate.toISOString(),
-        receiptDate: values.receiptDate.toISOString(),
         remarks: values.remarks || '',
         scholarshipAmount: values.scholarshipAmount || 0,
         discountAmount: values.discountAmount || 0,
-        transactionId: values.transactionId || undefined,
-        feeType: selectedFeeAssignment.feeTypeId, // Use the preserved feeTypeId
         receiptNo: `RCPT-${Date.now().toString().slice(-6)}`,
-        feeAssignmentId: selectedFeeAssignment._id
+        feeType: firstPayment.feeType,
+        feeAssignmentId: firstPayment.feeAssignmentId
       };
-
-      // Debug: Log the original API_URL
-      console.log('Original API_URL:', API_URL);
       
+      if (values.transactionId) {
+        paymentData.transactionId = values.transactionId;
+      }
+
+      console.log('Payment data:', paymentData);
+
       // Create a URL object to handle path construction properly
       const baseUrl = new URL(API_URL);
-      
-      // Remove any existing /api/v1 from the pathname
       let pathname = baseUrl.pathname.replace(/\/api\/v1$/, '');
-      
-      // Construct the final URL
       const url = new URL(
         `api/v1/university/payments/${currentPaymentData?.studentId}`,
         baseUrl.origin + pathname
       ).toString();
       
-      console.log('Constructed URL:', url);
-      
       console.log('Making request to:', url);
-      console.log('Request data:', paymentData);
       
-      // Call the payment API with the full path
+      // Call the payment API
       const response = await axios.post(
         url,
         paymentData,
@@ -666,7 +824,7 @@ const UniversityEnrolledStudent = () => {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
           },
-          withCredentials: true // Ensure cookies are sent with the request
+          withCredentials: true
         }
       );
 
@@ -675,6 +833,7 @@ const UniversityEnrolledStudent = () => {
         await fetchFeeDetails(selectedStudentForFee);
         setPaymentModalVisible(false);
         setSelectedFees([]);
+        paymentForm.resetFields();
       } else {
         throw new Error(response.data?.message || 'Failed to record payment');
       }
@@ -701,8 +860,12 @@ const UniversityEnrolledStudent = () => {
 
     // Calculate payment summary
     const totalAmount = selectedFees.reduce((sum, fee) => sum + (fee.amount || 0), 0);
-    const paidAmount = selectedFees.reduce((sum, fee) => sum + (fee.paid || 0), 0);
-    const balanceAmount = totalAmount - paidAmount;
+    const totalPaid = selectedFees.reduce((sum, fee) => sum + (fee.paid || 0), 0);
+    const totalBalance = totalAmount - totalPaid;
+    const remainingBalance = selectedFees.reduce((sum, fee) => {
+      const feeBalance = (fee.amount || 0) - (fee.paid || 0);
+      return sum + Math.max(0, feeBalance);
+    }, 0);
     
     // Set current payment data
     setCurrentPaymentData({
@@ -716,15 +879,15 @@ const UniversityEnrolledStudent = () => {
         feeType: fee.feeType || 'Registration Fee',
         amount: fee.amount || 0,
         paid: fee.paid || 0,
-        balance: (fee.amount || 0) - (fee.paid || 0)
+        balance: Math.max(0, (fee.amount || 0) - (fee.paid || 0))
       })),
-      totalAmount: balanceAmount, // Only the remaining balance to be paid
-      paidAmount: 0,
-      balanceAmount: balanceAmount,
+      totalAmount: totalAmount,
+      paidAmount: totalPaid,
+      balanceAmount: remainingBalance,
       paymentDate: new Date().toISOString(),
       receiptDate: new Date().toISOString(),
       modeOfPayment: 'Cash',
-      status: balanceAmount > 0 ? 'Partial' : 'Paid',
+      status: remainingBalance <= 0 ? 'Paid' : (totalPaid > 0 ? 'Partial' : 'Unpaid'),
       remarks: ''
     });
 
@@ -733,14 +896,14 @@ const UniversityEnrolledStudent = () => {
       paymentDate: moment(),
       receiptDate: moment(),
       modeOfPayment: 'Cash',
-      status: balanceAmount > 0 ? 'Partial' : 'Paid',
+      status: remainingBalance <= 0 ? 'Paid' : (totalPaid > 0 ? 'Partial' : 'Unpaid'),
       remarks: '',
       discountReason: '',
       discountAmount: 0,
       scholarshipAmount: 0,
-      paidAmount: balanceAmount,
+      paidAmount: remainingBalance,
       balanceAmount: 0,
-      totalAmount: balanceAmount
+      totalAmount: remainingBalance
     });
 
     // Show the payment details modal
@@ -754,13 +917,28 @@ const UniversityEnrolledStudent = () => {
       key: 'selection',
       width: 50,
       render: (_, record) => {
-        const isPaid = (record.amount || 0) - (record.paid || 0) <= 0;
+        const recordId = record._id || record.id;
+        if (!recordId) {
+          console.error('Record has no ID:', record);
+          return null;
+        }
+        
+        const amount = Number(record.amount) || 0;
+        const paid = Number(record.paid) || 0;
+        const balance = amount - paid;
+        const isPaid = balance <= 0;
+        const isChecked = selectedFees.some(fee => fee.id === recordId);
+        
         return (
-          <Checkbox 
-            disabled={isPaid}
-            onChange={(e) => handleFeeSelect(record._id, record.amount - (record.paid || 0), e.target.checked)}
-            checked={selectedFees.some(fee => fee.id === record._id)}
-          />
+          <div key={`fee-checkbox-${recordId}`}>
+            <Checkbox 
+              disabled={isPaid}
+              checked={isChecked}
+              onChange={(e) => {
+                handleFeeSelect(recordId, record, e.target.checked);
+              }}
+            />
+          </div>
         );
       }
     },
@@ -779,45 +957,92 @@ const UniversityEnrolledStudent = () => {
       title: 'Fee Type',
       dataIndex: 'feeType',
       key: 'feeType',
-      render: (text, record) => (
-        <div>
-          <div style={{ fontWeight: 500 }}>{text || 'Registration Fee'}</div>
-          {record.dueDate && (
-            <div style={{ fontSize: '12px', color: '#666' }}>
-              Due: {new Date(record.dueDate).toLocaleDateString()}
-            </div>
-          )}
-        </div>
-      )
-    },
-    {
-      title: 'Amount Details',
-      key: 'amountDetails',
-      width: 200,
-      render: (_, record) => {
-        const amount = record.amount || 0;
-        const paid = record.paid || 0;
+      render: (text, record) => {
+        const amount = Number(record.amount) || 0;
+        const paid = Number(record.paid) || 0;
         const balance = amount - paid;
         const isPaid = balance <= 0;
         
         return (
-          <div style={{ textAlign: 'right' }}>
-            <div style={{ marginBottom: 4 }}>
-              <span style={{ color: '#666', fontSize: '0.9em' }}>Total: </span>
+          <div>
+            <div style={{ 
+              fontWeight: 500,
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              <span>{text || 'Registration Fee'}</span>
+              {isPaid && (
+                <Tag color="success" style={{ marginLeft: 8 }}>Paid</Tag>
+              )}
+            </div>
+            {record.dueDate && (
+              <div style={{ fontSize: '12px', color: '#666' }}>
+                Due: {new Date(record.dueDate).toLocaleDateString()}
+              </div>
+            )}
+          </div>
+        );
+      }
+    },
+    {
+      title: 'Amount Details',
+      key: 'amountDetails',
+      width: 250,
+      render: (_, record) => {
+        const amount = Number(record.amount) || 0;
+        const paid = Number(record.paid) || 0;
+        const balance = amount - paid;
+        const isPaid = balance <= 0;
+        const isPartial = paid > 0 && !isPaid;
+        
+        return (
+          <div style={{ 
+            textAlign: 'right',
+            padding: '8px',
+            borderRadius: '4px',
+            backgroundColor: isPaid ? '#f6ffed' : isPartial ? '#fffbe6' : '#fff2f0',
+            border: `1px solid ${isPaid ? '#b7eb8f' : isPartial ? '#ffe58f' : '#ffccc7'}`
+          }}>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between',
+              marginBottom: '4px'
+            }}>
+              <span style={{ color: '#666', fontSize: '0.9em' }}>Total Amount:</span>
               <span style={{ fontWeight: 500 }}>₹{amount.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
             </div>
-            <div style={{ marginBottom: 4 }}>
-              <span style={{ color: '#666', fontSize: '0.9em' }}>Paid: </span>
-              <span style={{ color: '#52c41a' }}>₹{paid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</span>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between',
+              marginBottom: '4px'
+            }}>
+              <span style={{ color: '#666', fontSize: '0.9em' }}>Paid Amount:</span>
+              <span style={{ color: '#52c41a', fontWeight: 500 }}>
+                ₹{paid.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
+              </span>
             </div>
-            <div style={{ borderTop: '1px solid #f0f0f0', paddingTop: 4 }}>
-              <span style={{ color: '#666', fontSize: '0.9em' }}>Balance: </span>
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'space-between',
+              paddingTop: '4px',
+              borderTop: '1px solid #f0f0f0',
+              marginTop: '4px'
+            }}>
+              <span style={{ 
+                color: '#666', 
+                fontSize: '0.9em',
+                fontWeight: 500
+              }}>
+                Balance:
+              </span>
               <span style={{
-                color: isPaid ? '#52c41a' : '#f5222d',
-                fontWeight: 600
+                color: isPaid ? '#52c41a' : isPartial ? '#faad14' : '#f5222d',
+                fontWeight: 600,
+                fontSize: '1.05em'
               }}>
                 ₹{Math.abs(balance).toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-                {isPaid && ' (Paid)'}
+                {isPaid ? ' (Fully Paid)' : isPartial ? ' (Partial)' : ''}
               </span>
             </div>
           </div>
