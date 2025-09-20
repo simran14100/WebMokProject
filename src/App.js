@@ -91,6 +91,7 @@ import FinalData from './components/core/SuperAdmin/FinalData';
 import UsersManagement from './components/core/SuperAdmin/UsersManagement';
 import Feetype from './components/core/UGPGAdmin/Fees/Feetype';
 import ManageFee from './components/core/UGPGAdmin/Fees/ManageFee';
+import StudentLedgers from './pages/UGPGAdmin/Fee/StudentLedgers';
 import TeacherList from './components/core/UGPGAdmin/Users/TeacherList';
 import TeacherForm from './components/core/UGPGAdmin/Users/TeacherForm';
 import HonoraryApplications from './components/core/SuperAdmin/HonoraryApplications';
@@ -365,8 +366,13 @@ function AppRoutes() {
           </ProtectedRoute>
         } />
         <Route path="fee/manage" element={
-          <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
+          <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN, 'accountant']}>
             <ManageFee />
+          </ProtectedRoute>
+        } />
+        <Route path="fee/ledgers" element={
+          <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN, 'accountant']}>
+            <StudentLedgers />
           </ProtectedRoute>
         } />
         
@@ -649,25 +655,6 @@ function AppRoutes() {
       {/* Instructor Routes */}
       {user?.accountType === ACCOUNT_TYPE.INSTRUCTOR && (
         <>
-          <Route path="/instructor/dashboard" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.INSTRUCTOR]}>
-              <InstructorDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/instructor/my-courses" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.INSTRUCTOR]}>
-              <MyCourses />
-            </ProtectedRoute>
-          } />
-          <Route path="/instructor/add-course" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.INSTRUCTOR]}>
-              <CreateCourse/>
-            </ProtectedRoute>
-          } />
-          <Route path="/instructor/edit-course/:id" element={
-            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.INSTRUCTOR]}>
-              <EditCourse />
-            </ProtectedRoute>
           } />
         </>
       )}

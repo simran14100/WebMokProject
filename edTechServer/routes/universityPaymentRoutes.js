@@ -92,7 +92,15 @@ router.get('/', authorize('admin', 'accountant', 'SuperAdmin'), async (req, res,
       populate: [
         { path: 'student', select: 'firstName lastName registrationNumber' },
         { path: 'createdBy', select: 'firstName lastName' },
-        { path: 'feeAssignment', select: 'feeType totalAmount' }
+        {
+          path: 'feeAssignment',
+          select: 'feeType totalAmount course',
+          populate: {
+            path: 'course',
+            select: 'name code',
+            model: 'UGPGCourse'
+          }
+        }
       ]
     };
     

@@ -1,3 +1,6 @@
+// API Base URL
+export const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:4000';
+
 // Account Types - must match the backend's User model enum values
 export const ACCOUNT_TYPE = {
     STUDENT: "Student",
