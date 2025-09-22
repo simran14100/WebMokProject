@@ -58,6 +58,38 @@ exports.showAllCategories = async(req , res)=>{
     }
 }
 
+// Delete a category
+exports.deleteCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+
+    // Check if category exists
+    const category = await Category.findById(categoryId);
+    if (!category) {
+      return res.status(404).json({
+        success: false,
+        message: "Category not found"
+      });
+    }
+
+    // TODO: Check if there are any courses associated with this category
+    // If there are, you might want to handle that case (e.g., don't delete, or delete with confirmation)
+    
+    await Category.findByIdAndDelete(categoryId);
+
+    return res.status(200).json({
+      success: true,
+      message: "Category deleted successfully"
+    });
+  } catch (error) {
+    console.error("Error deleting category:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message || "Failed to delete category"
+    });
+  }
+};
+
 exports.categoryPageDetails = async (req, res) => {
     try {
       const { categoryId } = req.body

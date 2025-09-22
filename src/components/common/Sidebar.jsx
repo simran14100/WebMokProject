@@ -204,10 +204,10 @@ const getSidebarLinks = (user, variant = 'default') => {
         name: 'Settings', 
         icon: <VscGear style={{ fontSize: 20, color: ED_TEAL }} />, 
         subLinks: [
-          { name: 'Users', path: '/ugpg-admin/teachers', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+          // { name: 'Users', path: '/ugpg-admin/teachers', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'School', path: '/ugpg-admin/settings/school', icon: <VscOrganization style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Languages', path: '/ugpg-admin/settings/languages', icon: <VscBook style={{ fontSize: 20, color: ED_TEAL }} /> },
-          { name: 'States', path: '/ugpg-admin/settings/states', icon: <VscListTree style={{ fontSize: 20, color: ED_TEAL }} /> },
+          // { name: 'States', path: '/ugpg-admin/settings/states', icon: <VscListTree style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Leave Request', path: '/ugpg-admin/settings/leave-request', icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} /> },
         ]
       },

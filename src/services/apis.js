@@ -2,7 +2,9 @@
 export const categories = {
     CREATE_CATEGORY_API: "/api/v1/course/createCategory", 
     CATEGORIES_API: "/api/v1/course/showAllCategories",
-    CATEGORY_PAGE_DETAILS_API: "/api/v1/course/categoryPageDetails",
+    UPDATE_CATEGORY_API: (id) => `/api/v1/course/updateCategory/${id}`,
+    DELETE_CATEGORY_API: (id) => `/api/v1/course/deleteCategory/${id}`,
+    CATEGORY_PAGE_DETAILS_API: "/api/v1/course/getCategoryPageDetails",
 };
 
 // Super Admin specific endpoints (separate from generic admin controller)
@@ -40,6 +42,10 @@ export const subCategory = {
     GET_SUBCATEGORIES_BY_PARENT_API: "/api/v1/sub-categories/getSubCategory",
     SHOW_ALL_SUBCATEGORIES_API: "/api/v1/sub-categories/showAllSubCategories",
     SUBCATEGORY_PAGE_DETAILS_API: "/api/v1/sub-categories/subCategoryPageDetails",
+    CREATE_SUBCATEGORY_API: "/api/v1/sub-categories/createSubCategory",
+    UPDATE_SUBCATEGORY_API: (id) => `/api/v1/sub-categories/updateSubCategory/${id}`,
+    DELETE_SUBCATEGORY_API: (id) => `/api/v1/sub-categories/deleteSubCategory/${id}`,
+    BULK_DELETE_SUBCATEGORIES_API: "/api/v1/sub-categories/bulkDeleteSubCategories",
 };
 
 export const course = {

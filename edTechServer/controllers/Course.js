@@ -1,16 +1,25 @@
+const fs = require('fs');
+const path = require('path');
 const Course = require('../models/Course');
 const Category = require('../models/Category');
-const Section = require("../models/Section")
+const Section = require("../models/Section");
 const SubSection = require("../models/Subsection");
 const User = require('../models/User');
-const { convertSecondsToDuration } = require("../utils/secToDuration")
-const {uploadImageToCloudinary} = require('../utils/imageUploader');
-const CourseProgress = require("../models/CourseProgress")
+const { convertSecondsToDuration } = require("../utils/secToDuration");
+const { uploadImageToCloudinary, uploadVideoToCloudinary } = require('../utils/imageUploader');
+const CourseProgress = require("../models/CourseProgress");
 
  exports.createCourse = async (req, res) => {
   try {
+    // Log the incoming request for debugging
+    console.log('Create course request received with body:', {
+      ...req.body,
+      thumbnailImage: req.body.thumbnailImage ? '[thumbnail exists]' : 'missing',
+      introVideo: req.body.introVideo ? '[video exists]' : 'missing'
+    });
+
     // Get user ID from request object
-    const userId = req.user.id
+    const userId = req.user._id;
 
     // Get all required fields from request body
     let {
@@ -21,17 +30,48 @@ const CourseProgress = require("../models/CourseProgress")
       tag: _tag,
       category,
       subCategory,
-      status,
+      status = "Draft",
       instructions: _instructions,
-    } = req.body
+      thumbnailImage: thumbnailUrl,  // This will be the Cloudinary URL
+      introVideo                    // This will be the Cloudinary URL
+    } = req.body;
+
+    // Validate required fields with more detailed error messages
+    const missingFields = [];
+    if (!courseName) missingFields.push('courseName');
+    if (!courseDescription) missingFields.push('courseDescription');
+    if (!whatYouWillLearn) missingFields.push('whatYouWillLearn');
+    if (!price && price !== 0) missingFields.push('price');
+    if (!category) missingFields.push('category');
     
-    // Get thumbnail image from request files
-    const thumbnail = req.files.thumbnailImage
+    if (missingFields.length > 0) {
+      console.error('Missing required fields:', missingFields);
+      return res.status(400).json({
+        success: false,
+        message: `The following required fields are missing: ${missingFields.join(', ')}`,
+        missingFields: {
+          courseName: !courseName,
+          courseDescription: !courseDescription,
+          whatYouWillLearn: !whatYouWillLearn,
+          price: !price && price !== 0,
+          category: !category,
+          thumbnail: !thumbnailUrl
+        },
+        receivedData: {
+          courseName: !!courseName,
+          courseDescription: !!courseDescription,
+          whatYouWillLearn: !!whatYouWillLearn,
+          price: price || price === 0,
+          category: !!category,
+          thumbnail: !!thumbnailUrl
+        }
+      });
+    }
 
     // Convert instructions from stringified Array to Array with validation
     let instructions = [];
     try {
-      instructions = _instructions ? JSON.parse(_instructions) : [];
+      instructions = _instructions ? (typeof _instructions === 'string' ? JSON.parse(_instructions) : _instructions) : [];
       if (!Array.isArray(instructions)) {
         instructions = [];
       }
@@ -46,35 +86,261 @@ const CourseProgress = require("../models/CourseProgress")
     }
     
     // Handle optional tag field
-    const tag = _tag ? JSON.parse(_tag) : []
-
-    // Check if any of the required fields are missing
-    // Note: instructions are now handled with defaults in the parsing step
-    if (
-      !courseName ||
-      !courseDescription ||
-      !whatYouWillLearn ||
-      !price ||
-      !thumbnail ||
-      !category
-    ) {
+    const tag = _tag ? (typeof _tag === 'string' ? JSON.parse(_tag) : _tag) : [];
+    
+    // Check if thumbnail was uploaded
+    if (!thumbnailUrl) {
       return res.status(400).json({
         success: false,
-        message: "All required fields must be provided",
-        missingFields: {
-          courseName: !courseName,
-          courseDescription: !courseDescription,
-          whatYouWillLearn: !whatYouWillLearn,
-          price: !price,
-          thumbnail: !thumbnail,
-          category: !category,
-          instructions: !instructions.length
-        }
+        message: "Course thumbnail is required"
       });
     }
-    if (!status || status === undefined) {
-      status = "Draft"
+    
+    // Handle thumbnail upload
+    if (thumbnailUrl) {
+      console.log('Processing thumbnail...');
+      try {
+        if (typeof thumbnailUrl === 'string' && thumbnailUrl.startsWith('http')) {
+          console.log('Using provided thumbnail URL:', thumbnailUrl);
+          // Optionally, you can re-upload the thumbnail to your Cloudinary account
+          try {
+            const thumbnailUpload = await uploadImageToCloudinary(
+              thumbnailUrl,
+              process.env.FOLDER_NAME || 'webmok-uploads'
+            );
+            thumbnailUrl = thumbnailUpload.secure_url;
+            console.log('Thumbnail re-uploaded to Cloudinary successfully');
+          } catch (uploadError) {
+            console.error('Error re-uploading thumbnail URL to Cloudinary:', uploadError);
+            // Continue with the original URL if re-upload fails
+          }
+        } else if (typeof thumbnailUrl === 'object' && thumbnailUrl.path) {
+          console.log('Uploading thumbnail file to Cloudinary...');
+          const thumbnailUpload = await uploadImageToCloudinary(
+            thumbnailUrl.path,
+            process.env.FOLDER_NAME || 'webmok-uploads'
+          );
+          thumbnailUrl = thumbnailUpload.secure_url;
+          console.log('Thumbnail uploaded successfully');
+
+          // Clean up the temporary file if it exists
+          try {
+            try {
+              await fsp.access(thumbnailUrl.path);
+              await fsp.unlink(thumbnailUrl.path);
+              console.log('Temporary thumbnail file cleaned up');
+            } catch (accessError) {
+              console.log('Temporary thumbnail file not found or already removed');
+            }
+          } catch (cleanupError) {
+            console.error('Error cleaning up temporary thumbnail file:', cleanupError);
+          }
+        } else if (typeof thumbnailUrl === 'string') {
+          console.log('Using provided thumbnail path/URL:', thumbnailUrl);
+          // Try to upload the file from the path/URL
+          try {
+            const thumbnailUpload = await uploadImageToCloudinary(
+              thumbnailUrl,
+              process.env.FOLDER_NAME || 'webmok-uploads'
+            );
+            thumbnailUrl = thumbnailUpload.secure_url;
+            console.log('Thumbnail uploaded successfully from path/URL');
+          } catch (uploadError) {
+            console.error('Error uploading thumbnail from path/URL:', uploadError);
+            return res.status(400).json({
+              success: false,
+              message: 'Error processing thumbnail',
+              error: uploadError.message
+            });
+          }
+        }
+      } catch (error) {
+        console.error('Error processing thumbnail:', error);
+        return res.status(500).json({
+          success: false,
+          message: 'Error processing thumbnail',
+          error: error.message
+        });
+      }
     }
+
+    // Handle intro video upload
+    if (introVideo && introVideo !== 'none') {
+      console.log('Processing intro video...');
+      console.log('introVideo type:', typeof introVideo, 'value:', introVideo);
+      
+      try {
+        // If it's a base64 string
+        if (typeof introVideo === 'string' && introVideo.startsWith('data:')) {
+          console.log('Uploading video from base64 data...');
+          try {
+            const videoUpload = await uploadVideoToCloudinary(
+              introVideo,
+              process.env.FOLDER_NAME || 'webmok-videos'
+            );
+            introVideo = videoUpload.secure_url;
+            console.log('Video uploaded successfully from base64 data');
+          } catch (uploadError) {
+            console.error('Error uploading video from base64 data:', uploadError);
+            introVideo = '';
+          }
+        }
+        // If it's a URL
+        else if (typeof introVideo === 'string' && /^https?:\/\//.test(introVideo)) {
+          console.log('Using provided video URL:', introVideo);
+          try {
+            const videoUpload = await uploadVideoToCloudinary(
+              introVideo,
+              process.env.FOLDER_NAME || 'webmok-videos'
+            );
+            introVideo = videoUpload.secure_url;
+            console.log('Video re-uploaded to Cloudinary successfully');
+          } catch (uploadError) {
+            console.error('Error re-uploading video URL to Cloudinary:', uploadError);
+            // Continue with the original URL if re-upload fails
+          }
+        }
+        // If it's a file upload from multer (buffer or path)
+        else if (introVideo && typeof introVideo === 'object') {
+          console.log('Processing video file object:', {
+            keys: Object.keys(introVideo),
+            hasBuffer: !!introVideo.buffer,
+            hasPath: !!introVideo.path,
+            path: introVideo.path
+          });
+
+          try {
+            // If we have a buffer, use that first (from memory storage)
+            if (introVideo.buffer) {
+              console.log('Uploading video from buffer...');
+              const videoUpload = await uploadVideoToCloudinary(
+                introVideo, // Pass the file object which contains the buffer
+                process.env.FOLDER_NAME || 'webmok-videos'
+              );
+              
+              if (!videoUpload || !videoUpload.secure_url) {
+                throw new Error('Invalid response from Cloudinary');
+              }
+              
+              introVideo = videoUpload.secure_url;
+              console.log('Video uploaded successfully from buffer');
+            } 
+            // If we have a path, try to use that
+            else if (introVideo.path) {
+              console.log('Processing video from path:', introVideo.path);
+              
+              // Resolve to absolute path if it's relative
+              const absolutePath = path.isAbsolute(introVideo.path) 
+                ? introVideo.path 
+                : path.resolve(process.cwd(), introVideo.path);
+              
+              console.log('Resolved absolute path:', absolutePath);
+              
+              // Check if file exists at the resolved path
+              if (!fs.existsSync(absolutePath)) {
+                console.warn('File not found at resolved path:', absolutePath);
+                throw new Error(`File not found at path: ${absolutePath}`);
+              }
+              
+              // Upload the file
+              const videoUpload = await uploadVideoToCloudinary(
+                absolutePath,
+                process.env.FOLDER_NAME || 'webmok-videos'
+              );
+              
+              if (!videoUpload || !videoUpload.secure_url) {
+                throw new Error('Invalid response from Cloudinary');
+              }
+              
+              introVideo = videoUpload.secure_url;
+              console.log('Video uploaded successfully from file path');
+            } 
+            // If we don't have a buffer or a valid path
+            else {
+              console.warn('Unsupported file object format - missing both buffer and valid path');
+              throw new Error('Unsupported file format');
+            }
+          } catch (uploadError) {
+            console.error('Error processing video file:', {
+              error: uploadError.message,
+              stack: uploadError.stack,
+              fileInfo: {
+                originalPath: introVideo.path,
+                resolvedPath: introVideo.path ? path.resolve(process.cwd(), introVideo.path) : 'N/A',
+                exists: introVideo.path ? fs.existsSync(path.resolve(process.cwd(), introVideo.path)) : 'N/A'
+              }
+            });
+            introVideo = '';
+          }
+        }
+        // If it's a file path string
+        else if (typeof introVideo === 'string') {
+          console.log('Processing video from path string:', introVideo);
+          
+          // Skip if it's 'none' or empty
+          if (introVideo === 'none' || !introVideo.trim()) {
+            console.log('Skipping video upload - no file specified');
+            introVideo = '';
+            return;
+          }
+          
+          try {
+            // Resolve to absolute path if it's relative
+            const absolutePath = path.isAbsolute(introVideo) 
+              ? introVideo 
+              : path.resolve(process.cwd(), introVideo);
+            
+            console.log('Resolved absolute path:', absolutePath);
+            
+            // Check if file exists before attempting to upload
+            if (!fs.existsSync(absolutePath)) {
+              console.warn('File not found at resolved path:', absolutePath);
+              throw new Error(`File not found at path: ${absolutePath}`);
+            }
+            
+            const videoUpload = await uploadVideoToCloudinary(
+              absolutePath,
+              process.env.FOLDER_NAME || 'webmok-videos'
+            );
+            
+            if (!videoUpload || !videoUpload.secure_url) {
+              throw new Error('Invalid response from Cloudinary');
+            }
+            
+            introVideo = videoUpload.secure_url;
+            console.log('Video uploaded successfully from path string');
+          } catch (uploadError) {
+            console.error('Error uploading video from path string:', {
+              error: uploadError.message,
+              stack: uploadError.stack,
+              resolvedPath: path.isAbsolute(introVideo) 
+                ? introVideo 
+                : path.resolve(process.cwd(), introVideo),
+              currentWorkingDir: process.cwd()
+            });
+            introVideo = '';
+          }
+        } else {
+          console.warn('Unsupported introVideo format:', {
+            type: typeof introVideo,
+            isObject: introVideo && typeof introVideo === 'object',
+            hasBuffer: !!(introVideo && introVideo.buffer),
+            hasPath: !!(introVideo && introVideo.path)
+          });
+          introVideo = '';
+        }
+      } catch (error) {
+        console.error('Unexpected error processing intro video:', {
+          error: error.message,
+          stack: error.stack,
+          introVideoType: typeof introVideo
+        });
+        // Don't fail the entire request if video upload fails
+        introVideo = '';
+      }
+    }
+
+    // Status is already set with default value in destructuring
     // Check if the user is an instructor
     const instructorDetails = await User.findById(userId, {
       accountType: "Instructor",
@@ -110,42 +376,30 @@ const CourseProgress = require("../models/CourseProgress")
         console.warn('SubCategory validation skipped due to error:', e.message);
       }
     }
-    // Upload the Thumbnail to Cloudinary
-    const thumbnailImage = await uploadImageToCloudinary(
-      thumbnail,
-      process.env.FOLDER_NAME
-    )
-    console.log(thumbnailImage)
-    
-    // Optionally upload Intro Video to Cloudinary (if provided)
-    let introVideoUrl
-    try {
-      if (req.files && req.files.introVideo) {
-        const introVideoFile = req.files.introVideo
-        const uploadedIntro = await uploadImageToCloudinary(
-          introVideoFile,
-          process.env.FOLDER_NAME
-        )
-        introVideoUrl = uploadedIntro.secure_url
-      }
-    } catch (e) {
-      console.warn('Intro video upload failed:', e.message)
-    }
-    // Create a new course with the given details
-    const newCourse = await Course.create({
+    // Create the course
+    const courseData = {
       courseName,
       courseDescription,
       instructor: instructorDetails._id,
       whatYouWillLearn: whatYouWillLearn,
       price,
-      tag,
-      category: categoryDetails._id,
-      ...(subCategory ? { subCategory } : {}),
-      thumbnail: thumbnailImage.secure_url,
-      ...(introVideoUrl ? { introVideo: introVideoUrl } : {}),
+      tag: tag,
+      category,
+      subCategory,
+      thumbnail: thumbnailUrl,
       status: status,
-      instructions,
-    })
+      instructions: instructions,
+      ...(introVideo && { introVideo }) // Only include introVideo if it exists
+    };
+    
+    console.log('Creating course with data:', {
+      ...courseData,
+      thumbnail: '[thumbnail URL]',
+      introVideo: introVideo ? '***video-url***' : 'none'
+    });
+    
+    const newCourse = await Course.create(courseData);
+    console.log('Course created successfully:', newCourse._id);
 
     // Add the new course to the User Schema of the Instructor
     await User.findByIdAndUpdate(
@@ -437,22 +691,26 @@ exports.editCourse = async (req, res) => {
     }
 
     // Handle intro video update
-    // 1) If new introVideo file is provided, upload and set
-    if (req.files && req.files.introVideo) {
-      try {
-        const uploadedIntro = await uploadImageToCloudinary(
-          req.files.introVideo,
-          process.env.FOLDER_NAME
-        )
-        course.introVideo = uploadedIntro.secure_url
-      } catch (e) {
-        console.warn('Intro video upload failed:', e.message)
+    if (updates.introVideo) {
+      // If introVideo is an object, extract the URL
+      if (typeof updates.introVideo === 'object') {
+        if (updates.introVideo.secure_url) {
+          course.introVideo = updates.introVideo.secure_url;
+        } else if (updates.introVideo.url) {
+          course.introVideo = updates.introVideo.url;
+        } else if (updates.introVideo.public_id) {
+          course.introVideo = `https://res.cloudinary.com/${process.env.CLOUDINARY_CLOUD_NAME}/video/upload/${updates.introVideo.public_id}`;
+        } else {
+          console.warn('Unexpected introVideo format in update:', JSON.stringify(updates.introVideo));
+          // Don't update if format is unexpected
+          delete updates.introVideo;
+        }
+      } else if (typeof updates.introVideo === 'string') {
+        // If it's already a string, use it directly
+        course.introVideo = updates.introVideo;
       }
-    }
-    // 2) If a direct introVideoUrl is provided in body, set it
-    if (updates.introVideoUrl) {
-      course.introVideo = updates.introVideoUrl
-      delete updates.introVideoUrl
+      // Remove from updates as we've processed it
+      delete updates.introVideo;
     }
 
     // Update only the fields that are present in the request body

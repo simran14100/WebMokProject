@@ -158,3 +158,140 @@ exports.getSubCategoriesByParent = async (req, res) => {
         });
     }
 };
+
+// Update a sub-category
+exports.updateSubCategory = async (req, res) => {
+  try {
+    const { subCategoryId } = req.params;
+    const { name, description, parentCategory } = req.body;
+
+    // Validate required fields
+    if (!name || !description || !parentCategory) {
+      return res.status(400).json({
+        success: false,
+        message: 'All fields are required',
+      });
+    }
+
+    // Check if parent category exists
+    const parentCategoryDetails = await Category.findById(parentCategory);
+    if (!parentCategoryDetails) {
+      return res.status(404).json({
+        success: false,
+        message: 'Parent category not found',
+      });
+    }
+
+    // Check if subcategory exists
+    const existingSubCategory = await SubCategory.findById(subCategoryId);
+    if (!existingSubCategory) {
+      return res.status(404).json({
+        success: false,
+        message: 'Sub-category not found',
+      });
+    }
+
+    // Update subcategory
+    const updatedSubCategory = await SubCategory.findByIdAndUpdate(
+      subCategoryId,
+      {
+        name,
+        description,
+        parentCategory,
+      },
+      { new: true }
+    );
+
+    return res.status(200).json({
+      success: true,
+      message: 'Sub-category updated successfully',
+      data: updatedSubCategory,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to update sub-category',
+      error: error.message,
+    });
+  }
+};
+
+// Delete a sub-category
+exports.deleteSubCategory = async (req, res) => {
+  try {
+    const { subCategoryId } = req.params;
+
+    // Check if subcategory exists
+    const existingSubCategory = await SubCategory.findById(subCategoryId);
+    if (!existingSubCategory) {
+      return res.status(404).json({
+        success: false,
+        message: 'Sub-category not found',
+      });
+    }
+
+    // Check if there are any courses associated with this subcategory
+    const coursesWithThisSubCategory = await Course.find({ subCategory: subCategoryId });
+    if (coursesWithThisSubCategory.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete sub-category as it has associated courses',
+      });
+    }
+
+    // Delete the subcategory
+    await SubCategory.findByIdAndDelete(subCategoryId);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Sub-category deleted successfully',
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete sub-category',
+      error: error.message,
+    });
+  }
+};
+
+// Bulk delete sub-categories
+exports.bulkDeleteSubCategories = async (req, res) => {
+  try {
+    const { subCategoryIds } = req.body;
+
+    if (!subCategoryIds || !Array.isArray(subCategoryIds) || subCategoryIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Please provide valid sub-category IDs',
+      });
+    }
+
+    // Check if any of the subcategories have associated courses
+    const coursesWithTheseSubCategories = await Course.find({
+      subCategory: { $in: subCategoryIds },
+    });
+
+    if (coursesWithTheseSubCategories.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: 'Cannot delete sub-categories that have associated courses',
+      });
+    }
+
+    // Delete the subcategories
+    await SubCategory.deleteMany({ _id: { $in: subCategoryIds } });
+
+    return res.status(200).json({
+      success: true,
+      message: 'Sub-categories deleted successfully',
+      count: subCategoryIds.length,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete sub-categories',
+      error: error.message,
+    });
+  }
+};

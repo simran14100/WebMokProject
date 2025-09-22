@@ -183,13 +183,52 @@ export const addCourseDetails = async (data, token) => {
 
 // edit the course details
 export const editCourseDetails = async (data, token) => {
-  let result = null
-  const toastId = showLoading("Saving course changes...")
+  let result = null;
+  const toastId = showLoading("Saving course changes...");
+  
   try {
-    const response = await apiConnector("POST", EDIT_COURSE_API, data, {
-      "Content-Type": "multipart/form-data",
+    console.log("EDIT COURSE REQUEST DATA:", data);
+    
+    // Create a new FormData instance to ensure we have a clean object
+    const formData = new FormData();
+    
+    // Copy all entries from the original FormData
+    if (data instanceof FormData) {
+      for (let [key, value] of data.entries()) {
+        formData.append(key, value);
+      }
+    } else if (typeof data === 'object') {
+      // If data is a plain object, convert it to FormData
+      Object.entries(data).forEach(([key, value]) => {
+        formData.append(key, value);
+      });
+    }
+    
+    // Ensure we have a course ID in one of the expected fields
+    const courseId = formData.get('courseId') || formData.get('_id');
+    if (!courseId) {
+      throw new Error("Course ID is required for editing. Please provide either 'courseId' or '_id'");
+    }
+    
+    console.log("Editing course with ID:", courseId);
+    
+    // Add course ID in all possible fields for backend compatibility
+    if (!formData.get('courseId')) formData.append('courseId', courseId);
+    if (!formData.get('_id')) formData.append('_id', courseId);
+    if (!formData.get('course._id')) formData.append('course._id', courseId);
+    
+    // Log FormData contents for debugging
+    console.log("FormData contents before sending:");
+    for (let [key, value] of formData.entries()) {
+      console.log(key, ':', value);
+    }
+    
+    // Make the API call
+    const response = await apiConnector("POST", EDIT_COURSE_API, formData, {
+      // Don't set Content-Type header - let the browser set it with the correct boundary
       Authorization: `Bearer ${token}`,
-    })
+    });
+    
     console.log("EDIT COURSE API RESPONSE............", response)
     
     if (!response?.data?.success) {
@@ -236,27 +275,65 @@ export const createSection = async (data, token) => {
 }
 
 // create a subsection
-export const createSubSection = async (data, token) => {
-  let result = null
-  const toastId = showLoading("Loading...")
+export const createSubSection = async (formData, token) => {
+  let result = null;
+  const toastId = showLoading("Uploading lecture...");
+  
   try {
-    const response = await apiConnector("POST", CREATE_SUBSECTION_API, data, {
-      Authorization: `Bearer ${token}`,
-    })
-    console.log("CREATE SUB-SECTION API RESPONSE............", response)
-    if (!response?.data?.success) {
-      throw new Error("Could Not Add Lecture")
+    // Log the form data for debugging
+    console.log("[createSubSection] Starting subsection creation...");
+    
+    // Ensure formData is a FormData instance
+    if (!(formData instanceof FormData)) {
+      throw new Error("Invalid form data format. Expected FormData.");
     }
-    showSuccess("Lecture Added")
-    result = response?.data?.data
+    
+    // Log form data entries for debugging
+    console.log("[createSubSection] FormData entries:");
+    for (let [key, value] of formData.entries()) {
+      console.log(`  ${key}:`, value instanceof File ? 
+        `[File] ${value.name} (${value.size} bytes, ${value.type})` : 
+        value);
+    }
+    
+    // Make the API call using apiConnector
+    console.log("[createSubSection] Sending request to:", CREATE_SUBSECTION_API);
+    
+    const response = await apiConnector(
+      "POST",
+      CREATE_SUBSECTION_API,
+      formData, // Send the original FormData directly
+      {
+        // Important: Don't set Content-Type header here, let the browser set it with the correct boundary
+      },
+      null, // params
+      false // Don't skip auth - we want to include the token
+    );
+
+    console.log("[createSubSection] API response received:", response);
+    
+    if (!response.data) {
+      throw new Error("No data received from server");
+    }
+    
+    if (!response.data.success) {
+      throw new Error(response.data.message || "Failed to add lecture");
+    }
+    
+    console.log("[createSubSection] Success:", response.data);
+    showSuccess("Lecture added successfully");
+    result = response.data.data;
   } catch (error) {
-    console.log("CREATE SUB-SECTION API ERROR............", error)
+    console.error("CREATE SUB-SECTION API ERROR............", error);
     const message = error?.response?.data?.message || error.message || "Failed to add lecture";
-    showError(message)
+    showError(message);
+    throw error; // Re-throw to be handled by the caller
+  } finally {
+    dismissToast(toastId);
   }
-  dismissToast(toastId)
-  return result
-}
+  
+  return result;
+};
 
 // update a section
 export const updateSection = async (data, token) => {
@@ -281,25 +358,41 @@ export const updateSection = async (data, token) => {
 }
 
 // update a subsection
-export const updateSubSection = async (data, token) => {
+export const updateSubSection = async (formData, token) => {
   let result = null
-  const toastId = showLoading("Loading...")
+  const toastId = showLoading("Updating lecture...")
   try {
-    const response = await apiConnector("POST", UPDATE_SUBSECTION_API, data, {
-      Authorization: `Bearer ${token}`,
-    })
-    console.log("UPDATE SUB-SECTION API RESPONSE............", response)
-    if (!response?.data?.success) {
-      throw new Error("Could Not Update Lecture")
+    const response = await fetch(UPDATE_SUBSECTION_API, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        // Don't set Content-Type - let the browser set it with the correct boundary
+      },
+      body: formData, // Send the FormData directly
+    });
+
+    const responseData = await response.json();
+    
+    if (!response.ok) {
+      throw new Error(responseData.message || "Failed to update lecture");
     }
-    showSuccess("Lecture Updated")
-    result = response?.data?.data
+
+    if (!responseData.success) {
+      throw new Error(responseData.message || "Could not update lecture");
+    }
+    
+    console.log("UPDATE SUB-SECTION API RESPONSE............", responseData);
+    showSuccess("Lecture updated successfully");
+    result = responseData.data;
   } catch (error) {
-    console.log("UPDATE SUB-SECTION API ERROR............", error)
-    showError(error.message)
+    console.error("UPDATE SUB-SECTION API ERROR............", error);
+    const message = error?.response?.data?.message || error.message || "Failed to update lecture";
+    showError(message);
+    throw error; // Re-throw to be handled by the caller
+  } finally {
+    dismissToast(toastId);
   }
-  dismissToast(toastId)
-  return result
+  return result;
 }
 
 // delete a section

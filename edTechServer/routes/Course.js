@@ -4,6 +4,7 @@ const router = express.Router()
 
 // Import Middleware
 const { auth, isInstructor, isStudent, isAdmin, isAdminOrSuperAdmin, isApprovedInstructor, isAdminLevel } = require("../middlewares/auth")
+const uploadCourseFiles = require("../utils/multer")
 
 // Import the Controllers
 
@@ -24,17 +25,13 @@ const {
 // Categories Controllers Import
 const {
   showAllCategories,
- 
   categoryPageDetails,
+  deleteCategory
 } = require("../controllers/Category")
 
-const {createCategory}= require("../controllers/Category")
+const { createCategory } = require("../controllers/Category")
 // Sections Controllers Import
-const {
-  createSection,
-  updateSection,
-  deleteSection,
-} = require("../controllers/Section")
+const { createSection, updateSection, deleteSection } = require("../controllers/Section");
 
 // Sub-Sections Controllers Import
 const {
@@ -42,6 +39,54 @@ const {
   updateSubSection,
   deleteSubSection,
 } = require("../controllers/Subsection")
+
+
+// ********************************************************************************************************
+//                                      Sub-Section Routes
+// ********************************************************************************************************
+router.post("/addSubSection", auth, async (req, res) => {
+  try {
+    // Check user role
+    if (req.user.accountType !== 'Instructor' && req.user.accountType !== 'Admin') {
+      return res.status(403).json({
+        success: false,
+        message: "Only instructors and admins can add subsections"
+      });
+    }
+    
+    const { sectionId, title, description, videoUrl, duration } = req.body;
+    
+    // Validate required fields
+    if (!sectionId || !title || !videoUrl) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: sectionId, title, and videoUrl are required'
+      });
+    }
+    
+    // Create subsection with the provided Cloudinary URL
+    const processedReq = {
+      ...req,
+      body: {
+        sectionId,
+        title,
+        description: description || '',
+        videoUrl,
+        duration: duration || 0
+      }
+    };
+    
+    return createSubSection(processedReq, res);
+    
+  } catch (error) {
+    console.error('Error in addSubSection:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error processing request',
+      error: error.message
+    });
+  }
+});
 
 // Rating Controllers Import
 const {
@@ -67,18 +112,72 @@ router.get("/test-route", (req, res) => {
 //                                      Course routes
 // ********************************************************************************************************
 
-// Courses can be created by Admins or approved Instructors
-router.post("/createCourse", auth, (req, res, next) => {
-  if (
-    req.user.accountType === 'Admin' ||
-    req.user.accountType === 'Content-management' ||
-    (req.user.accountType === 'Instructor' && req.user.isApproved)
-  ) {
+// Courses can be created by Admins, SuperAdmins, Content-managers, or approved Instructors
+router.post("/createCourse", auth, uploadCourseFiles, async (req, res, next) => {
+  try {
+    // Check user permissions
+    if (
+      !['Admin', 'SuperAdmin', 'Content-management'].includes(req.user.accountType) &&
+      !(req.user.accountType === 'Instructor' && req.user.isApproved)
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: 'You are not authorized to create a course',
+      });
+    }
+
+    // Log incoming request for debugging
+    console.log('Create course request received:', {
+      body: { ...req.body, thumbnailImage: '***', introVideo: '***' },
+      files: req.files ? Object.keys(req.files) : 'No files'
+    });
+
+    // Check if files were uploaded
+    if (req.files) {
+      if (req.files.thumbnailImage) {
+        req.body.thumbnailImage = req.files.thumbnailImage[0];
+      }
+      if (req.files.introVideo) {
+        req.body.introVideo = req.files.introVideo[0];
+      }
+    }
+
+    // Process thumbnail
+    if (!req.body.thumbnailImage && !req.files?.thumbnailImage) {
+      return res.status(400).json({
+        success: false,
+        message: 'Course thumbnail is required',
+      });
+    }
+
+    // Handle video if present
+    if (req.body.introVideo || req.files?.introVideo) {
+      console.log('Video provided, will be processed in the controller');
+    }
+
+    // Ensure we have all required fields
+    const requiredFields = ['courseName', 'courseDescription', 'whatYouWillLearn', 'price', 'category'];
+    const missingFields = requiredFields.filter(field => !req.body[field]);
+    
+    if (missingFields.length > 0) {
+      return res.status(400).json({
+        success: false,
+        message: `Missing required fields: ${missingFields.join(', ')}`,
+        missingFields
+      });
+    }
+    
+    // Add user ID to request body for the controller
+    req.body.userId = req.user._id;
+
+    // Proceed to the createCourse controller
     next();
-  } else {
-    return res.status(403).json({
+  } catch (error) {
+    console.error('Error in createCourse middleware:', error);
+    return res.status(500).json({
       success: false,
-      message: 'You need to be an Admin, Content-manager, or approved Instructor to perform this action'
+      message: 'Error processing course creation',
+      error: error.message
     });
   }
 }, createCourse);
@@ -102,17 +201,72 @@ router.get("/getAdminCourses", auth, isAdminOrSuperAdmin, getAdminCourses)
 router.delete("/deleteCourse", auth, isAdminLevel, deleteCourse)
 
 // Edit Course routes - Allow both Admins and approved Instructors
-router.post("/editCourse", auth, (req, res, next) => {
-  if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
+router.post("/editCourse", auth, async (req, res, next) => {
+  try {
+    console.log('Edit course request body:', req.body);
+    console.log('Edit course files:', req.files);
+    
+    // Check user permissions
+    if (!['Admin', 'SuperAdmin', 'Content-management'].includes(req.user.accountType) &&
+        !(req.user.accountType === 'Instructor' && req.user.isApproved)) {
+      return res.status(403).json({
+        success: false,
+        message: 'You need to be an Admin or approved Instructor to edit courses'
+      });
+    }
+
+    // Debug log the request body and files
+    console.log('Edit Course - Request Body:', JSON.stringify(req.body, null, 2));
+    console.log('Edit Course - Files:', req.files ? Object.keys(req.files) : 'No files');
+    
+    // Check for course ID in both body and query params
+    const courseId = req.body.courseId || req.body._id || req.query.courseId;
+    
+    // Validate course ID
+    if (!courseId) {
+      console.error('Edit Course - Missing course ID');
+      return res.status(400).json({
+        success: false,
+        message: 'Course ID is required for editing',
+        receivedData: {
+          body: req.body,
+          query: req.query,
+          files: req.files ? true : false
+        }
+      });
+    }
+    
+    // Ensure courseId is set in the request body for the controller
+    req.body.courseId = courseId;
+
+    // Handle thumbnail image URL if present
+    if (req.body.thumbnailImage) {
+      console.log('Updated thumbnail image URL provided:', req.body.thumbnailImage);
+    }
+    
+    // Handle intro video URL if present
+    if (req.body.introVideo) {
+      console.log('Updated intro video URL provided:', req.body.introVideo);
+    }
+
+    // Ensure courseId is set for the controller
+    if (!req.body.courseId && req.body._id) {
+      req.body.courseId = req.body._id;
+    }
+
+    // Proceed to the editCourse controller
     next();
-  } else {
-    return res.status(403).json({
+  } catch (error) {
+    console.error('Error in editCourse middleware:', error);
+    return res.status(500).json({
       success: false,
-      message: 'You need to be an Admin or approved Instructor to edit courses'
+      message: 'Error processing course update',
+      error: error.message
     });
   }
 }, editCourse)
 // Add a Section to a Course
+// Section routes
 router.post("/addSection", auth, (req, res, next) => {
   if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
     next();
@@ -122,7 +276,8 @@ router.post("/addSection", auth, (req, res, next) => {
       message: 'You need to be an Admin or approved Instructor to perform this action'
     });
   }
-}, createSection)
+}, createSection);
+
 // Update a Section
 router.post("/updateSection", auth, (req, res, next) => {
   if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
@@ -133,7 +288,7 @@ router.post("/updateSection", auth, (req, res, next) => {
       message: 'You need to be an Admin or approved Instructor to perform this action'
     });
   }
-}, updateSection)
+}, updateSection);
 
 // Delete a Section
 router.post("/deleteSection", auth, (req, res, next) => {
@@ -146,6 +301,57 @@ router.post("/deleteSection", auth, (req, res, next) => {
     });
   }
 }, deleteSection)
+
+
+
+// Add a SubSection to a Section
+router.post("/addSubSection", auth, async (req, res) => {
+  try {
+    console.log('[addSubSection] Request received:', {
+      body: req.body,
+      user: req.user ? { id: req.user.id, accountType: req.user.accountType } : 'No user'
+    });
+
+    // Check user authorization
+    if (req.user.accountType !== 'Admin' && (req.user.accountType !== 'Instructor' || !req.user.isApproved)) {
+      return res.status(403).json({
+        success: false,
+        message: 'Unauthorized: Only approved instructors and admins can add subsections'
+      });
+    }
+
+    // Validate required fields
+    const { sectionId, title, description, videoUrl, duration } = req.body;
+    if (!sectionId || !title || !videoUrl) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: sectionId, title, and videoUrl are required',
+        received: { 
+          sectionId: !!sectionId, 
+          title: !!title, 
+          videoUrl: !!videoUrl,
+          duration: duration || 'not provided (will default to 0)'
+        }
+      });
+    }
+
+    console.log('[addSubSection] Processing video URL:', {
+      videoUrl: videoUrl.substring(0, 50) + '...',
+      duration: duration || 'not provided (will default to 0)'
+    });
+
+    // Call the createSubSection controller
+    return createSubSection(req, res);
+  } catch (error) {
+    console.error('[addSubSection] Error:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to add subsection',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
+  }
+});
 // Edit Sub Section
 router.post("/updateSubSection", auth, (req, res, next) => {
   if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
@@ -170,17 +376,7 @@ router.post("/deleteSubSection", auth, (req, res, next) => {
   }
 }, deleteSubSection)
 
-// Add New Sub Section
-router.post("/addSubSection", auth, (req, res, next) => {
-  if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
-    next();
-  } else {
-    return res.status(403).json({
-      success: false,
-      message: 'You need to be an Admin or approved Instructor to perform this action'
-    });
-  }
-}, createSubSection)
+// This route is a duplicate and has been removed. Use /addSubSection instead.
 // Get all Courses Under a Specific Instructor
 
 // Public Course queries (viewable by anyone)
@@ -197,10 +393,11 @@ router.post("/updateCourseProgress", auth, isStudent, updateCourseProgress)
 // ********************************************************************************************************
 //                                      Category routes (Only by Admin and SuperAdmin)
 // ********************************************************************************************************
-// Category can Only be Created by Admin and SuperAdmin (Staff excluded)
-router.post("/createCategory", auth , isAdminOrSuperAdmin, createCategory)
+// Category can Only be Created by Admin and SuperAdmin (Staff// Category routes
+router.post("/createCategory", auth, isAdmin, createCategory)
 router.get("/showAllCategories", showAllCategories)
-router.post("/categoryPageDetails", categoryPageDetails)
+router.post("/getCategoryPageDetails", categoryPageDetails)
+router.delete("/deleteCategory/:categoryId", auth, isAdmin, deleteCategory)
 
 // ********************************************************************************************************
 //                                      Rating and Review

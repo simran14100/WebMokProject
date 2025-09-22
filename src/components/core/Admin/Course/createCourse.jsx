@@ -62,10 +62,10 @@ export default function AddCourse() {
     );
   }
 
-  if (user?.accountType !== "Instructor" && user?.accountType !== "Admin") {
+  if (user?.accountType !== "Instructor" && user?.accountType !== "Admin" && user?.accountType !== "SuperAdmin") {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <h1 className="text-2xl font-bold text-red-500">Access Denied: Only instructors and admins can add courses.</h1>
+        <h1 className="text-2xl font-bold text-red-500">Access Denied: Only instructors, admins, and superadmins can add courses.</h1>
       </div>
     );
   }

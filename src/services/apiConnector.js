@@ -316,34 +316,89 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-export const apiConnector = async (method, url, bodyData = null, headers = {}, params = null) => {
+export const apiConnector = async (method, url, bodyData = null, headers = {}, params = null, skipAuth = false) => {
   // For DELETE requests, we don't want to include a body
   const isDelete = method.toUpperCase() === 'DELETE';
+  const isFormData = bodyData instanceof FormData;
+  
+  // Enhanced logging for FormData
+  let formDataInfo = {};
+  if (isFormData) {
+    const formDataEntries = {};
+    for (let [key, value] of bodyData.entries()) {
+      if (value instanceof File || value instanceof Blob) {
+        formDataEntries[key] = {
+          type: 'file',
+          name: value.name,
+          size: value.size,
+          type: value.type,
+          lastModified: value.lastModified
+        };
+      } else {
+        formDataEntries[key] = value;
+      }
+    }
+    formDataInfo = { formDataEntries };
+  }
   
   console.log('[apiConnector] Making request:', {
     method,
     url,
-    bodyData: isDelete ? '[omitted for DELETE]' : bodyData,
+    ...(isDelete ? { bodyData: '[omitted for DELETE]' } : {}),
+    ...(isFormData ? { formDataInfo } : { bodyData }),
     headers,
     params,
-    hasToken: !!store.getState()?.auth?.token || !!localStorage.getItem('token')
+    isFormData,
+    hasToken: !skipAuth && (!!store.getState()?.auth?.token || !!localStorage.getItem('token'))
   });
 
   try {
+    // Get the auth token if not skipped
+    const token = skipAuth ? null : (store.getState()?.auth?.token || localStorage.getItem('token'));
+    
+    // Create base config
     const requestConfig = {
       method: method,
       url: url,
       headers: {
-        ...headers,
-        'X-Requested-With': 'XMLHttpRequest'
+        ...(token && !skipAuth ? { 'Authorization': `Bearer ${token}` } : {}),
+        'X-Requested-With': 'XMLHttpRequest',
+        // Don't set Content-Type for FormData - let the browser set it with the correct boundary
+        ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+        ...headers // Let headers from the function call override
       },
       params: params,
       withCredentials: true,
+      // Add timeout and other axios config
+      timeout: 60000, // 60 seconds
+      maxContentLength: 100 * 1024 * 1024, // 100MB
+      maxBodyLength: 100 * 1024 * 1024, // 100MB
+      validateStatus: function (status) {
+        return status >= 200 && status < 500; // Resolve only if the status code is less than 500
+      },
     };
 
-    // Only include data for non-DELETE requests
+    // Handle request data
     if (!isDelete && bodyData !== null) {
-      requestConfig.data = bodyData;
+      if (isFormData) {
+        // For FormData, let Axios handle the content type with the boundary
+        requestConfig.data = bodyData;
+        // Remove Content-Type header to let the browser set it with the correct boundary
+        delete requestConfig.headers['Content-Type'];
+        
+        // Log FormData content for debugging
+        console.log('[apiConnector] FormData content:');
+        for (let [key, value] of bodyData.entries()) {
+          if (value instanceof File || value instanceof Blob) {
+            console.log(`  ${key}: [File] ${value.name} (${value.size} bytes, ${value.type})`);
+          } else {
+            console.log(`  ${key}:`, value);
+          }
+        }
+      } else {
+        // For JSON data, stringify it
+        requestConfig.data = bodyData;
+      }
     }
 
     const response = await axiosInstance(requestConfig);

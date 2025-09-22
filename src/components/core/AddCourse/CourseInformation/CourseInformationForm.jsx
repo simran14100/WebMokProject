@@ -15,6 +15,7 @@ import {
 } from '../../../../services/operations/courseDetailsAPI';
 import store from '../../../../store';
 import { setCourse, setStep } from '../../../../store/slices/courseSlice';
+import { setToken } from '../../../../store/slices/authSlice';
 import { ED_TEAL, ED_TEAL_DARK } from '../../../../utils/theme';
 import IconBtn from '../../../common/IconBtn';
 import Upload from '../Upload';
@@ -37,17 +38,64 @@ export default function CourseInformationForm() {
   
   // Get user data from Redux store
   const { user } = useSelector((state) => state.profile);
-  const { token } = useSelector((state) => state.auth);
+  const { token: authToken, isAuthenticated } = useSelector((state) => state.auth);
   
-  // Debug: Log user and token info
-  console.log('Current user:', user);
-  console.log('Current token:', token);
+  // Get token from multiple sources with priority
+  const getAuthToken = () => {
+    // 1. Try Redux auth state first
+    if (authToken) return authToken;
+    
+    // 2. Try user object in profile state
+    if (user?.token) {
+      console.log('Using token from user profile');
+      dispatch(setToken(user.token)); // Update auth state using dispatch hook
+      return user.token;
+    }
+    
+    // 3. Try localStorage
+    const localStorageToken = localStorage.getItem('token');
+    if (localStorageToken) {
+      console.log('Using token from localStorage');
+      dispatch(setToken(localStorageToken)); // Update auth state using dispatch hook
+      return localStorageToken;
+    }
+    
+    // 4. Check for debug token in development
+    if (process.env.NODE_ENV === 'development') {
+      const debugToken = localStorage.getItem('debug_token');
+      if (debugToken) {
+        console.warn('Using debug token from localStorage');
+        dispatch(setToken(debugToken)); // Update auth state using dispatch hook
+        return debugToken;
+      }
+    }
+    
+    console.warn('No authentication token found in any source');
+    return null;
+  };
   
-  // Log Redux store state for debugging
+  const token = getAuthToken();
+  
+  // Debug: Log auth state
   useEffect(() => {
-    console.log('Redux auth state:', store.getState().auth);
-    console.log('Redux profile state:', store.getState().profile);
-  }, []);
+    const state = store.getState();
+    console.log('Auth state:', {
+      hasToken: !!token,
+      tokenSource: token ? 
+        (state.auth.token === token ? 'auth' : 
+         state.profile.user?.token === token ? 'profile' : 
+         'localStorage') : 'None',
+      user: user ? 'Authenticated' : 'No user',
+      isAuthenticated: !!token && !!user,
+      fullState: state
+    });
+    
+    if (!token) {
+      console.error('No authentication token found. User may need to log in again.');
+      // Redirect to login if no token is found
+      navigate('/login');
+    }
+  }, [token, navigate, user]);
   
   const { course, editCourse } = useSelector((state) => state.course);
   
@@ -644,6 +692,23 @@ export default function CourseInformationForm() {
     return true;
   };
 
+  // Helper function to convert file to base64 (only used for small files like thumbnails)
+  const fileToBase64 = (file) => {
+    return new Promise((resolve, reject) => {
+      // For large files, we'll handle them directly in the form data
+      if (file.size > 5 * 1024 * 1024) { // 5MB limit for base64 conversion
+        console.warn('File is too large for base64 conversion, will be handled as multipart form data');
+        resolve(file); // Return the file as is for direct upload
+        return;
+      }
+      
+      const reader = new FileReader();
+      reader.readAsDataURL(file);
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = (error) => reject(error);
+    });
+  };
+
   // Handle form submission
   const onSubmit = async (data) => {
     console.log('Form submitted with data:', data);
@@ -677,35 +742,63 @@ export default function CourseInformationForm() {
     }
 
     // Do not move to Step 2 yet; wait for API success so we have course._id
-
     setLoading(true);
     
     try {
-      // Get the current token from Redux store
-      const currentToken = token || localStorage.getItem('debug_token');
+      // Get the current token from Redux store or localStorage
+      const currentToken = token || localStorage.getItem('token');
       console.log('Current token from Redux:', token);
-      console.log('Token from localStorage:', localStorage.getItem('debug_token'));
+      console.log('Token from localStorage:', localStorage.getItem('token'));
       
       if (!currentToken) {
-        throw new Error('Authentication token not found. Please log in again.');
+        console.error('No authentication token found in Redux or localStorage');
+        console.log('Full Redux state:', store.getState());
+        toast.error('Your session has expired. Please log in again.');
+        // Redirect to login page after a short delay
+        setTimeout(() => {
+          navigate('/login');
+        }, 2000);
+        return;
       }
 
       // Create form data with all required fields
       const formData = new FormData();
       
-      // If editing, include the course ID
-      if (editCourse && course?._id) {
+      // If editing, include the course ID in multiple formats for backend compatibility
+      if (editCourse) {
+        if (!course?._id) {
+          throw new Error('Course ID is required for editing');
+        }
+        
         console.log('Editing course with ID:', course._id);
+        
+        // Add course ID in different formats for backend compatibility
         formData.append('courseId', course._id);
-        formData.append('_id', course._id); // Some APIs might expect _id
+        formData.append('_id', course._id);
+        formData.append('course._id', course._id);
+        
+        // Log the course ID being sent
+        console.log('FormData courseId:', course._id);
+        
+        // Add course ID as a query parameter to the URL if needed
+        const url = new URL(window.location.href);
+        url.searchParams.set('courseId', course._id);
+        window.history.replaceState({}, '', url);
       }
       
-      // Required fields from the form
+      // Required fields from the form - ensure field names match backend expectations
       formData.append('courseName', data.courseTitle || '');
       formData.append('courseDescription', data.courseShortDesc || '');
       formData.append('price', data.coursePrice || 0);
       formData.append('category', data.courseCategory || '');
       formData.append('whatYouWillLearn', data.courseBenefits || '');
+      
+      // Ensure all required fields are present with default values if empty
+      if (!data.courseTitle) formData.set('courseName', 'Untitled Course');
+      if (!data.courseShortDesc) formData.set('courseDescription', 'No description provided');
+      if (!data.coursePrice) formData.set('price', 0);
+      if (!data.courseCategory) formData.set('category', '');
+      if (!data.courseBenefits) formData.set('whatYouWillLearn', 'No learning outcomes specified');
       
       // Use the filtered requirements
       console.log('Final requirements:', validRequirements);
@@ -717,11 +810,18 @@ export default function CourseInformationForm() {
       // Always include subCategory, even if empty (some backends might require it)
       formData.append('subCategory', data.courseSubCategory || '');
       
-      // Handle thumbnail upload
+      // Handle thumbnail upload - convert to base64 if it's a File
       if (data.courseImage instanceof File) {
-        // New file was uploaded
-        formData.append('thumbnailImage', data.courseImage);
-        console.log('New thumbnail file attached:', data.courseImage.name);
+        try {
+          const base64Thumbnail = await fileToBase64(data.courseImage);
+          formData.append('thumbnailImage', base64Thumbnail);
+          console.log('Thumbnail converted to base64');
+        } catch (error) {
+          console.error('Error converting thumbnail to base64:', error);
+          toast.error('Error processing thumbnail image');
+          setLoading(false);
+          return;
+        }
       } else if (editCourse && typeof data.courseImage === 'string') {
         // In edit mode, if courseImage is a string (URL), it's the existing thumbnail
         formData.append('thumbnailUrl', data.courseImage);
@@ -732,11 +832,14 @@ export default function CourseInformationForm() {
         toast((t) => 'Tip: Add a course thumbnail in Step 1 for better visibility');
       }
 
-      // Handle intro video upload or URL (optional)
+      // Handle intro video upload - only include if it's a File
+      // We'll handle base64 conversion on the server side to avoid memory issues
       if (data.introVideo instanceof File) {
+        // For large files, we'll let the server handle the upload directly
         formData.append('introVideo', data.introVideo);
-        console.log('Intro video file attached:', data.introVideo.name);
+        console.log('Added video file for upload');
       } else if (editCourse && typeof data.introVideo === 'string' && data.introVideo) {
+        // If it's an existing URL from edit mode
         formData.append('introVideoUrl', data.introVideo);
         console.log('Using existing intro video URL');
       }
@@ -1186,17 +1289,7 @@ export default function CourseInformationForm() {
         </div>
       </div>
 
-        {/* <div style={{ marginBottom: '1.5rem' }}>
-          <ChipInput 
-            label="Tags" 
-            name="courseTags" 
-            placeholder="Enter tags and press enter" 
-            register={register} 
-            errors={errors} v
-            setValue={setValue} 
-            getValues={getValues} 
-          />
-        </div> */}
+        
 
       
       {/* Form Actions */}

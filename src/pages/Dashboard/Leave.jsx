@@ -181,51 +181,79 @@ const Leave = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">
-          {isAdmin ? 'All Leave Requests' : 'My Leave Requests'}
-        </h1>
-        {!isAdmin && (
-          <button
-            onClick={() => setShowForm(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
-          >
-            Create Leave Request
-          </button>
-        )}
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value || '')}
-          className="px-4 py-2 border rounded-md"
-        >
-          <option value="">All Status</option>
-          <option value="Pending">Pending</option>
-          <option value="Approved">Approved</option>
-          <option value="Rejected">Rejected</option>
-        </select>
-      </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden p-6">
-        {showForm ? (
-          <LeaveRequestForm 
-            onSuccess={(newRequest) => {
-              setShowForm(false);
-              setRequests(prev => [newRequest, ...prev]);
-              toast.success('Leave request submitted successfully');
-            }}
-            onCancel={() => setShowForm(false)}
-          />
-        ) : (
-          <LeaveRequestList 
-            requests={filteredRequests}
-            onStatusUpdate={handleStatusUpdate}
-            isAdmin={isAdmin}
-            loading={loading}
-          />
-        )}
-      </div>
-    </div>
+    <div style={{ padding: "1.5rem", backgroundColor: "#f0f4f8" , marginTop:"9rem"  }}> {/* light gray background */}
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+    <h1 style={{ fontSize: "1.5rem", fontWeight: "bold", color: "#0A2F5A" }}> {/* dark blue */}
+      {isAdmin ? 'All Leave Requests' : 'My Leave Requests'}
+    </h1>
+
+    {!isAdmin && (
+      <button
+        onClick={() => setShowForm(true)}
+        style={{
+          padding: "0.5rem 1rem",
+          backgroundColor: "#3B82F6", // light blue
+          color: "#fff",
+          borderRadius: "0.375rem",
+          border: "none",
+          cursor: "pointer",
+        }}
+        onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#2563EB")} // darker hover
+        onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "#3B82F6")}
+      >
+        Create Leave Request
+      </button>
+    )}
+
+    <select
+      value={statusFilter}
+      onChange={(e) => setStatusFilter(e.target.value || '')}
+      style={{
+        padding: "0.5rem 1rem",
+        border: "1px solid #cbd5e1", // gray border
+        borderRadius: "0.375rem",
+        backgroundColor: "#fff",
+        color: "#0A2F5A", // dark blue text
+      }}
+    >
+      <option value="">All Status</option>
+      <option value="Pending">Pending</option>
+      <option value="Approved">Approved</option>
+      <option value="Rejected">Rejected</option>
+    </select>
+  </div>
+
+  <div style={{
+    backgroundColor: "#ffffff", // white card
+    borderRadius: "0.5rem",
+    boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
+    padding: "1.5rem",
+  }}>
+    {showForm ? (
+      <LeaveRequestForm 
+        onSuccess={(newRequest) => {
+          setShowForm(false);
+          setRequests(prev => [newRequest, ...prev]);
+          toast.success('Leave request submitted successfully');
+        }}
+        onCancel={() => setShowForm(false)}
+      />
+    ) : (
+      <LeaveRequestList 
+        requests={filteredRequests}
+        onStatusUpdate={handleStatusUpdate}
+        isAdmin={isAdmin}
+        loading={loading}
+      />
+    )}
+  </div>
+</div>
+
+
+  
+
+    
   );
 };
 

@@ -7,7 +7,7 @@ exports.createNotification = async (req, res) => {
     if (!title.trim() || !message.trim()) {
       return res.status(400).json({ success: false, message: "Title and message are required" });
     }
-    const doc = await Notification.create({ title: title.trim(), message: message.trim(), createdBy: req.user.id });
+    const doc = await Notification.create({ title: title.trim(), message: message.trim(), createdBy: req.user._id });
     return res.status(201).json({ success: true, data: doc });
   } catch (error) {
     console.error("CREATE NOTIFICATION ERROR:", error);
