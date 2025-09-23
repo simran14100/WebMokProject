@@ -29,7 +29,7 @@ exports.createBatchTask = async (req, res) => {
       description: (description || '').trim(),
       dueDate: dueDate ? new Date(dueDate) : undefined,
       batch: batchId,
-      createdBy: req.user.id,
+      createdBy: req.user && (req.user._id || req.user.id),
       assignedTo: assignedTo || undefined,
     });
     // Populate sequentially to avoid calling populate on a Promise (Mongoose v6+/v7 behavior)

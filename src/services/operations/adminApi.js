@@ -1,6 +1,6 @@
 import { showLoading, showSuccess, showError, dismissToast } from "../../utils/toast"
 import { apiConnector } from "../apiConnector"
-import { admin, coursework as courseworkApi } from "../apis"
+import { admin, coursework as courseworkApi, batchDepartments as batchDeptApi } from "../apis"
 
 const {
   GET_REGISTERED_USERS_API,
@@ -996,6 +996,87 @@ export async function createAdminReview({ courseId, rating, review }, token) {
 }
 
 // =========================
+// Batch Departments (Admin)
+// =========================
+export async function listBatchDepartments({ onlyActive = true } = {}) {
+  try {
+    const response = await apiConnector(
+      "GET",
+      batchDeptApi.BASE,
+      {},
+      {},
+      { params: { onlyActive: String(onlyActive) } }
+    )
+    if (!response.data?.success) throw new Error(response.data?.message || "Failed to fetch batch departments")
+    const payload = response.data?.data
+    return Array.isArray(payload) ? payload : []
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to fetch batch departments")
+    throw error
+  }
+}
+
+export async function createBatchDepartment({ name, shortcode = "", status = "Active" }, token) {
+  const toastId = showLoading("Creating department...")
+  try {
+    const response = await apiConnector(
+      "POST",
+      batchDeptApi.BASE,
+      { name, shortcode, status },
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) throw new Error(response.data?.message || "Failed to create batch department")
+    showSuccess("Department created")
+    return response.data?.data
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to create batch department")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+export async function updateBatchDepartment(id, { name, shortcode, status }, token) {
+  const toastId = showLoading("Updating department...")
+  try {
+    const response = await apiConnector(
+      "PATCH",
+      `${batchDeptApi.BASE}/${id}`,
+      { name, shortcode, status },
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) throw new Error(response.data?.message || "Failed to update batch department")
+    showSuccess("Department updated")
+    return response.data?.data
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to update batch department")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+export async function deleteBatchDepartment(id, token) {
+  const toastId = showLoading("Deleting department...")
+  try {
+    const response = await apiConnector(
+      "DELETE",
+      `${batchDeptApi.BASE}/${id}`,
+      {},
+      { Authorization: `Bearer ${token}` }
+    )
+    if (!response.data?.success) throw new Error(response.data?.message || "Failed to delete batch department")
+    showSuccess("Department deleted")
+    return true
+  } catch (error) {
+    showError(error.response?.data?.message || error.message || "Failed to delete batch department")
+    throw error
+  } finally {
+    dismissToast(toastId)
+  }
+}
+
+// =========================
 // Batch Live Classes
 // =========================
 export async function addLiveClassToBatch(batchId, payload) {
@@ -1497,12 +1578,12 @@ export async function updateUserStatus(userId, status, token) {
 
     console.log("UPDATE USER STATUS RESPONSE............", response)
 
-    if (!response.success) {
-      throw new Error(response.message)
+    if (!response.data?.success) {
+      throw new Error(response.data?.message || "Failed to update user status")
     }
 
     showSuccess("User status updated successfully")
-    return response.data
+    return response.data?.data || true
   } catch (error) {
     console.log("UPDATE USER STATUS ERROR............", error)
     showError("Failed to update user status")

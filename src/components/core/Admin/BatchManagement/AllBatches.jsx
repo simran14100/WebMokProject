@@ -4,7 +4,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import DashboardLayout from "../../../common/DashboardLayout";
-import { getBatches, exportBatches } from "../../../../services/operations/adminApi";
+import { getBatches, exportBatches, deleteBatch } from "../../../../services/operations/adminApi";
 import { showError, showSuccess } from "../../../../utils/toast";
 
 // Color constants
@@ -42,6 +42,19 @@ export default function AllBatches() {
       // error handled in service
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDelete = async (batchId) => {
+    if (!isAdmin || !batchId) return;
+    if (!window.confirm("Delete this batch?")) return;
+    try {
+      await deleteBatch(batchId, token);
+      setItems((prev) => prev.filter((b) => b._id !== batchId));
+      setTotal((t) => Math.max(0, t - 1));
+      showSuccess("Batch deleted");
+    } catch (e) {
+      // toast handled in service
     }
   };
 
@@ -321,7 +334,9 @@ export default function AllBatches() {
                           {b.name}
                         </td>
                         <td style={{
-                          padding: '0.75rem 1rem'
+                          padding: '0.75rem 1rem',
+                          display: 'flex',
+                          gap: '8px'
                         }}>
                           <button onClick={() => navigate(`/admin/batches/${b._id}/edit`)} style={{
                             backgroundColor: ED_TEAL,
@@ -338,6 +353,19 @@ export default function AllBatches() {
                             }
                           }}>
                             Edit
+                          </button>
+                          <button onClick={() => handleDelete(b._id)} style={{
+                            backgroundColor: '#fee2e2',
+                            color: '#b91c1c',
+                            padding: '0.375rem 0.75rem',
+                            borderRadius: '0.25rem',
+                            border: '1px solid #fecaca',
+                            fontWeight: 500,
+                            fontSize: '0.75rem',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s ease'
+                          }}>
+                            Delete
                           </button>
                         </td>
                       </tr>

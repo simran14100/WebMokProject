@@ -44,6 +44,7 @@ export default function EditPage() {
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
   const [department, setDepartment] = useState("");
+  const [description, setDescription] = useState("");
 
   // Task tab state
   const [tasks, setTasks] = useState([]);
@@ -711,6 +712,7 @@ export default function EditPage() {
         setBatch(data);
         setName(data?.name || "");
         setDepartment(data?.department || "");
+        setDescription(data?.description || "");
         
         // Process live classes from the batch data
         try {
@@ -894,12 +896,17 @@ export default function EditPage() {
     const payload = {};
     const trimmedName = name.trim();
     const trimmedDept = department.trim();
+    const trimmedDesc = description.trim();
 
     if (trimmedName && trimmedName !== (batch?.name || "")) {
       payload.name = trimmedName;
     }
     if (trimmedDept && trimmedDept !== (batch?.department || "")) {
       payload.department = trimmedDept;
+    }
+
+    if (trimmedDesc !== (batch?.description || "")) {
+      payload.description = trimmedDesc;
     }
 
     if (Object.keys(payload).length === 0) {
@@ -1165,7 +1172,7 @@ export default function EditPage() {
                                           </span>
                                         )}
                                         {/* Status badge */}
-                                        <span
+                                          <span
                                             style={{
                                               marginLeft: 6,
                                               background: "#DCFCE7",
@@ -2577,6 +2584,19 @@ export default function EditPage() {
                       />
                     ) : (
                       <div className="info-value">{batch?.department || "—"}</div>
+                    )}
+                  </div>
+                  <div className="info-field" style={{ gridColumn: "1 / -1" }}>
+                    <label>Description</label>
+                    {isEditing ? (
+                      <textarea
+                        value={description}
+                        onChange={(e) => setDescription(e.target.value)}
+                        placeholder="Enter description"
+                        rows={3}
+                      />
+                    ) : (
+                      <div className="info-value">{batch?.description || "—"}</div>
                     )}
                   </div>
                 </div>

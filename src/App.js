@@ -25,7 +25,7 @@ import PaymentInstallments from "./pages/PaymentInstallments";
 import AdminProfile from './pages/AdminProfile';
 import Settings from "./components/common/setting/Settings";
 import AdminLayout from './components/common/AdminLayout';
-import EnrolledStudents from './pages/EnrolledStudents';
+import EnrolledStudents from './pages/AllStudentsCombined';
 import RegisteredStudents from './pages/RegisteredStudents';
 import AllUsers from './components/core/Admin/UserManagement/User/AllUser';
 import Category from "./pages/Category";
@@ -134,6 +134,7 @@ import EnquiryReferences from './components/core/UGPGAdmin/FrontDesk/EnquiryRefe
 import GrievanceTypes from './components/core/UGPGAdmin/FrontDesk/GrievanceTypes';
 import PostalTypes from './components/core/UGPGAdmin/FrontDesk/PostalTypes';
 import MeetingTypes from './components/core/UGPGAdmin/FrontDesk/MeetingTypes';
+import BatchDepartments from './components/core/Admin/BatchManagement/BatchDepartments';
 import UniversityDashboard from "./pages/UniversityDashboard";
 import UniversityEnrolledStudent from "./pages/SuperAdmin/UniversityEnrolledStudent";
 import { withEnrollmentVerification } from "./middleware/enrollmentMiddleware";
@@ -338,6 +339,7 @@ function AppRoutes() {
         <Route path="academic/streams" element={<Streams />} />
         <Route path="academic/subjects-papers" element={<SubjectsPapers />} />
         <Route path="academic/result-generation" element={<ResultGeneration />} />
+        {/* UGPG sidebar link intentionally removed per latest change */}
         <Route path="front-desk" element={<UGPGFrontDesk />} />
         <Route path="admissions" element={<UGPGAdmissions />}>
           <Route path="enquiries" element={<AdmissionEnquiry />} />
@@ -547,6 +549,11 @@ function AppRoutes() {
           <Route path="/admin/batches/create" element={
             <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
               <CreateBatch />
+            </ProtectedRoute>
+          } />
+          <Route path="/admin/batches/departments" element={
+            <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.INSTRUCTOR, ACCOUNT_TYPE.SUPER_ADMIN]}>
+              <BatchDepartments />
             </ProtectedRoute>
           } />
           <Route path="/admin/batches" element={

@@ -160,6 +160,11 @@ export const admin = {
     DELETE_NOTIFICATION_API: "/api/v1/admin/notifications", // DELETE `${...}/${id}`
 };
 
+// Batch Departments endpoints
+export const batchDepartments = {
+  BASE: "/api/v1/batch-departments",
+};
+
 export const admission = {
     GET_ALL_CONFIRMATIONS_API: "/api/v1/admission/confirmations",
     GET_CONFIRMATION_BY_ID_API: "/api/v1/admission/confirmations",

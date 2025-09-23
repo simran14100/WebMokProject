@@ -838,7 +838,7 @@ const FormPage = () => {
                 label="Phone Number"
                 name="phone"
                 type="tel"
-                placeholder="Enter Phone Number"
+                placeholder="Enter 10-digit mobile number"
                 register={register}
                 errors={errors}
               />

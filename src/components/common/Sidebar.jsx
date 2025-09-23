@@ -359,6 +359,7 @@ const getSidebarLinks = (user, variant = 'default') => {
         name: "Batch",
         icon: <VscVersions style={{ fontSize: 20, color: ED_TEAL }} />,
         subLinks: [
+          { name: "Batch Department", path: "/admin/batches/departments" },
           { name: "Create Batch", path: "/admin/batches/create" },
           { name: "All Batches", path: "/admin/batches" }
         ]

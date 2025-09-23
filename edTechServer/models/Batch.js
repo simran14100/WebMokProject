@@ -12,7 +12,11 @@ const BatchSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
-      enum: ["skilling", "training", "personality"],
+    },
+    description: {
+      type: String,
+      default: "",
+      trim: true,
     },
     createdBy: {
       type: mongoose.Schema.Types.ObjectId,

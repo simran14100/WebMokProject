@@ -5,7 +5,7 @@ const User = require("../models/User");
 // POST /api/v1/admin/create-batch
 exports.createBatch = async (req, res) => {
   try {
-    const { name, department } = req.body;
+    const { name, department, description = '' } = req.body;
 
     if (!name || !department) {
       return res.status(400).json({ success: false, message: "name and department are required" });
@@ -15,13 +15,14 @@ exports.createBatch = async (req, res) => {
     const normalizedName = String(name).trim();
     const normalizedDept = String(department).trim().toLowerCase();
 
-    // Validate department against enum
-    const allowedDepartments = ["skilling", "training", "personality"];
-    if (!allowedDepartments.includes(normalizedDept)) {
-      return res.status(400).json({
-        success: false,
-        message: `department must be one of: ${allowedDepartments.join(", ")}`,
-      });
+    // Validate department exists in BatchDepartment collection
+    const BatchDepartment = require("../models/BatchDepartment");
+    const escapeRegex = (str) => String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const deptDoc = await BatchDepartment.findOne({
+      name: { $regex: new RegExp(`^${escapeRegex(normalizedDept)}$`, 'i') }
+    }).lean();
+    if (!deptDoc) {
+      return res.status(400).json({ success: false, message: "Invalid department. Please create it first in Batch Departments" });
     }
 
     // Check duplicate
@@ -33,7 +34,8 @@ exports.createBatch = async (req, res) => {
     const batch = await Batch.create({
       name: normalizedName,
       department: normalizedDept,
-      createdBy: req.user.id,
+      description: String(description || '').trim(),
+      createdBy: req.user && (req.user._id || req.user.id),
     });
 
     return res.status(201).json({ success: true, message: "Batch created successfully", data: batch });
@@ -271,10 +273,10 @@ exports.removeCourseFromBatch = async (req, res) => {
 exports.updateBatch = async (req, res) => {
   try {
     const { batchId } = req.params;
-    const { name, department } = req.body;
+    const { name, department, description } = req.body;
 
     if (!batchId) return res.status(400).json({ success: false, message: "batchId is required" });
-    if (!name && !department) {
+    if (!name && !department && description === undefined) {
       return res.status(400).json({ success: false, message: "Nothing to update" });
     }
 
@@ -282,12 +284,17 @@ exports.updateBatch = async (req, res) => {
     if (name !== undefined) update.name = String(name).trim();
     if (department !== undefined) {
       const normalizedDept = String(department).trim().toLowerCase();
-      const allowedDepartments = ["skilling", "training", "personality"];
-      if (!allowedDepartments.includes(normalizedDept)) {
-        return res.status(400).json({ success: false, message: `department must be one of: ${allowedDepartments.join(", ")}` });
+      const BatchDepartment = require("../models/BatchDepartment");
+      const escapeRegex = (str) => String(str).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const deptDoc = await BatchDepartment.findOne({
+        name: { $regex: new RegExp(`^${escapeRegex(normalizedDept)}$`, 'i') }
+      }).lean();
+      if (!deptDoc) {
+        return res.status(400).json({ success: false, message: "Invalid department. Please create it first in Batch Departments" });
       }
       update.department = normalizedDept;
     }
+    if (description !== undefined) update.description = String(description || '').trim();
 
     const updated = await Batch.findByIdAndUpdate(batchId, update, { new: true }).lean();
     if (!updated) return res.status(404).json({ success: false, message: "Batch not found" });

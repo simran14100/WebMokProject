@@ -65,8 +65,8 @@ export default function CreateStudent() {
       return false
     }
     const phoneDigits = phone.replace(/\D/g, "")
-    if (phoneDigits.length < 8) {
-      toast.error("Enter a valid phone number")
+    if (!/^\d{10}$/.test(phoneDigits)) {
+      toast.error("Enter a valid 10-digit mobile number")
       return false
     }
     if (!password.trim() || !confirmPassword.trim()) {
@@ -167,7 +167,17 @@ export default function CreateStudent() {
 
               <div>
                 <label style={labelStyle}>Phone</label>
-                <input name="phone" type="tel" value={formData.phone} onChange={handleChange} placeholder="Enter phone" style={inputStyle} />
+                <input
+                  name="phone"
+                  type="tel"
+                  value={formData.phone}
+                  onChange={handleChange}
+                  placeholder="Enter 10-digit mobile number"
+                  style={inputStyle}
+                  inputMode="numeric"
+                  pattern="\\d{10}"
+                  maxLength={10}
+                />
               </div>
 
               <div>
