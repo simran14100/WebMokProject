@@ -293,6 +293,15 @@ export default function CourseInformationForm() {
   // Store initial form data for comparison
   const [initialFormData, setInitialFormData] = useState(null);
 
+  // Ensure clean intro video in create mode
+  useEffect(() => {
+    if (!editCourse) {
+      try {
+        setValue('introVideo', '', { shouldValidate: false, shouldDirty: false });
+      } catch (_) {}
+    }
+  }, [editCourse, setValue]);
+
   // Effect to handle subcategory selection when subcategories change
   useEffect(() => {
     if (initialSubCategoryIdRef.current && courseSubCategories.length > 0) {
@@ -514,34 +523,33 @@ export default function CourseInformationForm() {
   }, [editCourse, course, setValue]);
 
   // Function to check if form has changes
-  const hasFormChanges = (formData) => {
+  const hasFormChanges = () => {
     if (!initialFormData) return true; // If no initial data, consider it as changed
-    
+
+    const current = getValues();
     const fieldsToCheck = [
-      'courseTitle', 
-      'courseShortDesc', 
-      'coursePrice', 
+      'courseTitle',
+      'courseShortDesc',
+      'coursePrice',
       'courseBenefits',
       'courseCategory',
       'courseSubCategory',
       'courseImage',
-      'introVideo'
+      'introVideo',
     ];
 
-    // Check if any field has changed
-    const hasChanges = fieldsToCheck.some(key => {
-      return JSON.stringify(formData[key]) !== JSON.stringify(initialFormData[key]);
+    const anyFieldChanged = fieldsToCheck.some((key) => {
+      return JSON.stringify(current[key]) !== JSON.stringify(initialFormData[key]);
     });
 
-    // Check if requirements have changed
-    const reqChanged = JSON.stringify(formData.requirements || []) !== 
-                      JSON.stringify(initialFormData.requirements || []);
-    
-    // Check if tags have changed
-    const tagsChanged = JSON.stringify(formData.courseTags || []) !== 
-                       JSON.stringify(initialFormData.courseTags || []);
+    // Compare requirements from the RHF field name 'courseRequirements'
+    const currentRequirements = current.courseRequirements || [];
+    const reqChanged = JSON.stringify(currentRequirements) !== JSON.stringify(initialFormData.requirements || []);
 
-    return hasChanges || reqChanged || tagsChanged;
+    // Compare tags from component state (authoritative)
+    const tagsChanged = JSON.stringify(courseTags || []) !== JSON.stringify(initialFormData.courseTags || []);
+
+    return anyFieldChanged || reqChanged || tagsChanged;
   };
 
   // Watch for category changes to load subcategories
@@ -719,7 +727,7 @@ export default function CourseInformationForm() {
     }
     
     // Check if in edit mode and no changes were made
-    if (editCourse && !hasFormChanges(data)) {
+    if (editCourse && !hasFormChanges()) {
       toast('No changes were made to the course');
       // Do not advance steps; keep user on the same form
       return;
@@ -1039,6 +1047,7 @@ export default function CourseInformationForm() {
             {/* Intro Video (optional) */}
           </label>
           <Upload
+            key={editCourse ? 'intro-edit' : 'intro-create'}
             name="introVideo"
             label="Choose Intro Video"
             register={register}
@@ -1046,8 +1055,8 @@ export default function CourseInformationForm() {
             errors={errors}
             video={true}
             required={false}
-            editData={course?.introVideo || ''}
-            viewData={course?.introVideo || ''}
+            editData={editCourse ? (course?.introVideo || '') : ''}
+            viewData={editCourse ? (course?.introVideo || '') : ''}
             useSignedUploads={true}
             getSignature={async () => {
               const baseUrl = process.env.REACT_APP_BASE_URL || 'http://localhost:4000';
@@ -1261,9 +1270,7 @@ export default function CourseInformationForm() {
           {errors.courseSubCategory && (
             <p style={formStyles.error}>{errors.courseSubCategory.message}</p>
           )}
-          <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: '#666' }}>
-            Current value: {watch('courseSubCategory') || 'Not selected'}
-          </div>
+          
         </div>
 
         {errors.courseCategory && (

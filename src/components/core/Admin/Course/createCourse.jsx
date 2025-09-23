@@ -46,13 +46,19 @@
 
 import RenderSteps from "../../AddCourse/RenderSteps"
 import DashboardLayout from "../../../common/DashboardLayout";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
+import { useEffect } from "react";
+import { resetCourseState } from "../../../../store/slices/courseSlice";
 
 export default function AddCourse() {
-
-
+ const dispatch = useDispatch();
  const { user, loading } = useSelector((state) => state.profile);
   console.log("Current user:", user);
+
+  // Ensure create flow starts with a clean course state (no edit prefill)
+  useEffect(() => {
+    dispatch(resetCourseState());
+  }, [dispatch]);
 
   if (loading || user === undefined) {
     return (
