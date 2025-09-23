@@ -810,8 +810,11 @@ export default function CourseInformationForm() {
       // Always include subCategory, even if empty (some backends might require it)
       formData.append('subCategory', data.courseSubCategory || '');
       
-      // Handle thumbnail upload - convert to base64 if it's a File
-      if (data.courseImage instanceof File) {
+      // Handle thumbnail: prefer Cloudinary URL (string), else File->base64
+      if (typeof data.courseImage === 'string' && data.courseImage) {
+        formData.append('thumbnailImage', data.courseImage);
+        console.log('Using Cloudinary thumbnail URL');
+      } else if (data.courseImage instanceof File) {
         try {
           const base64Thumbnail = await fileToBase64(data.courseImage);
           formData.append('thumbnailImage', base64Thumbnail);
@@ -822,26 +825,20 @@ export default function CourseInformationForm() {
           setLoading(false);
           return;
         }
-      } else if (editCourse && typeof data.courseImage === 'string') {
-        // In edit mode, if courseImage is a string (URL), it's the existing thumbnail
-        formData.append('thumbnailUrl', data.courseImage);
-        console.log('Using existing thumbnail URL');
       } else if (!editCourse) {
         // For new courses, thumbnail is recommended but do not block progression to next step
         console.warn('Thumbnail not provided for new course');
         toast((t) => 'Tip: Add a course thumbnail in Step 1 for better visibility');
       }
 
-      // Handle intro video upload - only include if it's a File
-      // We'll handle base64 conversion on the server side to avoid memory issues
-      if (data.introVideo instanceof File) {
+      // Handle intro video: Cloudinary URL or File
+      if (typeof data.introVideo === 'string' && data.introVideo) {
+        formData.append('introVideo', data.introVideo);
+        console.log('Using Cloudinary intro video URL');
+      } else if (data.introVideo instanceof File) {
         // For large files, we'll let the server handle the upload directly
         formData.append('introVideo', data.introVideo);
         console.log('Added video file for upload');
-      } else if (editCourse && typeof data.introVideo === 'string' && data.introVideo) {
-        // If it's an existing URL from edit mode
-        formData.append('introVideoUrl', data.introVideo);
-        console.log('Using existing intro video URL');
       }
 
       // Log form data for debugging
@@ -1011,6 +1008,22 @@ export default function CourseInformationForm() {
             required={!editCourse}
             editData={thumbnailPreview || ''}
             viewData={thumbnailPreview || ''}
+            useSignedUploads={true}
+            getSignature={async () => {
+              const baseUrl = process.env.REACT_APP_BASE_URL || 'http://localhost:4000';
+              const res = await fetch(`${baseUrl}/api/v1/cloudinary/signature`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({}),
+                credentials: 'include',
+              });
+              const json = await res.json();
+              if (!res.ok || !json.success) throw new Error(json.message || 'Failed to get signature');
+              return json.data;
+            }}
           />
         </div>
 
@@ -1035,6 +1048,22 @@ export default function CourseInformationForm() {
             required={false}
             editData={course?.introVideo || ''}
             viewData={course?.introVideo || ''}
+            useSignedUploads={true}
+            getSignature={async () => {
+              const baseUrl = process.env.REACT_APP_BASE_URL || 'http://localhost:4000';
+              const res = await fetch(`${baseUrl}/api/v1/cloudinary/signature`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${token}`,
+                },
+                body: JSON.stringify({}),
+                credentials: 'include',
+              });
+              const json = await res.json();
+              if (!res.ok || !json.success) throw new Error(json.message || 'Failed to get signature');
+              return json.data;
+            }}
           />
         </div>
 

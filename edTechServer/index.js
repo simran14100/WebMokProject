@@ -56,6 +56,7 @@ const ugpgVisitorLogRoutes = require("./routes/ugpgVisitorLog");
 const visitPurposeRoutes = require("./routes/visitPurpose");
 const honoraryEnquiryRoutes = require("./routes/honoraryEnquiryRoutes");
 const guideRoutes = require("./routes/guide");
+const cloudinaryRoutes = require("./routes/cloudinary");
 
 const meetingTypeRoutes = require("./routes/meetingTypeRoutes");
 const universityRegisteredStudentRoutes = require("./routes/universityRegisteredStudent");
@@ -262,6 +263,7 @@ app.use("/api/v1/university/payments", universityPaymentRoutes);
 app.use("/api/v1/leave-requests", leaveRequestRoutes);
 app.use("/api/v1/timetable", timetableRoutes);
 app.use("/api/v1/guide", guideRoutes);
+app.use("/api/v1/cloudinary", cloudinaryRoutes);
 
 // Debug routes - remove in production
 app.use("/api/v1/debug", debugRoutes);
