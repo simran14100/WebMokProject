@@ -43,6 +43,7 @@ export default function SubSectionModal({
   const [loading, setLoading] = useState(false)
   const { token } = useSelector((state) => state.auth)
   const { course } = useSelector((state) => state.course)
+  const [videoUploading, setVideoUploading] = useState(false)
 
   useEffect(() => {
     if (view || edit) {
@@ -125,91 +126,31 @@ export default function SubSectionModal({
       return
     }
 
-    // Create a new FormData instance
-    const formData = new FormData()
-    
-    // Add basic fields
-    formData.append('sectionId', modalData)
-    formData.append('title', data.lectureTitle.trim())
-    formData.append('description', data.lectureDesc || '')
-    
-    // Handle the video file
-    if (!data.lectureVideo) {
-      showError("Please select a video file to upload.")
+    // For subsections, require a finalized Cloudinary URL from the Upload component
+    if (!data.lectureVideo || typeof data.lectureVideo !== 'string' || !data.lectureVideo.startsWith('http')) {
+      showError('Please upload the video (wait until it finishes) before saving.')
       return
     }
 
     try {
-      // Get the file from the input
-      let videoFile = data.lectureVideo;
-      
-      // If it's a File object, use it directly
-      if (videoFile instanceof File) {
-        // Check file size (e.g., 100MB limit)
-        const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB
-        if (videoFile.size > MAX_FILE_SIZE) {
-          showError("Video file is too large. Maximum size is 100MB.")
-          return
-        }
-        
-        // Check file type
-        if (!videoFile.type.startsWith('video/')) {
-          showError("Please upload a valid video file.")
-          return
-        }
-        
-        formData.append('video', videoFile)
-      } 
-      // If it's a string (URL or base64), try to fetch it
-      else if (typeof videoFile === 'string') {
-        try {
-          // If it's a base64 string
-          if (videoFile.startsWith('data:video/')) {
-            const response = await fetch(videoFile)
-            const blob = await response.blob()
-            videoFile = new File([blob], 'lecture-video.mp4', { type: 'video/mp4' })
-            formData.append('video', videoFile)
-          } 
-          // If it's a URL
-          else if (videoFile.startsWith('http')) {
-            const response = await fetch(videoFile)
-            if (!response.ok) throw new Error('Failed to fetch video')
-            const blob = await response.blob()
-            videoFile = new File([blob], 'lecture-video.mp4', { type: blob.type || 'video/mp4' })
-            formData.append('video', videoFile)
-          } else {
-            throw new Error('Invalid video format')
-          }
-        } catch (error) {
-          console.error('Error processing video file:', error)
-          showError('Failed to process video file. Please try again.')
-          return
-        }
-      } 
-      // If it's an object with a file property
-      else if (videoFile.file) {
-        formData.append('video', videoFile.file)
-      } 
-      else {
-        throw new Error('Invalid video file format')
-      }
-      
-      // Log FormData content for debugging
-      console.log('FormData content:')
-      for (let [key, value] of formData.entries()) {
-        console.log(key, value instanceof File ? 
-          `[File] ${value.name} (${value.size} bytes, ${value.type})` : 
-          value)
-      }
-      
       setLoading(true)
-      
-      // Make the API call
+      const sectionId = typeof modalData === 'string' ? modalData : modalData?.sectionId || modalData?._id
+      if (!sectionId) {
+        showError('Section ID missing')
+        return
+      }
+
+      const formData = new FormData()
+      formData.append('sectionId', sectionId)
+      formData.append('title', data.lectureTitle.trim())
+      formData.append('description', data.lectureDesc || '')
+      formData.append('videoUrl', data.lectureVideo)
+
       const result = await createSubSection(formData, token)
       
       if (result) {
         const updatedCourseContent = course.courseContent.map((section) =>
-          section._id === modalData ? result : section
+          section._id === sectionId ? result : section
         )
         dispatch(setCourse({ ...course, courseContent: updatedCourseContent }))
         showSuccess("Lecture added successfully")
@@ -430,6 +371,23 @@ export default function SubSectionModal({
                   viewData={view ? modalData.videoUrl : null}
                   editData={edit ? modalData.videoUrl : null}
                   disabled={view || loading}
+                  useSignedUploads={true}
+                  getSignature={async () => {
+                    const baseUrl = process.env.REACT_APP_BASE_URL || 'http://localhost:4000';
+                    const res = await fetch(`${baseUrl}/api/v1/cloudinary/signature`, {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({}),
+                      credentials: 'include',
+                    });
+                    const json = await res.json();
+                    if (!res.ok || !json.success) throw new Error(json.message || 'Failed to get signature');
+                    return json.data;
+                  }}
+                  onUploadingChange={(flag) => setVideoUploading(!!flag)}
                 />
                 <p style={styles.uploadInstructions}>
                   Drag and drop a video file, or click to browse
@@ -514,7 +472,7 @@ export default function SubSectionModal({
                     ...styles.submitButton,
                     ...(loading ? styles.submitButtonDisabled : {})
                   }}
-                  disabled={loading}
+                  disabled={loading || videoUploading}
                   onMouseEnter={(e) => {
                     if (!loading) {
                       e.target.style.backgroundColor = ED_TEAL_DARK;
@@ -528,7 +486,7 @@ export default function SubSectionModal({
                     }
                   }}
                 >
-                  {loading ? "Processing..." : edit ? "Save Changes" : "Save Lecture"}
+                  {videoUploading ? "Uploading..." : (loading ? "Processing..." : (edit ? "Save Changes" : "Save Lecture"))}
                 </button>
               </div>
             )}

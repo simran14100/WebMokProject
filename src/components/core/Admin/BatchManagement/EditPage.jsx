@@ -3,9 +3,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useSelector } from "react-redux";
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, isSameMonth, addDays, isToday } from 'date-fns';
 import DashboardLayout from "../../../common/DashboardLayout";
-import { getBatchById, updateBatch, deleteBatch, getAllInstructors, getRegisteredUsers, getEnrolledStudents, listBatchStudents, addStudentToBatch, removeStudentFromBatch, listBatchCourses, addCourseToBatch, removeCourseFromBatch, addLiveClassToBatch, createAdminReview, deleteAdminReview, createGoogleMeetLink, listBatchTrainers, addTrainerToBatch, removeTrainerFromBatch, listTempStudentsInBatch, addTempStudentToBatch, removeTempStudentFromBatch, listBatchTasks, createBatchTask, updateTask, deleteTask, getTaskStatuses, getTaskSummary } from "../../../../services/operations/adminApi";
+import { getBatchById, updateBatch, deleteBatch, getAllInstructors, getRegisteredUsers, getEnrolledStudents, listBatchStudents, addStudentToBatch, removeStudentFromBatch, listBatchCourses, addCourseToBatch, removeCourseFromBatch, addLiveClassToBatch, createAdminReview, deleteAdminReview, createGoogleMeetLink, listBatchTrainers, addTrainerToBatch, removeTrainerFromBatch, listTempStudentsInBatch, addTempStudentToBatch, removeTempStudentFromBatch, listBatchTasks, createBatchTask, updateTask, deleteTask, getTaskStatuses, getTaskSummary, bulkUploadStudents } from "../../../../services/operations/adminApi";
+import { admin as adminApis } from "../../../../services/apis";
+import { apiConnector } from "../../../../services/apiConnector";
+import { showLoading, showSuccess, showError, dismissToast } from "../../../../utils/toast";
 import { getAllCourses, getAllReviews } from "../../../../services/operations/courseDetailsAPI";
-import { showError, showSuccess, showLoading, dismissToast } from "../../../../utils/toast";
 
 // Style constants
 const ED_TEAL = "#07A698";
@@ -25,7 +27,6 @@ const TABS = [
   { key: "live", label: "Live Classes" },
   { key: "task", label: "Task" },
   { key: "performance", label: "Performance" },
-  { key: "reviews", label: "Reviews" },
 ];
 
 export default function EditPage() {
@@ -123,6 +124,9 @@ export default function EditPage() {
   // Students state
   const [students, setStudents] = useState([]);
   const [allStudents, setAllStudents] = useState([]);
+  const [bulkModalOpen, setBulkModalOpen] = useState(false);
+  const [bulkFile, setBulkFile] = useState(null);
+  const [bulkUploading, setBulkUploading] = useState(false);
   const [selectedStudentIds, setSelectedStudentIds] = useState(new Set());
   const [studentPageIndex, setStudentPageIndex] = useState(0);
   const [studentRowsPerPage, setStudentRowsPerPage] = useState(10);
@@ -1160,7 +1164,8 @@ export default function EditPage() {
                                             {format(ev._st, 'h:mm a')}
                                           </span>
                                         )}
-                                          <span
+                                        {/* Status badge */}
+                                        <span
                                             style={{
                                               marginLeft: 6,
                                               background: "#DCFCE7",
@@ -1176,7 +1181,6 @@ export default function EditPage() {
                                           >
                                             Done
                                           </span>
-                                        )}
                                       </div>
                                     );
                                   })}
@@ -2155,6 +2159,46 @@ export default function EditPage() {
                   Download All Student File
                 </button>
 
+                <div className="action-group" style={{ gap: 8 }}>
+                  <button
+                    onClick={() => setBulkModalOpen(true)}
+                    className="primary-button"
+                  >
+                    Bulk Add Students
+                  </button>
+                  <button
+                    onClick={async () => {
+                      const toastId = showLoading('Preparing template...')
+                      try {
+                        const response = await apiConnector(
+                          'GET',
+                          adminApis.STUDENTS_TEMPLATE_API,
+                          {},
+                          { Authorization: `Bearer ${token}` },
+                          { responseType: 'blob' }
+                        )
+                        const blob = new Blob([response.data], { type: 'text/csv' })
+                        const url = window.URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url
+                        a.download = 'students_template.csv'
+                        document.body.appendChild(a)
+                        a.click()
+                        a.remove()
+                        window.URL.revokeObjectURL(url)
+                        showSuccess('Template downloaded')
+                      } catch (e) {
+                        showError(e?.response?.data?.message || e.message || 'Failed to download template')
+                      } finally {
+                        dismissToast(toastId)
+                      }
+                    }}
+                    className="secondary-button"
+                  >
+                    Download Template
+                  </button>
+                </div>
+
                 <div className="action-group">
                   <button
                     onClick={onAddStudent}
@@ -2434,6 +2478,68 @@ export default function EditPage() {
                 <div className="modal-footer">
                   <button onClick={() => setShowStudentModal(false)} className="primary-button">
                     Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Bulk Upload Modal */}
+          {bulkModalOpen && (
+            <div className="modal-overlay" onClick={() => (!bulkUploading ? setBulkModalOpen(false) : {})}>
+              <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+                <div className="modal-header sticky">
+                  <h3>Bulk Add Students</h3>
+                </div>
+                <div className="modal-body">
+                  <p style={{ marginBottom: 12 }}>Upload a CSV/XLSX using the template format: name, email, phone, enrollmentFeePaid</p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <input
+                      type="file"
+                      accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                      onChange={(e) => setBulkFile(e.target.files && e.target.files[0] ? e.target.files[0] : null)}
+                      disabled={bulkUploading}
+                    />
+                    <a
+                      href={adminApis.STUDENTS_TEMPLATE_API}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="secondary-button"
+                      style={{ textDecoration: 'none' }}
+                    >
+                      Download Template
+                    </a>
+                  </div>
+                </div>
+                <div className="modal-footer" style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                  <button
+                    onClick={() => setBulkModalOpen(false)}
+                    className="secondary-button"
+                    disabled={bulkUploading}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={async () => {
+                      if (!bulkFile) return;
+                      try {
+                        setBulkUploading(true);
+                        const res = await bulkUploadStudents({ batchId, file: bulkFile }, token);
+                        // Refresh students after bulk add
+                        const refreshed = await listBatchStudents(batchId, token);
+                        setStudents(Array.isArray(refreshed) ? refreshed : []);
+                        setBulkModalOpen(false);
+                      } catch (e) {
+                        // error toast already shown by api layer
+                      } finally {
+                        setBulkUploading(false);
+                        setBulkFile(null);
+                      }
+                    }}
+                    className="primary-button"
+                    disabled={!bulkFile || bulkUploading}
+                  >
+                    {bulkUploading ? 'Uploading...' : 'Upload'}
                   </button>
                 </div>
               </div>

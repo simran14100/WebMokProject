@@ -27,6 +27,7 @@ export default function Upload({
   uploadPreset,
   folder,
   getSignature,
+  onUploadingChange,
 }) {
   const { course } = useSelector((state) => state.course)
   const [selectedFile, setSelectedFile] = useState(null)
@@ -87,6 +88,9 @@ export default function Upload({
         return
       }
       setIsUploading(true)
+      if (typeof onUploadingChange === 'function') {
+        try { onUploadingChange(true) } catch {}
+      }
 
       const sig = await getSignature()
       console.log('[Upload] Signature payload:', sig)
@@ -130,6 +134,9 @@ export default function Upload({
       console.error('Signed upload error:', e)
     } finally {
       setIsUploading(false)
+      if (typeof onUploadingChange === 'function') {
+        try { onUploadingChange(false) } catch {}
+      }
     }
   }
 
