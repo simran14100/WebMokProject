@@ -2,33 +2,9 @@ const mongoose = require("mongoose");
 
 const VisitorLogSchema = new mongoose.Schema(
   {
-    visitPurpose: {
-      type: String,
-      enum: ["Admission Enquiry", "Coordinator", "Personal Test"],
-      required: true,
-      trim: true,
-    },
-    department: {
-      type: String,
-      enum: [
-        "Agriculture",
-        "Applied Science",
-        "Arts",
-        "Certificate Course",
-        "Commerce and Management",
-        "Computer Applications",
-        "Education",
-        "Engineering",
-        "Law",
-        "Nursing",
-        "Pharmacy",
-        "Physical Education",
-        "Science",
-        "Social Sciences"
-      ],
-      required: true,
-      trim: true,
-    },
+    // Allow dynamic values managed via VisitPurpose and VisitDepartment
+    visitPurpose: { type: String, required: true, trim: true },
+    department: { type: String, required: true, trim: true },
     name: { type: String, required: true, trim: true },
     fatherName: { type: String, trim: true },
     phone: { type: String, required: true, trim: true },

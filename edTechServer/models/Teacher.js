@@ -19,6 +19,16 @@ const teacherSchema = new mongoose.Schema({
     trim: true,
     match: [/^[0-9]{10}$/, 'Please enter a valid 10-digit phone number']
   },
+  salary: {
+    type: Number,
+    min: [0, 'Salary cannot be negative'],
+    default: 0
+  },
+  pfDeduct: {
+    type: Number,
+    min: [0, 'PF deduction cannot be negative'],
+    default: 0
+  },
   school: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'UGPGSchool', 
@@ -33,6 +43,11 @@ const teacherSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'UGPGSubject' 
   }],
+  address: {
+    type: String,
+    trim: true,
+    default: ''
+  },
   createdAt: { 
     type: Date, 
     default: Date.now 

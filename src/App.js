@@ -101,6 +101,7 @@ import LiveClasses from "./pages/LiveClasses";
 // Sidebar centralized with variants
 import Sidebar from './components/common/Sidebar';
 // UG/PG SuperAdmin pages
+import CourseCategory from './components/core/UGPGAdmin/Academic/CourseCategory';
 import UGPGDashboard from './components/core/UGPGAdmin/Dashboard';
 import UGPGSettings from './components/core/UGPGAdmin/Settings';
 import UGPGAcademic from './components/core/UGPGAdmin/Academic';
@@ -141,6 +142,7 @@ import { withEnrollmentVerification } from "./middleware/enrollmentMiddleware";
 import DashboardLayout from './components/common/DashboardLayout';
 import Accounts from "./pages/Dashboard/Accounts";
 import StudentResults from "./pages/Dashboard/StudentResults"; 
+import VisitDepartments from './components/core/UGPGAdmin/FrontDesk/VisitDepartments';
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
 console.log("App starting - localStorage debug:");
@@ -334,6 +336,7 @@ function AppRoutes() {
         <Route path="academic/timetable" element={<TimetableList />} />
         <Route path="academic/timetable-add" element={<TimetableForm />} />
         <Route path="academic/timetable-edit/:id" element={<TimetableForm />} />
+        <Route path="academic/course-categories" element={<CourseCategory />} />
         <Route path="academic/course-types" element={<CourseTypes />} />
         <Route path="academic/courses" element={<Courses />} />
         <Route path="academic/streams" element={<Streams />} />
@@ -350,6 +353,7 @@ function AppRoutes() {
         </Route>
         <Route path="front-desk/visitor-logs" element={<VisitorLogs />} />
         <Route path="front-desk/phone-logs" element={<PhoneLogs />} />
+        <Route path="front-desk/visit-departments" element={<VisitDepartments />} />
         <Route path="front-desk/grievances" element={<Grievances />} />
         <Route path="front-desk/postal-exchange" element={<PostalExchange />} />
         <Route path="front-desk/visit-purpose" element={<VisitPurpose />} />

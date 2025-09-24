@@ -41,7 +41,7 @@ const TeacherForm = () => {
         // If in edit mode, load teacher data
         if (isEditMode) {
           const teacherResponse = await teacherApi.getTeacher(id);
-          const teacher = teacherResponse.data;
+          const teacher = teacherResponse.data?.data || teacherResponse.data;
           
           if (teacher) {
             form.setFieldsValue({
@@ -51,7 +51,11 @@ const TeacherForm = () => {
               school: teacher.school?._id || teacher.school,
               designation: teacher.designation,
               subjects: teacher.subjects?.map(sub => sub._id || sub) || [],
-              address: teacher.address
+              address: teacher.address,
+              salary: typeof teacher.salary === 'number' ? teacher.salary : 0,
+              pfDeduct: typeof teacher.pfDeduct === 'number' 
+                ? teacher.pfDeduct 
+                : Number(((teacher.salary || 0) * 0.12).toFixed(2))
             });
             
             // Load subjects if school is selected
@@ -109,7 +113,9 @@ const TeacherForm = () => {
         school: values.school,
         designation: values.designation,
         subjects: values.subjects || [],
-        address: values.address
+        address: values.address,
+        salary: Number(values.salary) || 0,
+        pfDeduct: Number(values.pfDeduct) || 0
       };
 
       if (isEditMode) {
@@ -120,7 +126,7 @@ const TeacherForm = () => {
         showSuccess('Teacher created successfully');
       }
       
-      navigate('/dashboard/teachers');
+      navigate('/ugpg-admin/teachers');
     } catch (error) {
       const errorMessage = error.response?.data?.message || 'Failed to save teacher';
       showError(errorMessage);
@@ -136,7 +142,7 @@ const TeacherForm = () => {
         <Button 
           type="text" 
           icon={<ArrowLeftOutlined />} 
-          onClick={() => navigate('/dashboard/teachers')}
+          onClick={() => navigate('/ugpg-admin/teachers')}
           className="mb-4"
         >
           Back to Teachers
@@ -159,9 +165,41 @@ const TeacherForm = () => {
               school: undefined,
               designation: undefined,
               subjects: [],
-              address: ''
+              address: '',
+              salary: 0,
+              pfDeduct: 0
             }}
           >
+            <Row gutter={16}>
+              <Col xs={24} md={12}>
+                <Form.Item
+                  label="Salary"
+                  name="salary"
+                  rules={[{ required: true, message: 'Please enter salary' }]}
+                >
+                  <Input
+                    type="number"
+                    min={0}
+                    placeholder="Enter salary"
+                    onChange={(e) => {
+                      const salaryVal = Number(e.target.value) || 0;
+                      const pf = Number((salaryVal * 0.12).toFixed(2));
+                      form.setFieldsValue({ pfDeduct: pf });
+                    }}
+                  />
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} md={12}>
+                <Form.Item
+                  label="PF Deduct (12%)"
+                  name="pfDeduct"
+                  tooltip="Automatically calculated as 12% of salary"
+                >
+                  <Input type="number" disabled />
+                </Form.Item>
+              </Col>
+            </Row>
             <Row gutter={16}>
               <Col xs={24} md={12}>
                 <Form.Item

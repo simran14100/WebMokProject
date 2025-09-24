@@ -143,8 +143,19 @@ const TeacherList = () => {
     {
       title: 'School',
       dataIndex: ['school', 'name'],
-      key: 'school',
-      render: (school) => school?.name || 'N/A',
+      key: 'school'
+    },
+    {
+      title: 'Salary',
+      dataIndex: 'salary',
+      key: 'salary',
+      render: (value) => (value !== undefined && value !== null ? Number(value).toFixed(2) : '0.00')
+    },
+    {
+      title: 'PF',
+      dataIndex: 'pfDeduct',
+      key: 'pfDeduct',
+      render: (value) => (value !== undefined && value !== null ? Number(value).toFixed(2) : '0.00')
     },
     {
       title: 'Designation',

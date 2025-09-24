@@ -14,7 +14,7 @@ exports.createMeetingType = async (req, res) => {
 
         const meetingTypeData = {
             ...req.body,
-            createdBy: req.user.id
+            createdBy: req.user._id
         };
 
         const meetingType = await MeetingType.create(meetingTypeData);
@@ -144,7 +144,7 @@ exports.updateMeetingType = async (req, res) => {
 
         const updateData = {
             ...req.body,
-            updatedBy: req.user.id
+            updatedBy: req.user._id || req.user.id
         };
 
         const meetingType = await MeetingType.findByIdAndUpdate(
@@ -160,12 +160,11 @@ exports.updateMeetingType = async (req, res) => {
             });
         }
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             data: meetingType,
             message: 'Meeting type updated successfully'
         });
-
     } catch (error) {
         if (error.code === 11000) {
             return res.status(400).json({
@@ -174,7 +173,7 @@ exports.updateMeetingType = async (req, res) => {
             });
         }
         console.error('Error updating meeting type:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: 'Failed to update meeting type',
             error: error.message
@@ -185,10 +184,16 @@ exports.updateMeetingType = async (req, res) => {
 // Delete meeting type
 exports.deleteMeetingType = async (req, res) => {
     try {
-        // Check if there are any meetings using this type
-        const Meeting = require('./Meeting');
-        const meetingsCount = await Meeting.countDocuments({ meetingType: req.params.id });
-        
+        // Check if there are any meetings using this type (optional if Meeting model exists)
+        let meetingsCount = 0;
+        try {
+            const Meeting = require('../models/Meeting');
+            meetingsCount = await Meeting.countDocuments({ meetingType: req.params.id });
+        } catch (e) {
+            // Meeting model not present; proceed without blocking deletion
+            meetingsCount = 0;
+        }
+
         if (meetingsCount > 0) {
             return res.status(400).json({
                 success: false,
@@ -197,7 +202,6 @@ exports.deleteMeetingType = async (req, res) => {
         }
 
         const meetingType = await MeetingType.findByIdAndDelete(req.params.id);
-
         if (!meetingType) {
             return res.status(404).json({
                 success: false,
@@ -205,14 +209,13 @@ exports.deleteMeetingType = async (req, res) => {
             });
         }
 
-        res.status(200).json({
+        return res.status(200).json({
             success: true,
             message: 'Meeting type deleted successfully'
         });
-
     } catch (error) {
         console.error('Error deleting meeting type:', error);
-        res.status(500).json({
+        return res.status(500).json({
             success: false,
             message: 'Failed to delete meeting type',
             error: error.message

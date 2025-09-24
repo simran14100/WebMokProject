@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { Table, Button, Space, Input, Select, DatePicker, message, Popconfirm, Tag } from 'antd';
+import { Table, Button, Space, Input, Select, message, Popconfirm, Tag } from 'antd';
 import { SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 import moment from 'moment';
 import { API_URL } from '../../../../src/utils/constants';
 
 const { Option } = Select;
-const { RangePicker } = DatePicker;
 
 const StudentLedgers = () => {
   const [loading, setLoading] = useState(false);
@@ -19,7 +18,6 @@ const StudentLedgers = () => {
   const [filters, setFilters] = useState({
     searchText: '',
     status: null,
-    dateRange: null,
   });
 
   const columns = [
@@ -128,7 +126,7 @@ const StudentLedgers = () => {
     try {
       setLoading(true);
       const { current, pageSize, sortField, sortOrder } = pagination;
-      const { searchText, status, dateRange } = filters;
+      const { searchText, status } = filters;
 
       console.log('Fetching student ledgers with params:', {
         page: params.pagination?.current || current,
@@ -137,8 +135,6 @@ const StudentLedgers = () => {
         sortOrder: params.sortOrder || sortOrder,
         search: searchText,
         status,
-        startDate: dateRange?.[0]?.toISOString(),
-        endDate: dateRange?.[1]?.toISOString(),
       });
 
       const token = localStorage.getItem('token');
@@ -153,8 +149,6 @@ const StudentLedgers = () => {
           sortOrder: params.sortOrder || sortOrder,
           search: searchText,
           status,
-          startDate: dateRange?.[0]?.toISOString(),
-          endDate: dateRange?.[1]?.toISOString(),
         },
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -236,12 +230,7 @@ const StudentLedgers = () => {
     });
   };
 
-  const handleDateRangeChange = (dates) => {
-    setFilters({
-      ...filters,
-      dateRange: dates,
-    });
-  };
+  // Removed date range filter
 
   const handleEdit = (record) => {
     // Implement edit functionality
@@ -295,12 +284,7 @@ const StudentLedgers = () => {
               <Option value="Partial">Partial</Option>
             </Select>
           </div>
-          <div>
-            <RangePicker 
-              style={{ width: '100%' }} 
-              onChange={handleDateRangeChange}
-            />
-          </div>
+          {/* Removed start/end date filter */}
           <div>
             <Button 
               type="default" 
@@ -308,7 +292,6 @@ const StudentLedgers = () => {
                 setFilters({
                   searchText: '',
                   status: null,
-                  dateRange: null,
                 });
               }}
               style={{ width: '100%' }}

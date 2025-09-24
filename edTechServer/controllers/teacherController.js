@@ -5,7 +5,7 @@ const asyncHandler = require('express-async-handler');
 // @route   POST /api/v1/teachers
 // @access  Private/Admin
 exports.createTeacher = asyncHandler(async (req, res) => {
-  const { name, email, phone, school, designation, subjects } = req.body;
+  const { name, email, phone, school, designation, subjects, salary, address } = req.body;
 
   // Check if teacher already exists
   const teacherExists = await Teacher.findOne({ email });
@@ -14,12 +14,18 @@ exports.createTeacher = asyncHandler(async (req, res) => {
     throw new Error('Teacher with this email already exists');
   }
 
+  const numericSalary = Number(salary) || 0;
+  const pfDeduct = Number((numericSalary * 0.12).toFixed(2));
+
   const teacher = await Teacher.create({
     name,
     email,
     phone,
     school,
     designation,
+    address: address || '',
+    salary: numericSalary,
+    pfDeduct,
     subjects: subjects || []
   });
 
@@ -123,7 +129,7 @@ exports.getTeacher = asyncHandler(async (req, res) => {
 // @route   PUT /api/v1/teachers/:id
 // @access  Private/Admin
 exports.updateTeacher = asyncHandler(async (req, res) => {
-  const { name, email, phone, school, designation, subjects } = req.body;
+  const { name, email, phone, school, designation, subjects, salary, address } = req.body;
 
   let teacher = await Teacher.findById(req.params.id);
 
@@ -141,6 +147,9 @@ exports.updateTeacher = asyncHandler(async (req, res) => {
     }
   }
 
+  const numericSalary = salary !== undefined ? Number(salary) : teacher.salary || 0;
+  const pfDeduct = Number(((numericSalary || 0) * 0.12).toFixed(2));
+
   teacher = await Teacher.findByIdAndUpdate(
     req.params.id,
     {
@@ -150,6 +159,9 @@ exports.updateTeacher = asyncHandler(async (req, res) => {
       school: school || teacher.school,
       designation: designation || teacher.designation,
       subjects: subjects || teacher.subjects,
+      address: address !== undefined ? address : teacher.address,
+      salary: numericSalary,
+      pfDeduct,
       updatedAt: Date.now()
     },
     { new: true, runValidators: true }

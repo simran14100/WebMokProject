@@ -18,6 +18,7 @@ export default function AcademicSession() {
     enrollmentSeries: "",
     status: "Active",
   });
+  const [editingSession, setEditingSession] = useState(null);
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim().toLowerCase()), 350);
@@ -85,18 +86,50 @@ export default function AcademicSession() {
     }
     let toastId;
     try {
-      toastId = showLoading("Creating session...");
-      const res = await apiConnector("POST", "/api/v1/ugpg/sessions", { ...form });
+      toastId = showLoading(editingSession ? "Updating session..." : "Creating session...");
+      let res;
+      if (editingSession) {
+        res = await apiConnector("PUT", `/api/v1/ugpg/sessions/${editingSession._id}`, { ...form });
+      } else {
+        res = await apiConnector("POST", "/api/v1/ugpg/sessions", { ...form });
+      }
       if (res?.data?.success) {
-        showSuccess("Session created");
+        showSuccess(editingSession ? "Session updated" : "Session created");
         setOpen(false);
         setForm({ name: "", startDate: "", endDate: "", registrationSeries: "", enrollmentSeries: "", status: "Active" });
+        setEditingSession(null); // Clear editing session
         fetchSessions();
       } else {
-        showError(res?.data?.message || "Failed to create session");
+        showError(res?.data?.message || (editingSession ? "Failed to update session" : "Failed to create session"));
       }
     } catch (e) {
-      showError(e?.response?.data?.message || e.message || "Failed to create session");
+      showError(e?.response?.data?.message || e.message || (editingSession ? "Failed to update session" : "Failed to create session"));
+    } finally {
+      if (toastId) dismissToast(toastId);
+    }
+  };
+
+  const handleEdit = (session) => {
+    setEditingSession(session);
+    setForm({ ...session, startDate: session.startDate.split('T')[0], endDate: session.endDate.split('T')[0] }); // Format dates for input type="date"
+    setOpen(true);
+  };
+
+  const handleDelete = async (sessionId) => {
+    if (!window.confirm("Are you sure you want to delete this session?")) return;
+
+    let toastId;
+    try {
+      toastId = showLoading("Deleting session...");
+      const res = await apiConnector("DELETE", `/api/v1/ugpg/sessions/${sessionId}`);
+      if (res?.data?.success) {
+        showSuccess("Session deleted");
+        fetchSessions();
+      } else {
+        showError(res?.data?.message || "Failed to delete session");
+      }
+    } catch (e) {
+      showError(e?.response?.data?.message || e.message || "Failed to delete session");
     } finally {
       if (toastId) dismissToast(toastId);
     }
@@ -119,7 +152,7 @@ export default function AcademicSession() {
     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
       <h2 style={{ fontSize: 20, fontWeight: 700, color: "#0A2F5A" }}>Manage Academic Session</h2>
       <button 
-        onClick={() => setOpen(true)}
+        onClick={() => { setOpen(true); setEditingSession(null); setForm({ name: "", startDate: "", endDate: "", registrationSeries: "", enrollmentSeries: "", status: "Active" }); }} // Clear form and editing state for new
         style={{
           background: "#1D4ED8", // logo primary
           color: "#fff",
@@ -209,8 +242,43 @@ export default function AcademicSession() {
               <tr key={row._id || idx} style={{ borderTop: "1px solid #E5E7EB", transition: "background 0.2s", cursor: "pointer" }}
                   onMouseOver={e => e.currentTarget.style.background = "#F3F4F6"}
                   onMouseOut={e => e.currentTarget.style.background = "transparent"}>
-                <td style={{ padding: 12 }}>
-                  <div style={{ width: 28, height: 28, background: "#1D4ED8", borderRadius: 6, boxShadow: "0 2px 4px rgba(0,0,0,0.1)" }} />
+                <td style={{ padding: 12, display: "flex", gap: 8 }}>
+                  <button
+                    onClick={() => handleEdit(row)}
+                    style={{
+                      background: "#28A745", // Green for Edit
+                      color: "#fff",
+                      border: 0,
+                      borderRadius: 6,
+                      padding: "6px 12px",
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                      transition: "all 0.2s"
+                    }}
+                    onMouseOver={e => e.currentTarget.style.background = "#218838"}
+                    onMouseOut={e => e.currentTarget.style.background = "#28A745"}
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDelete(row._id)}
+                    style={{
+                      background: "#DC3545", // Red for Delete
+                      color: "#fff",
+                      border: 0,
+                      borderRadius: 6,
+                      padding: "6px 12px",
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      boxShadow: "0 2px 4px rgba(0,0,0,0.1)",
+                      transition: "all 0.2s"
+                    }}
+                    onMouseOver={e => e.currentTarget.style.background = "#C82333"}
+                    onMouseOut={e => e.currentTarget.style.background = "#DC3545"}
+                  >
+                    Delete
+                  </button>
                 </td>
                 <td style={{ padding: 12, color: "#111827" }}>{row.name}</td>
                 <td style={{ padding: 12, color: "#111827" }}>{formatDate(row.startDate)}</td>
@@ -238,8 +306,8 @@ export default function AcademicSession() {
       <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.25)", display: "flex", alignItems: "flex-start", justifyContent: "center", paddingTop: "10vh", zIndex: 50 }}>
         <div style={{ width: "min(900px, 95vw)", background: "#fff", borderRadius: 12, boxShadow: "0 10px 30px rgba(0,0,0,0.2)" }}>
           <div style={{ background: "#1D4ED8", padding: 16, borderTopLeftRadius: 12, borderTopRightRadius: 12, display: "flex", justifyContent: "space-between", alignItems: "center", color: "#fff" }}>
-            <div style={{ fontWeight: 700, fontSize: 18 }}>Add New UG/PG Session</div>
-            <button onClick={() => setOpen(false)} style={{ background: "transparent", border: 0, fontSize: 18, color: "#fff" }}>×</button>
+            <div style={{ fontWeight: 700, fontSize: 18 }}>{editingSession ? "Edit UG/PG Session" : "Add New UG/PG Session"}</div>
+            <button onClick={() => { setOpen(false); setEditingSession(null); setForm({ name: "", startDate: "", endDate: "", registrationSeries: "", enrollmentSeries: "", status: "Active" }); }} style={{ background: "transparent", border: 0, fontSize: 18, color: "#fff" }}>×</button>
           </div>
           <div style={{ padding: 20 }}>
             <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
@@ -295,8 +363,8 @@ export default function AcademicSession() {
             </div>
   
             <div style={{ display: "flex", gap: 10, justifyContent: "flex-end", marginTop: 24 }}>
-              <button onClick={() => setOpen(false)} style={{ background: "#EF4444", color: "#fff", border: 0, borderRadius: 8, padding: "8px 16px", fontWeight: 600, boxShadow: "0 2px 6px rgba(0,0,0,0.15)" }}>Close</button>
-              <button onClick={submit} disabled={!validForm()} style={{ background: "#1D4ED8", color: "#fff", opacity: !validForm() ? 0.6 : 1, cursor: !validForm() ? "not-allowed" : "pointer", border: 0, borderRadius: 8, padding: "8px 16px", fontWeight: 600, boxShadow: "0 2px 6px rgba(0,0,0,0.15)", transition: "0.2s" }}>Submit</button>
+              <button onClick={() => { setOpen(false); setEditingSession(null); setForm({ name: "", startDate: "", endDate: "", registrationSeries: "", enrollmentSeries: "", status: "Active" }); }} style={{ background: "#EF4444", color: "#fff", border: 0, borderRadius: 8, padding: "8px 16px", fontWeight: 600, boxShadow: "0 2px 6px rgba(0,0,0,0.15)" }}>Close</button>
+              <button onClick={submit} disabled={!validForm()} style={{ background: "#1D4ED8", color: "#fff", opacity: !validForm() ? 0.6 : 1, cursor: !validForm() ? "not-allowed" : "pointer", border: 0, borderRadius: 8, padding: "8px 16px", fontWeight: 600, boxShadow: "0 2px 6px rgba(0,0,0,0.15)", transition: "0.2s" }}>{editingSession ? "Update" : "Submit"}</button>
             </div>
           </div>
         </div>

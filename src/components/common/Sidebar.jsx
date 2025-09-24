@@ -217,7 +217,7 @@ const getSidebarLinks = (user, variant = 'default') => {
         icon: <VscBook style={{ fontSize: 20, color: ED_TEAL }} />,
         subLinks: [
           { name: 'Academic Session', path: '/ugpg-admin/academic/session', icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} /> },
-         
+          { name: 'Course Categories', path: '/ugpg-admin/academic/course-categories', icon: <VscListTree style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Courses Type', path: '/ugpg-admin/academic/course-types', icon: <VscListFlat style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Courses', path: '/ugpg-admin/academic/courses', icon: <VscBook style={{ fontSize: 20, color: ED_TEAL }} /> },
 
@@ -236,11 +236,13 @@ const getSidebarLinks = (user, variant = 'default') => {
         name: 'Front Desk',
         icon: <VscHome style={{ fontSize: 20, color: ED_TEAL }} />,
         subLinks: [
+          { name: 'Visit Purpose', path: '/ugpg-admin/front-desk/visit-purpose', icon: <VscListSelection style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Visit Departments', path: '/ugpg-admin/front-desk/visit-departments', icon: <VscListTree style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Visitor Logs', path: '/ugpg-admin/front-desk/visitor-logs', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Phone Logs', path: '/ugpg-admin/front-desk/phone-logs', icon: <VscBell style={{ fontSize: 20, color: ED_TEAL }} /> },
           // { name: 'Grievances', path: '/ugpg-admin/front-desk/grievances', icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} /> },
           // { name: 'Postal Exchange', path: '/ugpg-admin/front-desk/postal-exchange', icon: <VscFiles style={{ fontSize: 20, color: ED_TEAL }} /> },
-          { name: 'Visit Purpose', path: '/ugpg-admin/front-desk/visit-purpose', icon: <VscListSelection style={{ fontSize: 20, color: ED_TEAL }} /> },
+         
           // { name: 'Enquiry Source', path: '/ugpg-admin/front-desk/enquiry-source', icon: <VscListTree style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Enquiry References', path: '/ugpg-admin/front-desk/enquiry-references', icon: <VscVersions style={{ fontSize: 20, color: ED_TEAL }} /> },
           // { name: 'Grievance Type', path: '/ugpg-admin/front-desk/grievance-types', icon: <VscListFlat style={{ fontSize: 20, color: ED_TEAL }} /> },
@@ -259,7 +261,7 @@ const getSidebarLinks = (user, variant = 'default') => {
           { name: 'Verification', path: '/ugpg-admin/admissions/verification', icon: <VscVerified style={{ fontSize: 20, color: ED_TEAL }} /> },
 
           { name: 'Enrolled Students', path: '/ugpg-admin/admissions/enrolled', icon: <VscOrganization style={{ fontSize: 20, color: ED_TEAL }} /> },
-          { name: 'Pay Fee', path: '/ugpg-admin/admissions/enrolled/fees/payment', icon: <VscCreditCard style={{ fontSize: 20, color: ED_TEAL }} /> },
+        
         ]
       },
       // Newly added: Timetable link right after Admissions

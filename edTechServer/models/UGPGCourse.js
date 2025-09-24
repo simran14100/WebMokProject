@@ -4,7 +4,8 @@ const UGPGCourseSchema = new mongoose.Schema(
   {
     school: { type: mongoose.Schema.Types.ObjectId, ref: "UGPGSchool", required: true },
     session: { type: mongoose.Schema.Types.ObjectId, ref: "UGPGSession", required: true },
-    category: { type: String, enum: ["Certificate", "Diploma", "Bachelor Degree", "Master Degree"], required: true },
+    // Allow dynamic course categories managed separately
+    category: { type: String, required: true, trim: true },
     courseName: { type: String, required: true, trim: true },
     courseType: { type: String, enum: ["Yearly", "Semester"], default: "Yearly" },
     durationYear: { type: Number, default: 1 },

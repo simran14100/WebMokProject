@@ -12,6 +12,11 @@ const meetingTypeSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+    contactName: {
+        type: String,
+        trim: true,
+        default: ''
+    },
     duration: {
         type: Number, // in minutes
         required: [true, 'Duration is required'],

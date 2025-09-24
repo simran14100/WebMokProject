@@ -102,7 +102,7 @@ const createEnquiryReference = async (req, res) => {
       reference,
       status: status || 'Pending',
       notes,
-      createdBy: req.user.id
+      createdBy: req.user._id
     });
     
     const savedEnquiry = await newEnquiry.save();

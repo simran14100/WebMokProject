@@ -13,6 +13,9 @@ export default function UGPGSettingsSchool() {
   const [form, setForm] = useState({ title: "", shortcode: "" });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [editingId, setEditingId] = useState("");
+  const [editForm, setEditForm] = useState({ title: "", shortcode: "", status: "Active" });
+  const [rowBusy, setRowBusy] = useState("");
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 400);
@@ -125,19 +128,105 @@ export default function UGPGSettingsSchool() {
                 <td colSpan={5} style={{ padding: 16 }}>No entries.</td>
               </tr>
             ) : (
-              paged.map((row) => (
-                <tr key={row._id}>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>
-                    <div style={{ width: 28, height: 28, background: "#00B4EB", borderRadius: 6, display: "flex", alignItems: "center", justifyContent: "center" }}>
-                      <div style={{ width: 14, height: 2, background: "#fff", boxShadow: "0 4px 0 0 #fff, 0 -4px 0 0 #fff" }} />
-                    </div>
-                  </td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }} />
-                  <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9", color: "#334155" }}>{row?.name || "-"}</td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9", color: "#334155" }}>{row?.shortcode || ""}</td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9", color: "#334155" }}>{row?.status || "-"}</td>
-                </tr>
-              ))
+              paged.map((row) => {
+                const isEditing = editingId === row._id;
+                return (
+                  <tr key={row._id}>
+                    <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>
+                      {isEditing ? (
+                        <>
+                          <button
+                            disabled={rowBusy === row._id}
+                            onClick={async () => {
+                              if (!editForm.title.trim()) return;
+                              setRowBusy(row._id);
+                              try {
+                                await apiConnector("PATCH", `/api/v1/ugpg/schools/${row._id}`, { name: editForm.title.trim(), shortcode: (editForm.shortcode || "").trim(), status: editForm.status || "Active" });
+                                await fetchDepartments();
+                                setEditingId("");
+                              } catch (e) {
+                                // noop (errors can be surfaced globally if needed)
+                              } finally {
+                                setRowBusy("");
+                              }
+                            }}
+                            style={{ background: "#0A2F5A", color: "#fff", border: 0, borderRadius: 6, padding: "6px 10px", fontWeight: 600, marginRight: 6 }}
+                          >
+                            Save
+                          </button>
+                          <button
+                            disabled={rowBusy === row._id}
+                            onClick={() => { setEditingId(""); }}
+                            style={{ background: "#e2e8f0", color: "#334155", border: 0, borderRadius: 6, padding: "6px 10px", fontWeight: 600 }}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => { setEditingId(row._id); setEditForm({ title: row?.name || "", shortcode: row?.shortcode || "", status: row?.status || "Active" }); }}
+                            style={{ background: "#eef2ff", color: "#1e40af", border: 0, borderRadius: 6, padding: "6px 10px", fontWeight: 600, marginRight: 6 }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            disabled={rowBusy === row._id}
+                            onClick={async () => {
+                              if (!window.confirm("Delete this school?")) return;
+                              setRowBusy(row._id);
+                              try {
+                                await apiConnector("DELETE", `/api/v1/ugpg/schools/${row._id}`);
+                                await fetchDepartments();
+                              } catch (e) {
+                              } finally {
+                                setRowBusy("");
+                              }
+                            }}
+                            style={{ background: "#fee2e2", color: "#b91c1c", border: "1px solid #fecaca", borderRadius: 6, padding: "6px 10px", fontWeight: 600 }}
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </td>
+                    <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }} />
+                    <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9", color: "#334155" }}>
+                      {isEditing ? (
+                        <input
+                          value={editForm.title}
+                          onChange={(e) => setEditForm((f) => ({ ...f, title: e.target.value }))}
+                          placeholder="Title"
+                          style={{ width: "100%", padding: 8, border: "1px solid #cbd5e1", borderRadius: 6 }}
+                        />
+                      ) : (row?.name || "-")}
+                    </td>
+                    <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9", color: "#334155" }}>
+                      {isEditing ? (
+                        <input
+                          value={editForm.shortcode}
+                          onChange={(e) => setEditForm((f) => ({ ...f, shortcode: e.target.value }))}
+                          placeholder="Shortcode"
+                          style={{ width: "100%", padding: 8, border: "1px solid #cbd5e1", borderRadius: 6 }}
+                        />
+                      ) : (row?.shortcode || "")}
+                    </td>
+                    <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9", color: "#334155" }}>
+                      {isEditing ? (
+                        <select
+                          value={editForm.status}
+                          onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}
+                          style={{ padding: 8, border: "1px solid #cbd5e1", borderRadius: 6 }}
+                        >
+                          <option>Active</option>
+                          <option>Inactive</option>
+                        </select>
+                      ) : (row?.status || "-")}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
             )}
           </tbody>
         </table>

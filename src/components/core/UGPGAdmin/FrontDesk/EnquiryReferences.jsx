@@ -180,14 +180,24 @@ const EnquiryReferences = () => {
       const values = await form.validateFields();
       setConfirmLoading(true);
 
+      // Sanitize and validate contact to exactly 10 digits before submit
+      const contactDigits = String(values.contact || '').replace(/\D/g, '').slice(0, 10);
+      if (!/^\d{10}$/.test(contactDigits)) {
+        toast.error('Please enter a valid 10-digit contact number');
+        setConfirmLoading(false);
+        return;
+      }
+
+      const payload = { ...values, contact: contactDigits };
+
       if (editingEnquiry) {
         // Update existing enquiry
-        await updateEnquiryReference(editingEnquiry._id, values);
+        await updateEnquiryReference(editingEnquiry._id, payload);
         toast.success('Enquiry reference updated successfully');
       } else {
         // Create new enquiry
         await createEnquiryReference({
-          ...values,
+          ...payload,
           createdBy: user._id,
         });
         toast.success('Enquiry reference created successfully');
@@ -418,9 +428,20 @@ const EnquiryReferences = () => {
           <Form.Item
             name="contact"
             label="Contact Number"
-            rules={[{ required: true, message: 'Please enter contact number' }]}
+            rules={[
+              { required: true, message: 'Please enter contact number' },
+              { pattern: /^\d{10}$/, message: 'Contact number must be exactly 10 digits' },
+            ]}
           >
-            <Input placeholder="Enter contact number" />
+            <Input 
+              placeholder="Enter 10-digit contact number"
+              inputMode="numeric"
+              maxLength={10}
+              onChange={(e) => {
+                const digits = e.target.value.replace(/\D/g, '').slice(0, 10);
+                form.setFieldsValue({ contact: digits });
+              }}
+            />
           </Form.Item>
           <Form.Item
             name="reference"

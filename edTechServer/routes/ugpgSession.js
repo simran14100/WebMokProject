@@ -14,7 +14,7 @@ router.get("/:id", auth, isAdminLevel, getSessionById);
 router.post("/", auth, isAdminLevel, createSession);
 
 // Update UG/PG session (Admin-level)
-router.patch("/:id", auth, isAdminLevel, updateSession);
+router.put("/:id", auth, isAdminLevel, updateSession);
 
 // Delete UG/PG session (Admin-level)
 router.delete("/:id", auth, isAdminLevel, deleteSession);

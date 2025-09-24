@@ -31,9 +31,14 @@ exports.createSession = async (req, res) => {
 };
 
 // List UG/PG sessions
-exports.getSessions = async (_req, res) => {
+exports.getSessions = async (req, res) => {
   try {
-    const list = await UGPGSession.find({}).sort({ createdAt: -1 });
+    const { schoolId } = req.query;
+    const query = {};
+    if (schoolId) {
+      query.school = schoolId;
+    }
+    const list = await UGPGSession.find(query).sort({ createdAt: -1 });
     return res.json({ success: true, data: list });
   } catch (err) {
     console.error("UGPG getSessions error", err);

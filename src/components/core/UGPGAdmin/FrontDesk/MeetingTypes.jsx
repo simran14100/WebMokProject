@@ -86,7 +86,8 @@ const MeetingTypes = () => {
         name: meetingType.name,
         description: meetingType.description || '',
         duration: meetingType.duration,
-        isActive: meetingType.isActive !== false
+        isActive: meetingType.isActive !== false,
+        contactName: meetingType?.contactName || ''
       });
     } else {
       form.resetFields();
@@ -110,7 +111,8 @@ const MeetingTypes = () => {
         duration: parseInt(values.duration),
         isActive: values.isActive !== false,
         color: '#1890ff',
-        createdBy: user._id
+        createdBy: user._id,
+        contactName: (values.contactName || '').trim()
       };
 
       const config = {
@@ -190,10 +192,23 @@ const MeetingTypes = () => {
 
   const columns = [
     {
-      title: 'Name',
+      title: 'Meeting Type',
       dataIndex: 'name',
-      key: 'name',
+      key: 'meetingTypeName',
       render: (text) => <span>{text}</span>,
+    },
+    {
+      title: 'Name',
+      dataIndex: ['createdBy', 'firstName'],
+      key: 'creatorName',
+      render: (_, record) => {
+        const contact = (record?.contactName || '').trim();
+        if (contact) return contact;
+        const first = record?.createdBy?.firstName || '';
+        const last = record?.createdBy?.lastName || '';
+        const full = `${first} ${last}`.trim();
+        return full || '-';
+      },
     },
     {
       title: 'Description',
@@ -244,6 +259,7 @@ const MeetingTypes = () => {
       ),
     },
   ];
+
 
   return (
     <div className="meeting-types-container"  style={{marginTop:"8rem"}}>
@@ -321,10 +337,18 @@ const MeetingTypes = () => {
         >
           <Form.Item
             name="name"
-            label="Meeting Type Name"
+            label="Meeting Type"
             rules={[{ required: true, message: 'Please enter meeting type name' }]}
           >
             <Input placeholder="e.g., Consultation, Interview, Follow-up" />
+          </Form.Item>
+
+          <Form.Item
+            name="contactName"
+            label="Name"
+            rules={[{ required: false }]}
+          >
+            <Input placeholder="Enter name" />
           </Form.Item>
 
           <Form.Item
@@ -367,6 +391,7 @@ const MeetingTypes = () => {
       </Modal>
     </div>
   );
+  
 };
 
 export default MeetingTypes;

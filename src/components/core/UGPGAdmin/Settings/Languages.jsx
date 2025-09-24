@@ -13,6 +13,9 @@ export default function UGPGSettingsLanguages() {
   const [form, setForm] = useState({ name: "", code: "", description: "", direction: "LTR", isDefault: false });
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
+  const [editingId, setEditingId] = useState("");
+  const [editForm, setEditForm] = useState({ name: "", code: "", description: "", direction: "LTR", status: "Active", isDefault: false });
+  const [rowBusy, setRowBusy] = useState("");
 
   useEffect(() => {
     const t = setTimeout(() => setDebouncedSearch(search.trim()), 400);
@@ -138,37 +141,109 @@ export default function UGPGSettingsLanguages() {
                 <td colSpan={6} style={{ padding: 16 }}>No entries.</td>
               </tr>
             ) : (
-              paged.map((row) => (
-                <tr key={row._id}>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>
-                    <div
-                      style={{
-                        width: 28,
-                        height: 28,
-                        background: "#00B4EB",
-                        borderRadius: 6,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                      }}
-                    >
-                      <div
-                        style={{
-                          width: 14,
-                          height: 2,
-                          background: "#fff",
-                          boxShadow: "0 4px 0 0 #fff, 0 -4px 0 0 #fff",
-                        }}
-                      />
-                    </div>
-                  </td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{row?.name || "-"}</td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{row?.code || "-"}</td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{row?.description || ""}</td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{row?.direction || "LTR"}</td>
-                  <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>{row?.status || "Active"}</td>
-                </tr>
-              ))
+              paged.map((row) => {
+                const isEditing = editingId === row._id;
+                return (
+                  <tr key={row._id}>
+                    <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>
+                      {isEditing ? (
+                        <>
+                          <button
+                            disabled={rowBusy === row._id}
+                            onClick={async () => {
+                              if (!editForm.name.trim() || !editForm.code.trim()) return;
+                              setRowBusy(row._id);
+                              try {
+                                await apiConnector("PATCH", `/api/v1/language/${row._id}`, {
+                                  name: editForm.name.trim(),
+                                  code: editForm.code.trim(),
+                                  description: (editForm.description || "").trim(),
+                                  direction: editForm.direction || "LTR",
+                                  status: editForm.status || "Active",
+                                  isDefault: !!editForm.isDefault,
+                                });
+                                await fetchLanguages();
+                                setEditingId("");
+                              } catch (e) {
+                              } finally {
+                                setRowBusy("");
+                              }
+                            }}
+                            style={{ background: "#0A2F5A", color: "#fff", border: 0, borderRadius: 6, padding: "6px 10px", fontWeight: 600, marginRight: 6 }}
+                          >
+                            Save
+                          </button>
+                          <button
+                            disabled={rowBusy === row._id}
+                            onClick={() => setEditingId("")}
+                            style={{ background: "#e2e8f0", color: "#334155", border: 0, borderRadius: 6, padding: "6px 10px", fontWeight: 600 }}
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => { setEditingId(row._id); setEditForm({ name: row?.name || "", code: row?.code || "", description: row?.description || "", direction: row?.direction || "LTR", status: row?.status || "Active", isDefault: !!row?.isDefault }); }}
+                            style={{ background: "#eef2ff", color: "#1e40af", border: 0, borderRadius: 6, padding: "6px 10px", fontWeight: 600, marginRight: 6 }}
+                          >
+                            Edit
+                          </button>
+                          <button
+                            disabled={rowBusy === row._id}
+                            onClick={async () => {
+                              if (!window.confirm("Delete this language?")) return;
+                              setRowBusy(row._id);
+                              try {
+                                await apiConnector("DELETE", `/api/v1/language/${row._id}`);
+                                await fetchLanguages();
+                              } catch (e) {
+                              } finally {
+                                setRowBusy("");
+                              }
+                            }}
+                            style={{ background: "#fee2e2", color: "#b91c1c", border: "1px solid #fecaca", borderRadius: 6, padding: "6px 10px", fontWeight: 600 }}
+                          >
+                            Delete
+                          </button>
+                        </>
+                      )}
+                    </td>
+                    <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>
+                      {isEditing ? (
+                        <input value={editForm.name} onChange={(e) => setEditForm((f) => ({ ...f, name: e.target.value }))} placeholder="Name" style={{ width: "100%", padding: 8, border: "1px solid #cbd5e1", borderRadius: 6 }} />
+                      ) : (row?.name || "-")}
+                    </td>
+                    <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>
+                      {isEditing ? (
+                        <input value={editForm.code} onChange={(e) => setEditForm((f) => ({ ...f, code: e.target.value }))} placeholder="Code" style={{ width: "100%", padding: 8, border: "1px solid #cbd5e1", borderRadius: 6 }} />
+                      ) : (row?.code || "-")}
+                    </td>
+                    <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>
+                      {isEditing ? (
+                        <input value={editForm.description} onChange={(e) => setEditForm((f) => ({ ...f, description: e.target.value }))} placeholder="Description" style={{ width: "100%", padding: 8, border: "1px solid #cbd5e1", borderRadius: 6 }} />
+                      ) : (row?.description || "")}
+                    </td>
+                    <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>
+                      {isEditing ? (
+                        <select value={editForm.direction} onChange={(e) => setEditForm((f) => ({ ...f, direction: e.target.value }))} style={{ padding: 8, border: "1px solid #cbd5e1", borderRadius: 6 }}>
+                          <option value="LTR">LTR</option>
+                          <option value="RTL">RTL</option>
+                        </select>
+                      ) : (row?.direction || "LTR")}
+                    </td>
+                    <td style={{ padding: 12, borderBottom: "1px solid #f1f5f9" }}>
+                      {isEditing ? (
+                        <select value={editForm.status} onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))} style={{ padding: 8, border: "1px solid #cbd5e1", borderRadius: 6 }}>
+                          <option>Active</option>
+                          <option>Inactive</option>
+                        </select>
+                      ) : (row?.status || "Active")}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
             )}
           </tbody>
         </table>

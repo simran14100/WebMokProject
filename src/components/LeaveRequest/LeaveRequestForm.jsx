@@ -463,7 +463,6 @@ const LeaveRequestForm = ({ onSuccess, onCancel, initialData = null }) => {
     </div>
   </form>
 </div>
-
     // <div className="bg-white p-6 rounded-lg shadow-md">
     //   <h2 className="text-xl font-semibold mb-6">
     //     {isEditMode ? 'Edit Leave Request' : 'Submit Leave Request'}
@@ -629,3 +628,4 @@ const LeaveRequestForm = ({ onSuccess, onCancel, initialData = null }) => {
 };
 
 export default LeaveRequestForm;
+
