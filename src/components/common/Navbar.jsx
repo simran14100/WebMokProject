@@ -429,7 +429,7 @@ if (hide) {
                       </Link>
                     </li>
                     <li>
-                      <Link to="/university" style={{ 
+                      <Link to="/university/schools" style={{ 
                         textDecoration: 'none', 
                         color: '#191A1F', 
                         fontWeight: '600',
@@ -1036,7 +1036,7 @@ if (hide) {
               <li><Link to="/about" onClick={() => setIsMobileMenuOpen(false)}>About</Link></li>
               <li><Link to="/blog" onClick={() => setIsMobileMenuOpen(false)}>Blog</Link></li>
               <li><Link to="/contact" onClick={() => setIsMobileMenuOpen(false)}>Contact</Link></li>
-              <li><Link to="/university" onClick={() => setIsMobileMenuOpen(false)}>University</Link></li>
+              <li><Link to="/university/schools" onClick={() => setIsMobileMenuOpen(false)}>University</Link></li>
               {user ? (
                 <>
                   <li><Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link></li>

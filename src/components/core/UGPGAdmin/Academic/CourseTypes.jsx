@@ -29,6 +29,9 @@ export default function CourseTypes() {
     totalCredit: "",
     totalPapers: "",
     seats: "",
+    // New fields
+    courseDescription: "",
+    whatYouWillLearn: "",
     status: "Active",
   });
 
@@ -165,7 +168,7 @@ export default function CourseTypes() {
               setOpen(true); 
               setIsEditMode(false);
               setSelectedCourse(null);
-              setForm({ school: "", session: "", category: "Certificate", courseName: "", courseType: "Yearly", durationYear: "", semester: "", totalCredit: "", totalPapers: "", seats: "", status: "Active" });
+              setForm({ school: "", session: "", category: "Certificate", courseName: "", courseType: "Yearly", durationYear: "", semester: "", totalCredit: "", totalPapers: "", seats: "", courseDescription: "", whatYouWillLearn: "", status: "Active" });
               await fetchSessionsForSchool(""); // Fetch all sessions for new entry
             }} 
             style={{ background: "#1E40AF", color: "#fff", border: 0, borderRadius: 8, padding: "8px 14px", fontWeight: 600, cursor: "pointer", transition: "0.2s" }}
@@ -233,7 +236,23 @@ export default function CourseTypes() {
                           onClick={async () => {
                             setSelectedCourse(row);
                             setIsEditMode(true);
-                            setForm({ school: row.school?._id || "", session: row.session?._id || "", category: row.category || "Certificate", courseName: row.courseName || "", courseType: row.courseType || "Yearly", durationYear: row.durationYear || "", semester: row.semester || "", totalCredit: row.totalCredit || "", totalPapers: row.totalPapers || "", seats: row.seats || "", status: row.status || "Active" });
+                            setForm({
+                              school: row.school?._id || "",
+                              session: row.session?._id || "",
+                              category: row.category || "Certificate",
+                              courseName: row.courseName || "",
+                              courseType: row.courseType || "Yearly",
+                              durationYear: row.durationYear || "",
+                              semester: row.semester || "",
+                              totalCredit: row.totalCredit || "",
+                              totalPapers: row.totalPapers || "",
+                              seats: row.seats || "",
+                              courseDescription: row.courseDescription || "",
+                              whatYouWillLearn: Array.isArray(row.whatYouWillLearn)
+                                ? row.whatYouWillLearn.filter(Boolean).join(", ")
+                                : (row.whatYouWillLearn || ""),
+                              status: row.status || "Active",
+                            });
                             setOpen(true);
                             await fetchSessionsForSchool(row.school?._id || ""); // Fetch sessions for the selected school
                           }}
@@ -284,7 +303,7 @@ export default function CourseTypes() {
 
       {open && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,0.25)", display: "flex", alignItems: "center", justifyContent: "center", paddingTop: "10vh", zIndex: 50, marginLeft: "100px" }}>
-          <div style={{ width: "min(980px, 95vw)", background: "#fff", borderRadius: 12, boxShadow: "0 10px 30px rgba(0,0,0,0.2)" }}>
+          <div style={{ width: "min(980px, 95vw)", maxHeight: "85vh", background: "#fff", borderRadius: 12, boxShadow: "0 10px 30px rgba(0,0,0,0.2)", display: "flex", flexDirection: "column" }}>
             {/* Modal Header */}
             <div style={{ background: "#f8caff", padding: 16, borderTopLeftRadius: 12, borderTopRightRadius: 12, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div style={{ fontWeight: 700, fontSize: 18 }}>{isEditMode ? 'Edit' : 'Add New'} Course</div>
@@ -314,7 +333,7 @@ export default function CourseTypes() {
               </button>
             </div>
             {/* Modal Body */}
-            <div style={{ padding: 20 }}>
+            <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
               {submitError ? <div style={{ color: "#b00020", marginBottom: 12 }}>{submitError}</div> : null}
               
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 16 }}>
@@ -387,6 +406,31 @@ export default function CourseTypes() {
                   <label style={{ display: "block", fontSize: 14, marginBottom: 6 }}>Available Seats</label>
                   <input name="seats" value={form.seats} onChange={onChange} placeholder="100" style={{ width: "100%", padding: 10, border: "1px solid #cbd5e1", borderRadius: 8 }} />
                 </div>
+                {/* New: Course Description */}
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label style={{ display: "block", fontSize: 14, marginBottom: 6 }}>Course Description</label>
+                  <textarea
+                    name="courseDescription"
+                    value={form.courseDescription}
+                    onChange={onChange}
+                    placeholder="Brief overview of the course..."
+                    rows={4}
+                    style={{ width: "100%", padding: 10, border: "1px solid #cbd5e1", borderRadius: 8, resize: "vertical" }}
+                  />
+                </div>
+                {/* New: What You'll Learn */}
+                <div style={{ gridColumn: "1 / -1" }}>
+                  <label style={{ display: "block", fontSize: 14, marginBottom: 6 }}>What You'll Learn</label>
+                  <textarea
+                    name="whatYouWillLearn"
+                    value={form.whatYouWillLearn}
+                    onChange={onChange}
+                    placeholder="List key learnings, comma-separated (e.g., Basics of X, Hands-on Y, Project Z)"
+                    rows={3}
+                    style={{ width: "100%", padding: 10, border: "1px solid #cbd5e1", borderRadius: 8, resize: "vertical" }}
+                  />
+                  <div style={{ fontSize: 12, color: "#64748b", marginTop: 4 }}>Tip: You can paste JSON array too, we'll parse it.</div>
+                </div>
                 <div>
                   <label style={{ display: "block", fontSize: 14, marginBottom: 6 }}>Status</label>
                   <select name="status" value={form.status} onChange={onChange} style={{ width: "100%", padding: 10, border: "1px solid #cbd5e1", borderRadius: 8 }}>
@@ -413,6 +457,8 @@ export default function CourseTypes() {
                       totalCredit: "",
                       totalPapers: "",
                       seats: "",
+                      courseDescription: "",
+                      whatYouWillLearn: "",
                       status: "Active",
                     });
                     setSessions([]);
@@ -442,11 +488,13 @@ export default function CourseTypes() {
                         totalCredit: form.totalCredit,
                         totalPapers: form.totalPapers,
                         seats: form.seats,
+                        courseDescription: form.courseDescription,
+                        whatYouWillLearn: form.whatYouWillLearn,
                         status: form.status,
                       };
                       
                       if (isEditMode && selectedCourse?._id) {
-                        await apiConnector("PUT", `/api/v1/ugpg/courses/${selectedCourse._id}`, payload);
+                        await apiConnector("PATCH", `/api/v1/ugpg/courses/${selectedCourse._id}`, payload);
                       } else {
                         await apiConnector("POST", "/api/v1/ugpg/courses", payload);
                       }
@@ -466,6 +514,8 @@ export default function CourseTypes() {
                         totalCredit: "",
                         totalPapers: "",
                         seats: "",
+                        courseDescription: "",
+                        whatYouWillLearn: "",
                         status: "Active",
                       });
                       setSessions([]);

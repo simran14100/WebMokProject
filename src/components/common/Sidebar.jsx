@@ -256,7 +256,7 @@ const getSidebarLinks = (user, variant = 'default') => {
         icon: <VscChecklist style={{ fontSize: 20, color: ED_TEAL }} />,
         subLinks: [
           { name: 'Admission Enquiries', path: '/ugpg-admin/admissions/enquiries', icon: <VscListUnordered style={{ fontSize: 20, color: ED_TEAL }} /> },
-          { name: 'New Registration', path: '/ugpg-admin/new-registration', icon: <VscAdd style={{ fontSize: 20, color: ED_TEAL }} /> },
+          // { name: 'New Registration', path: '/ugpg-admin/new-registration', icon: <VscAdd style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'All Registered Students', path: '/ugpg-admin/admissions/all-registered', icon: <VscListUnordered style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Verification', path: '/ugpg-admin/admissions/verification', icon: <VscVerified style={{ fontSize: 20, color: ED_TEAL }} /> },
 

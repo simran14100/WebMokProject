@@ -41,7 +41,9 @@ export default function Courses() {
       course.courseName?.toLowerCase().includes(searchTerm) ||
       course.category?.toLowerCase().includes(searchTerm) ||
       course.status?.toLowerCase().includes(searchTerm) ||
-      course.session?.name?.toLowerCase().includes(searchTerm)
+      course.session?.name?.toLowerCase().includes(searchTerm) ||
+      course.courseDescription?.toLowerCase().includes(searchTerm) ||
+      (Array.isArray(course.whatYouWillLearn) ? course.whatYouWillLearn.join(" ").toLowerCase().includes(searchTerm) : (course.whatYouWillLearn || "").toLowerCase().includes(searchTerm))
     );
   }, [courses, search]);
 
@@ -112,11 +114,19 @@ export default function Courses() {
                   <th style={{ padding: '12px', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Type</th>
                   <th style={{ padding: '12px', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Duration</th>
                   <th style={{ padding: '12px', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Semesters</th>
+                  <th style={{ padding: '12px', textAlign: 'left', fontWeight: 600, color: '#475569', minWidth: 220 }}>Description</th>
+                  <th style={{ padding: '12px', textAlign: 'left', fontWeight: 600, color: '#475569', minWidth: 220 }}>What You'll Learn</th>
                   <th style={{ padding: '12px', textAlign: 'left', fontWeight: 600, color: '#475569' }}>Status</th>
                 </tr>
               </thead>
               <tbody>
-                {paginatedCourses.map((course) => (
+                {paginatedCourses.map((course) => {
+                  const learn = Array.isArray(course.whatYouWillLearn)
+                    ? course.whatYouWillLearn.filter(Boolean).join(', ')
+                    : (course.whatYouWillLearn || '');
+                  const desc = course.courseDescription || '';
+                  const truncate = (str, n = 140) => (str && str.length > n ? str.slice(0, n) + '…' : str);
+                  return (
                   <tr key={course._id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '12px' }}>{course.courseName || '-'}</td>
                     <td style={{ padding: '12px' }}>{course.category || '-'}</td>
@@ -124,6 +134,8 @@ export default function Courses() {
                     <td style={{ padding: '12px' }}>{course.courseType || '-'}</td>
                     <td style={{ padding: '12px' }}>{course.durationYear ? `${course.durationYear} years` : '-'}</td>
                     <td style={{ padding: '12px' }}>{course.semester || '-'}</td>
+                    <td style={{ padding: '12px', color: '#475569' }} title={desc}>{truncate(desc)}</td>
+                    <td style={{ padding: '12px', color: '#475569' }} title={learn}>{truncate(learn)}</td>
                     <td style={{ padding: '12px' }}>
                       <span style={{
                         padding: '4px 8px',
@@ -137,10 +149,11 @@ export default function Courses() {
                       </span>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
                 {paginatedCourses.length === 0 && (
                   <tr>
-                    <td colSpan="7" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
+                    <td colSpan="9" style={{ padding: '20px', textAlign: 'center', color: '#64748b' }}>
                       No courses found
                     </td>
                   </tr>

@@ -143,6 +143,8 @@ import DashboardLayout from './components/common/DashboardLayout';
 import Accounts from "./pages/Dashboard/Accounts";
 import StudentResults from "./pages/Dashboard/StudentResults"; 
 import VisitDepartments from './components/core/UGPGAdmin/FrontDesk/VisitDepartments';
+import Schools from './pages/University/Schools';
+import ProgramDetails from './pages/University/ProgramDetails';
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
 console.log("App starting - localStorage debug:");
@@ -218,7 +220,9 @@ function AppRoutes() {
       <Route path="/contact" element={<Contact />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
-      
+      <Route path="/university/schools" element={<Schools />} />
+      <Route path="/university/schools/:schoolId" element={<ProgramDetails />} />
+      <Route path="/register" element={<NewRegistration />} />
       {/* Enrolled Students - Using University Student Dashboard */}
       <Route path="/EnrolledStudents" element={
         <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT]}>
@@ -313,12 +317,11 @@ function AppRoutes() {
           <UGPGInlineLayout />
         </ProtectedRoute>
       }>
-        <Route index element={<UGPGDashboard />} />
+        {/* <Route index element={<UGPGDashboard />} />
         <Route path="new-registration" element={
-          <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
+          
             <NewRegistration />
-          </ProtectedRoute>
-        } />
+        } /> */}
         <Route path="settings" element={<UGPGSettings />} />
        
         <Route path="settings/school" element={<UGPGSettingsSchool />} />

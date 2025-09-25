@@ -6,12 +6,14 @@ const {
   listCourses,
   updateCourse,
   deleteCourse,
+  getCourseById,
 } = require("../controllers/UGPGCourse");
 
 // Protect all routes with authentication
 router.use(auth);
 
 router.get("/", listCourses);
+router.get("/:id", getCourseById);
 router.post("/", createCourse);
 router.patch("/:id", updateCourse);
 router.delete("/:id", deleteCourse);

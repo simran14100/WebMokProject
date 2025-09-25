@@ -11,10 +11,10 @@ const TEXT_DARK = '#191A1F';
 
 const accountTypes = [
   { value: 'Student', label: 'Student' },
-  { value: 'Instructor', label: 'Instructor' },
-  { value: 'Admin', label: 'Admin' },
-  { value: 'SuperAdmin', label: 'Super Admin' },
-  { value: 'Staff', label: 'Staff' },
+  // { value: 'Instructor', label: 'Instructor' },
+  // { value: 'Admin', label: 'Admin' },
+  // { value: 'SuperAdmin', label: 'Super Admin' },
+  // { value: 'Staff', label: 'Staff' },
 ];
 
 const validateEmail = (email) => {

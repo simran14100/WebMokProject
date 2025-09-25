@@ -14,11 +14,34 @@ exports.createCourse = async (req, res) => {
       totalCredit,
       totalPapers,
       seats,
+      courseDescription,
+      whatYouWillLearn,
       status,
     } = req.body;
 
     if (!school || !session || !category || !courseName) {
       return res.status(400).json({ success: false, message: "school, session, category and courseName are required" });
+    }
+
+    // Normalize learnings to an array of strings
+    let learnings = [];
+    try {
+      if (Array.isArray(whatYouWillLearn)) {
+        learnings = whatYouWillLearn.map((s) => (typeof s === 'string' ? s.trim() : '')).filter(Boolean);
+      } else if (typeof whatYouWillLearn === 'string') {
+        // allow comma-separated or JSON string
+        const maybeJson = whatYouWillLearn.trim();
+        if (maybeJson.startsWith('[')) {
+          const parsed = JSON.parse(maybeJson);
+          if (Array.isArray(parsed)) {
+            learnings = parsed.map((s) => (typeof s === 'string' ? s.trim() : '')).filter(Boolean);
+          }
+        } else {
+          learnings = whatYouWillLearn.split(',').map((s) => s.trim()).filter(Boolean);
+        }
+      }
+    } catch (_) {
+      learnings = [];
     }
 
     const doc = await UGPGCourse.create({
@@ -32,6 +55,8 @@ exports.createCourse = async (req, res) => {
       totalCredit: Number(totalCredit) || 0,
       totalPapers: Number(totalPapers) || 0,
       seats: Number(seats) || 0,
+      courseDescription: (courseDescription || '').toString().trim(),
+      whatYouWillLearn: learnings,
       status: status === "Inactive" ? "Inactive" : "Active",
       createdBy: req.user ? req.user.id : undefined,
     });
@@ -85,5 +110,21 @@ exports.deleteCourse = async (req, res) => {
   } catch (err) {
     console.error("deleteCourse error", err);
     return res.status(500).json({ success: false, message: "Failed to delete course" });
+  }
+};
+
+// Get one by ID
+exports.getCourseById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const doc = await UGPGCourse.findById(id)
+      .populate("school", "name")
+      .populate("session", "name")
+      .exec();
+    if (!doc) return res.status(404).json({ success: false, message: "Course not found" });
+    return res.json({ success: true, data: doc });
+  } catch (err) {
+    console.error("getCourseById error", err);
+    return res.status(500).json({ success: false, message: "Failed to fetch course" });
   }
 };

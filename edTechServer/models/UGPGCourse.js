@@ -13,6 +13,9 @@ const UGPGCourseSchema = new mongoose.Schema(
     totalCredit: { type: Number, default: 0 },
     totalPapers: { type: Number, default: 0 },
     seats: { type: Number, default: 0 },
+    // New descriptive fields
+    courseDescription: { type: String, trim: true, default: "" },
+    whatYouWillLearn: { type: [String], default: [] },
     status: { type: String, enum: ["Active", "Inactive"], default: "Active" },
     createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
   },
