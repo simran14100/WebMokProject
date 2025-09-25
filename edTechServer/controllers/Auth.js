@@ -372,15 +372,18 @@ exports.login = async (req, res) => {
     }
 
     const { email, password } = req.body;
+    const normalizedEmail = String(email).trim().toLowerCase();
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return res.status(400).json({
         success: false,
         message: "All fields are required",
       });
     }
 
-    const user = await User.findOne({ email }).populate("additionalDetails").populate("userType");
+    const user = await User.findOne({ email: normalizedEmail })
+      .populate("additionalDetails")
+      .populate("accountType");
     if (!user) {
       return res.status(404).json({
         success: false,

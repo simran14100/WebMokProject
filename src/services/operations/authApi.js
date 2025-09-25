@@ -469,7 +469,7 @@ export function login(email, password, navigate = null) {
         if (user.accountType === 'Student') {
           navigate('/dashboard/my-profile');
         } else if (user.accountType === 'Instructor') {
-          navigate('/instructor/dashboard/my-profile');
+          navigate('/dashboard/my-profile');
         } else if (user.accountType === 'Admin' || user.accountType === 'Super Admin') {
           navigate('/dashboard/my-profile');
         } else {

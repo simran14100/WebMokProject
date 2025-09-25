@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useDispatch } from 'react-redux';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { showSuccess } from '../utils/toast';
@@ -26,14 +26,52 @@ const Login = ({ isUniversity = false }) => {
   const defaultPath = isUniversity ? '/university' : '/dashboard/my-profile';
   const redirectPath = searchParams.get('redirect') || defaultPath;
 
+  // Secure admin mode (hide global navbar/footer via CSS)
+  const isAdminMode = searchParams.get('admin') === '1';
+
+  useEffect(() => {
+    if (isAdminMode) {
+      document.body.classList.add('hide-global-nav');
+    }
+    return () => {
+      document.body.classList.remove('hide-global-nav');
+    };
+  }, [isAdminMode]);
+
+  // If NOT in admin mode, clear any secure login scope cookie so normal login works
+  useEffect(() => {
+    if (!isAdminMode) {
+      try {
+        const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
+        fetch(`${API_BASE}/api/v1/auth/secure/clear`, {
+          credentials: 'include',
+          mode: 'cors',
+        }).catch(() => {});
+      } catch (_) {}
+    }
+  }, [isAdminMode]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setLoading(true);
 
     try {
+      // For normal login (not admin mode), proactively clear the secure scope cookie
+      if (!isAdminMode) {
+        try {
+          const API_BASE = process.env.REACT_APP_BACKEND_URL || 'http://localhost:4000';
+          await fetch(`${API_BASE}/api/v1/auth/secure/clear`, {
+            credentials: 'include',
+            mode: 'cors',
+          });
+        } catch (_) {}
+      }
+
+      // Normalize email to avoid case/whitespace mismatches
+      const normalizedEmail = String(email).trim().toLowerCase();
       // Call the login action and wait for it to complete
-      const result = await dispatch(login(email, password, navigate));
+      const result = await dispatch(login(normalizedEmail, password, navigate));
       
       // Check if the login was successful
       if (result?.payload?.success) {
@@ -75,15 +113,22 @@ const Login = ({ isUniversity = false }) => {
   };
 
   return (
-    <div style={{ 
+    <>
+      {isAdminMode && (
+        <style>{`
+          /* Hide top bars/headers when in admin login mode */
+          .top-bar, header.header, .header, .header-2 { display: none !important; }
+        `}</style>
+      )}
+      <div style={{ 
       minHeight: '100vh', 
       background: 'linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%)',
       display: 'flex', 
       alignItems: 'center', 
       justifyContent: 'center', 
-      padding: '2rem',
-      paddingTop: '8rem',
-      marginTop:'4rem',
+      padding: isAdminMode ? '2rem' : '2rem',
+      paddingTop: isAdminMode ? '2rem' : '8rem',
+      marginTop: isAdminMode ? '0' : '4rem',
       fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif',
       transition: 'background 0.3s ease'
     }}>
@@ -361,6 +406,7 @@ const Login = ({ isUniversity = false }) => {
         </form>
       </div>
     </div>
+    </>
   );
 };
 

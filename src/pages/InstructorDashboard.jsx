@@ -1,101 +1,234 @@
-import React, { useState } from 'react';
-import { Chart, registerables } from 'chart.js';
-import { Pie } from 'react-chartjs-2';
-Chart.register(...registerables);
 
-// Mock data for demonstration
-const instructorName = "John Doe";
-const courses = [
-  { id: 1, courseName: "React Basics", totalStudentsEnrolled: 30, status: "Published" },
-  { id: 2, courseName: "Advanced JS", totalStudentsEnrolled: 18, status: "Draft" },
-  { id: 3, courseName: "UI/UX Design", totalStudentsEnrolled: 12, status: "Published" },
-];
 
-export default function InstructorDashboard() {
-  // Pie chart data for enrolled students per course
-  const chartData = {
-    labels: courses.map((course) => course.courseName),
-    datasets: [
-      {
-        label: "Enrolled Students",
-        data: courses.map((course) => course.totalStudentsEnrolled),
-        backgroundColor: [
-          "#009e5c",
-          "#4facfe",
-          "#9C27B0",
-          "#FF9800",
-          "#00bcd4",
-        ],
-      },
-    ],
-  };
 
-  const options = {
-    responsive: true,
-    plugins: {
-      legend: { position: 'bottom' },
-      title: { display: true, text: 'Enrolled Students per Course' },
-    },
-  };
+import React, { useEffect, useState } from 'react';
+import { useSelector } from 'react-redux';
+import { apiConnector } from '../services/apiConnector';
+import { categories, subCategory, course } from '../services/apis';
+
+export default function InstructorOverview() {
+  const { user } = useSelector((state) => state.profile);
+  const { token } = useSelector((state) => state.auth);
+
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+  const [counts, setCounts] = useState({
+    categories: 0,
+    subcategories: 0,
+    myCourses: 0,
+  });
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      setLoading(true);
+      setError('');
+      try {
+        const baseCfg = {
+          withCredentials: true,
+          'X-Skip-Interceptor': 'true',
+          headers: { Authorization: token ? `Bearer ${token}` : undefined },
+        };
+
+        const [catRes, subRes] = await Promise.all([
+          apiConnector('GET', categories.CATEGORIES_API, null, baseCfg),
+          apiConnector('GET', subCategory.SHOW_ALL_SUBCATEGORIES_API, null, baseCfg),
+        ]);
+
+        const categoriesCount = Array.isArray(catRes?.data?.allCategories)
+          ? catRes.data.allCategories.length
+          : (Array.isArray(catRes?.data?.data) ? catRes.data.data.length : 0);
+
+        const subcategoriesCount = Array.isArray(subRes?.data?.allSubCategories)
+          ? subRes.data.allSubCategories.length
+          : (Array.isArray(subRes?.data?.data) ? subRes.data.data.length : 0);
+
+        const myCoursesRes = await apiConnector('GET', course.GET_INSTRUCTOR_COURSES_API, null, baseCfg);
+        const myCoursesArr = Array.isArray(myCoursesRes?.data?.data)
+          ? myCoursesRes.data.data
+          : (Array.isArray(myCoursesRes?.data?.courses) ? myCoursesRes.data.courses : []);
+
+        setCounts({
+          categories: categoriesCount,
+          subcategories: subcategoriesCount,
+          myCourses: myCoursesArr.length,
+        });
+      } catch (err) {
+        console.error('InstructorOverview: counts fetch failed', err);
+        setError(err?.response?.data?.message || err.message || 'Failed to load data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchCounts();
+  }, [token]);
 
   return (
-    <div className="flex flex-col gap-8 p-8 bg-white min-h-screen w-full">
-      {/* Welcome and Quick Stats */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Welcome, {instructorName}!
-        </h1>
-        <div className="flex gap-8 mt-4">
-          <div className="bg-green-50 p-4 rounded-lg shadow text-center">
-            <div className="text-2xl font-bold text-green-700">{courses.length}</div>
-            <div className="text-gray-600">Courses</div>
-          </div>
-          <div className="bg-blue-50 p-4 rounded-lg shadow text-center">
-            <div className="text-2xl font-bold text-blue-700">
-              {courses.reduce((sum, c) => sum + c.totalStudentsEnrolled, 0)}
-            </div>
-            <div className="text-gray-600">Enrolled Students</div>
-          </div>
+    <div
+  style={{
+    padding: "1.5rem", // p-6
+    paddingInline: "2rem", // md:p-8 (approx; media queries can’t be inline)
+    width: "100%",
+    minHeight: "100vh",
+    backgroundColor: "white",
+    marginLeft:"220px",
+    marginTop:"4rem"
+  }}
+>
+  <h1
+    style={{
+      fontSize: "1.5rem", // text-2xl
+      fontWeight: "bold",
+      color: "#111827", // text-gray-900
+      // md:text-3xl → fontSize: "1.875rem" (needs media query outside inline styles)
+    }}
+  >
+    Instructor Dashboard
+  </h1>
+
+  <p
+    style={{
+      color: "#4B5563", // text-gray-600
+      marginTop: "0.25rem", // mt-1
+    }}
+  >
+    Welcome{user?.firstName ? `, ${user.firstName}` : ""}!
+  </p>
+
+  {loading && (
+    <div
+      style={{
+        marginTop: "2rem", // mt-8
+        color: "#4B5563",
+      }}
+    >
+      Loading dashboard...
+    </div>
+  )}
+
+  {error && !loading && (
+    <div
+      style={{
+        marginTop: "1.5rem", // mt-6
+        padding: "1rem", // p-4
+        borderRadius: "0.5rem",
+        backgroundColor: "#FEF2F2", // bg-red-50
+        color: "#B91C1C", // text-red-700
+        border: "1px solid #FECACA", // border-red-200
+      }}
+    >
+      {error}
+    </div>
+  )}
+
+  {!loading && !error && (
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "1fr", // grid-cols-1
+        gap: "1.5rem", // gap-6
+        marginTop: "2rem", // mt-8
+        // sm:grid-cols-3 → needs media query outside inline styles
+      }}
+    >
+      {/* Categories */}
+      <div
+        style={{
+          borderRadius: "0.75rem", // rounded-xl
+          border: "1px solid #E5E7EB", // border-gray-200
+          padding: "1.5rem", // p-6
+          boxShadow: "0 1px 2px rgba(0,0,0,0.05)", // shadow-sm
+          background: "linear-gradient(to bottom right, #ECFDF5, white)", // from-green-50 to-white
+        }}
+      >
+        <div
+          style={{
+            fontSize: "0.875rem", // text-sm
+            textTransform: "uppercase",
+            letterSpacing: "0.05em", // tracking-wide
+            color: "#4B5563", // text-gray-600
+          }}
+        >
+          Categories
+        </div>
+        <div
+          style={{
+            marginTop: "0.5rem", // mt-2
+            fontSize: "2.25rem", // text-4xl
+            fontWeight: "800", // font-extrabold
+            color: "#047857", // text-green-700
+          }}
+        >
+          {counts.categories}
         </div>
       </div>
 
-      {/* Enrolled Students Pie Chart */}
-      <div className="bg-gray-50 p-6 rounded-lg shadow max-w-xl">
-        <Pie data={chartData} options={options} height={300} />
-      </div>
-
-      {/* Courses Overview */}
-      <div>
-        <h2 className="text-xl font-semibold mb-4">Your Courses</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {courses.map((course) => (
-            <div key={course.id} className="bg-white p-4 rounded-lg shadow flex flex-col gap-2">
-              <div className="font-bold text-lg">{course.courseName}</div>
-              <div className="text-gray-600">Enrolled: {course.totalStudentsEnrolled}</div>
-              <div className="text-gray-500 text-sm">Status: {course.status}</div>
-              <button className="mt-2 bg-green-600 text-white px-4 py-1 rounded hover:bg-green-700 transition">
-                View Course
-              </button>
-            </div>
-          ))}
+      {/* Subcategories */}
+      <div
+        style={{
+          borderRadius: "0.75rem",
+          border: "1px solid #E5E7EB",
+          padding: "1.5rem",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+          background: "linear-gradient(to bottom right, #EFF6FF, white)", // from-blue-50 to-white
+        }}
+      >
+        <div
+          style={{
+            fontSize: "0.875rem",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            color: "#4B5563",
+          }}
+        >
+          Subcategories
+        </div>
+        <div
+          style={{
+            marginTop: "0.5rem",
+            fontSize: "2.25rem",
+            fontWeight: "800",
+            color: "#1D4ED8", // text-blue-700
+          }}
+        >
+          {counts.subcategories}
         </div>
       </div>
 
-      {/* Recent Activity (placeholder) */}
-      <div className="bg-gray-50 p-6 rounded-lg shadow max-w-xl mt-8">
-        <h2 className="text-lg font-semibold mb-2">Recent Activity</h2>
-        <p className="text-gray-500">No recent activity yet.</p>
-      </div>
-
-      {/* Action Buttons */}
-      <div className="flex gap-4 mt-8">
-        <button className="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 transition font-semibold">
-          Create New Course
-        </button>
-        <button className="bg-gray-200 text-gray-800 px-6 py-2 rounded hover:bg-gray-300 transition font-semibold">
-          View All Courses
-        </button>
+      {/* My Courses */}
+      <div
+        style={{
+          borderRadius: "0.75rem",
+          border: "1px solid #E5E7EB",
+          padding: "1.5rem",
+          boxShadow: "0 1px 2px rgba(0,0,0,0.05)",
+          background: "linear-gradient(to bottom right, #D1FAE5, white)", // from-emerald-50 to-white
+        }}
+      >
+        <div
+          style={{
+            fontSize: "0.875rem",
+            textTransform: "uppercase",
+            letterSpacing: "0.05em",
+            color: "#4B5563",
+          }}
+        >
+          My Courses
+        </div>
+        <div
+          style={{
+            marginTop: "0.5rem",
+            fontSize: "2.25rem",
+            fontWeight: "800",
+            color: "#047857", // text-emerald-700
+          }}
+        >
+          {counts.myCourses}
+        </div>
       </div>
     </div>
+  )}
+</div>
+
   );
-} 
+}

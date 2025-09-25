@@ -14,6 +14,8 @@ const Navbar = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const location = useLocation();
+  const params = new URLSearchParams(location.search);
+
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isCategoryDropdownOpen, setIsCategoryDropdownOpen] = useState(false);
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
@@ -177,6 +179,13 @@ const Navbar = () => {
     dispatch(logout(navigate));
   };
 
+  const hide =
+  location.pathname === "/admin/login" ||
+  (location.pathname === "/login" && params.get("admin") === "1");
+if (hide) {
+  return null;
+}
+  
   return (
     <>
       {/* Top Bar - Hidden on mobile */}
@@ -695,7 +704,7 @@ const Navbar = () => {
                             </>
                           )}
                           
-                          {(user.accountType === 'Instructor' || user.accountType === 'Admin' || user.accountType === 'SuperAdmin') && (
+                          {(user.accountType === 'Admin' || user.accountType === 'SuperAdmin') && (
                             <>
                               {user.accountType === 'SuperAdmin' && (
                                 <Link 
@@ -802,7 +811,7 @@ const Navbar = () => {
                             </>
                           )}
                           
-                          {(user.accountType === 'Instructor' || user.accountType === 'Super Admin' || user.accountType === 'Staff') && (
+                          {( user.accountType === 'Super Admin' || user.accountType === 'Staff') && (
                             <>
                               <Link 
                                 to="/admin/users"

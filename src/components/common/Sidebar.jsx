@@ -417,7 +417,7 @@ const getSidebarLinks = (user, variant = 'default') => {
       {
         id: 1,
         name: "Dashboard",
-        path: "/instructor/dashboard",
+        path: "/dashboard/instructor",
         icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} />,
       },
       // CONTENT MANAGEMENT - Section Header
