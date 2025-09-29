@@ -145,6 +145,7 @@ import StudentResults from "./pages/Dashboard/StudentResults";
 import VisitDepartments from './components/core/UGPGAdmin/FrontDesk/VisitDepartments';
 import Schools from './pages/University/Schools';
 import ProgramDetails from './pages/University/ProgramDetails';
+import EnrollmentApproved from './pages/University/EnrollmentApproved';
 // Debug Redux store on app start
 console.log("App starting - Redux store state:", store.getState());
 console.log("App starting - localStorage debug:");
@@ -255,8 +256,15 @@ function AppRoutes() {
         <Route path="notification-settings" element={<div>Notification Settings</div>} />
       </Route>
       
-      
-
+      <Route path="/university/enrollment/approved" element={<Navigate to="/university/approved" replace />} />
+      <Route
+  path="/university/approved"
+  element={
+    <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
+      <EnrollmentApproved />
+    </ProtectedRoute>
+  }
+/>
       {/* University Admin Routes */}
       <Route path="/university" element={
         <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN]}>
@@ -264,11 +272,13 @@ function AppRoutes() {
         </ProtectedRoute>
       }>
         {/* Child enrollment routes render inside ProgramSelection via <Outlet /> */}
-        <Route path="enrollment" element={
+        {/* <Route path="enrollment" element={
           <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT]}>
             <EnrollmentStatus />
           </ProtectedRoute>
-        } />
+        } /> */}
+       
+       
         {/* Dashboard route will be handled by the main Dashboard component */}
       </Route>
       

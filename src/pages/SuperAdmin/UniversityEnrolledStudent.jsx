@@ -45,6 +45,7 @@ const UniversityEnrolledStudent = () => {
     console.log('Type of registration fee:', typeof student.verificationDetails?.registrationFee);
     console.log('Student Course Session ID:', student.course?.session);
     setSelectedStudent(student);
+    
     setViewModalVisible(true);
   };
 

@@ -43,7 +43,7 @@ export const refreshTokenIfNeeded = async (forceRefresh = false) => {
     const token = state.auth?.token || localStorage.getItem('token');
     const refreshTokenValue = localStorage.getItem('refreshToken');
     
-    console.log('🔐 Token check:', {
+    console.log(' Token check:', {
       hasToken: !!token,
       tokenLength: token?.length || 0,
       hasRefreshToken: !!refreshTokenValue,
@@ -55,7 +55,7 @@ export const refreshTokenIfNeeded = async (forceRefresh = false) => {
     
     // If we don't have a refresh token, we can't refresh
     if (!refreshTokenValue) {
-      console.error('❌ No refresh token available in localStorage');
+      console.error(' No refresh token available in localStorage');
       // Clear any invalid tokens
       if (token) {
         localStorage.removeItem('token');
@@ -64,106 +64,94 @@ export const refreshTokenIfNeeded = async (forceRefresh = false) => {
     }
     
     // If we don't have a token, it's expired, expiring soon, or we're forcing a refresh
-    if (forceRefresh || !token || isTokenExpiringSoon(token) || isTokenExpired(token)) {
-      console.log('🔄 Token needs refresh:', {
-        hasToken: !!token,
-        isExpiringSoon: isTokenExpiringSoon(token),
-        isExpired: isTokenExpired(token),
-        forceRefresh: forceRefresh
+    const needsRefresh = forceRefresh || !token || isTokenExpiringSoon(token) || isTokenExpired(token);
+    
+    if (!needsRefresh) {
+      console.log(' Token still valid, no refresh needed');
+      return true;
+    }
+    
+    console.log(' Token needs refresh');
+    
+    // If we're already refreshing, wait for the result
+    if (isRefreshing) {
+      console.log(' Already refreshing, adding to queue...');
+      return new Promise((resolve) => {
+        refreshSubscribers.push((success) => {
+          console.log(' Resolving queued refresh request');
+          resolve(success);
+        });
       });
-      
-      // If we're already refreshing, wait for the result
-      if (isRefreshing) {
-        console.log('⏳ Already refreshing, adding to queue...');
-        return new Promise((resolve) => {
-          refreshSubscribers.push((success) => {
-            console.log('✅ Resolving queued refresh request');
-            resolve(success);
-          });
-        });
-      }
-      
-      isRefreshing = true;
-      console.log('🔄 Starting token refresh...');
-      
+    }
+    
+    isRefreshing = true;
+    console.log(' Starting token refresh...');
+    
+    // Use dynamic import to avoid circular dependencies
+    const { refreshToken: refreshTokenAction } = await import("../services/operations/authApi");
+    
+    // Dispatch the refresh token action
+    console.log(' Dispatching refreshToken action...');
+    const action = await store.dispatch(refreshTokenAction(refreshTokenValue));
+    const result = action.payload || action;
+    
+    if (!result?.success) {
+      throw new Error(result?.message || 'Failed to refresh token');
+    }
+    
+    console.log(' Token refresh successful');
+    
+    // Update tokens in localStorage and Redux
+    if (result.accessToken) {
+      localStorage.setItem('token', result.accessToken);
+      store.dispatch({
+        type: 'auth/setToken',
+        payload: result.accessToken
+      });
+    }
+    
+    if (result.refreshToken) {
+      localStorage.setItem('refreshToken', result.refreshToken);
+    }
+    
+    if (result.user) {
+      localStorage.setItem('user', JSON.stringify(result.user));
+      store.dispatch({
+        type: 'auth/setUser',
+        payload: result.user
+      });
+    }
+    
+    onRefreshed(true);
+    return true;
+    
+  } catch (error) {
+    console.error(' Token refresh failed:', error.message);
+    
+    // Clear invalid tokens
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
+    
+    // Reset auth state
+    store.dispatch({ type: 'auth/setToken', payload: null });
+    store.dispatch({ type: 'auth/setUser', payload: null });
+    
+    // Only attempt logout if we're not already on the login page
+    if (!window.location.pathname.includes('/login')) {
       try {
-        // Use dynamic import to avoid circular dependencies
-        const { refreshToken: refreshTokenAction } = await import("../services/operations/authApi");
-        
-        // Dispatch the refresh token action
-        console.log('🔄 Dispatching refreshToken action...');
-        const action = await store.dispatch(refreshTokenAction(refreshTokenValue));
-        const result = action.payload || action; // Handle both thunk and direct action results
-        
-        console.log('🔑 Refresh result:', {
-          success: result?.success,
-          hasAccessToken: !!result?.accessToken,
-          hasUser: !!result?.user,
-          error: result?.error,
-          code: result?.code
-        });
-        
-        if (result?.success) {
-          console.log('✅ Token refresh successful');
-          onRefreshed(true);
-          return true;
-        } else {
-          const errorMessage = result?.message || 'Failed to refresh token';
-          console.error('❌ Token refresh failed:', errorMessage);
-          
-          // Clear invalid tokens
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
-          
-          // Reset auth state
-          store.dispatch({ type: 'auth/setToken', payload: null });
-          store.dispatch({ type: 'auth/setUser', payload: null });
-          
-          // Notify subscribers of failure
-          onRefreshed(false);
-          
-          throw new Error(errorMessage);
-        }
-      } catch (error) {
-        console.error("❌ Failed to refresh token:", {
-          message: error.message,
-          code: error.code,
-          stack: error.stack
-        });
-        
-        // Notify all subscribers of the failure
-        onRefreshed(false);
-        
-        try {
-          // Clear tokens
-          localStorage.removeItem('token');
-          localStorage.removeItem('refreshToken');
-          
-          // Clear Redux state
-          store.dispatch({ type: 'auth/setToken', payload: null });
-          store.dispatch({ type: 'auth/setUser', payload: null });
-          
-          // Only attempt logout if we're not already on the login page
-          if (!window.location.pathname.includes('/login')) {
-            const { logout } = await import("../services/operations/authApi");
-            store.dispatch(logout());
-          }
-        } catch (cleanupError) {
-          console.error("❌ Error during cleanup after token refresh failure:", cleanupError);
-        }
-        
-        return false;
-      } finally {
-        isRefreshing = false;
-        console.log('🔐 Refresh process completed');
+        const { logout } = await import("../services/operations/authApi");
+        store.dispatch(logout());
+      } catch (logoutError) {
+        console.error(' Error during logout:', logoutError);
       }
     }
     
-    console.log('🔐 Token still valid, no refresh needed');
-    return true;
-  } catch (error) {
-    console.error("❌ Error in refreshTokenIfNeeded:", error);
+    onRefreshed(false);
     return false;
+    
+  } finally {
+    isRefreshing = false;
+    console.log(' Refresh process completed');
   }
 };
 

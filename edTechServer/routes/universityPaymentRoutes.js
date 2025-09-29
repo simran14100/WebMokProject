@@ -53,67 +53,7 @@ router.post('/assign-fees/:studentId', authorize('admin', 'accountant', 'SuperAd
 // @route   GET /api/v1/university/payments
 // @desc    Get all payments with filters (for reporting)
 // @access  Private/Admin,Accountant,SuperAdmin
-router.get('/', authorize('admin', 'accountant', 'SuperAdmin'), async (req, res, next) => {
-  try {
-    const { 
-      startDate, 
-      endDate, 
-      feeType, 
-      status, 
-      paymentMethod, 
-      page = 1, 
-      limit = 10,
-      studentId
-    } = req.query;
-    
-    const query = {};
-    
-    // Filter by student if provided
-    if (studentId) {
-      query.student = studentId;
-    }
-    
-    // Date range filter
-    if (startDate || endDate) {
-      query.paymentDate = {};
-      if (startDate) query.paymentDate.$gte = new Date(startDate);
-      if (endDate) query.paymentDate.$lte = new Date(endDate);
-    }
-    
-    // Other filters
-    if (feeType) query.feeType = feeType;
-    if (status) query.status = status;
-    if (paymentMethod) query.modeOfPayment = paymentMethod;
-    
-    const options = {
-      page: parseInt(page, 10),
-      limit: parseInt(limit, 10),
-      sort: { paymentDate: -1 },
-      populate: [
-        { path: 'student', select: 'firstName lastName registrationNumber' },
-        { path: 'createdBy', select: 'firstName lastName' },
-        {
-          path: 'feeAssignment',
-          select: 'feeType totalAmount course',
-          populate: {
-            path: 'course',
-            select: 'name code',
-            model: 'UGPGCourse'
-          }
-        }
-      ]
-    };
-    
-    const payments = await UniversityPayment.paginate(query, options);
-    
-    res.status(200).json({
-      success: true,
-      data: payments
-    });
-    
-  } catch (error) {
-    next(error);
-  }
-});
+const { getPayments } = require('../controllers/universityPaymentController');
+router.get('/', authorize('admin', 'accountant', 'SuperAdmin'), getPayments);
 
 module.exports = router;

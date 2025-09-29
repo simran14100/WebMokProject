@@ -429,7 +429,7 @@ exports.login = async (req, res) => {
       const refreshCookieOptions = {
         ...cookieOptions,
         expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
-        path: "/api/v1/auth/refresh-token",
+        path: "/",
       };
 
       // Set both cookies and return response

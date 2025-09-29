@@ -747,7 +747,7 @@ const FeeTypePage = () => {
               ) : courses.length > 0 ? (
                 courses.map(course => (
                   <option key={course._id} value={course._id}>
-                    {course.courseName} ({course.durationYear || course.duration || 'N/A'} Years)
+                    {course.courseName} 
                   </option>
                 ))
               ) : (

@@ -221,27 +221,37 @@ const registerStudent = asyncHandler(async (req, res) => {
       });
     }
     
-    // Parse nested fields from form data - FIXED approach
-    // express-fileupload with parseNested: true creates nested objects
-    let address = {};
-    if (req.body.address && typeof req.body.address === 'object') {
-      address = { ...req.body.address };
-    } else {
-      // Fallback: parse dot notation fields
-      const addressFields = ['line1', 'line2', 'city', 'state', 'pincode'];
-      addressFields.forEach(field => {
-        const value = req.body[`address.${field}`];
-        if (value !== undefined && value !== '') {
-          address[field] = value;
-        }
+    // Check if student with this Aadhar number already exists
+    const existingStudent = await UniversityRegisteredStudent.findOne({ 
+      aadharNumber: req.body.aadharNumber 
+    });
+
+    if (existingStudent) {
+      // Clean up any uploaded files
+      if (photoUpload?.public_id) await cloudinary.uploader.destroy(photoUpload.public_id);
+      if (signatureUpload?.public_id) await cloudinary.uploader.destroy(signatureUpload.public_id);
+      
+      return res.status(400).json({
+        success: false,
+        message: 'A student with this Aadhar number is already registered',
+        aadharNumber: req.body.aadharNumber
       });
     }
-    
+
     // Create student data
     const studentData = {
       firstName: req.body.firstName,
       lastName: req.body.lastName,
       dateOfBirth: req.body.dateOfBirth,
+      // Payment Information
+      paymentMode: req.body.paymentMode || 'online',
+      paymentStatus: req.body.paymentMode === 'cash' ? 'pending' : 'pending',
+      paymentDetails: req.body.paymentMode === 'online' ? {
+        amount: 1000,
+        currency: 'INR',
+        status: 'pending'
+      } : undefined,
+      
       gender: req.body.gender,
       aadharNumber: req.body.aadharNumber,
       email: req.body.email,
@@ -251,17 +261,38 @@ const registerStudent = asyncHandler(async (req, res) => {
       referenceName: req.body.referenceName,
       referenceContact: req.body.referenceContact,
       referenceRelation: req.body.referenceRelation,
-      address: Object.keys(address).length > 0 ? address : undefined,
-      lastQualification: req.body.lastQualification,
-      boardUniversity: req.body.boardUniversity,
-      yearOfPassing: req.body.yearOfPassing,
-      percentage: req.body.percentage,
+      address: {
+        line1: req.body['address.line1'],
+        line2: req.body['address.line2'],
+        city: req.body['address.city'],
+        state: req.body['address.state'],
+        country: req.body['address.country'],
+        pincode: req.body['address.pincode']
+      },
+      // lastQualification: req.body.lastQualification,
+      // boardUniversity: req.body.boardUniversity,
+      // yearOfPassing: req.body.yearOfPassing,
+      // percentage: req.body.percentage,
+      // New fields
+      programType: req.body.programType,
+      category: req.body.category,
+      employment: {
+        isEmployed: req.body['employment.isEmployed'] === 'true' || req.body?.employment?.isEmployed === true,
+        designation: req.body['employment.designation'] || req.body?.employment?.designation || ''
+      },
+      academics: Array.isArray(req.body.academics) ? req.body.academics : [],
       course: req.body.course,
       specialization: req.body.specialization,
       isScholarship: req.body.isScholarship || false,
-      fatherName: req.body.fatherName,
-      fatherOccupation: req.body.fatherOccupation,
+      hostelFacility: req.body.hostelFacility === 'true' || req.body.hostelFacility === true,
+      transportFacility: req.body.transportFacility === 'true' || req.body.transportFacility === true,
+      undertakingAccepted: req.body.undertakingAccepted === 'true' || req.body.undertakingAccepted === true,
+      parent: {
+        fatherName: req.body.fatherName || req.body['parent.fatherName'],
+        fatherOccupation: req.body.fatherOccupation || req.body['parent.fatherOccupation'] || '',
+      },
       motherName: req.body.motherName,
+      
       motherOccupation: req.body.motherOccupation,
       parentPhone: req.body.parentPhone,
       parentEmail: req.body.parentEmail,
@@ -368,16 +399,58 @@ const registerStudent = asyncHandler(async (req, res) => {
   }
 });
 
+// @desc    Check if a student with the given Aadhar number exists
+// @route   GET /api/university/registered-students/check-aadhar/:aadhar
+// @access  Private
+const checkAadharExists = asyncHandler(async (req, res) => {
+  try {
+    const { aadhar } = req.params;
+    
+    // Log the user's role for debugging
+    console.log('User checking Aadhar:', {
+      userId: req.user?._id,
+      role: req.user?.role || req.user?.accountType,
+      aadhar: aadhar
+    });
+    
+    if (!aadhar) {
+      return res.status(400).json({
+        success: false,
+        message: 'Aadhar number is required'
+      });
+    }
+    
+    // Check if a student with this Aadhar number already exists
+    const existingStudent = await UniversityRegisteredStudent.findOne({ 
+      aadharNumber: aadhar
+    });
+    
+    return res.status(200).json({
+      success: true,
+      exists: !!existingStudent
+    });
+    
+  } catch (error) {
+    console.error('Error checking Aadhar existence:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error checking Aadhar existence',
+      error: error.message
+    });
+  }
+});
+
 // @desc    Get all registered students
 // @route   GET /api/university/registered-students
 // @access  Private/Admin
 const getRegisteredStudents = asyncHandler(async (req, res) => {
+  console.log('=== getRegisteredStudents called ===');
+  console.log('Query params:', req.query);
+  
   const { page = 1, limit = 10, status, search, registrationNumber } = req.query;
   
   // Create query object to filter students
-  const query = {
-    registrationNumber: { $exists: true, $ne: null } // University registered students only
-  };
+  const query = {};
   
   // Filter by specific registration number if provided
   if (registrationNumber) {
@@ -387,12 +460,27 @@ const getRegisteredStudents = asyncHandler(async (req, res) => {
     };
   }
   
-  // Filter by status
+  // Filter by status if specified, otherwise get all statuses
   if (status && status !== 'all') {
     query.status = status;
   } else {
-    // Default to showing only pending and approved if no status filter
-    query.status = { $in: ['pending', 'approved'] };
+    // Get all statuses for now to debug
+    console.log('No status filter applied - getting all students regardless of status');
+    // Remove status filter entirely to get all students
+    delete query.status;
+  }
+  
+  // Log the final query before execution
+  console.log('Final query before execution:', JSON.stringify(query, null, 2));
+  
+  // Log all statuses in the database for debugging
+  try {
+    const statusCounts = await UniversityRegisteredStudent.aggregate([
+      { $group: { _id: '$status', count: { $sum: 1 } } }
+    ]);
+    console.log('Status counts in database:', statusCounts);
+  } catch (err) {
+    console.error('Error getting status counts:', err);
   }
   
   // Search by name, email, phone, or registration number
@@ -403,7 +491,8 @@ const getRegisteredStudents = asyncHandler(async (req, res) => {
       { email: { $regex: search, $options: 'i' } },
       { phone: { $regex: search, $options: 'i' } },
       { registrationNumber: { $regex: search, $options: 'i' } },
-      { courseName: { $regex: search, $options: 'i' } } // Also search by course name
+      { 'course.courseName': { $regex: search, $options: 'i' } },
+      { courseName: { $regex: search, $options: 'i' } }
     ];
   }
   
@@ -411,7 +500,7 @@ const getRegisteredStudents = asyncHandler(async (req, res) => {
     page: parseInt(page),
     limit: parseInt(limit),
     sort: { createdAt: -1 },
-    select: '-__v -updatedAt -__v',
+    select: '-__v -updatedAt', // Removed -__v twice and kept it once
     populate: [
       {
         path: 'course',
@@ -421,33 +510,54 @@ const getRegisteredStudents = asyncHandler(async (req, res) => {
     ]
   };
   
-  // Execute the query with pagination
-  const students = await UniversityRegisteredStudent.paginate(query, options);
+  console.log('Final query:', JSON.stringify(query, null, 2));
+  console.log('Options:', JSON.stringify(options, null, 2));
   
-  // Process the students to include courseName
-  const processedStudents = students.docs.map(student => {
-    const studentObj = student.toObject();
-    return {
-      ...studentObj,
-      courseName: student.course?.name || 'N/A',
-      courseType: student.course?.type || 'N/A'
-    };
-  });
-  
-  res.json({
-    success: true,
-    data: {
-      students: processedStudents,
-      pagination: {
-        page: students.page,
-        limit: students.limit,
-        total: students.totalDocs,
-        pages: students.totalPages,
-        hasNext: students.hasNextPage,
-        hasPrev: students.hasPrevPage
+  try {
+    // Execute the query with pagination
+    const students = await UniversityRegisteredStudent.paginate(query, options);
+    
+    console.log('Query results - total students:', students.totalDocs);
+    console.log('Students found:', students.docs.map(s => ({
+      _id: s._id,
+      name: `${s.firstName} ${s.lastName}`,
+      email: s.email,
+      status: s.status,
+      course: s.course ? s.course.courseName : 'N/A'
+    })));
+    
+    // Process the students to include courseName
+    const processedStudents = students.docs.map(student => {
+      const studentObj = student.toObject();
+      return {
+        ...studentObj,
+        courseName: student.course?.courseName || 'N/A',
+        courseType: student.course?.courseType || 'N/A'
+      };
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        students: processedStudents,
+        pagination: {
+          page: students.page,
+          limit: students.limit,
+          total: students.totalDocs,
+          pages: students.totalPages,
+          hasNext: students.hasNextPage,
+          hasPrev: students.hasPrevPage
+        }
       }
-    }
-  });
+    });
+  } catch (error) {
+    console.error('Error in getRegisteredStudents:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching students',
+      error: error.message
+    });
+  }
 });
 // @desc    Get single student
 // @route   GET /api/university/registered-students/:id
@@ -712,6 +822,7 @@ const updateStudent = asyncHandler(async (req, res) => {
 
 module.exports = {
   registerStudent,
+  checkAadharExists,
   getRegisteredStudents,
   getStudent,
   // updateStudentStatus,

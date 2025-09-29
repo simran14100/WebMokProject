@@ -71,97 +71,337 @@ export default function Accounts() {
   };
 
   return (
-    <div className="text-white p-6 max-w-2xl mx-auto">
-      <h1 className="text-3xl font-medium mb-8 flex items-center gap-2">
-        <VscLock style={{ fontSize: 24, color: ED_TEAL }} />
+   
+    <div
+    style={{
+      color: "#fff",
+      padding: "32px",
+      maxWidth: "1200px",
+      width:"1000%",
+      minHeight: "600px",
+      margin: "0 auto",
+      fontFamily: "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif",
+      background: "linear-gradient(135deg,rgb(42, 93, 202) 0%,rgb(2, 37, 94) 100%)",
+      borderRadius: "16px",
+      boxShadow: "0 10px 30px rgba(0, 0, 0, 0.3)",
+    }}
+  >
+    <div style={{ textAlign: "center", marginBottom: "32px" }}>
+      <div
+        style={{
+          width: "80px",
+          height: "80px",
+          background: "linear-gradient(135deg,rgb(5, 51, 82) 0%,rgba(6, 73, 124, 0.62) 100%)",
+          borderRadius: "50%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          margin: "0 auto 20px",
+          boxShadow: "0 4px 12px rgba(0, 122, 204, 0.4)",
+        }}
+      >
+        <i className="fas fa-lock" style={{ fontSize: "32px", color: "white" }} />
+      </div>
+      <h1
+        style={{
+          fontSize: "32px",
+          fontWeight: 600,
+          marginBottom: "8px",
+          color: "#fff",
+          letterSpacing: "0.5px",
+        }}
+      >
         Change Password
       </h1>
-      
-      <div className="bg-richblack-800 p-6 rounded-lg border border-richblack-700">
-        <form onSubmit={handleOnSubmit} className="space-y-6">
-          {error && (
-            <div className="p-3 bg-pink-900/50 border border-pink-500 text-pink-200 rounded-md">
-              {error}
-            </div>
-          )}
-          
-          {success && (
-            <div className="p-3 bg-green-900/50 border border-green-500 text-green-200 rounded-md">
-              {success}
-            </div>
-          )}
-          
-          <div className="space-y-2">
-            <label htmlFor="currentPassword" className="block text-sm font-medium text-richblack-100">
-              Current Password
-            </label>
+      <p style={{ color: "#B0C4DE", fontSize: "16px", margin: 0 }}>
+        Secure your account with a new password
+      </p>
+    </div>
+  
+    <div
+      style={{
+        background: "rgba(255, 255, 255, 0.08)",
+        backdropFilter: "blur(10px)",
+        padding: "32px",
+        borderRadius: "16px",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
+        boxShadow: "0 8px 24px rgba(0, 0, 0, 0.2)",
+      }}
+    >
+      <form onSubmit={handleOnSubmit} style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+        {error && (
+          <div
+            style={{
+              padding: "16px",
+              background: "rgba(220, 38, 38, 0.15)",
+              border: "1px solid rgba(220, 38, 38, 0.4)",
+              color: "#FCA5A5",
+              borderRadius: "10px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              fontSize: "15px",
+            }}
+          >
+            <i className="fas fa-exclamation-circle" />
+            <span>{error}</span>
+          </div>
+        )}
+  
+        {success && (
+          <div
+            style={{
+              padding: "16px",
+              background: "rgba(16, 185, 129, 0.15)",
+              border: "1px solid rgba(16, 185, 129, 0.4)",
+              color: "#6EE7B7",
+              borderRadius: "10px",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              fontSize: "15px",
+            }}
+          >
+            <i className="fas fa-check-circle" />
+            <span>{success}</span>
+          </div>
+        )}
+  
+        {/* Current Password */}
+        <div>
+          <label
+            htmlFor="currentPassword"
+            style={{
+              display: "block",
+              fontSize: "15px",
+              fontWeight: 500,
+              marginBottom: "10px",
+              color: "#E0E7FF",
+            }}
+          >
+            <i className="fas fa-key" style={{ marginRight: "8px" }} />
+            Current Password
+          </label>
+          <div style={{ position: "relative" }}>
             <input
               type="password"
               name="currentPassword"
               id="currentPassword"
               value={currentPassword}
               onChange={handleOnChange}
-              placeholder="Enter current password"
-              className="w-full px-4 py-2.5 bg-richblack-700 border border-richblack-600 rounded-md text-richblack-5 focus:outline-none focus:ring-2 focus:ring-caribbeangreen-300"
+              placeholder="Enter your current password"
+              style={{
+                width: "100%",
+                padding: "16px 16px 16px 48px",
+                background: "rgba(255, 255, 255, 0.1)",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                borderRadius: "10px",
+                color: "#F9FAFB",
+                outline: "none",
+                fontSize: "15px",
+                transition: "all 0.3s ease",
+              }}
               required
             />
+            <i
+              className="fas fa-lock"
+              style={{
+                position: "absolute",
+                left: "16px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#94A3B8",
+              }}
+            />
           </div>
-          
-          <div className="space-y-2">
-            <label htmlFor="newPassword" className="block text-sm font-medium text-richblack-100">
-              New Password
-            </label>
+        </div>
+  
+        {/* New Password */}
+        <div>
+          <label
+            htmlFor="newPassword"
+            style={{
+              display: "block",
+              fontSize: "15px",
+              fontWeight: 500,
+              marginBottom: "10px",
+              color: "#E0E7FF",
+            }}
+          >
+            <i className="fas fa-shield-alt" style={{ marginRight: "8px" }} />
+            New Password
+          </label>
+          <div style={{ position: "relative" }}>
             <input
               type="password"
               name="newPassword"
               id="newPassword"
               value={newPassword}
               onChange={handleOnChange}
-              placeholder="Enter new password (min 6 characters)"
-              className="w-full px-4 py-2.5 bg-richblack-700 border border-richblack-600 rounded-md text-richblack-5 focus:outline-none focus:ring-2 focus:ring-caribbeangreen-300"
+              placeholder="Create a new password (min 6 characters)"
+              style={{
+                width: "100%",
+                padding: "16px 16px 16px 48px",
+                background: "rgba(255, 255, 255, 0.1)",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                borderRadius: "10px",
+                color: "#F9FAFB",
+                outline: "none",
+                fontSize: "15px",
+                transition: "all 0.3s ease",
+              }}
               required
               minLength={6}
             />
+            <i
+              className="fas fa-key"
+              style={{
+                position: "absolute",
+                left: "16px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#94A3B8",
+              }}
+            />
           </div>
-          
-          <div className="space-y-2">
-            <label htmlFor="confirmNewPassword" className="block text-sm font-medium text-richblack-100">
-              Confirm New Password
-            </label>
+          <div
+            style={{
+              marginTop: "8px",
+              fontSize: "13px",
+              color: "#94A3B8",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px",
+            }}
+          >
+            <i className="fas fa-info-circle" />
+            <span>Use at least 6 characters with a mix of letters and numbers</span>
+          </div>
+        </div>
+  
+        {/* Confirm Password */}
+        <div>
+          <label
+            htmlFor="confirmNewPassword"
+            style={{
+              display: "block",
+              fontSize: "15px",
+              fontWeight: 500,
+              marginBottom: "10px",
+              color: "#E0E7FF",
+            }}
+          >
+            <i className="fas fa-redo" style={{ marginRight: "8px" }} />
+            Confirm New Password
+          </label>
+          <div style={{ position: "relative" }}>
             <input
               type="password"
               name="confirmNewPassword"
               id="confirmNewPassword"
               value={confirmNewPassword}
               onChange={handleOnChange}
-              placeholder="Confirm new password"
-              className="w-full px-4 py-2.5 bg-richblack-700 border border-richblack-600 rounded-md text-richblack-5 focus:outline-none focus:ring-2 focus:ring-caribbeangreen-300"
+              placeholder="Re-enter your new password"
+              style={{
+                width: "100%",
+                padding: "16px 16px 16px 48px",
+                background: "rgba(255, 255, 255, 0.1)",
+                border: "1px solid rgba(255, 255, 255, 0.2)",
+                borderRadius: "10px",
+                color: "#F9FAFB",
+                outline: "none",
+                fontSize: "15px",
+                transition: "all 0.3s ease",
+              }}
               required
               minLength={6}
             />
+            <i
+              className="fas fa-check-circle"
+              style={{
+                position: "absolute",
+                left: "16px",
+                top: "50%",
+                transform: "translateY(-50%)",
+                color: "#94A3B8",
+              }}
+            />
           </div>
-          
-          <div className="pt-2">
-            <button
-              type="submit"
-              disabled={loading}
-              className={`w-full py-2.5 px-4 rounded-md font-medium ${
-                loading
-                  ? 'bg-richblack-500 cursor-not-allowed'
-                  : 'bg-caribbeangreen-500 hover:bg-caribbeangreen-400 text-richblack-900'
-              } transition-all duration-200`}
-            >
-              {loading ? 'Updating...' : 'Update Password'}
-            </button>
-          </div>
-        </form>
-      </div>
-      
-      <div className="mt-6 text-center">
-        <p className="text-richblack-400 text-sm">
-          Forgot your password? Please contact support for assistance.
-        </p>
+        </div>
+  
+        {/* Submit Button */}
+        <div style={{ paddingTop: "16px" }}>
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              width: "100%",
+              padding: "16px",
+              borderRadius: "10px",
+              fontWeight: 600,
+              fontSize: "16px",
+              background: "linear-gradient(135deg, #007ACC 0%, #005a9e 100%)",
+              color: "#fff",
+              border: "none",
+              cursor: "pointer",
+              transition: "all 0.3s ease",
+              boxShadow: "0 4px 12px rgba(0, 122, 204, 0.3)",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: "8px",
+            }}
+          >
+            {loading ? (
+              <>
+                <i className="fas fa-spinner fa-spin" />
+                Updating Password...
+              </>
+            ) : (
+              <>
+                <i className="fas fa-save" />
+                Update Password
+              </>
+            )}
+          </button>
+        </div>
+      </form>
+    </div>
+  
+    <div
+      style={{
+        marginTop: "32px",
+        textAlign: "center",
+        padding: "20px",
+        background: "rgba(255, 255, 255, 0.05)",
+        borderRadius: "10px",
+        border: "1px solid rgba(255, 255, 255, 0.1)",
+      }}
+    >
+      <p style={{ color: "#94A3B8", fontSize: "15px", margin: 0 }}>
+        <i className="fas fa-question-circle" style={{ marginRight: "8px" }} />
+        Forgot your password? Please contact our support team for assistance.
+      </p>
+      <div style={{ marginTop: "12px" }}>
+        <a
+          href="#"
+          style={{
+            color: "#60A5FA",
+            textDecoration: "none",
+            fontWeight: 500,
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            transition: "color 0.2s ease",
+          }}
+        >
+          <i className="fas fa-headset" />
+          Contact Support
+        </a>
       </div>
     </div>
+  </div>
+    
+
   );
 }

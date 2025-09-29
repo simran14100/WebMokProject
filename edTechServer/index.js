@@ -68,7 +68,8 @@ const feeAssignmentRoutes = require("./routes/feeAssignmentRoutes");
 const timetableRoutes = require("./routes/timetableRoutes");
 const universityPaymentRoutes = require("./routes/universityPaymentRoutes");
 const debugRoutes = require("./routes/debugRoutes");
-
+const paymentRoutesV2 = require('./routes/payment.routes');
+const studentRoutes = require('./routes/student');
 const database = require("./config/database");
 const cookieParser = require("cookie-parser");
 const cloudinary = require('cloudinary').v2;
@@ -265,10 +266,12 @@ app.use("/api/v1/university/enrolled-students", universityEnrolledStudentRoutes)
 app.use("/api/v1/university/fee-types", feeTypeRoutes);
 app.use("/api/v1/university/fee-assignments", feeAssignmentRoutes);
 app.use("/api/v1/university/payments", universityPaymentRoutes);
+app.use("/api/v1/payments", paymentRoutesV2);
 app.use("/api/v1/leave-requests", leaveRequestRoutes);
 app.use("/api/v1/timetable", timetableRoutes);
 app.use("/api/v1/guide", guideRoutes);
 app.use("/api/v1/cloudinary", cloudinaryRoutes);
+app.use("/api/v1/students", studentRoutes);
 
 // Debug routes - remove in production
 app.use("/api/v1/debug", debugRoutes);

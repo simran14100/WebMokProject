@@ -24,7 +24,15 @@ const timetableSchema = new mongoose.Schema({
   subject: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: "UGPGSubject", 
-    required: true 
+    required: true,
+    validate: {
+      validator: async function(value) {
+        if (!value) return false;
+        const subject = await mongoose.model('UGPGSubject').findById(value);
+        return !!subject;
+      },
+      message: 'Subject does not exist'
+    }
   },
   day: { 
     type: String, 

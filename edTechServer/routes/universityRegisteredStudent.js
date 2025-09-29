@@ -10,7 +10,7 @@ const { promisify } = require('util');
 const unlinkAsync = promisify(fs.unlink);
 
 // Ensure temp directory exists
-const tempDir = path.join(__dirname, '../temp/uploads');
+const tempDir = path.join(__dirname, '../temp/uploads');  
 if (!fs.existsSync(tempDir)) {
   fs.mkdirSync(tempDir, { recursive: true });
 }
@@ -56,13 +56,40 @@ const parseRequestBody = (req, res, next) => {
   try {
     const processedBody = {};
     
+    // Special handling for academics field
+    if (req.body.academics && typeof req.body.academics === 'string') {
+      try {
+        // Try to parse as JSON if it's a stringified object/array
+        if (req.body.academics.trim().startsWith('{') || req.body.academics.trim().startsWith('[')) {
+          processedBody.academics = JSON.parse(req.body.academics);
+        } else if (req.body.academics === '[object Object]') {
+          // Handle the case where it's just the string '[object Object]'
+          processedBody.academics = [];
+        }
+      } catch (e) {
+        console.error('Error parsing academics field:', e);
+        processedBody.academics = [];
+      }
+    }
+    
+    // Process other fields
     for (const [key, value] of Object.entries(req.body)) {
+      if (key === 'academics' && processedBody.academics !== undefined) {
+        continue; // Skip if we already processed academics
+      }
+      
       try {
         if (typeof value === 'string') {
           const trimmed = value.trim();
+          // Only try to parse if it looks like JSON and isn't a simple string
           if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || 
               (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
-            processedBody[key] = JSON.parse(trimmed);
+            try {
+              processedBody[key] = JSON.parse(trimmed);
+            } catch (e) {
+              console.error(`Error parsing field ${key} as JSON:`, e);
+              processedBody[key] = value;
+            }
           } else {
             processedBody[key] = value;
           }
@@ -70,9 +97,14 @@ const parseRequestBody = (req, res, next) => {
           processedBody[key] = value;
         }
       } catch (e) {
-        console.error(`Error parsing field ${key}:`, e);
+        console.error(`Error processing field ${key}:`, e);
         processedBody[key] = value;
       }
+    }
+    
+    // Ensure academics is always an array
+    if (!Array.isArray(processedBody.academics)) {
+      processedBody.academics = [];
     }
     
     req.body = processedBody;
@@ -205,6 +237,7 @@ const validateFileUpload = (req, res, next) => {
 const {
   registerStudent,
   getRegisteredStudents,
+  checkAadharExists,
   getStudent,
   updateStudentStatus,
   deleteStudent,
@@ -222,30 +255,12 @@ const {
 // Public (student) endpoint to check own registration status (requires auth but not admin)
 router.get('/my-status', protect, getMyRegistrationStatus);
 
-// Apply authentication and authorization middleware to remaining admin routes
-router.use(protect);
-router.use(authorize('admin', 'superadmin'));
-
-// Complete student verification with all details
-router.post('/:id/complete-verification', 
-  [
-    check('photoVerified', 'Photo verification status is required').isBoolean(),
-    check('signatureVerified', 'Signature verification status is required').isBoolean(),
-    check('documents', 'Documents verification data is required').isObject(),
-    check('verifiedBy', 'Verifier name is required').notEmpty(),
-    check('remarks', 'Remarks should be a string').optional().isString()
-  ], 
-  async (req, res, next) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
-    }
-    completeVerification(req, res, next);
-  }
-);
-
-// Student registration route with file uploads
+// Student registration route with file uploads (requires authentication)
 router.post('/register',
+  // Authentication middleware
+  protect,
+
+  
   // File upload middleware - must be first
   (req, res, next) => {
     const upload = fileUpload(fileUploadOptions);
@@ -293,14 +308,45 @@ router.post('/register',
   registerStudent
 );
 
+// Check if Aadhar exists - Allow both authenticated students and admins
+router.get('/check-aadhar/:aadhar', protect, checkAadharExists);
+
+
+// Apply authentication and authorization middleware to remaining admin routes
+router.use(protect);
+router.use(authorize('admin', 'superadmin'));
+
+// Complete student verification with all details
+router.post('/:id/complete-verification', 
+  [
+    check('photoVerified', 'Photo verification status is required').isBoolean(),
+    check('signatureVerified', 'Signature verification status is required').isBoolean(),
+    check('documents', 'Documents verification data is required').isObject(),
+    check('verifiedBy', 'Verifier name is required').notEmpty(),
+    check('remarks', 'Remarks should be a string').optional().isString()
+  ], 
+  async (req, res, next) => {
+      const errors = validationResult(req);
+      if (!errors.isEmpty()) {
+        return res.status(400).json({ errors: errors.array() });
+      }
+    completeVerification(req, res, next);
+  }
+);
+
+
 // Get all registered students
-router.get('/', getRegisteredStudents);
+router.get('/', protect, getRegisteredStudents);
 
 // Get a single student by ID
 router.get('/:id', getStudent);
 
 // Delete a student
-router.delete('/:id', deleteStudent);
+router.delete('/:id', 
+  protect,
+  authorize('Admin', 'SuperAdmin'),
+  deleteStudent
+);
 
 // Update student information
 router.put('/:id',

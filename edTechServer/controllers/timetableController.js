@@ -164,17 +164,25 @@ exports.getStudentTimetable = asyncHandler(async (req, res, next) => {
     // Get timetable for student's course and selected semester
     const timetable = await Timetable.find({
       course: student.course._id,
-      semester: semester
+      semester: semester,
+      subject: { $exists: true, $ne: null } // Only include entries with valid subjects
     })
-    .populate('subject', 'name code')
+    .populate({
+      path: 'subject',
+      select: 'name code',
+      match: { status: 'Active' } // Only include active subjects
+    })
     .populate('faculty', 'name')
     .populate('course', 'name')
     .populate('school', 'name')
     .sort({ day: 1, timeSlot: 1 });
 
+    // Filter out entries where subject is null after population
+    const filteredTimetable = timetable.filter(entry => entry.subject !== null);
+
     res.status(200).json({
       success: true,
-      data: timetable,
+      data: filteredTimetable,
       semester: semester, // Return the actual semester used
       course: student.course
     });

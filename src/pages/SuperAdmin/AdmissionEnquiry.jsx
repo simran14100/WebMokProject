@@ -282,7 +282,7 @@ const AdmissionEnquiry = () => {
             email: enquiry.email || 'N/A',
             programType: enquiry.programType || 'N/A',
             status: enquiry.status || 'new',
-            createdAt: enquiry.createdAt ? new Date(enquiry.createdAt).toLocaleDateString() : 'N/A',
+            createdAt: enquiry.createdAt ? moment(enquiry.createdAt).isValid() ? moment(enquiry.createdAt).toISOString() : enquiry.createdAt : 'N/A',
             // Add any additional fields needed for the table
             parentName: enquiry.parentName || 'N/A',
             address: [enquiry.address, enquiry.city, enquiry.state].filter(Boolean).join(', ') || 'N/A',
@@ -821,13 +821,22 @@ const AdmissionEnquiry = () => {
       dataIndex: 'createdAt',
       key: 'date',
       width: 150,
-      render: (date) => (
-        <div className="flex items-center">
-          <CalendarOutlined className="mr-2 text-blue-500" />
-          <span>{date ? moment(date).format('DD MMM YYYY') : 'N/A'}</span>
-        </div>
-      ),
-      sorter: (a, b) => new Date(a.createdAt || 0) - new Date(b.createdAt || 0),
+      render: (date) => {
+        const formattedDate = date && moment(date).isValid() 
+          ? moment(date).format('DD MMM YYYY')
+          : 'N/A';
+        return (
+          <div className="flex items-center">
+            <CalendarOutlined className="mr-2 text-blue-500" />
+            <span>{formattedDate}</span>
+          </div>
+        );
+      },
+      sorter: (a, b) => {
+        const dateA = a.createdAt && moment(a.createdAt).isValid() ? new Date(a.createdAt) : new Date(0);
+        const dateB = b.createdAt && moment(b.createdAt).isValid() ? new Date(b.createdAt) : new Date(0);
+        return dateA - dateB;
+      },
     },
     
     
@@ -971,18 +980,7 @@ const AdmissionEnquiry = () => {
               style={{ width: 250 }}
               allowClear
             />
-            <Select
-              placeholder="Status"
-              value={filters.status || undefined}
-              onChange={(value) => handleFilterChange('status', value)}
-              style={{ width: 150 }}
-              allowClear
-            >
-              <Option value="pending">Pending</Option>
-              <Option value="contacted">Contacted</Option>
-              <Option value="converted">Converted</Option>
-              <Option value="rejected">Rejected</Option>
-            </Select>
+          
             <Select
               placeholder="Program Type"
               value={filters.programType || undefined}

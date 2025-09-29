@@ -7,6 +7,7 @@ import { setTotalItems } from '../../store/slices/cartSlice';
 import { logout } from '../../services/operations/authApi';
 import { fetchCourseCategories } from '../../services/operations/courseDetailsAPI';
 import { getCartCount } from "../../services/operations/cartApi";
+import { apiConnector } from '../../services/apiConnector';
 
 
 const Navbar = () => {
@@ -178,6 +179,51 @@ const Navbar = () => {
   const handleLogout = () => {
     dispatch(logout(navigate));
   };
+
+  // University navigation: check universityregisteredstudent status and route accordingly
+// University navigation: check universityregisteredstudent status and route accordingly
+const handleUniversityNav = async (e) => {
+  e.preventDefault();
+
+  
+  if (!token) {
+    navigate(`/login?redirect=${encodeURIComponent('/university')}`);
+    return;
+  }
+
+  let isApproved = false;
+  try {
+    const regStatus = await apiConnector(
+      'GET',
+      '/api/v1/university/registered-students/my-status',
+      null,
+      {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      }
+    );
+
+    if (regStatus?.data?.success && regStatus.data?.data?.matched) {
+      const status = regStatus.data.data.status;
+      if (status === 'approved' || status === 'Approved') {
+        isApproved = true;
+        console.log('✅ University registration status: approved');
+      } else {
+        console.log('ℹ️ University registration status:', status);
+      }
+    } else {
+      console.log('ℹ️ University registration not matched');
+    }
+  } catch (e) {
+    console.warn('University registration status check failed (non-blocking):', e?.response?.data || e.message);
+  }
+
+  if (isApproved) {
+    navigate('/university/approved', { replace: true });
+  } else {
+    navigate('/university/schools', { replace: true });
+  }
+};
 
   const hide =
   location.pathname === "/admin/login" ||
@@ -429,29 +475,33 @@ if (hide) {
                       </Link>
                     </li>
                     <li>
-                      <Link to="/university/schools" style={{ 
-                        textDecoration: 'none', 
-                        color: '#191A1F', 
-                        fontWeight: '600',
-                        fontSize: '18px',
-                        fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important',
-                        letterSpacing: '0.5px',
-                        transition: 'all 0.3s ease',
-                        position: 'relative',
-                        padding: '8px 0',
-                        textTransform:'none'
-                      }}
-                      onMouseEnter={(e) => {
-                        e.target.style.color = '#07A698';
-                        e.target.style.transform = 'translateY(-1px)';
-                      }}
-                      onMouseLeave={(e) => {
-                        e.target.style.color = '#191A1F';
-                        e.target.style.transform = 'translateY(0)';
-                      }}>
-                       University
-                      </Link>
-                    </li>
+  <Link
+    to="/university/schools"
+    style={{ 
+      textDecoration: 'none', 
+      color: '#191A1F', 
+      fontWeight: '600',
+      fontSize: '18px',
+      fontFamily: 'SF Pro Display, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important',
+      letterSpacing: '0.5px',
+      transition: 'all 0.3s ease',
+      position: 'relative',
+      padding: '8px 0',
+      textTransform:'none'
+    }}
+    onClick={handleUniversityNav}
+    onMouseEnter={(e) => {
+      e.target.style.color = '#07A698';
+      e.target.style.transform = 'translateY(-1px)';
+    }}
+    onMouseLeave={(e) => {
+      e.target.style.color = '#191A1F';
+      e.target.style.transform = 'translateY(0)';
+    }}
+  >
+    University
+  </Link>
+</li>
                    
                      {/* <li>
                       <Link
@@ -1036,7 +1086,14 @@ if (hide) {
               <li><Link to="/about" onClick={() => setIsMobileMenuOpen(false)}>About</Link></li>
               <li><Link to="/blog" onClick={() => setIsMobileMenuOpen(false)}>Blog</Link></li>
               <li><Link to="/contact" onClick={() => setIsMobileMenuOpen(false)}>Contact</Link></li>
-              <li><Link to="/university/schools" onClick={() => setIsMobileMenuOpen(false)}>University</Link></li>
+              <li>
+  <Link
+    to="/university/schools"
+    onClick={(e) => { handleUniversityNav(e); setIsMobileMenuOpen(false); }}
+  >
+    University
+  </Link>
+</li>
               {user ? (
                 <>
                   <li><Link to="/dashboard" onClick={() => setIsMobileMenuOpen(false)}>Dashboard</Link></li>

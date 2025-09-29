@@ -304,78 +304,464 @@ const ExamSchedule = () => {
   }
 
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">Exam Schedule</h1>
+    <div style={{
+  padding: "2rem",
+  background: "linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%)",
+  minHeight: "100vh"
+}}>
+  <div style={{
+    maxWidth: "1400px",
+    margin: "0 auto"
+  }}>
+    {/* Header */}
+    <div style={{
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "center",
+      marginBottom: "2rem",
+      padding: "0 0.5rem"
+    }}>
+      <div>
+        <h1 style={{
+          fontSize: "2rem",
+          fontWeight: "bold",
+          background: "linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)",
+          WebkitBackgroundClip: "text",
+          WebkitTextFillColor: "transparent",
+          backgroundClip: "text",
+          marginBottom: "0.5rem"
+        }}>
+          Exam Schedule
+        </h1>
+        <p style={{
+          color: "#64748b",
+          fontSize: "1rem",
+          fontWeight: "500"
+        }}>
+          Manage and view all examination schedules
+        </p>
       </div>
-
-      {examSessions.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-6 text-center">
-          <p className="text-gray-500">No exam schedules found.</p>
+      
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "1rem"
+      }}>
+        <div style={{
+          backgroundColor: "#1e3a8a",
+          color: "white",
+          padding: "0.5rem 1rem",
+          borderRadius: "0.75rem",
+          fontSize: "0.875rem",
+          fontWeight: "600",
+          boxShadow: "0 4px 6px -1px rgba(30, 58, 138, 0.3)"
+        }}>
+          {examSessions.length} Exams
         </div>
-      ) : (
-        <div className="bg-white rounded-lg shadow overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Session</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">School</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semester</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {examSessions.map((session) => (
-                  <tr key={session._id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {session.sessionId?.name || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {session.subjectId?.name || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {session.schoolId?.name || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {session.semester || 'N/A'}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatDate(session.examDate)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                      {formatTime(session.examDate)}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        session.examType === 'theory' 
-                          ? 'bg-blue-100 text-blue-800' 
-                          : 'bg-green-100 text-green-800'
-                      }`}>
-                        {session.examType?.charAt(0).toUpperCase() + session.examType?.slice(1) || 'N/A'}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        session.status === 'Active' 
-                          ? 'bg-green-100 text-green-800' 
-                          : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {session.status || 'N/A'}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      </div>
+    </div>
+
+    {examSessions.length === 0 ? (
+      <div style={{
+        backgroundColor: "#ffffff",
+        borderRadius: "1rem",
+        padding: "4rem 2rem",
+        textAlign: "center",
+        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)",
+        border: "1px solid #e2e8f0"
+      }}>
+        <div style={{
+          width: "5rem",
+          height: "5rem",
+          backgroundColor: "#f1f5f9",
+          borderRadius: "50%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          margin: "0 auto 1.5rem",
+          border: "2px dashed #cbd5e1"
+        }}>
+          <span style={{ fontSize: "2rem", color: "#64748b" }}>📅</span>
+        </div>
+        <h3 style={{
+          fontSize: "1.5rem",
+          fontWeight: "600",
+          color: "#1e293b",
+          marginBottom: "0.5rem"
+        }}>
+          No Exam Schedules
+        </h3>
+        <p style={{
+          color: "#64748b",
+          fontSize: "1rem",
+          maxWidth: "400px",
+          margin: "0 auto",
+          lineHeight: "1.6"
+        }}>
+          No examination schedules have been created yet. Check back later for updates.
+        </p>
+      </div>
+    ) : (
+      <div style={{
+        backgroundColor: "#ffffff",
+        borderRadius: "1rem",
+        boxShadow: "0 10px 25px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05)",
+        border: "1px solid #e2e8f0",
+        overflow: "hidden"
+      }}>
+        <div style={{
+          padding: "1.5rem 2rem",
+          borderBottom: "1px solid #e2e8f0",
+          background: "linear-gradient(135deg, #1e3a8a 0%, #3b82f6 100%)"
+        }}>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.75rem"
+          }}>
+            <span style={{ fontSize: "1.5rem", color: "white" }}>📋</span>
+            <h2 style={{
+              fontSize: "1.25rem",
+              fontWeight: "700",
+              color: "white",
+              margin: 0
+            }}>
+              Examination Schedule
+            </h2>
           </div>
         </div>
-      )}
+
+        <div style={{ overflowX: "auto" }}>
+          <table style={{
+            width: "100%",
+            borderCollapse: "collapse",
+            minWidth: "1000px"
+          }}>
+            <thead>
+              <tr style={{
+                backgroundColor: "#f8fafc",
+                borderBottom: "2px solid #e2e8f0"
+              }}>
+                {[
+                  { label: "Session", width: "12%" },
+                  { label: "Subject", width: "18%" },
+                  { label: "School", width: "15%" },
+                  { label: "Semester", width: "10%" },
+                  { label: "Date", width: "12%" },
+                  { label: "Time", width: "10%" },
+                  { label: "Type", width: "8%" },
+                  { label: "Status", width: "8%" }
+                ].map((header, index) => (
+                  <th key={index} style={{
+                    padding: "1rem 1.5rem",
+                    textAlign: "left",
+                    fontSize: "0.75rem",
+                    fontWeight: "700",
+                    color: "#475569",
+                    textTransform: "uppercase",
+                    letterSpacing: "0.05em",
+                    borderBottom: "2px solid #e2e8f0",
+                    width: header.width
+                  }}>
+                    {header.label}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {examSessions.map((session, index) => (
+                <tr 
+                  key={session._id} 
+                  style={{
+                    transition: "all 0.3s ease",
+                    backgroundColor: index % 2 === 0 ? "#ffffff" : "#f8fafc",
+                    borderBottom: "1px solid #f1f5f9",
+                    cursor: "pointer"
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = "#f1f5f9";
+                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.boxShadow = "0 4px 12px rgba(0, 0, 0, 0.05)";
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = index % 2 === 0 ? "#ffffff" : "#f8fafc";
+                    e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "none";
+                  }}
+                >
+                  <td style={{ 
+                    padding: "1.25rem 1.5rem", 
+                    fontSize: "0.95rem",
+                    fontWeight: "600",
+                    color: "#1e293b"
+                  }}>
+                    {session.sessionId?.name || 'N/A'}
+                  </td>
+                  <td style={{ 
+                    padding: "1.25rem 1.5rem", 
+                    fontSize: "0.95rem",
+                    color: "#1e293b",
+                    fontWeight: "500"
+                  }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                      <span style={{
+                        width: "0.5rem",
+                        height: "0.5rem",
+                        backgroundColor: "#3b82f6",
+                        borderRadius: "50%",
+                        flexShrink: 0
+                      }}></span>
+                      {session.subjectId?.name || 'N/A'}
+                    </div>
+                  </td>
+                  <td style={{ 
+                    padding: "1.25rem 1.5rem", 
+                    fontSize: "0.95rem",
+                    color: "#475569"
+                  }}>
+                    {session.schoolId?.name || 'N/A'}
+                  </td>
+                  <td style={{ 
+                    padding: "1.25rem 1.5rem", 
+                    fontSize: "0.95rem",
+                    color: "#475569",
+                    fontWeight: "500"
+                  }}>
+                    <span style={{
+                      backgroundColor: "#e0f2fe",
+                      color: "#0369a1",
+                      padding: "0.375rem 0.75rem",
+                      borderRadius: "0.5rem",
+                      fontSize: "0.875rem",
+                      fontWeight: "600",
+                      border: "1px solid #bae6fd"
+                    }}>
+                      {session.semester || 'N/A'}
+                    </span>
+                  </td>
+                  <td style={{ 
+                    padding: "1.25rem 1.5rem", 
+                    fontSize: "0.95rem",
+                    color: "#1e293b",
+                    fontWeight: "600"
+                  }}>
+                    {formatDate(session.examDate)}
+                  </td>
+                  <td style={{ 
+                    padding: "1.25rem 1.5rem", 
+                    fontSize: "0.95rem",
+                    color: "#475569",
+                    fontWeight: "500"
+                  }}>
+                    {formatTime(session.examDate)}
+                  </td>
+                  <td style={{ 
+                    padding: "1.25rem 1.5rem", 
+                    fontSize: "0.95rem"
+                  }}>
+                    <span style={{
+                      padding: "0.5rem 0.75rem",
+                      borderRadius: "0.75rem",
+                      fontSize: "0.75rem",
+                      fontWeight: "700",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      display: "inline-block",
+                      ...(session.examType === 'theory' 
+                        ? {
+                            backgroundColor: "#dbeafe",
+                            color: "#1e40af",
+                            border: "1px solid #93c5fd"
+                          }
+                        : {
+                            backgroundColor: "#dcfce7",
+                            color: "#166534",
+                            border: "1px solid #86efac"
+                          })
+                    }}>
+                      {session.examType?.charAt(0).toUpperCase() + session.examType?.slice(1) || 'N/A'}
+                    </span>
+                  </td>
+                  <td style={{ 
+                    padding: "1.25rem 1.5rem", 
+                    fontSize: "0.95rem"
+                  }}>
+                    <span style={{
+                      padding: "0.5rem 0.75rem",
+                      borderRadius: "0.75rem",
+                      fontSize: "0.75rem",
+                      fontWeight: "700",
+                      textTransform: "uppercase",
+                      letterSpacing: "0.05em",
+                      display: "inline-block",
+                      ...(session.status === 'Active' 
+                        ? {
+                            backgroundColor: "#dcfce7",
+                            color: "#166534",
+                            border: "1px solid #86efac"
+                          }
+                        : {
+                            backgroundColor: "#fef3c7",
+                            color: "#92400e",
+                            border: "1px solid #fcd34d"
+                          })
+                    }}>
+                      {session.status || 'N/A'}
+                    </span>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Table Footer */}
+        <div style={{
+          padding: "1rem 2rem",
+          borderTop: "1px solid #e2e8f0",
+          backgroundColor: "#f8fafc",
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          fontSize: "0.875rem",
+          color: "#64748b"
+        }}>
+          <div>
+            Showing <strong>{examSessions.length}</strong> exam sessions
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <span style={{ fontSize: "0.875rem" }}>📊</span>
+            <span>Last updated: {new Date().toLocaleDateString()}</span>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+
+  {/* Legend */}
+  {examSessions.length > 0 && (
+    <div style={{
+      marginTop: "1.5rem",
+      display: "flex",
+      justifyContent: "center",
+      gap: "2rem",
+      flexWrap: "wrap"
+    }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <div style={{
+          width: "1rem",
+          height: "1rem",
+          backgroundColor: "#dbeafe",
+          borderRadius: "0.25rem",
+          border: "1px solid #93c5fd"
+        }}></div>
+        <span style={{ fontSize: "0.875rem", color: "#64748b" }}>Theory Exam</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <div style={{
+          width: "1rem",
+          height: "1rem",
+          backgroundColor: "#dcfce7",
+          borderRadius: "0.25rem",
+          border: "1px solid #86efac"
+        }}></div>
+        <span style={{ fontSize: "0.875rem", color: "#64748b" }}>Practical Exam</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <div style={{
+          width: "1rem",
+          height: "1rem",
+          backgroundColor: "#dcfce7",
+          borderRadius: "0.25rem",
+          border: "1px solid #86efac"
+        }}></div>
+        <span style={{ fontSize: "0.875rem", color: "#64748b" }}>Active Status</span>
+      </div>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+        <div style={{
+          width: "1rem",
+          height: "1rem",
+          backgroundColor: "#fef3c7",
+          borderRadius: "0.25rem",
+          border: "1px solid #fcd34d"
+        }}></div>
+        <span style={{ fontSize: "0.875rem", color: "#64748b" }}>Inactive Status</span>
+      </div>
     </div>
+  )}
+</div>
+    // <div className="p-6">
+    //   <div className="flex justify-between items-center mb-6">
+    //     <h1 className="text-2xl font-bold text-gray-900">Exam Schedule</h1>
+    //   </div>
+
+    //   {examSessions.length === 0 ? (
+    //     <div className="bg-white rounded-lg shadow p-6 text-center">
+    //       <p className="text-gray-500">No exam schedules found.</p>
+    //     </div>
+    //   ) : (
+    //     <div className="bg-white rounded-lg shadow overflow-hidden">
+    //       <div className="overflow-x-auto">
+    //         <table className="min-w-full divide-y divide-gray-200">
+    //           <thead className="bg-gray-50">
+    //             <tr>
+    //               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Session</th>
+    //               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
+    //               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">School</th>
+    //               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Semester</th>
+    //               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+    //               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Time</th>
+    //               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Type</th>
+    //               <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+    //             </tr>
+    //           </thead>
+    //           <tbody className="bg-white divide-y divide-gray-200">
+    //             {examSessions.map((session) => (
+    //               <tr key={session._id} className="hover:bg-gray-50">
+    //                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+    //                   {session.sessionId?.name || 'N/A'}
+    //                 </td>
+    //                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+    //                   {session.subjectId?.name || 'N/A'}
+    //                 </td>
+    //                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+    //                   {session.schoolId?.name || 'N/A'}
+    //                 </td>
+    //                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+    //                   {session.semester || 'N/A'}
+    //                 </td>
+    //                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+    //                   {formatDate(session.examDate)}
+    //                 </td>
+    //                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+    //                   {formatTime(session.examDate)}
+    //                 </td>
+    //                 <td className="px-6 py-4 whitespace-nowrap">
+    //                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+    //                     session.examType === 'theory' 
+    //                       ? 'bg-blue-100 text-blue-800' 
+    //                       : 'bg-green-100 text-green-800'
+    //                   }`}>
+    //                     {session.examType?.charAt(0).toUpperCase() + session.examType?.slice(1) || 'N/A'}
+    //                   </span>
+    //                 </td>
+    //                 <td className="px-6 py-4 whitespace-nowrap">
+    //                   <span className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+    //                     session.status === 'Active' 
+    //                       ? 'bg-green-100 text-green-800' 
+    //                       : 'bg-yellow-100 text-yellow-800'
+    //                   }`}>
+    //                     {session.status || 'N/A'}
+    //                   </span>
+    //                 </td>
+    //               </tr>
+    //             ))}
+    //           </tbody>
+    //         </table>
+    //       </div>
+    //     </div>
+    //   )}
+    // </div>
   );
 };
 

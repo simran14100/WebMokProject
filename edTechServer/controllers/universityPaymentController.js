@@ -578,3 +578,93 @@ exports.getFeeDetails = async (req, res) => {
         });
     }
 };
+
+// @desc    Get all payments with filters
+// @route   GET /api/v1/university/payments
+// @access  Private/Admin,Accountant,SuperAdmin
+exports.getPayments = async (req, res) => {
+  try {
+    const { 
+      startDate, 
+      endDate, 
+      feeType, 
+      status, 
+      paymentMethod, 
+      page = 1, 
+      limit = 10,
+      studentId,
+      registeredOnly = 'false'
+    } = req.query;
+    
+    const query = {};
+    
+    // Filter by student if provided
+    if (studentId) {
+      query.student = studentId;
+    }
+    
+    // Filter for registered students only if requested
+    if (registeredOnly === 'true') {
+      // Get all registered student IDs
+      const registeredStudents = await UniversityRegisteredStudent.find({}, '_id');
+      const registeredStudentIds = registeredStudents.map(s => s._id);
+      
+      // Add filter to only include payments from registered students
+      query.student = { $in: registeredStudentIds };
+    }
+    
+    // Date range filter
+    if (startDate || endDate) {
+      query.paymentDate = {};
+      if (startDate) query.paymentDate.$gte = new Date(startDate);
+      if (endDate) query.paymentDate.$lte = new Date(endDate);
+    }
+    
+    // Other filters
+    if (feeType) query.feeType = feeType;
+    if (status) query.status = status;
+    if (paymentMethod) query.modeOfPayment = paymentMethod;
+    
+    const options = {
+      page: parseInt(page, 10),
+      limit: parseInt(limit, 10),
+      sort: { paymentDate: -1 },
+      populate: [
+        { 
+          path: 'student', 
+          select: 'firstName lastName registrationNumber email',
+          model: 'UniversityRegisteredStudent'
+        },
+        { 
+          path: 'createdBy', 
+          select: 'firstName lastName',
+          model: 'User'
+        },
+        {
+          path: 'feeAssignment',
+          select: 'feeType totalAmount course',
+          populate: {
+            path: 'course',
+            select: 'name code',
+            model: 'UGPGCourse'
+          }
+        }
+      ]
+    };
+    
+    const payments = await UniversityPayment.paginate(query, options);
+    
+    res.status(200).json({
+      success: true,
+      data: payments
+    });
+    
+  } catch (error) {
+    console.error('Error fetching payments:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Server error',
+      error: error.message
+    });
+  }
+};

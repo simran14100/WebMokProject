@@ -404,6 +404,127 @@ export function signUp(
 }
 
 // eslint-disable-next-line no-restricted-globals
+// export function login(email, password, navigate = null) {
+//   return async (dispatch) => {
+//     const toastId = showLoading("Signing in...");
+//     dispatch(setLoading(true));
+    
+//     try {
+//       // Create a minimal axios instance with no extra configuration
+//       const response = await axios({
+//         method: 'post',
+//         url: `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/auth/login`,
+//         data: { email, password },
+//         withCredentials: true,
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Accept': 'application/json',
+//           'X-Requested-With': 'XMLHttpRequest'
+//         },
+//         // Ensure we don't send any extra headers
+//         transformRequest: [(data, headers) => {
+//           // Safely remove any problematic headers
+//           if (headers && headers.common) {
+//             delete headers.common['X-Requested-With'];
+//             delete headers.common['Access-Control-Allow-Origin'];
+//             delete headers.common['Access-Control-Allow-Methods'];
+//             delete headers.common['Access-Control-Allow-Headers'];
+//           }
+//           return JSON.stringify(data);
+//         }]
+//       });
+      
+//       // If we get here, login was successful
+//       const { user, token, refreshToken } = response.data;
+      
+//       // Store the tokens in both Redux store and localStorage
+//       dispatch(setToken(token));
+//       localStorage.setItem('token', token);
+      
+//       // Store refresh token in httpOnly cookie (handled by server) and localStorage as fallback
+//       if (refreshToken) {
+//         localStorage.setItem('refreshToken', refreshToken);
+//       }
+      
+//       // Store user data
+//       dispatch(setUser(user));
+//       localStorage.setItem('user', JSON.stringify(user));
+      
+//       // Prepare success result with user data
+//       const result = { 
+//         type: 'auth/login/fulfilled',
+//         payload: { 
+//           success: true, 
+//           token, 
+//           user,
+//           message: 'Login successful!' 
+//         } 
+//       };
+      
+//       // Dispatch the success action
+//       dispatch(result);
+      
+//       // Handle navigation if navigate function is provided
+//       if (navigate) {
+//         if (user.accountType === 'Student') {
+//           navigate('/dashboard/my-profile');
+//         } else if (user.accountType === 'Instructor') {
+//           navigate('/dashboard/my-profile');
+//         } else if (user.accountType === 'Admin' || user.accountType === 'Super Admin') {
+//           navigate('/dashboard/my-profile');
+//         } else {
+//           navigate('/');
+//         }
+//       }
+      
+//       // Return success result
+//       return result;
+//     } catch (error) {
+//       console.error("Login error:", error);
+      
+//       // Handle CORS specific errors
+//       if (error.message && error.message.includes('CORS') || 
+//           (error.response && error.response.status === 0)) {
+//         console.error("CORS error detected. Please check backend CORS configuration.");
+//         showError("CORS error: Please ensure the backend is properly configured to accept requests from this origin.");
+//         return dispatch({ type: 'auth/setError', payload: "CORS configuration error. Please contact support." });
+//       }
+      
+//       // Handle network errors
+//       if (error.message === 'Network Error' || !navigator.onLine) {
+//         showError("Network error. Please check your internet connection and try again.");
+//         return dispatch({ type: 'auth/setError', payload: "Network error. Please check your connection and try again." });
+//       }
+      
+//       // Handle server errors
+//       if (error.response) {
+//         // The request was made and the server responded with a status code
+//         // that falls out of the range of 2xx
+//         console.error("Server error:", error.response.data);
+//         const errorMessage = error.response.data?.message || 
+//                            error.response.data?.error || 
+//                            `Server error: ${error.response.status}`;
+//         showError(errorMessage);
+//         return dispatch({ type: 'auth/setError', payload: errorMessage });
+//       } else if (error.request) {
+//         // The request was made but no response was received
+//         console.error("No response received:", error.request);
+//         showError("No response from server. The server might be down or there might be a network issue.");
+//         return dispatch({ type: 'auth/setError', payload: "No response from server. Please try again later." });
+//       } else {
+//         // Something happened in setting up the request that triggered an Error
+//         console.error('Request setup error:', error.message);
+//         const errorMessage = error.message || "An unexpected error occurred during login";
+//         showError(errorMessage);
+//         return dispatch({ type: 'auth/setError', payload: errorMessage });
+//       }
+//     } finally {
+//       dispatch(setLoading(false));
+//       dismissToast(toastId);
+//     }
+//   };
+// }
+// eslint-disable-next-line no-restricted-globals
 export function login(email, password, navigate = null) {
   return async (dispatch) => {
     const toastId = showLoading("Signing in...");
@@ -437,35 +558,48 @@ export function login(email, password, navigate = null) {
       // If we get here, login was successful
       const { user, token, refreshToken } = response.data;
       
-      // Store the tokens in both Redux store and localStorage
-      dispatch(setToken(token));
-      localStorage.setItem('token', token);
+      console.log('🔐 Login Success:', { user, token: !!token, refreshToken: !!refreshToken });
       
-      // Store refresh token in httpOnly cookie (handled by server) and localStorage as fallback
+      // ✅ FIXED: Use proper Redux actions to set token and user
+      if (token) {
+        dispatch(setToken(token));
+        localStorage.setItem('token', token);
+        console.log('✅ Token set in Redux and localStorage');
+      }
+      
+      // ✅ FIXED: Set user data in Redux store
+      if (user) {
+        dispatch(setUser(user));
+        localStorage.setItem('user', JSON.stringify(user));
+        console.log('✅ User data set in Redux and localStorage');
+      }
+      
+      // Store refresh token if provided (handled by server via httpOnly cookie)
       if (refreshToken) {
         localStorage.setItem('refreshToken', refreshToken);
       }
       
-      // Store user data
-      dispatch(setUser(user));
-      localStorage.setItem('user', JSON.stringify(user));
-      
-      // Prepare success result with user data
-      const result = { 
-        type: 'auth/login/fulfilled',
-        payload: { 
-          success: true, 
-          token, 
-          user,
-          message: 'Login successful!' 
-        } 
+      // Create success result object
+      const result = {
+        success: true,
+        token,
+        user,
+        message: 'Login successful!'
       };
       
-      // Dispatch the success action
-      dispatch(result);
+      // ✅ FIXED: Don't dispatch the result object directly
+      // dispatch(result); // ❌ REMOVE THIS LINE
       
+      console.log('🔐 Final Auth State Check:', {
+        reduxTokenSet: !!token,
+        localStorageToken: !!localStorage.getItem('token'),
+        reduxUserSet: !!user,
+        localStorageUser: !!localStorage.getItem('user')
+      });
+
       // Handle navigation if navigate function is provided
       if (navigate) {
+        console.log('🔄 Navigating to dashboard...');
         if (user.accountType === 'Student') {
           navigate('/dashboard/my-profile');
         } else if (user.accountType === 'Instructor') {
@@ -487,13 +621,13 @@ export function login(email, password, navigate = null) {
           (error.response && error.response.status === 0)) {
         console.error("CORS error detected. Please check backend CORS configuration.");
         showError("CORS error: Please ensure the backend is properly configured to accept requests from this origin.");
-        return dispatch({ type: 'auth/setError', payload: "CORS configuration error. Please contact support." });
+        return { success: false, error: "CORS configuration error. Please contact support." };
       }
       
       // Handle network errors
       if (error.message === 'Network Error' || !navigator.onLine) {
         showError("Network error. Please check your internet connection and try again.");
-        return dispatch({ type: 'auth/setError', payload: "Network error. Please check your connection and try again." });
+        return { success: false, error: "Network error. Please check your connection and try again." };
       }
       
       // Handle server errors
@@ -505,18 +639,18 @@ export function login(email, password, navigate = null) {
                            error.response.data?.error || 
                            `Server error: ${error.response.status}`;
         showError(errorMessage);
-        return dispatch({ type: 'auth/setError', payload: errorMessage });
+        return { success: false, error: errorMessage };
       } else if (error.request) {
         // The request was made but no response was received
         console.error("No response received:", error.request);
         showError("No response from server. The server might be down or there might be a network issue.");
-        return dispatch({ type: 'auth/setError', payload: "No response from server. Please try again later." });
+        return { success: false, error: "No response from server. Please try again later." };
       } else {
         // Something happened in setting up the request that triggered an Error
         console.error('Request setup error:', error.message);
         const errorMessage = error.message || "An unexpected error occurred during login";
         showError(errorMessage);
-        return dispatch({ type: 'auth/setError', payload: errorMessage });
+        return { success: false, error: errorMessage };
       }
     } finally {
       dispatch(setLoading(false));
@@ -1293,185 +1427,244 @@ export function updateDisplayPicture(formData) {
 }
 
 
-export const refreshToken = (refreshTokenValue = null) => {
-  return async (dispatch) => {
-    try {
-      // Get refresh token from parameter or localStorage
-      const token = refreshTokenValue || localStorage.getItem('refreshToken');
-      
-      console.log('Refresh token check:', {
-        hasTokenParam: !!refreshTokenValue,
-        hasTokenInStorage: !!localStorage.getItem('refreshToken'),
-        tokenLength: token?.length || 0
-      });
-      
-      if (!token) {
-        const error = new Error('No refresh token available');
-        error.code = 'NO_REFRESH_TOKEN';
-        throw error;
-      }
-
-      console.log('Attempting to refresh token...');
-      
-      // Make the refresh token request
-      const response = await axios({
-        method: 'POST',
-        url: `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}${REFRESH_TOKEN_API}`,
-        data: { refreshToken: token },
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        withCredentials: true,
-        timeout: 10000 // 10 second timeout
-      });
-
-      console.log('Refresh token response:', {
-        status: response.status,
-        hasAccessToken: !!response.data?.accessToken,
-        hasNewRefreshToken: !!response.data?.refreshToken
-      });
-      
-      const { accessToken, refreshToken: newRefreshToken, user } = response.data || {};
-      
-      if (!accessToken) {
-        throw new Error('No access token received in refresh response');
-      }
-      
-      // Update Redux state with new token
-      dispatch(setToken(accessToken));
-      
-      // Update user data in Redux if available
-      if (user) {
-        dispatch(setUser(user));
-        localStorage.setItem('user', JSON.stringify(user));
-      }
-      
-      // Update localStorage with new tokens
-      localStorage.setItem('token', accessToken);
-      if (newRefreshToken) {
-        localStorage.setItem('refreshToken', newRefreshToken);
-        console.log('New refresh token stored');
-      }
-      
-      console.log('Token refresh successful');
-      
-      return {
-        success: true,
-        accessToken,
-        refreshToken: newRefreshToken,
-        user
-      };
-      
-    } catch (error) {
-      console.error('Refresh token error:', {
-        message: error.message,
-        code: error.code,
-        status: error.response?.status,
-        data: error.response?.data,
-        url: error.config?.url
-      });
-      
-      // If this was a 401 or invalid token error, clear auth state
-      if (error.response?.status === 401 || error.code === 'NO_REFRESH_TOKEN') {
-        // Clear stored tokens
-        localStorage.removeItem('token');
-        localStorage.removeItem('refreshToken');
-        localStorage.removeItem('user');
-        
-        // Reset Redux state
-        dispatch(setToken(null));
-        dispatch(setUser(null));
-        
-        // Only redirect if we're not already on the login page
-        if (!window.location.pathname.includes('/login')) {
-          // Use window.location to force a full page reload and clear any React state
-          window.location.href = '/login';
-        }
-      }
-      
-      return {
-        success: false,
-        message: error.response?.data?.message || error.message || 'Failed to refresh token',
-        code: error.code || 'REFRESH_TOKEN_ERROR'
-      };
-    }
-  };
-};
-
-// export const refreshToken = (token = null) => {
+// export const refreshToken = (refreshTokenValue = null) => {
 //   return async (dispatch) => {
 //     try {
-//       dispatch(setLoading(true));
+//       // Get refresh token from parameter or localStorage
+//       const token = refreshTokenValue || localStorage.getItem('refreshToken');
       
-//       const refreshTokenValue = token || localStorage.getItem('refreshToken');
+//       console.log('Refresh token check:', {
+//         hasTokenParam: !!refreshTokenValue,
+//         hasTokenInStorage: !!localStorage.getItem('refreshToken'),
+//         tokenLength: token?.length || 0
+//       });
       
-//       if (!refreshTokenValue) {
-//         throw new Error('No refresh token available');
+//       if (!token) {
+//         const error = new Error('No refresh token available');
+//         error.code = 'NO_REFRESH_TOKEN';
+//         throw error;
 //       }
-      
-//       const response = await apiConnector(
-//         'POST',
-//         REFRESH_TOKEN_API,
-//         { refreshToken: refreshTokenValue },
-//         {
-//           skipAuth: true,
-//           headers: {
-//             'Content-Type': 'application/json',
-//           },
-//           withCredentials: true
-//         }
-//       );
 
-//       const { accessToken, refreshToken: newRefreshToken, user } = response?.data || {};
+//       console.log('Attempting to refresh token...');
+      
+//       // Make the refresh token request
+//       const response = await axios({
+//         method: 'POST',
+//         url: `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}${REFRESH_TOKEN_API}`,
+//         data: { refreshToken: token },
+//         headers: {
+//           'Content-Type': 'application/json',
+//           'Accept': 'application/json',
+//           'X-Requested-With': 'XMLHttpRequest'
+//         },
+//         withCredentials: true,
+//         timeout: 10000 // 10 second timeout
+//       });
+
+//       console.log('Refresh token response:', {
+//         status: response.status,
+//         hasAccessToken: !!response.data?.accessToken,
+//         hasNewRefreshToken: !!response.data?.refreshToken
+//       });
+      
+//       const { accessToken, refreshToken: newRefreshToken, user } = response.data || {};
       
 //       if (!accessToken) {
-//         throw new Error('No access token received');
+//         throw new Error('No access token received in refresh response');
 //       }
       
-//       // Update both Redux state and localStorage
+//       // Update Redux state with new token
 //       dispatch(setToken(accessToken));
+      
+//       // Update user data in Redux if available
 //       if (user) {
 //         dispatch(setUser(user));
+//         localStorage.setItem('user', JSON.stringify(user));
 //       }
       
+//       // Update localStorage with new tokens
 //       localStorage.setItem('token', accessToken);
 //       if (newRefreshToken) {
 //         localStorage.setItem('refreshToken', newRefreshToken);
+//         console.log('New refresh token stored');
 //       }
+      
+//       console.log('Token refresh successful');
       
 //       return {
 //         success: true,
 //         accessToken,
 //         refreshToken: newRefreshToken,
-//         payload: { 
-//           success: true,
-//           accessToken,
-//           refreshToken: newRefreshToken,
-//           user
-//         }
+//         user
 //       };
       
 //     } catch (error) {
-//       const errorMessage = error.response?.data?.message || error.message || 'Failed to refresh token';
+//       console.error('Refresh token error:', {
+//         message: error.message,
+//         code: error.code,
+//         status: error.response?.status,
+//         data: error.response?.data,
+//         url: error.config?.url
+//       });
       
-//       // Clear tokens on error
-//       localStorage.removeItem('token');
-//       localStorage.removeItem('refreshToken');
-//       dispatch(setToken(null));
-//       dispatch(setUser(null));
+//       // If this was a 401 or invalid token error, clear auth state
+//       if (error.response?.status === 401 || error.code === 'NO_REFRESH_TOKEN') {
+//         // Clear stored tokens
+//         localStorage.removeItem('token');
+//         localStorage.removeItem('refreshToken');
+//         localStorage.removeItem('user');
+        
+//         // Reset Redux state
+//         dispatch(setToken(null));
+//         dispatch(setUser(null));
+        
+//         // Only redirect if we're not already on the login page
+//         if (!window.location.pathname.includes('/login')) {
+//           // Use window.location to force a full page reload and clear any React state
+//           window.location.href = '/login';
+//         }
+//       }
       
 //       return {
 //         success: false,
-//         message: errorMessage,
-//         payload: { 
-//           success: false, 
-//           message: errorMessage
-//         }
+//         message: error.response?.data?.message || error.message || 'Failed to refresh token',
+//         code: error.code || 'REFRESH_TOKEN_ERROR'
 //       };
-//     } finally {
-//       dispatch(setLoading(false));
 //     }
 //   };
 // };
+
+
+// Track if we're currently refreshing to prevent multiple simultaneous refresh attempts
+let isRefreshing = false;
+let refreshPromise = null;
+
+export const refreshToken = (refreshTokenValue = null) => {
+  return async (dispatch) => {
+    // If we're already refreshing, return the existing promise
+    if (isRefreshing) {
+      console.log('Refresh already in progress, returning existing promise');
+      return refreshPromise;
+    }
+
+    // Set up the refresh promise
+    refreshPromise = (async () => {
+      isRefreshing = true;
+      
+      try {
+        // Get refresh token from parameter or localStorage
+        const token = refreshTokenValue || localStorage.getItem('refreshToken');
+        
+        console.log('Refresh token check:', {
+          hasTokenParam: !!refreshTokenValue,
+          hasTokenInStorage: !!localStorage.getItem('refreshToken'),
+          tokenLength: token?.length || 0
+        });
+        
+        if (!token) {
+          const error = new Error('No refresh token available');
+          error.code = 'NO_REFRESH_TOKEN';
+          throw error;
+        }
+
+        console.log('Attempting to refresh token...');
+        
+        // Make the refresh token request
+        const response = await axios({
+          method: 'POST',
+          url: `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}${REFRESH_TOKEN_API}`,
+          data: { refreshToken: token },
+          headers: {
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+          },
+          withCredentials: true, // This will send cookies
+          timeout: 10000 // 10 second timeout
+        });
+
+        console.log('Refresh token response:', {
+          status: response.status,
+          hasAccessToken: !!response.data?.accessToken,
+          hasNewRefreshToken: !!response.data?.refreshToken
+        });
+        
+        const { accessToken, refreshToken: newRefreshToken, user } = response.data || {};
+        
+        if (!accessToken) {
+          throw new Error('No access token received in refresh response');
+        }
+        
+        // Update localStorage first
+        localStorage.setItem('token', accessToken);
+        if (newRefreshToken) {
+          localStorage.setItem('refreshToken', newRefreshToken);
+          console.log('New refresh token stored');
+        }
+        
+        // Then update Redux state
+        dispatch(setToken(accessToken));
+        
+        // Update user data in Redux and localStorage if available
+        if (user) {
+          localStorage.setItem('user', JSON.stringify(user));
+          dispatch(setUser(user));
+        }
+        
+        console.log('Token refresh successful');
+        
+        return {
+          success: true,
+          accessToken,
+          refreshToken: newRefreshToken,
+          user
+        };
+        
+      } catch (error) {
+        console.error('Refresh token error:', {
+          message: error.message,
+          code: error.code,
+          status: error.response?.status,
+          data: error.response?.data,
+          url: error.config?.url
+        });
+        
+        // If this was a 401 or invalid token error, clear auth state
+        if (error.response?.status === 401 || error.code === 'NO_REFRESH_TOKEN' || 
+            error.message?.includes('401') || error.message?.includes('unauthorized')) {
+          
+          console.log('Invalid or expired refresh token, logging out...');
+          
+          // Clear stored tokens
+          localStorage.removeItem('token');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          
+          // Reset Redux state
+          dispatch(setToken(null));
+          dispatch(setUser(null));
+          
+          // Only redirect if we're not already on the login page
+          if (!window.location.pathname.includes('/login')) {
+            // Add a small delay to ensure state is cleared before redirect
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 100);
+          }
+        }
+        
+        throw { // Re-throw the error to be caught by the caller
+          success: false,
+          message: error.response?.data?.message || error.message || 'Failed to refresh token',
+          code: error.code || 'REFRESH_TOKEN_ERROR',
+          originalError: error
+        };
+      } finally {
+        isRefreshing = false;
+        refreshPromise = null;
+      }
+    })();
+
+    return refreshPromise;
+  };
+}; 

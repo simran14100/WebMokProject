@@ -140,7 +140,7 @@ const StudentLedgers = () => {
       const token = localStorage.getItem('token');
       console.log('Using token:', token ? 'Token exists' : 'No token found');
 
-      console.log('Making API call to fetch payments...');
+      console.log('Making API call to fetch payments for registered students...');
       const response = await axios.get(`${API_URL}/api/v1/university/payments`, {
         params: {
           page: params.pagination?.current || current,
@@ -149,6 +149,7 @@ const StudentLedgers = () => {
           sortOrder: params.sortOrder || sortOrder,
           search: searchText,
           status,
+          registeredOnly: true, // Add this parameter to filter only registered students
         },
         headers: {
           'Authorization': `Bearer ${token}`,

@@ -3,6 +3,9 @@ require("dotenv").config();
 
 const { MONGODB_URL, NODE_ENV } = process.env;
 
+// Import the schedule cleanup function
+const scheduleCleanup = require('../utils/scheduleCleanup');
+
 exports.connect = () => {
   // Prefer explicit options; helps with certain Atlas clusters and TLS
   const options = {
@@ -14,6 +17,12 @@ exports.connect = () => {
     .connect(MONGODB_URL, options)
     .then(() => {
       console.log(`DB Connection Success`);
+      
+      // Start the scheduled cleanup in production or when explicitly enabled
+      if (NODE_ENV === 'production' || process.env.ENABLE_SCHEDULED_CLEANUP === 'true') {
+        console.log('Starting scheduled cleanup of orphaned timetable entries...');
+        scheduleCleanup();
+      }
     })
     .catch((err) => {
       console.log(`DB Connection Failed`);

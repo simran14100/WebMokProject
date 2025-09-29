@@ -130,6 +130,7 @@ const AllRegisteredStudents = () => {
             key: student._id,
             name: `${student.firstName || ''} ${student.lastName || ''}`.trim(),
             registrationDate,
+            programType: student.programType || 'N/A',
             courseName,
             courseType,
             duration
@@ -178,13 +179,27 @@ const AllRegisteredStudents = () => {
   const statusOptions = [
     { value: 'pending', label: 'Pending', color: 'orange' },
     { value: 'approved', label: 'Verified', color: 'green' },
-    { value: 'rejected', label: 'Rejected', color: 'red' }
+    { value: 'rejected', label: 'Rejected', color: 'red' },
+    { value: 'enrolled', label: 'Enrolled', color: 'blue' },
+    { value: 'paid', label: 'Paid', color: 'green' },
+    { value: 'unpaid', label: 'Unpaid', color: 'orange' }
   ];
 
   const getStatusBadge = (status) => {
-    const statusInfo = statusOptions.find(opt => opt.value === status) || 
-                      { label: 'Unknown', color: 'default' };
-    return <Tag color={statusInfo.color}>{statusInfo.label}</Tag>;
+    if (!status) {
+      return <Tag color="default">Unknown</Tag>;
+    }
+    
+    // Convert status to lowercase for case-insensitive matching
+    const statusLower = status.toLowerCase();
+    const statusInfo = statusOptions.find(opt => opt.value.toLowerCase() === statusLower);
+    
+    if (statusInfo) {
+      return <Tag color={statusInfo.color}>{statusInfo.label}</Tag>;
+    }
+    
+    // Handle unknown statuses by displaying them as-is
+    return <Tag color="default">{status}</Tag>;
   };
 
   
@@ -383,6 +398,13 @@ const AllRegisteredStudents = () => {
       width: 120,
     },
     {
+      title: 'Program Type',
+      dataIndex: 'programType',
+      key: 'programType',
+      width: 120,
+      render: (programType) => programType || 'N/A',
+    },
+    {
       title: 'Course',
       dataIndex: 'courseName',
       key: 'courseName',
@@ -524,16 +546,19 @@ const AllRegisteredStudents = () => {
               {selectedStudent.phone || 'N/A'}
             </Descriptions.Item>
             <Descriptions.Item label="Date of Birth">
-              {selectedStudent.dob ? dayjs(selectedStudent.dob).format('DD-MMM-YYYY') : 'N/A'}
+              {selectedStudent.dateOfBirth ? dayjs(selectedStudent.dateOfBirth).format('DD-MMM-YYYY') : 'N/A'}
             </Descriptions.Item>
             <Descriptions.Item label="Registration Date">
               {selectedStudent.registrationDate || 'N/A'}
             </Descriptions.Item>
-            <Descriptions.Item label="Status" span={2}>
+            <Descriptions.Item label="Status">
               {getStatusBadge(selectedStudent.status)}
             </Descriptions.Item>
-            <Descriptions.Item label="Course">
-              {selectedStudent.course || 'N/A'}
+            <Descriptions.Item label="Program Type">
+              {selectedStudent.programType || 'N/A'}
+            </Descriptions.Item>
+            <Descriptions.Item label="Course" span={2}>
+              {selectedStudent.courseName || selectedStudent.course?.courseName || 'N/A'}
             </Descriptions.Item>
             <Descriptions.Item label="Specialization">
               {selectedStudent.specialization || 'N/A'}

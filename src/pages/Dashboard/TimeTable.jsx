@@ -1,3 +1,6 @@
+
+
+
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Tag, Spin, message, Row, Col, Select } from 'antd';
 import { useSelector } from 'react-redux';
@@ -28,6 +31,19 @@ const TimeTable = () => {
     '04:00 PM - 05:00 PM',
   ];
 
+  // Color scheme
+  const colors = {
+    darkBlue: '#1e3a8a',
+    mediumBlue: '#3b82f6', 
+    lightBlue: '#e0f2fe',
+    lightestBlue: '#f0f9ff',
+    darkGray: '#374151',
+    mediumGray: '#6b7280',
+    lightGray: '#f3f4f6',
+    white: '#ffffff',
+    border: '#e5e7eb'
+  };
+
   // Fetch all semesters with timetable entries
   const fetchAvailableSemesters = async () => {
     try {
@@ -52,29 +68,52 @@ const TimeTable = () => {
     }
   };
 
+  // Function to extract subject name from entry
+  const getSubjectName = (entry) => {
+    // If subject is an object with name property (populated)
+    if (entry.subject && typeof entry.subject === 'object' && entry.subject.name) {
+      return entry.subject.name;
+    }
+    // If subject is just an ID (not populated)
+    if (entry.subject) {
+      return `Subject (${entry.subject})`;
+    }
+    // Fallback
+    return 'No Subject';
+  };
+
   // Fetch student's timetable for a specific semester
   const fetchTimetable = async (selectedSemester) => {
     if (!selectedSemester) return;
     
     try {
       setLoading(true);
-      const response = await apiConnector(
-        'GET',
-        '/api/v1/timetable/student',
-        null,
-        {
-          Authorization: `Bearer ${localStorage.getItem('token')}`,
-        },
-        { semester: selectedSemester }
-      );
       
-      if (response.data.success) {
-        setTimetable(response.data.data);
-        setCourse(response.data.course || {});
+      // First, fetch the timetable with subject IDs
+      const response = await fetch(
+        `http://localhost:4000/api/v1/timetable/student?semester=${selectedSemester}`, 
+        {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`,
+            'Content-Type': 'application/json'
+          }
+        }
+      );
+
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const responseData = await response.json();
+      
+      if (responseData.success) {
+        console.log('Timetable response:', responseData.data);
+        setTimetable(responseData.data);
+        setCourse(responseData.course || {});
       }
     } catch (error) {
-      console.error('Error fetching timetable:', error);
-      message.error('Failed to load timetable');
+      console.error('Error in fetchTimetable:', error);
+      message.error('Error loading timetable');
     } finally {
       setLoading(false);
     }
@@ -109,10 +148,52 @@ const TimeTable = () => {
         
         if (entry) {
           row[day] = (
-            <div className="timetable-cell">
-              <div className="subject-name">{entry.subject?.name || 'N/A'}</div>
-              <div className="faculty-name">{entry.faculty?.name || 'N/A'}</div>
-              <div className="room">{entry.room}</div>
+            <div style={{
+              padding: '12px',
+              minHeight: '90px',
+              borderRadius: '8px',
+              background: `linear-gradient(135deg, ${colors.lightestBlue} 0%, ${colors.lightBlue} 100%)`,
+              border: `1px solid ${colors.border}`,
+              boxShadow: '0 2px 4px rgba(0, 0, 0, 0.05)',
+              transition: 'all 0.2s ease',
+              cursor: 'pointer'
+            }}
+            onMouseEnter={(e) => {
+              e.target.style.transform = 'translateY(-2px)';
+              e.target.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.target.style.transform = 'translateY(0px)';
+              e.target.style.boxShadow = '0 2px 4px rgba(0, 0, 0, 0.05)';
+            }}>
+              <div style={{
+                fontWeight: '600',
+                marginBottom: '6px',
+                color: colors.darkBlue,
+                fontSize: '14px',
+                lineHeight: '1.3'
+              }}>
+                {getSubjectName(entry)}
+              </div>
+              <div style={{
+                fontSize: '12px',
+                color: colors.mediumGray,
+                marginBottom: '4px',
+                fontWeight: '500'
+              }}>
+                {entry.faculty?.name || 'N/A'}
+              </div>
+              <div style={{
+                fontSize: '11px',
+                color: colors.mediumGray,
+                fontStyle: 'italic',
+                padding: '2px 6px',
+                backgroundColor: colors.white,
+                borderRadius: '4px',
+                display: 'inline-block'
+              }}>
+                📍 {entry.room}
+              </div>
             </div>
           );
         }
@@ -128,33 +209,74 @@ const TimeTable = () => {
       title: 'Time Slot',
       dataIndex: 'timeSlot',
       key: 'timeSlot',
-      width: 150,
+      width: 160,
       fixed: 'left',
-      className: 'time-slot-column',
+      render: (text) => (
+        <div style={{
+          fontWeight: '600',
+          color: colors.darkBlue,
+          fontSize: '13px',
+          textAlign: 'center',
+          padding: '8px 4px'
+        }}>
+          {text}
+        </div>
+      )
     },
     ...daysOfWeek.map(day => ({
       title: day,
       dataIndex: day,
       key: day,
-      render: (text) => text || <div className="empty-slot">-</div>,
-      className: 'day-column',
+      render: (text) => text || (
+        <div style={{
+          minHeight: '90px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: colors.mediumGray,
+          fontStyle: 'italic',
+          backgroundColor: colors.lightGray,
+          borderRadius: '6px',
+          border: `1px dashed ${colors.border}`
+        }}>
+          No Class
+        </div>
+      ),
     })),
   ];
 
   // Handle semester change
   const handleSemesterChange = (value) => {
+    setSemester(value);
     fetchTimetable(value);
   };
 
   return (
-    <div className="p-4">
+    <div style={{ 
+      padding: '24px', 
+      backgroundColor: colors.lightGray,
+      minHeight: '100vh'
+    }}>
       <Card
         title={
           <Row justify="space-between" align="middle">
             <Col>
-              <h2>My Timetable</h2>
+              <div style={{ marginBottom: '4px' }}>
+                <h2 style={{
+                  margin: 0,
+                  color: colors.darkBlue,
+                  fontSize: '24px',
+                  fontWeight: '700'
+                }}>
+                  📅 My Timetable
+                </h2>
+              </div>
               {course && (
-                <div className="text-sm text-gray-600">
+                <div style={{
+                  fontSize: '14px',
+                  color: colors.mediumGray,
+                  fontWeight: '500'
+                }}>
                   {course.name} - {course.courseType}
                 </div>
               )}
@@ -162,9 +284,13 @@ const TimeTable = () => {
             <Col>
               <Select
                 value={semester}
-                style={{ width: 150 }}
+                style={{ 
+                  width: 180,
+                  borderRadius: '8px'
+                }}
                 onChange={handleSemesterChange}
                 loading={loading}
+                placeholder="Select Semester"
               >
                 {availableSemesters.map(sem => (
                   <Option key={sem} value={sem}>{sem}</Option>
@@ -174,10 +300,29 @@ const TimeTable = () => {
           </Row>
         }
         bordered={false}
-        className="shadow-sm"
+        style={{
+          borderRadius: '16px',
+          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.08)',
+          border: `1px solid ${colors.border}`,
+          background: colors.white
+        }}
+        headStyle={{
+          borderBottom: `2px solid ${colors.lightBlue}`,
+          borderRadius: '16px 16px 0 0',
+          background: `linear-gradient(135deg, ${colors.lightestBlue} 0%, ${colors.white} 100%)`
+        }}
+        bodyStyle={{ 
+          padding: '24px',
+          borderRadius: '0 0 16px 16px'
+        }}
       >
         <Spin spinning={loading}>
-          <div className="overflow-x-auto">
+          <div style={{ 
+            overflowX: 'auto',
+            borderRadius: '12px',
+            border: `1px solid ${colors.border}`,
+            backgroundColor: colors.white
+          }}>
             <Table
               columns={columns}
               dataSource={processTimetableData()}
@@ -186,55 +331,84 @@ const TimeTable = () => {
               bordered
               size="middle"
               scroll={{ x: 'max-content' }}
-              className="timetable-table"
+              style={{
+                borderRadius: '12px'
+              }}
             />
           </div>
         </Spin>
       </Card>
 
       <style jsx global>{`
-        .timetable-table .ant-table-thead > tr > th {
-          background: #f0f2f5;
-          font-weight: 600;
-          text-align: center;
+        .ant-table-thead > tr > th {
+          background: linear-gradient(135deg, ${colors.darkBlue} 0%, ${colors.mediumBlue} 100%) !important;
+          color: ${colors.white} !important;
+          font-weight: 600 !important;
+          text-align: center !important;
+          border: none !important;
+          padding: 16px 12px !important;
+          font-size: 14px !important;
+          letter-spacing: 0.5px !important;
         }
-        .time-slot-column {
-          background: #fafafa;
-          font-weight: 500;
+        
+        .ant-table-thead > tr > th:first-child {
+          border-radius: 12px 0 0 0 !important;
         }
-        .timetable-cell {
-          padding: 8px;
-          min-height: 80px;
-          border-radius: 4px;
-          background: #f8f9fa;
+        
+        .ant-table-thead > tr > th:last-child {
+          border-radius: 0 12px 0 0 !important;
         }
-        .subject-name {
-          font-weight: 500;
-          margin-bottom: 4px;
+        
+        .ant-table-tbody > tr > td {
+          padding: 12px 8px !important;
+          vertical-align: top !important;
+          border-color: ${colors.border} !important;
+          background-color: ${colors.white} !important;
         }
-        .faculty-name {
-          font-size: 12px;
-          color: #666;
-          margin-bottom: 2px;
+        
+        .ant-table-tbody > tr > td:first-child {
+          background: linear-gradient(135deg, ${colors.lightGray} 0%, ${colors.white} 100%) !important;
+          border-right: 2px solid ${colors.lightBlue} !important;
         }
-        .room {
-          font-size: 11px;
-          color: #888;
-          font-style: italic;
+        
+        .ant-table-tbody > tr:hover > td {
+          background-color: ${colors.lightestBlue} !important;
         }
-        .empty-slot {
-          min-height: 80px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          color: #999;
+        
+        .ant-table-tbody > tr:hover > td:first-child {
+          background: linear-gradient(135deg, ${colors.lightBlue} 0%, ${colors.lightestBlue} 100%) !important;
         }
-        .timetable-table .ant-table-tbody > tr > td {
-          padding: 8px;
-          vertical-align: top;
+        
+        .ant-table-container {
+          border-radius: 12px !important;
+          overflow: hidden !important;
         }
-        .timetable-table .ant-table-tbody > tr > td:not(:first-child) {
-          border-left: 1px solid #f0f0f0;
+        
+        .ant-table {
+          border-radius: 12px !important;
+        }
+        
+        .ant-select-selector {
+          border: 2px solid ${colors.lightBlue} !important;
+          border-radius: 8px !important;
+          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15) !important;
+        }
+        
+        .ant-select-selector:hover {
+          border-color: ${colors.mediumBlue} !important;
+        }
+        
+        .ant-select-focused .ant-select-selector {
+          border-color: ${colors.darkBlue} !important;
+          box-shadow: 0 0 0 2px rgba(30, 58, 138, 0.1) !important;
+        }
+        
+        .ant-spin-blur {
+          opacity: 0.3 !important;
+        }
+        
+        .ant-spin-container {
+          transition: all 0.3s ease !important;
         }
       `}</style>
     </div>

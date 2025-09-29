@@ -29,6 +29,13 @@ const AdmissionEnquiryForm = () => {
   const { token } = useSelector((state) => state.auth);
   const navigate = useNavigate();
 
+  // Program types
+  const programTypes = [
+    { id: 'UG', name: 'Undergraduate (UG)' },
+    { id: 'PG', name: 'Postgraduate (PG)' },
+    { id: 'PHD', name: 'Doctorate (PhD)' },
+  ];
+
   useEffect(() => {
     const savedProgram = localStorage.getItem("selectedProgram");
     if (savedProgram) {
@@ -49,15 +56,28 @@ const AdmissionEnquiryForm = () => {
       "dateOfBirth",
       "phone",
       "email",
-      "qualification", // Changed from lastClass to qualification
+      "qualification",
       "boardSchoolName",
       "programType",
-      "graduationCourse" // Added as required field
+      "graduationCourse"
     ];
-    const missingField = requiredFields.find((field) => !formData[field]);
 
-    if (missingField) {
-      toast.error("Please fill in all required fields");
+    // Debug: Log all form data
+    console.log('Form Data:', formData);
+    
+    // Check for missing required fields
+    const missingFields = requiredFields.filter(field => {
+      const value = formData[field];
+      const isEmpty = value === null || value === undefined || value === '';
+      if (isEmpty) {
+        console.log(`Missing required field: ${field}`);
+      }
+      return isEmpty;
+    });
+
+    if (missingFields.length > 0) {
+      console.log('Missing required fields:', missingFields);
+      toast.error(`Please fill in all required fields. Missing: ${missingFields.join(', ')}`);
       return;
     }
 
@@ -70,14 +90,14 @@ const AdmissionEnquiryForm = () => {
         email: formData.email,
         phone: formData.phone,
         programType: formData.programType,
-        parentName: formData.parentName,
-        dateOfBirth: formData.dateOfBirth,
-        gender: formData.gender,
-        alternateNumber: formData.alternateNumber,
         address: formData.address,
         city: formData.city,
         state: formData.state,
-        qualification: formData.qualification, // Using qualification instead of lastClass
+        qualification: formData.qualification,
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender,
+        parentName: formData.parentName,
+        alternateNumber: formData.alternateNumber,
         boardSchoolName: formData.boardSchoolName,
         percentage: formData.percentage,
         academicYear: formData.academicYear,
@@ -345,6 +365,41 @@ const AdmissionEnquiryForm = () => {
             )}
             {renderInput("Percentage/Grades", "percentage", "number")}
             {renderInput("Applying Course", "graduationCourse", "text", true)}
+            
+            {/* Program Type Dropdown */}
+            <div style={{ marginBottom: "16px" }}>
+              <label
+                style={{
+                  display: "block",
+                  fontSize: "14px",
+                  fontWeight: "600",
+                  color: "#1e3a8a",
+                  marginBottom: "6px",
+                }}
+              >
+                Program Type <span style={{ color: "red" }}>*</span>
+              </label>
+              <select
+                name="programType"
+                value={formData.programType || ''}
+                onChange={handleChange}
+                required
+                style={{
+                  width: "100%",
+                  padding: "10px",
+                  border: "1px solid #93c5fd",
+                  borderRadius: "8px",
+                  fontSize: "14px",
+                }}
+              >
+                <option value="">Select Program Type</option>
+                {programTypes.map((program) => (
+                  <option key={program.id} value={program.id}>
+                    {program.name}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
 

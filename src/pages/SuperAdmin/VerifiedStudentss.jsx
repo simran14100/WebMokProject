@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useSelector } from 'react-redux';
 import axios from 'axios';
 import { Table, Card, Button, Space, Tag, message, Input, Modal, Form, Descriptions, Typography, Divider, Select } from 'antd';
-import { SearchOutlined, ReloadOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, DeleteOutlined } from '@ant-design/icons';
+import { SearchOutlined, ReloadOutlined, CheckCircleOutlined, CloseCircleOutlined, EyeOutlined, DeleteOutlined, ClockCircleOutlined, QuestionCircleOutlined } from '@ant-design/icons';
 import dayjs from 'dayjs';
 
 const { Search } = Input;
@@ -233,26 +233,51 @@ const columns = [
     key: 'status',
     filters: [
       { text: 'Pending', value: 'pending' },
-      { text: 'Verified', value: 'approved' },
+      { text: 'Verified', value: 'verified' },
       { text: 'Rejected', value: 'rejected' },
+      { text: 'In Review', value: 'in_review' },
+      { text: 'Enrolled', value: 'enrolled' },
+      { text: 'Paid', value: 'paid' },
+      { text: 'Unpaid', value: 'unpaid' },
     ],
     onFilter: (value, record) => (record.status || 'pending') === value,
     render: (_, record) => {
-      const status = record.status || 'pending';
+      const status = (record.status || 'pending').toLowerCase();
       const statusMap = {
-        'pending': { color: 'orange', text: 'Pending', icon: <CloseCircleOutlined /> },
+        'pending': { color: 'orange', text: 'Pending Verification', icon: <ClockCircleOutlined /> },
+        'verified': { color: 'green', text: 'Verified', icon: <CheckCircleOutlined /> },
         'approved': { color: 'green', text: 'Verified', icon: <CheckCircleOutlined /> },
-        'rejected': { color: 'red', text: 'Rejected', icon: <CloseCircleOutlined /> }
+        'rejected': { color: 'red', text: 'Rejected', icon: <CloseCircleOutlined /> },
+        'in_review': { color: 'blue', text: 'In Review', icon: <ClockCircleOutlined /> },
+        'completed': { color: 'green', text: 'Completed', icon: <CheckCircleOutlined /> },
+        'enrolled': { color: 'geekblue', text: 'Enrolled', icon: <CheckCircleOutlined /> },
+        'paid': { color: 'green', text: 'Payment Complete', icon: <CheckCircleOutlined /> },
+        'unpaid': { color: 'orange', text: 'Payment Pending', icon: <ClockCircleOutlined /> }
       };
-      const statusInfo = statusMap[status] || { color: 'default', text: 'Unknown', icon: null };
+      
+      const statusInfo = statusMap[status] || { 
+        color: 'default', 
+        text: status.charAt(0).toUpperCase() + status.slice(1),
+        icon: <QuestionCircleOutlined /> 
+      };
+      
       return (
-        <Tag 
-          icon={statusInfo.icon} 
-          color={statusInfo.color}
-          style={{ display: 'flex', alignItems: 'center', gap: '4px' }}
-        >
-          {statusInfo.text}
-        </Tag>
+        <Space size="middle">
+          <Tag 
+            icon={statusInfo.icon} 
+            color={statusInfo.color}
+            style={{ 
+              display: 'flex', 
+              alignItems: 'center', 
+              gap: '4px', 
+              minWidth: '140px', 
+              justifyContent: 'center',
+              marginRight: 0
+            }}
+          >
+            {statusInfo.text}
+          </Tag>
+        </Space>
       );
     },
   },
@@ -261,10 +286,9 @@ const columns = [
     key: 'actions',
     width: 200,
     render: (_, record) => {
-      const isVerified = record.verificationStatus === 'verified';
+      const isVerified = record.verificationStatus === 'verified' || record.verificationStatus === 'approved';
       return (
         <Space size="middle">
-          
           {!isVerified && (
             <Button 
               type="link" 
@@ -348,6 +372,19 @@ const renderDocumentStatus = (doc, status = 'pending', isRequired = false) => {
 };
 
 const VerificationModal = ({ showModal, selectedStudent, form, setShowModal, fetchStudents, setVerificationLoading, verificationLoading }) => {
+  // Add debug logging for selected student
+  useEffect(() => {
+    if (selectedStudent) {
+      console.log('Selected Student Data:', {
+        id: selectedStudent._id,
+        name: `${selectedStudent.firstName} ${selectedStudent.lastName}`,
+        hasPhoto: !!selectedStudent.photo,
+        hasSignature: !!selectedStudent.signature,
+        photoUrl: selectedStudent.photo,
+        signatureUrl: selectedStudent.signature
+      });
+    }
+  }, [selectedStudent]);
   const [documentStatus, setDocumentStatus] = useState({
     matricMarksheet: 'pending',
     srSecondaryMarksheet: 'pending',
@@ -571,19 +608,9 @@ const VerificationModal = ({ showModal, selectedStudent, form, setShowModal, fet
           <Descriptions bordered column={1} size="small">
             <Descriptions.Item label="Student Name">
               {selectedStudent.firstName} {selectedStudent.lastName}
-            </Descriptions.Item>
-            <Descriptions.Item label="Registration Number">
-              {selectedStudent.registrationNumber || 'N/A'}
-            </Descriptions.Item>
-            <Descriptions.Item label="Course">
-              {selectedStudent.course || 'N/A'}
-            </Descriptions.Item>
-            <Descriptions.Item label="Specialization">
-              {selectedStudent.specialization || 'N/A'}
-            </Descriptions.Item>
-            <Descriptions.Item label="Scholarship">
+              <br />
               <Tag color={selectedStudent.isScholarship ? 'green' : 'default'}>
-                {selectedStudent.isScholarship ? 'Yes' : 'No'}
+                Scholarship: {selectedStudent.isScholarship ? 'Yes' : 'No'}
               </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="Verification Status">
@@ -632,16 +659,94 @@ const VerificationModal = ({ showModal, selectedStudent, form, setShowModal, fet
           <Descriptions bordered column={2} size="small">
             <Descriptions.Item label="Photo" required>
               {selectedStudent.photo ? (
-                <Tag color="success">Uploaded ✓</Tag>
+                <div>
+                  <Tag color="success">Uploaded ✓</Tag>
+                  <div style={{ marginTop: '8px' }}>
+                    <img 
+                      src={selectedStudent.photo} 
+                      alt="Student" 
+                      style={{ 
+                        maxWidth: '150px', 
+                        maxHeight: '200px', 
+                        border: '1px solid #d9d9d9', 
+                        borderRadius: '4px',
+                        objectFit: 'cover'
+                      }}
+                      onError={(e) => {
+                        console.error('Error loading photo:', selectedStudent.photo);
+                        e.target.onerror = null;
+                        e.target.src = '/placeholder-user.png';
+                        e.target.alt = 'Photo not available';
+                        e.target.style.padding = '20px';
+                        e.target.style.backgroundColor = '#f5f5f5';
+                      }}
+                    />
+                  </div>
+                </div>
               ) : (
-                <Tag color="error">Missing (Required)</Tag>
+                <div>
+                  <Tag color="error">Not Available</Tag>
+                  <div style={{ 
+                    width: '150px', 
+                    height: '200px', 
+                    border: '1px dashed #d9d9d9',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#999',
+                    backgroundColor: '#fafafa',
+                    marginTop: '8px'
+                  }}>
+                    No Photo
+                  </div>
+                </div>
               )}
             </Descriptions.Item>
             <Descriptions.Item label="Signature" required>
               {selectedStudent.signature ? (
-                <Tag color="success">Uploaded ✓</Tag>
+                <div>
+                  <Tag color="success">Uploaded ✓</Tag>
+                  <div style={{ marginTop: '8px' }}>
+                    <img 
+                      src={selectedStudent.signature} 
+                      alt="Signature" 
+                      style={{ 
+                        maxWidth: '200px', 
+                        maxHeight: '100px', 
+                        border: '1px solid #d9d9d9', 
+                        borderRadius: '4px',
+                        backgroundColor: '#fff'
+                      }}
+                      onError={(e) => {
+                        console.error('Error loading signature:', selectedStudent.signature);
+                        e.target.onerror = null;
+                        e.target.src = '/placeholder-signature.png';
+                        e.target.alt = 'Signature not available';
+                        e.target.style.padding = '10px';
+                        e.target.style.backgroundColor = '#f5f5f5';
+                      }}
+                    />
+                  </div>
+                </div>
               ) : (
-                <Tag color="error">Missing (Required)</Tag>
+                <div>
+                  <Tag color="error">Not Available</Tag>
+                  <div style={{ 
+                    width: '200px', 
+                    height: '80px', 
+                    border: '1px dashed #d9d9d9',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#999',
+                    backgroundColor: '#fafafa',
+                    marginTop: '8px'
+                  }}>
+                    No Signature
+                  </div>
+                </div>
               )}
             </Descriptions.Item>
             <Descriptions.Item label="Matric Marksheet" required>

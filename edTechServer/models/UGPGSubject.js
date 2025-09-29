@@ -86,4 +86,16 @@ UGPGSubjectSchema.pre('save', function(next) {
 
 UGPGSubjectSchema.index({ name: 1, course: 1, semester: 1 }, { unique: true });
 
+// Pre-remove hook to delete associated timetable entries
+UGPGSubjectSchema.pre('remove', async function(next) {
+  try {
+    // Remove all timetable entries referencing this subject
+    await mongoose.model('Timetable').deleteMany({ subject: this._id });
+    next();
+  } catch (error) {
+    console.error('Error removing associated timetable entries:', error);
+    next(error);
+  }
+});
+
 module.exports = mongoose.model("UGPGSubject", UGPGSubjectSchema);

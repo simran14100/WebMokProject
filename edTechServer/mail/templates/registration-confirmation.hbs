@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Registration Confirmed - WebMok Education</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      line-height: 1.6;
+      color: #333333;
+      margin: 0;
+      padding: 0;
+      background-color: #f9f9f9;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #ffffff;
+      border-radius: 8px;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+    }
+    .header {
+      text-align: center;
+      padding: 20px 0;
+      border-bottom: 1px solid #eeeeee;
+    }
+    .logo {
+      max-width: 180px;
+      height: auto;
+    }
+    .content {
+      padding: 30px 20px;
+    }
+    .greeting {
+      font-size: 20px;
+      font-weight: 600;
+      color: #2d3748;
+      margin-bottom: 20px;
+    }
+    .message {
+      margin-bottom: 25px;
+      color: #4a5568;
+    }
+    .details {
+      background-color: #f8fafc;
+      padding: 20px;
+      border-radius: 6px;
+      margin: 25px 0;
+    }
+    .detail-row {
+      display: flex;
+      margin-bottom: 10px;
+    }
+    .detail-label {
+      font-weight: 600;
+      width: 140px;
+      color: #4a5568;
+    }
+    .detail-value {
+      flex: 1;
+      color: #2d3748;
+    }
+    .footer {
+      text-align: center;
+      padding: 20px 0;
+      color: #718096;
+      font-size: 14px;
+      border-top: 1px solid #eeeeee;
+      margin-top: 30px;
+    }
+    .button {
+      display: inline-block;
+      padding: 12px 30px;
+      background-color: #4f46e5;
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 6px;
+      font-weight: 500;
+      margin: 20px 0;
+    }
+    .success-icon {
+      color: #10b981;
+      font-size: 48px;
+      text-align: center;
+      margin: 20px 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <img src="https://webmok.com/logo.png" alt="WebMok Education" class="logo">
+      <h1 style="color: #4f46e5; margin: 10px 0 0 0;">Registration Confirmed</h1>
+    </div>
+    
+    <div class="content">
+      <div class="success-icon">✓</div>
+      
+      <p class="greeting">Hello {{studentName}},</p>
+      
+      <p class="message">
+        Thank you for registering with WebMok Education! We're excited to have you on board. 
+        Your registration has been successfully processed, and we've received your payment.
+      </p>
+      
+      <div class="details">
+        <div class="detail-row">
+          <div class="detail-label">Course:</div>
+          <div class="detail-value">{{courseName}}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Amount Paid:</div>
+          <div class="detail-value">{{amount}}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Payment ID:</div>
+          <div class="detail-value">{{paymentId}}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-label">Date:</div>
+          <div class="detail-value">{{formatDate date 'DD MMMM YYYY'}}</div>
+        </div>
+      </div>
+      
+      <p class="message">
+        You will receive further instructions about accessing your course materials within 24 hours. 
+        If you have any questions, feel free to reply to this email.
+      </p>
+      
+      <div style="text-align: center;">
+        <a href="{{websiteUrl}}/dashboard" class="button">Go to Dashboard</a>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <p>© {{currentYear}} WebMok Education. All rights reserved.</p>
+      <p>
+        <a href="{{websiteUrl}}/contact" style="color: #4f46e5; text-decoration: none;">Contact Support</a> | 
+        <a href="{{websiteUrl}}/privacy" style="color: #4f46e5; text-decoration: none; margin: 0 10px;">Privacy Policy</a> | 
+        <a href="{{websiteUrl}}/terms" style="color: #4f46e5; text-decoration: none;">Terms of Service</a>
+      </p>
+      <p style="margin-top: 15px; font-size: 12px; color: #a0aec0;">
+        This email was sent to {{to}} because you registered on our website. 
+        If you didn't create an account, please contact us immediately.
+      </p>
+    </div>
+  </div>
+</body>
+</html>

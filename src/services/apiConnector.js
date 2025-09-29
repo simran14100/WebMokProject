@@ -82,7 +82,7 @@ const createAxiosInstance = () => {
     }
   );
   
-  // Response interceptor to handle token refresh
+  // Response interceptor to handle token refresh with request queuing
   instance.interceptors.response.use(
     (response) => response,
     async (error) => {
@@ -93,23 +93,34 @@ const createAxiosInstance = () => {
         return Promise.reject(error);
       }
       
-      // Skip refresh token logic for auth endpoints or if this is a retry
-      if (originalRequest.url.includes('/auth/') || originalRequest._skipAuth) {
+      // Skip refresh token logic for auth endpoints, retries, or if explicitly skipped
+      if (originalRequest.url.includes('/auth/') || originalRequest._retry || originalRequest._skipAuth) {
+        console.log('Skipping refresh for:', {
+          url: originalRequest.url,
+          isRetry: originalRequest._retry,
+          skipAuth: originalRequest._skipAuth
+        });
         return Promise.reject(error);
       }
 
-      // If we've already retried, reject to prevent infinite loops
-      if (originalRequest._retry) {
-        console.log('Already retried this request, logging out...');
-        store.dispatch(logoutAction());
-        if (!window.location.pathname.includes('/login')) {
-          window.location.href = '/login';
-        }
-        return Promise.reject(new Error('Authentication failed after retry'));
+      // If we're already refreshing, add the request to the queue
+      if (isRefreshing) {
+        console.log('Already refreshing token, adding request to queue');
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject, config: originalRequest });
+        })
+        .then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return instance(originalRequest);
+        })
+        .catch(err => {
+          return Promise.reject(err);
+        });
       }
       
       // Mark request as retried to prevent infinite loops
       originalRequest._retry = true;
+      isRefreshing = true;
       
       try {
         console.log('Token expired or invalid, attempting to refresh...');
@@ -121,16 +132,14 @@ const createAxiosInstance = () => {
           throw new Error('No refresh token available');
         }
         
-        // Call the refresh token endpoint directly
+        // Call the refresh token endpoint
         const refreshSuccess = await refreshTokenIfNeeded();
         
         if (!refreshSuccess) {
           console.log('Token refresh failed, logging out...');
-          store.dispatch(logoutAction());
-          if (!window.location.pathname.includes('/login')) {
-            window.location.href = '/login';
-          }
-          return Promise.reject(new Error('Failed to refresh token'));
+          const error = new Error('Failed to refresh token');
+          error.code = 'REFRESH_FAILED';
+          throw error;
         }
         
         // Get the new token from the store or localStorage
@@ -141,9 +150,12 @@ const createAxiosInstance = () => {
           throw new Error('No token available after refresh');
         }
         
-        console.log('Retrying original request with new token...');
+        console.log('Token refresh successful, processing queue...');
         
-        // Update the auth header
+        // Process all queued requests with the new token
+        processQueue(null, newToken);
+        
+        // Update the auth header for the original request
         originalRequest.headers = {
           ...originalRequest.headers,
           'Authorization': `Bearer ${newToken}`,
@@ -155,8 +167,9 @@ const createAxiosInstance = () => {
           delete originalRequest._skipAuth;
         }
         
-        // Retry the original request with the new token
+        console.log('Retrying original request with new token...');
         return instance(originalRequest);
+        
       } catch (error) {
         console.error('Error in response interceptor:', {
           message: error.message,
@@ -164,14 +177,21 @@ const createAxiosInstance = () => {
           response: error.response?.data
         });
         
+        // Process all queued requests with the error
+        processQueue(error);
+        
         // Clear auth state and redirect to login
         store.dispatch(logoutAction());
         
-        // Redirect to login page if not already there
+        // Only redirect if we're not already on the login page
         if (!window.location.pathname.includes('/login')) {
+          console.log('Redirecting to login...');
           window.location.href = '/login';
         }
+        
         return Promise.reject(error);
+      } finally {
+        isRefreshing = false;
       }
     }
   );
@@ -185,15 +205,29 @@ export const axiosInstance = createAxiosInstance();
 let isRefreshing = false;
 let failedQueue = [];
 
-const processQueue = (error, token = null) => {
-  failedQueue.forEach(prom => {
+/**
+ * Process all queued requests with the new token or error
+ * @param {Error|null} error - Error if refresh failed, null if successful
+ * @param {string|null} token - New access token if refresh was successful
+ */
+const processQueue = (error = null, token = null) => {
+  console.log(`Processing ${failedQueue.length} queued requests`, { error: error?.message, hasToken: !!token });
+  
+  // Process all queued requests
+  failedQueue.forEach(({ resolve, reject, config }) => {
     if (error) {
-      prom.reject(error);
+      // If we have an error, reject all queued requests
+      console.log(`Rejecting queued request to ${config.url} due to refresh error`);
+      reject(error);
     } else {
-      prom.resolve(token);
+      // Update the token in the config and resolve
+      console.log(`Retrying queued request to ${config.url}`);
+      config.headers.Authorization = `Bearer ${token}`;
+      resolve(axiosInstance(config));
     }
   });
   
+  // Clear the queue
   failedQueue = [];
 };
 

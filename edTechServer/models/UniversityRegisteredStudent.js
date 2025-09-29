@@ -59,33 +59,87 @@ const registeredStudentSchema = new mongoose.Schema({
   address: {
     line1: { type: String, required: true },
     line2: { type: String },
-    city: { type: String, required: true },
-    state: { type: String, required: true },
+    city: { 
+      type: String, 
+      required: true,
+      enum: [
+        'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Ahmedabad',
+        'Chennai', 'Kolkata', 'Surat', 'Pune', 'Jaipur',
+        'Lucknow', 'Kanpur', 'Nagpur', 'Visakhapatnam', 'Indore',
+        'Thane', 'Bhopal', 'Patna', 'Vadodara', 'Ghaziabad'
+      ],
+      trim: true
+    },
+    state: { 
+      type: String, 
+      required: true,
+      enum: [
+        'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+        'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand',
+        'Karnataka', 'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur',
+        'Meghalaya', 'Mizoram', 'Nagaland', 'Odisha', 'Punjab',
+        'Rajasthan', 'Sikkim', 'Tamil Nadu', 'Telangana', 'Tripura',
+        'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+        'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
+        'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry'
+      ],
+      trim: true
+    },
     pincode: { 
       type: String, 
       required: true,
       match: [/^[1-9][0-9]{5}$/, 'Please enter a valid 6-digit pincode']
     },
-    country: { type: String, default: 'India' }
+    country: { 
+      type: String, 
+      required: true,
+      enum: [
+        'India', 'United States', 'United Kingdom', 'Canada', 'Australia',
+        'Germany', 'France', 'Japan', 'China', 'Russia',
+        'Brazil', 'Mexico', 'Italy', 'Spain', 'South Korea',
+        'Singapore', 'Malaysia', 'Saudi Arabia', 'United Arab Emirates', 'South Africa'
+      ],
+      default: 'India'
+    }
   },
   
   // Academic Information
-  lastQualification: { type: String, required: true },
-  boardUniversity: { type: String, required: true },
-  yearOfPassing: { 
-    type: Number, 
-    required: true,
-    min: 1950,
-    max: new Date().getFullYear()
+  // lastQualification: { type: String, required: true },
+  // boardUniversity: { type: String, required: true },
+  // yearOfPassing: { 
+  //   type: Number, 
+  //   required: true,
+  //   min: 1950,
+  //   max: new Date().getFullYear()
+  // },
+  // percentage: { 
+  //   type: Number,
+  //   required: true,
+  //   min: 0,
+  //   max: 100
+  // },
+
+  // Program and Category
+  programType: { type: String, enum: ['UG', 'PG', 'PhD'], default: 'UG' },
+  category: { type: String, enum: ['General', 'SC', 'ST', 'OBC', 'EWS', 'Other'], default: 'General' },
+
+  // Employment info
+  employment: {
+    isEmployed: { type: Boolean, default: false },
+    designation: { type: String, default: '' }
   },
-  percentage: { 
-    type: Number, 
-    required: true,
-    min: 0,
-    max: 100
-  },
-  
-   // Course reference
+
+  // Detailed Academics Table
+  academics: [
+    new mongoose.Schema({
+      level: { type: String, enum: ['Secondary', 'Sr Secondary', 'Graduation', 'Post Graduation'] },
+      year: { type: Number, min: 1950, max: new Date().getFullYear() },
+      boardUniversity: { type: String },
+      percentage: { type: Number, min: 0, max: 100 }
+    }, { _id: false })
+  ],
+
+  // Course reference
   course: { 
     type: mongoose.Schema.Types.ObjectId, 
     ref: 'UGPGCourse',
@@ -93,14 +147,13 @@ const registeredStudentSchema = new mongoose.Schema({
   },
   
   // Keep courseName as a string for easier access
-  courseName: { type: String, required: true },
+  courseName: { type: String },
 
-// Remove the nested parent requirement or make fields optional
+// Parent/Guardian Information
 parent: {
-  fatherName: { type: String }, // removed required: true
-  fatherOccupation: { type: String },
-  motherName: { type: String }, // removed required: true
-  motherOccupation: { type: String },
+  fatherName: { type: String, required: [true, 'Father\'s name is required'], trim: true },
+  fatherOccupation: { type: String, trim: true },
+  
   // ... other parent fields
 },
   specialization: { type: String },
@@ -124,11 +177,44 @@ parent: {
     relation: { type: String }
   },
   
-  // Additional Information
   photo: { type: String }, // URL to the uploaded photo
   signature: { type: String }, // URL to the uploaded signature
   notes: { type: String },
+
+  // Facilities
+  hostelRequired: { type: Boolean, default: false },
+  hostelType: {
+    type: String,
+    enum: ['ac', 'non_ac', 'deluxe', 'standard'],
+    required: [
+      function() { return this.hostelRequired === true; },
+      'Hostel type is required when hostel is required'
+    ]
+  },
+  transportFacility: { type: Boolean, default: false },
+
+  // Undertaking acceptance
+  undertakingAccepted: { type: Boolean, default: false, required: true },
   
+  // Payment Information
+  paymentMode: {
+    type: String,
+    enum: ['online', 'cash'],
+  },
+  paymentStatus: {
+    type: String,
+    enum: ['pending', 'paid', 'failed'],
+    default: 'pending'
+  },
+  paymentDetails: {
+    orderId: String,
+    paymentId: String,
+    signature: String,
+    amount: Number,
+    currency: String,
+    status: String,
+    receipt: String
+  },
   // System Fields
   status: { 
     type: String, 
@@ -147,11 +233,38 @@ parent: {
   updatedAt: { type: Date }
 }, { timestamps: true });
 
-// Generate registration number before saving
+// Generate unique registration number before saving
 registeredStudentSchema.pre('save', async function(next) {
   if (!this.registrationNumber) {
-    const count = await this.constructor.countDocuments();
-    this.registrationNumber = `REG${(count + 1).toString().padStart(5, '0')}${new Date().getFullYear().toString().slice(-2)}`;
+    let registrationNumber;
+    let isUnique = false;
+    let attempt = 1;
+    
+    // Try up to 5 times to generate a unique registration number
+    while (!isUnique && attempt <= 5) {
+      try {
+        const count = await this.constructor.countDocuments();
+        registrationNumber = `REG${(count + 1).toString().padStart(5, '0')}${new Date().getFullYear().toString().slice(-2)}`;
+        
+        // Check if this registration number already exists
+        const exists = await this.constructor.findOne({ registrationNumber });
+        if (!exists) {
+          isUnique = true;
+          this.registrationNumber = registrationNumber;
+        } else {
+          attempt++;
+        }
+      } catch (error) {
+        console.error('Error generating registration number:', error);
+        attempt++;
+      }
+    }
+    
+    // If we couldn't generate a unique number, use a timestamp-based one
+    if (!isUnique) {
+      this.registrationNumber = `TEMP-${Date.now()}`;
+      console.warn('Using fallback registration number generation');
+    }
   }
   next();
 });
