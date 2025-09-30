@@ -178,47 +178,65 @@ const deleteFeeType = asyncHandler(async (req, res) => {
     });
   }
 
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
   try {
     // First check if fee type exists
     const feeType = await FeeType.findOne({
       _id: req.params.id,
       university: req.user.university,
-    });
+    }).session(session);
 
     if (!feeType) {
+      await session.abortTransaction();
+      session.endSession();
       return res.status(404).json({
         success: false,
         message: 'Fee type not found',
       });
     }
 
+    // Check if fee type is used in any fee structures
     try {
-      // Try to check if FeeStructure model exists and has references
       const FeeStructure = mongoose.model('FeeStructure');
       const feeStructureUsingType = await FeeStructure.findOne({
         'components.feeType': req.params.id,
         university: req.user.university,
-      });
+      }).session(session);
 
       if (feeStructureUsingType) {
+        await session.abortTransaction();
+        session.endSession();
         return res.status(400).json({
           success: false,
           message: 'Cannot delete fee type as it is being used in one or more fee structures',
         });
       }
     } catch (error) {
-      // If FeeStructure model doesn't exist or there's an error, log it but continue with deletion
       console.warn('Could not check FeeStructure references:', error.message);
     }
 
-    // Proceed with deletion
-    await FeeType.findByIdAndDelete(req.params.id);
+    // Delete all fee assignments for this fee type
+    const deleteResult = await FeeAssignment.deleteMany({
+      feeType: req.params.id,
+      university: req.user.university
+    }).session(session);
+
+    // Delete the fee type
+    await FeeType.findByIdAndDelete(req.params.id).session(session);
+    
+    await session.commitTransaction();
+    session.endSession();
 
     return res.status(200).json({
       success: true,
-      message: 'Fee type deleted successfully',
+      message: 'Fee type and its assignments deleted successfully',
+      deletedAssignmentsCount: deleteResult.deletedCount
     });
   } catch (error) {
+    await session.abortTransaction();
+    session.endSession();
     console.error('Error deleting fee type:', error);
     return res.status(500).json({
       success: false,

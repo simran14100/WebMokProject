@@ -206,6 +206,9 @@ const createResult = asyncHandler(async (req, res) => {
 // @route   PUT /api/v1/results/:id
 // @access  Private/Admin
 const updateResult = asyncHandler(async (req, res) => {
+  console.log('=== Update Result Request ===');
+  console.log('Request body:', JSON.stringify(req.body, null, 2));
+  
   const result = await Result.findById(req.params.id);
 
   if (!result) {
@@ -226,9 +229,24 @@ const updateResult = asyncHandler(async (req, res) => {
     courseId,
     semester,
     examSessionId,
-    subjects,
-    remarks
+    subjectResults,
+    remarks,
+    totalMarksObtained,
+    totalMaxMarks,
+    percentage,
+    status
   } = req.body;
+
+  console.log('Updating result with:', {
+    studentId,
+    courseId,
+    semester,
+    subjectResultsLength: subjectResults?.length,
+    totalMarksObtained,
+    totalMaxMarks,
+    percentage,
+    status
+  });
 
   // Update fields if provided
   if (studentId) result.student = studentId;
@@ -239,74 +257,228 @@ const updateResult = asyncHandler(async (req, res) => {
   if (remarks) result.remarks = remarks;
 
   // Update subjectResults if provided
-  if (subjects && Array.isArray(subjects)) {
-    // Get subject details for all subjects
-    const subjectIds = subjects.map(s => s.subjectId || s.subject?._id).filter(Boolean);
-    const subjectDetails = await mongoose.model('UGPGSubject').find({
-      _id: { $in: subjectIds }
-    });
-
-    // Create a map of subject IDs to their details for quick lookup
-    const subjectMap = new Map(subjectDetails.map(sub => [sub._id.toString(), sub]));
+  if (subjectResults && Array.isArray(subjectResults)) {
+    console.log('Processing subject results update');
+    console.log('Received subjectResults:', JSON.stringify(subjectResults, null, 2));
     
-    result.subjectResults = [];
-    
-    for (const subject of subjects) {
-      const subjectId = subject.subjectId || subject.subject?._id;
-      if (!subjectId || typeof subject.marksObtained !== 'number') {
-        res.status(400);
-        throw new Error('Each subject must have a valid subjectId and marksObtained');
-      }
-
-      const subjectDetail = subjectMap.get(subjectId.toString());
-      if (!subjectDetail) {
-        res.status(400);
-        throw new Error(`Subject not found with ID: ${subjectId}`);
-      }
-
-      const examType = subject.examType || 'theory';
-      const maxMarks = subject.maxMarks || 
-        (examType === 'theory' ? subjectDetail.theoryMaxMarks : 
-         examType === 'practical' ? subjectDetail.practicalMaxMarks : 100);
-      
-      const passingMarks = subject.passingMarks || Math.ceil(maxMarks * 0.4);
-      const marksObtained = subject.marksObtained;
-      const percentage = (marksObtained / maxMarks) * 100;
-      const isPassed = marksObtained >= passingMarks;
-      
-      result.subjectResults.push({
-        subject: subjectId,
-        examType,
-        marksObtained,
-        maxMarks,
-        passingMarks,
-        grade: calculateGrade(percentage),
-        percentage,
-        isPassed,
-        attendance: subject.attendance || 'present',
-        subjectConfig: {
-          hasTheory: subjectDetail.hasTheory,
-          theoryMaxMarks: subjectDetail.theoryMaxMarks,
-          hasPractical: subjectDetail.hasPractical,
-          practicalMaxMarks: subjectDetail.practicalMaxMarks
-        }
-      });
+    // Clear existing subjects if this is a full update
+    if (!req.body.partialUpdate) {
+      result.subjectResults = [];
     }
-
-    // Recalculate overall result
-    result.totalMarksObtained = result.subjectResults.reduce((sum, sub) => sum + sub.marksObtained, 0);
-    result.totalMaxMarks = result.subjectResults.reduce((sum, sub) => sum + (sub.maxMarks || 100), 0);
-    result.percentage = (result.totalMarksObtained / result.totalMaxMarks) * 100;
-    result.isPassed = result.subjectResults.every(sub => sub.isPassed);
-    result.status = result.isPassed ? 'PASS' : 'FAIL';
+    try {
+      console.log('=== Processing subject results ===');
+      
+      // Process each subject result
+      for (const [index, subject] of subjectResults.entries()) {
+        try {
+          console.log(`\n=== Processing subject ${index + 1}/${subjectResults.length} ===`);
+          console.log('Subject data:', JSON.stringify(subject, null, 2));
+          
+          const subjectId = subject.subject?._id || subject.subject;
+          console.log(`Extracted subject ID: ${subjectId}`);
+          
+          if (!subjectId) {
+            console.error('❌ Missing subject ID, skipping...');
+            continue;
+          }
+          
+          // Get subject details
+          const subjectDetail = await mongoose.model('UGPGSubject').findById(subjectId).lean();
+          
+          if (!subjectDetail) {
+            console.warn(`⚠️ Subject not found with ID: ${subjectId}, skipping...`);
+            continue;
+          }
+          
+          // Verify subject belongs to the correct course and semester
+          if (subjectDetail.course.toString() !== result.course.toString()) {
+            console.warn(`⚠️ Subject ${subjectId} (${subjectDetail.name}) does not belong to course ${result.course}, skipping...`);
+            continue;
+          }
+          
+          if (subjectDetail.semester !== result.semester) {
+            console.warn(`⚠️ Subject ${subjectId} (${subjectDetail.name}) is for semester ${subjectDetail.semester} but result is for semester ${result.semester}, skipping...`);
+            continue;
+          }
+          
+          console.log(`✅ Found subject: ${subjectDetail.name} (${subjectDetail._id})`);
+          
+          // Add the subject result
+          result.subjectResults.push({
+            subject: subjectId,
+            subjectName: subjectDetail.name,
+            examType: subject.examType || 'theory',
+            marksObtained: subject.marksObtained,
+            maxMarks: subject.maxMarks,
+            passingMarks: subject.passingMarks,
+            percentage: subject.percentage,
+            isPassed: subject.isPassed,
+            grade: subject.grade,
+            attendance: subject.attendance || 'present',
+            subjectConfig: {
+              hasTheory: subjectDetail.hasTheory,
+              theoryMaxMarks: subjectDetail.theoryMaxMarks,
+              hasPractical: subjectDetail.hasPractical,
+              practicalMaxMarks: subjectDetail.practicalMaxMarks
+            }
+          });
+          
+          console.log(`Added subject result: ${subjectDetail.name} (${subject.examType || 'theory'})`, {
+            marksObtained: subject.marksObtained,
+            maxMarks: subject.maxMarks,
+            percentage: subject.percentage,
+            grade: subject.grade,
+            isPassed: subject.isPassed
+          });
+          
+        } catch (error) {
+          console.error(`❌ Error processing subject ${index + 1}:`, error);
+          // Continue with next subject
+        }
+      }
+      
+      // Update the result with the calculated values if provided
+      if (totalMarksObtained !== undefined) result.totalMarksObtained = totalMarksObtained;
+      if (totalMaxMarks !== undefined) result.totalMaxMarks = totalMaxMarks;
+      if (percentage !== undefined) result.percentage = percentage;
+      if (status) result.status = status;
+      
+      // Log processing summary
+      console.log('\n=== Subject Processing Summary ===');
+      console.log(`✅ Successfully processed: ${result.subjectResults?.length || 0}/${subjectResults.length} subjects`);
+      
+      if (result.subjectResults.length === 0) {
+        console.warn('⚠️ No valid subjects were processed');
+      } else {
+        console.log('Final subject results to be saved:', JSON.stringify(result.subjectResults, null, 2));
+      }
+      
+      // Update the result with calculated values if not provided
+      if (totalMarksObtained === undefined) {
+        result.totalMarksObtained = result.subjectResults.reduce((sum, sub) => sum + (sub.marksObtained || 0), 0);
+      }
+      
+      if (totalMaxMarks === undefined) {
+        result.totalMaxMarks = result.subjectResults.reduce((sum, sub) => sum + (sub.maxMarks || 0), 0);
+      }
+      
+      if (percentage === undefined && result.totalMaxMarks > 0) {
+        result.percentage = parseFloat(((result.totalMarksObtained / result.totalMaxMarks) * 100).toFixed(2));
+      }
+      
+      if (!status) {
+        result.status = result.subjectResults.every(sub => sub.isPassed) ? 'PASS' : 'FAIL';
+      }
+      
+      // Calculate overall result if not provided
+      if (!result.isPassed) {
+        result.isPassed = result.subjectResults.every(sub => sub.isPassed);
+      }
+      
+      // Calculate grade if not provided
+      if (!result.grade && result.percentage !== undefined) {
+        result.grade = calculateGrade(result.percentage);
+      }
+      
+      // Set updated timestamp
+      result.updatedAt = new Date();
+      result.updatedBy = req.user._id;
+      
+      console.log('Final result object to save:', {
+        subjectResultsCount: result.subjectResults?.length || 0,
+        totalMarksObtained: result.totalMarksObtained,
+        totalMaxMarks: result.totalMaxMarks,
+        percentage: result.percentage,
+        isPassed: result.isPassed,
+        grade: result.grade,
+        status: result.status
+      });
+      
+      try {
+        // Save the updated result
+        const updatedResult = await result.save();
+        console.log('Result updated successfully:', updatedResult);
+        
+        if (!updatedResult) {
+          throw new Error('Failed to update result: document not found after update');
+        }
+        
+        console.log('Successfully updated result with', result.subjectResults?.length || 0, 'subjects');
+        
+        return res.status(200).json({
+          success: true,
+          data: updatedResult
+        });
+      } catch (saveError) {
+        console.error('Error saving result:', saveError);
+        if (saveError.name === 'ValidationError') {
+          return res.status(400).json({
+            success: false,
+            message: 'Validation Error',
+            error: saveError.message
+          });
+        }
+        throw saveError; // Let the outer catch handle it
+      }
+      
+    } catch (error) {
+      console.error('Error updating subject results:', error);
+      throw error; // Let the outer catch handle it
+    }
   }
 
-  const updatedResult = await result.save();
-  
-  res.status(200).json({
-    success: true,
-    data: updatedResult
-  });
+  try {
+    // If we reach here, it means we're doing a non-subject update
+    result.updatedAt = new Date();
+    result.updatedBy = req.user._id;
+    
+    console.log('Saving non-subject updates to result:', result);
+    const updatedResult = await result.save();
+    console.log('Result saved successfully:', updatedResult);
+    
+    res.status(200).json({
+      success: true,
+      data: updatedResult
+    });
+  } catch (error) {
+    console.error('Error saving result:', {
+      message: error.message,
+      stack: error.stack,
+      name: error.name,
+      code: error.code,
+      keyPattern: error.keyPattern,
+      keyValue: error.keyValue
+    });
+    
+    // Handle duplicate key errors
+    if (error.code === 11000) {
+      const field = Object.keys(error.keyPattern || {})[0] || 'field';
+      const value = error.keyValue ? error.keyValue[field] : 'unknown';
+      return res.status(400).json({
+        success: false,
+        message: `Duplicate key error: A result with ${field} '${value}' already exists`,
+        field,
+        value
+      });
+    }
+    
+    // Handle validation errors
+    if (error.name === 'ValidationError') {
+      const messages = Object.values(error.errors).map(val => val.message);
+      return res.status(400).json({
+        success: false,
+        message: 'Validation error',
+        errors: messages
+      });
+    }
+    
+    // Handle other errors
+    res.status(500).json({
+      success: false,
+      message: 'Failed to save result',
+      error: process.env.NODE_ENV === 'development' ? error.message : 'Internal server error'
+    });
+  }
 });
 
 // @desc    Get a single result by ID

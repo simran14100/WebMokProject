@@ -321,7 +321,8 @@ exports.deleteTimetable = asyncHandler(async (req, res, next) => {
     return next(new ApiError(`No timetable found with id of ${req.params.id}`, 404));
   }
 
-  await timetable.remove();
+  // Use deleteOne() instead of remove()
+  await Timetable.deleteOne({ _id: req.params.id });
 
   res.status(200).json({
     success: true,

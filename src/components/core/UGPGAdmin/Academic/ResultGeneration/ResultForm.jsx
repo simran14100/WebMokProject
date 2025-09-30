@@ -29,11 +29,11 @@ const { Option } = Select;
 const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions, initialStudents = [] }) => {
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
   const [studentLoading, setStudentLoading] = useState(false);
   // Ensure students is always an array
   const [students, setStudents] = useState(Array.isArray(initialStudents) ? initialStudents : []);
   const [filteredStudents, setFilteredStudents] = useState(Array.isArray(initialStudents) ? initialStudents : []);
-  
   // Update students state when initialStudents prop changes
   useEffect(() => {
     if (Array.isArray(initialStudents)) {
@@ -491,6 +491,7 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
   const handleStudentSelect = async (value) => {
     try {
       const studentId = value?.value || value;
+      console.log('handleStudentSelect - studentId:', studentId);
       if (!studentId) {
         setSelectedStudent(null);
         form.setFieldsValue({ studentId: null });
@@ -498,12 +499,20 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
       }
       
       const selected = students.find(s => s._id === studentId);
+      console.log('handleStudentSelect - selected student:', selected);
       if (!selected) return;
       
-      const studentName = selected.user?.name || 
-                         `${selected.firstName || ''} ${selected.lastName || ''}`.trim();
+      // Construct full name from firstName and lastName
+      const studentName = [
+        selected.firstName || '',
+        selected.middleName || '',
+        selected.lastName || ''
+      ].filter(Boolean).join(' ');
+      console.log('handleStudentSelect - studentName:', studentName);
       
+      // Store the full student object for later use
       setSelectedStudent({
+        ...selected,
         value: studentId,
         label: studentName
       });
@@ -642,12 +651,15 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
     }
     
     // Calculate grade based on percentage
-    if ((field === 'marksObtained' || field === 'maxMarks' || field === 'examType') && 
+    if ((field === 'marksObtained' || field === 'maxMarks' || field === 'examType' || field === 'passingMarks') && 
         updatedSubjects[index].marksObtained !== undefined && 
         updatedSubjects[index].maxMarks > 0) {
-      const percentage = (updatedSubjects[index].marksObtained / updatedSubjects[index].maxMarks) * 100;
-      let grade = 'F';
+      const marksObtained = parseFloat(updatedSubjects[index].marksObtained) || 0;
+      const maxMarks = parseFloat(updatedSubjects[index].maxMarks) || 100;
+      const percentage = maxMarks > 0 ? (marksObtained / maxMarks) * 100 : 0;
+      const passingMarks = parseFloat(updatedSubjects[index].passingMarks) || Math.ceil(maxMarks * 0.4);
       
+      let grade = 'F';
       if (percentage >= 90) grade = 'A+';
       else if (percentage >= 80) grade = 'A';
       else if (percentage >= 70) grade = 'B+';
@@ -656,7 +668,8 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
       else if (percentage >= 40) grade = 'D';
       
       updatedSubjects[index].grade = grade;
-      updatedSubjects[index].isPassed = percentage >= 40;
+      updatedSubjects[index].isPassed = percentage >= 40 && marksObtained >= passingMarks;
+      updatedSubjects[index].percentage = parseFloat(percentage.toFixed(2));
     }
     
     // Update the form with the modified subjects
@@ -738,13 +751,52 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
   const onFinish = async (values) => {
     try {
       setLoading(true);
+      setError(null);
       
-      // Validate subjects
-      if (!Array.isArray(values.subjects) || values.subjects.length === 0) {
+      // Ensure subjects array exists and is not empty
+      if (!values.subjects || !Array.isArray(values.subjects) || values.subjects.length === 0) {
         message.error('Please add at least one subject');
         setLoading(false);
         return;
       }
+      
+      // Filter out any invalid or empty subjects and validate required fields
+      const validSubjects = values.subjects.map((subject, index) => {
+        if (!subject) return null;
+        
+        const subjectId = subject.subject?._id || subject.subject;
+        if (!subjectId) {
+          message.error(`Subject at position ${index + 1} is missing a subject selection`);
+          return null;
+        }
+        
+        const subjectData = ugpgSubjects.find(s => s._id === subjectId);
+        if (!subjectData) {
+          message.error(`Invalid subject at position ${index + 1}`);
+          return null;
+        }
+        
+        if (subject.marksObtained === undefined || subject.marksObtained === null) {
+          message.error(`Please enter marks for ${subjectData.name || 'the selected subject'}`);
+          return null;
+        }
+        
+        return {
+          ...subject,
+          subject: subjectId,
+          subjectName: subjectData.name
+        };
+      }).filter(Boolean);
+      
+      if (validSubjects.length === 0) {
+        message.error('Please add at least one valid subject with marks');
+        setLoading(false);
+        return;
+      }
+      
+      // Update the form with validated subjects
+      form.setFieldsValue({ subjects: validSubjects });
+      setSubjects(validSubjects);
       
       // Validate marks against subject configuration
       const invalidSubjects = [];
@@ -784,12 +836,11 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
             </ul>
           </div>
         );
-        message.error({ content: errorMsg, duration: 10 });
+        message.error(errorMsg);
         setLoading(false);
         return;
       }
       
-      // Get student details
       const selectedStudent = students.find(s => s._id === values.studentId);
       if (!selectedStudent) {
         message.error('Selected student not found');
@@ -807,66 +858,127 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
         return null;
       };
 
+      // Construct full name from selected student's firstName and lastName
+      const studentName = selectedStudent ? [
+        selectedStudent.firstName || '',
+        selectedStudent.middleName || '',
+        selectedStudent.lastName || ''
+      ].filter(Boolean).join(' ') : '';
+      
+      console.log('Form submission - selectedStudent:', selectedStudent);
+      console.log('Form submission - studentName:', studentName);
+      
+      if (!studentName) {
+        console.error('Student name is missing in selectedStudent:', selectedStudent);
+        throw new Error('Student name is required. Please select a student.');
+      }
+
+      // Prepare subject results with all required fields
+      const subjectResults = values.subjects.map(formSubject => {
+        if (!formSubject) return null;
+        
+        const subjectId = formSubject.subject?._id || formSubject.subject;
+        if (!subjectId) return null;
+
+        // Find the subject to get its details
+        const subject = ugpgSubjects.find(s => s._id === subjectId);
+        
+        // Calculate grade and passing status if not already set
+        const maxMarks = formSubject.maxMarks || 
+                        (formSubject.examType === 'theory' ? 
+                          (subject?.theoryMaxMarks || 100) : 
+                          (subject?.practicalMaxMarks || 100));
+        
+        const marksObtained = formSubject.attendance === 'absent' ? 0 : (formSubject.marksObtained || 0);
+        const passingMarks = formSubject.passingMarks || Math.ceil(maxMarks * 0.4);
+        const percentage = maxMarks > 0 ? (marksObtained / maxMarks) * 100 : 0;
+        
+        // Calculate grade
+        let grade = 'F';
+        if (percentage >= 90) grade = 'A+';
+        else if (percentage >= 80) grade = 'A';
+        else if (percentage >= 70) grade = 'B+';
+        else if (percentage >= 60) grade = 'B';
+        else if (percentage >= 50) grade = 'C';
+        else if (percentage >= 40) grade = 'D';
+        
+        const isPassed = percentage >= 40;
+
+        return {
+          subject: subjectId,
+          marksObtained: marksObtained,
+          maxMarks: maxMarks,
+          passingMarks: passingMarks,
+          examType: formSubject.examType || 'theory',
+          attendance: formSubject.attendance || 'present',
+          grade: grade,
+          isPassed: isPassed,
+          percentage: parseFloat(percentage.toFixed(2))
+        };
+      }).filter(Boolean); // Remove any null entries
+      
+      console.log('Prepared subjectResults:', subjectResults);
+      
+      // Check if we have any valid subjects
+      if (subjectResults.length === 0) {
+        throw new Error('No valid subjects found to submit');
+      }
+      
+      // Calculate overall result
+      const totalMarksObtained = subjectResults.reduce((sum, sub) => sum + (sub.marksObtained || 0), 0);
+      const totalMaxMarks = subjectResults.reduce((sum, sub) => sum + (sub.maxMarks || 0), 0);
+      const overallPercentage = subjectResults.length > 0 ? 
+        parseFloat((subjectResults.reduce((sum, sub) => sum + (sub.percentage || 0), 0) / subjectResults.length).toFixed(2)) : 
+        0;
+      
       const resultData = {
         studentId: values.studentId,
-        studentName: selectedStudent?.name || '',
+        studentName: studentName,
         courseId: values.course,
         semester: values.semester,
         examSessionId: getExamSessionId(values.examSession),
         remarks: values.remarks || '',
-        subjects: values.subjects.map(formSubject => {
-          if (!formSubject) return null;
-          
-          const subjectId = formSubject.subject?._id || formSubject.subject;
-          const subjectData = ugpgSubjects.find(s => s._id === subjectId);
-          
-          // Calculate max marks based on exam type
-          const maxMarks = formSubject.maxMarks || 
-            (formSubject.examType === 'theory' && subjectData?.theoryMaxMarks ? subjectData.theoryMaxMarks :
-             formSubject.examType === 'practical' && subjectData?.practicalMaxMarks ? subjectData.practicalMaxMarks :
-             100);
-          
-          // Ensure passing marks is set and valid
-          const passingMarks = formSubject.passingMarks || Math.ceil(maxMarks * 0.4);
-          
-          // Calculate percentage and grade
-          const marksObtained = formSubject.marksObtained || 0;
-          const percentage = (marksObtained / maxMarks) * 100;
-          let grade = 'F';
-          if (percentage >= 90) grade = 'A+';
-          else if (percentage >= 80) grade = 'A';
-          else if (percentage >= 70) grade = 'B';
-          else if (percentage >= 60) grade = 'C';
-          else if (percentage >= 50) grade = 'D';
-          else if (percentage >= 40) grade = 'E';
-          
-          // Create subject result object
-          return {
-            subjectId: subjectId,
-            examType: formSubject.examType || 'theory',
-            marksObtained: formSubject.attendance === 'absent' ? 0 : Math.min(marksObtained, maxMarks),
-            maxMarks: maxMarks,
-            passingMarks: Math.min(passingMarks, maxMarks),
-            grade: formSubject.attendance === 'absent' ? 'F' : grade,
-            percentage: formSubject.attendance === 'absent' ? 0 : percentage,
-            isPassed: formSubject.attendance === 'present' && percentage >= 40,
-            attendance: formSubject.attendance || 'present',
-            status: formSubject.attendance === 'present' && percentage >= 40 ? 'PASS' : 'FAIL'
-          };
-        }).filter(Boolean) // Remove any null entries
+        subjectResults: subjectResults,
+        totalMarksObtained: totalMarksObtained,
+        totalMaxMarks: totalMaxMarks,
+        percentage: overallPercentage,
+        status: subjectResults.every(sub => sub.isPassed) ? 'PASS' : 'FAIL'
       };
       
       console.log('Submitting result data:', resultData);
       
       // Submit the form
+      console.log('Submitting form with data:', JSON.stringify(resultData, null, 2));
       let response;
       if (initialValues?._id) {
-        response = await updateResult(initialValues._id, resultData);
-        console.log('Update response:', response);
-        if (response?.success) {
-          message.success('Result updated successfully');
-        } else {
-          throw new Error(response?.message || 'Failed to update result');
+        console.log('Updating existing result with ID:', initialValues._id);
+        try {
+          response = await updateResult(initialValues._id, resultData);
+          console.log('Update API Response:', JSON.stringify(response, null, 2));
+          
+          if (response?.success) {
+            console.log('Update successful, response data:', response.data);
+            message.success('Result updated successfully');
+            
+            // Log the updated data that was sent to the server
+            console.log('Updated data sent to server:', {
+              ...resultData,
+              subjectResults: resultData.subjectResults?.map(sub => ({
+                ...sub,
+                subject: typeof sub.subject === 'object' ? sub.subject._id : sub.subject
+              }))
+            });
+          } else {
+            console.error('Update failed:', response?.message);
+            throw new Error(response?.message || 'Failed to update result');
+          }
+        } catch (error) {
+          console.error('Error in update API call:', {
+            message: error.message,
+            response: error.response?.data,
+            stack: error.stack
+          });
+          throw error;
         }
       } else {
         response = await createResult(resultData);
@@ -878,9 +990,9 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
         }
       }
       
-      // Call success callback if provided
+      // Call success callback if provided with the updated result data
       if (onSuccess) {
-        onSuccess();
+        onSuccess(response.data);
       }
       
       return response;
@@ -953,9 +1065,10 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
             >
               {ugpgSubjects && ugpgSubjects.length > 0 ? (
                 ugpgSubjects.map((subject) => {
+                  // Create a display label with both name and ID
                   const label = [
-                    subject.name,
-                    subject.code && `(${subject.code})`,
+                    `${subject.name} (ID: ${subject._id})`,
+                    subject.code && `[${subject.code}]`,
                     subject.school?.name && `[${subject.school.name}]`,
                     subject.hasTheory && subject.hasPractical ? 
                       `(T:${subject.theoryMaxMarks}/P:${subject.practicalMaxMarks})` :

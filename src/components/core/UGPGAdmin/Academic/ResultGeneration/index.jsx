@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Tabs, Button, message, Space, Card, Row, Col, Select, Input, Table } from 'antd';
+import { Tabs, Button, message, Space, Card, Row, Col, Select, Input, Table, Modal } from 'antd';
 import { PlusOutlined, UploadOutlined, DownloadOutlined, SearchOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 // Import components
 import ResultList from './ResultList';
@@ -104,59 +104,10 @@ const getCourses = async (filters = {}) => {
     });
     
     const errorMessage = error.response?.data?.message || 
-                        error.message || 
-                        'Failed to fetch courses';
-    
+                        error.message || 'Failed to fetch courses';
     throw new Error(errorMessage);
   }
 };
-
-// Get students with filters
-const getStudents = async (filters = {}) => {
-  try {
-    const response = await axios.get(`${API_URL}/university/registered-students`, {
-      params: {
-        ...filters,
-        status: 'approved', // Ensure we only get approved students
-      },
-      headers: {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`
-      }
-    });
-
-    // Handle different response formats
-    const responseData = response.data;
-    let students = [];
-    
-    if (Array.isArray(responseData)) {
-      students = responseData;
-    } else if (responseData && Array.isArray(responseData.data)) {
-      students = responseData.data;
-    } else if (responseData && Array.isArray(responseData.students)) {
-      students = responseData.students;
-    }
-
-    return {
-      success: true,
-      data: students,
-      pagination: responseData.pagination || {
-        total: students.length,
-        current: 1,
-        pageSize: 10,
-      },
-    };
-  } catch (error) {
-    console.error('Error in getStudents:', error);
-    const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch students';
-    return {
-      success: false,
-      message: errorMessage,
-      data: []
-    };
-  }
-};
-
-
 
 const { TabPane } = Tabs;
 const { Option } = Select;
@@ -254,86 +205,147 @@ const ResultGeneration = () => {
   const [filteredStudents, setFilteredStudents] = useState([]);
   const navigate = useNavigate();
 
+    // Get students with filters
+  const getStudents = async (filters = {}) => {
+    try {
+      console.log('Fetching students with filters:', filters);
+      const response = await axios.get(`${API_URL}/university/registered-students`, {
+        params: {
+          ...filters,
+          status: 'approved', // Ensure we only get approved students
+          limit: 1000, // Increase limit to get all students
+        },
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      console.log('Students API response:', JSON.stringify(response.data, null, 2));
+      
+      // Handle different response formats
+      const responseData = response.data || {};
+      
+      if (responseData.success === false) {
+        return {
+          success: false,
+          message: responseData.message || 'Failed to fetch students',
+          data: []
+        };
+      }
+      
+      return responseData;
+      
+    } catch (error) {
+      console.error('Error in getStudents:', error);
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to fetch students';
+      return {
+        success: false,
+        message: errorMessage,
+        data: []
+      };
+    }
+  };
+
   // Fetch students with proper error handling and formatting
   const fetchStudents = async () => {
     try {
       setLoading(true);
       console.log('Fetching students...');
       
-      // First, try with approved status (as per the API)
+      // Try to fetch students with approved status
       let response = await getStudents({ 
-        status: 'approved', // Changed from 'active' to 'approved' to match API
+        status: 'approved',
         limit: 1000,
-        populate: 'course'
+        populate: 'course',
+        _t: new Date().getTime() // Cache buster
       });
       
-      console.log('Students API response:', JSON.stringify(response, null, 2));
+      console.log('Students API response:', response);
       
-      if (response.success) {
-        // Handle both array and object responses
-        let studentsData = [];
-        
-        if (Array.isArray(response.data)) {
-          studentsData = response.data;
-        } else if (response.data && response.data.data) {
-          studentsData = Array.isArray(response.data.data) 
-            ? response.data.data 
-            : [response.data.data];
-        } else if (response.data) {
-          studentsData = [response.data];
-        }
-        
-        console.log('Processed students data:', studentsData);
-        
-        if (studentsData.length === 0) {
-          console.warn('No approved students found');
-          message.warning('No approved students found. Please approve students first.');
-          setStudents([]);
-          setFilteredStudents([]);
-          return [];
-        }
-        
-        // Map the student data to the expected format
-        const formattedStudents = studentsData.map(student => {
-          const firstName = student.firstName || '';
-          const lastName = student.lastName || '';
-          const studentName = student.user?.name || 
-                            `${firstName} ${lastName}`.trim() ||
-                            `Student ${student._id?.substring(0, 6)}`;
-          
-          const formattedStudent = {
-            ...student,
-            _id: student._id,
-            value: student._id,
-            label: student.registrationNumber 
-              ? `${studentName} (${student.registrationNumber})`
-              : studentName,
-            name: studentName,
-            email: student.email,
-            phone: student.phone,
-            courseId: student.course?._id || student.course || student.courseId,
-            courseName: student.course?.name || student.courseName,
-            registrationNumber: student.registrationNumber
-          };
-          
-          console.log('Formatted student:', formattedStudent);
-          return formattedStudent;
-        });
-        
-        console.log('Setting students:', formattedStudents);
-        setStudents(formattedStudents);
-        setFilteredStudents(formattedStudents);
-        return formattedStudents;
-      } else {
-        throw new Error(response.message || 'Failed to fetch students');
+      // Handle empty or invalid responses
+      if (!response) {
+        console.warn('Empty response received from getStudents');
+        setStudents([]);
+        setFilteredStudents([]);
+        return [];
       }
+      
+      // Handle both success and failure cases
+      if (response.success === false) {
+        console.warn('API returned success:false -', response.message);
+        // Don't show error message for empty results
+        if (response.message !== 'No approved students found') {
+          message.warning(response.message || 'No students data available');
+        }
+        setStudents([]);
+        setFilteredStudents([]);
+        return [];
+      }
+      
+      // Handle both array and object responses
+      let studentsData = [];
+      
+      if (Array.isArray(response.data)) {
+        studentsData = response.data;
+      } else if (response.data && Array.isArray(response.data.data)) {
+        studentsData = response.data.data;
+      } else if (response.data && response.data.data) {
+        studentsData = [response.data.data];
+      } else if (response.data) {
+        studentsData = [response.data];
+      }
+      
+      console.log('Processed students data:', studentsData);
+      
+      if (studentsData.length === 0) {
+        console.warn('No students data found in response');
+        // Don't show warning for empty results
+        setStudents([]);
+        setFilteredStudents([]);
+        return [];
+      }
+      
+      // Map the student data to the expected format
+      const formattedStudents = studentsData.map(student => {
+        if (!student) return null;
+        
+        const firstName = student.firstName || '';
+        const lastName = student.lastName || '';
+        const studentName = student.user?.name || 
+                          `${firstName} ${lastName}`.trim() ||
+                          student.name ||
+                          `Student ${student._id?.substring(0, 6) || ''}`;
+        
+        const formattedStudent = {
+          ...student,
+          _id: student._id || `temp-${Math.random().toString(36).substr(2, 9)}`,
+          value: student._id,
+          label: student.registrationNumber 
+            ? `${studentName} (${student.registrationNumber})`
+            : studentName,
+          name: studentName,
+          email: student.email || student.user?.email,
+          phone: student.phone || student.user?.phone,
+          courseId: student.course?._id || student.course || student.courseId,
+          courseName: student.course?.name || student.courseName,
+          registrationNumber: student.registrationNumber || student.enrollmentNumber
+        };
+        
+        return formattedStudent;
+      }).filter(Boolean); // Remove any null entries
+      
+      console.log('Setting students:', formattedStudents);
+      setStudents(formattedStudents);
+      setFilteredStudents(formattedStudents);
+      return formattedStudents;
+      
     } catch (error) {
       console.error('Error in fetchStudents:', {
         message: error.message,
         stack: error.stack,
         response: error.response?.data
       });
-      message.error(error.message || 'Failed to fetch students');
+      // Don't show error message to user, just log it
       setStudents([]);
       setFilteredStudents([]);
       return [];
@@ -660,63 +672,141 @@ const ResultGeneration = () => {
     };
   }, [filters, pagination.current, pagination.pageSize, students.length, courses.length, examSessions.length]);
 
-
  
 
-  // Function to refresh results
-  const refreshResults = async () => {
+  // Function to refresh results with cache busting
+  const refreshResults = async (preservePage = true) => {
     try {
+      console.log('=== START refreshResults ===');
+      console.log('Current pagination:', pagination);
+      console.log('Current filters:', filters);
+      
       setLoading(true);
-      console.log('Refreshing results with filters:', {
-        ...filters,
-        page: pagination.current,
-        limit: pagination.pageSize,
-      });
       
+      // Force a complete refresh by resetting the page to 1
+      const pageToUse = preservePage ? pagination.current : 1;
+      
+      const queryParams = {
+        ...filters,
+        page: pageToUse,
+        limit: pagination.pageSize,
+        _t: new Date().getTime(), // Cache buster
+        populate: 'student,course,examSession,subjectResults.subject' // Ensure we get all necessary data
+      };
+      
+      console.log('Fetching results with params:', JSON.stringify(queryParams, null, 2));
+      
+      // Use the imported getResults function with proper error handling
       const response = await getResults({
-        ...filters,
-        page: pagination.current,
-        limit: pagination.pageSize,
+        params: queryParams,
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`,
+          'Content-Type': 'application/json'
+        }
       });
       
-      console.log('Results API Response:', response);
+      console.log('Raw API response:', response);
       
-      if (response.success) {
-        setResults(Array.isArray(response.data) ? response.data : []);
-        setPagination({
-          current: response.pagination?.current || 1,
-          pageSize: response.pagination?.pageSize || 10,
-          total: response.pagination?.total || 0,
-        });
-      } else {
-        console.warn('Failed to fetch results:', response.message);
-        message.warning(response.message || 'No results found');
-        setResults([]);
+      if (!response) {
+        throw new Error('No response from server');
       }
+      
+      // Handle different response formats
+      let resultsData = [];
+      let paginationData = {};
+      
+      if (response.data) {
+        // Handle { data: { data: [], pagination: {} } }
+        if (response.data.data && Array.isArray(response.data.data)) {
+          resultsData = response.data.data;
+          paginationData = response.data.pagination || {};
+        } 
+        // Handle { data: [] }
+        else if (Array.isArray(response.data)) {
+          resultsData = response.data;
+        }
+        // Handle { data: { results: [] } }
+        else if (response.data.results && Array.isArray(response.data.results)) {
+          resultsData = response.data.results;
+          paginationData = response.data.pagination || {};
+        }
+      } 
+      // Handle direct array response
+      else if (Array.isArray(response)) {
+        resultsData = response;
+      }
+      
+      console.log('Processed results data:', {
+        count: resultsData.length,
+        firstItem: resultsData[0] ? { 
+          _id: resultsData[0]._id,
+          student: resultsData[0].student?.name || resultsData[0].student,
+          course: resultsData[0].course?.name || resultsData[0].course,
+          semester: resultsData[0].semester
+        } : 'No results',
+        ids: resultsData.map(r => r._id).join(',')
+      });
+      
+      // Force a new array reference to ensure React detects the change
+      const newResults = [...resultsData];
+      setResults(newResults);
+      
+      // Update pagination if available in response
+      if (paginationData) {
+        console.log('Updating pagination with:', paginationData);
+        setPagination(prev => ({
+          ...prev,
+          current: paginationData.page || 1,
+          pageSize: paginationData.limit || prev.pageSize,
+          total: paginationData.total || resultsData.length,
+        }));
+      } else if (resultsData.length > 0) {
+        // If we have results but no pagination data, update total count
+        setPagination(prev => ({
+          ...prev,
+          total: resultsData.length
+        }));
+      }
+      
+      return newResults;
     } catch (error) {
       console.error('Error in refreshResults:', error);
-      message.error(error.message || 'Failed to load results');
+      const errorMsg = error.response?.data?.message || error.message || 'Failed to load results';
+      message.error(errorMsg);
       setResults([]);
+      return [];
     } finally {
       setLoading(false);
     }
   };
 
+  // Handle table change events (pagination, sorting, filters)
   const handleTableChange = (pagination, filters, sorter) => {
-    // Update pagination state
-    setPagination(prev => ({
-      ...prev,
-      current: pagination.current,
-      pageSize: pagination.pageSize,
-    }));
-
-    // Handle sorting
-    if (sorter.field) {
-      setFilters(prev => ({
+    console.log('=== TABLE CHANGED ===');
+    console.log('Pagination:', pagination);
+    console.log('Filters:', filters);
+    console.log('Sorter:', sorter);
+    
+    // Update pagination
+    setPagination(prev => {
+      const newPagination = {
         ...prev,
+        current: pagination.current || 1,
+        pageSize: pagination.pageSize || 10,
+      };
+      console.log('New pagination:', newPagination);
+      return newPagination;
+    });
+    
+    // Update sorting if available
+    if (sorter.field) {
+      const newFilters = {
+        ...filters,
         sortBy: sorter.field,
         sortOrder: sorter.order === 'ascend' ? 'asc' : 'desc',
-      }));
+      };
+      console.log('New filters with sorting:', newFilters);
+      setFilters(newFilters);
     }
   };
 
@@ -765,34 +855,89 @@ const ResultGeneration = () => {
     setActiveTab('list');
   };
 
-  const handleViewResult = (result) => {
-    console.log('Viewing result:', result);
-    setEditingResult(result);
-    setActiveTab('add');
+  const handleViewResult = async (result) => {
+    try {
+      if (!result || !result._id) {
+        console.error('Invalid result data for editing:', result);
+        message.error('Cannot edit: Invalid result data');
+        return;
+      }
+      
+      setLoading(true);
+      console.log('Loading result details for editing:', result._id);
+      
+      // Fetch the full result data with all required fields
+      const response = await getResults({ _id: result._id });
+      
+      if (response && response.success) {
+        const fullResult = Array.isArray(response.data) && response.data.length > 0 
+          ? response.data[0] 
+          : result;
+          
+        console.log('Full result data for editing:', fullResult);
+        
+        // Set the full result data for editing
+        setEditingResult({
+          ...fullResult,
+          // Ensure subjectResults is properly formatted
+          subjectResults: Array.isArray(fullResult.subjectResults) 
+            ? fullResult.subjectResults.map(sub => ({
+                ...sub,
+                subject: sub.subject?._id || sub.subject,
+                subjectName: sub.subject?.name || 'Subject'
+              }))
+            : []
+        });
+        
+        // Switch to the edit tab
+        setActiveTab('add');
+      } else {
+        console.error('Failed to load result details:', response?.message);
+        message.error(response?.message || 'Failed to load result details');
+      }
+    } catch (error) {
+      console.error('Error in handleViewResult:', error);
+      message.error('Failed to load result details: ' + (error.message || 'Unknown error'));
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleDeleteResult = async (resultId) => {
+  const handleDeleteResult = (resultId) => {
     if (!resultId) {
       message.error('Invalid result ID');
       return;
     }
 
-    try {
-      setLoading(true);
-      const response = await deleteResult(resultId);
-      
-      if (response.success) {
-        message.success('Result deleted successfully');
-        await refreshResults();
-      } else {
-        throw new Error(response.message || 'Failed to delete result');
-      }
-    } catch (error) {
-      console.error('Error deleting result:', error);
-      message.error(error.message || 'Failed to delete result');
-    } finally {
-      setLoading(false);
-    }
+    // Show confirmation dialog
+    Modal.confirm({
+      title: 'Confirm Deletion',
+      content: 'Are you sure you want to delete this result? This action cannot be undone.',
+      okText: 'Yes, Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          setLoading(true);
+          const response = await deleteResult(resultId);
+          
+          if (response.success) {
+            message.success('Result deleted successfully');
+            await refreshResults();
+          } else {
+            throw new Error(response.message || 'Failed to delete result');
+          }
+        } catch (error) {
+          console.error('Error deleting result:', error);
+          message.error(error.message || 'Failed to delete result');
+        } finally {
+          setLoading(false);
+        }
+      },
+      onCancel() {
+        console.log('Deletion cancelled');
+      },
+    });
   };
 
   // Format results for the ResultList component
@@ -965,20 +1110,121 @@ const ResultGeneration = () => {
               onChange={handleTableChange}
               onDownload={handleDownloadMarksheet}
               onView={handleViewResult}
+              onDelete={handleDeleteResult}
             />
       </TabPane>
 
       <TabPane tab="Add/Edit Result" key="add">
         <ResultForm
+          key={editingResult ? `edit-${editingResult._id || 'new'}` : 'add'}
           initialValues={editingResult}
-          onSuccess={() => {
-            setActiveTab('list');
-            refreshResults();
+          onSuccess={async (updatedResult) => {
+            console.log('=== Form submission successful ===');
+            console.log('Updated result data received:', JSON.stringify(updatedResult, null, 2));
+            
+            const isEdit = !!editingResult;
+            message.success(
+              isEdit ? 'Result updated successfully!' : 'Result created successfully!',
+              3 // Show for 3 seconds
+            );
+            
+            // Clear editing state
+            setEditingResult(null);
+            
+            // First, force a complete refresh of the results
+            try {
+              console.log('Starting complete data refresh...');
+              
+              // 1. Force refresh results with cache busting
+              const freshResults = await refreshResults(false);
+              
+              if (!freshResults || freshResults.length === 0) {
+                console.log('No results found after refresh, checking with current filters...');
+                // If no results with current filters, try without filters
+                const allResults = await getResults({
+                  params: {
+                    page: 1,
+                    limit: 100,
+                    _t: new Date().getTime(),
+                    populate: 'student,course,examSession,subjectResults.subject'
+                  },
+                  headers: {
+                    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+                    'Content-Type': 'application/json'
+                  }
+                });
+                
+                if (allResults?.data?.data) {
+                  console.log('Found results without filters, updating state...');
+                  setResults(allResults.data.data);
+                  setPagination(prev => ({
+                    ...prev,
+                    current: 1,
+                    total: allResults.data.pagination?.total || allResults.data.data.length
+                  }));
+                }
+              }
+              
+              // 2. Refresh courses and exam sessions if needed
+              const refreshPromises = [];
+              
+              if (courses.length === 0) {
+                refreshPromises.push(fetchCourses().catch(err => {
+                  console.warn('Failed to refresh courses:', err);
+                  return null;
+                }));
+              }
+              
+              if (examSessions.length === 0) {
+                refreshPromises.push(fetchExamSessions().catch(err => {
+                  console.warn('Failed to refresh exam sessions:', err);
+                  return null;
+                }));
+              }
+              
+              if (refreshPromises.length > 0) {
+                await Promise.all(refreshPromises);
+              }
+              
+              console.log('Data refresh completed successfully');
+              
+            } catch (error) {
+              console.error('Error during data refresh:', {
+                message: error.message,
+                stack: error.stack,
+                response: error.response?.data
+              });
+              
+              // Even if refresh fails, try to update the UI optimistically
+              if (updatedResult) {
+                setResults(prevResults => {
+                  const existingIndex = prevResults.findIndex(r => r._id === updatedResult._id);
+                  if (existingIndex >= 0) {
+                    // Update existing result
+                    const newResults = [...prevResults];
+                    newResults[existingIndex] = updatedResult;
+                    return newResults;
+                  }
+                  // Add new result to the beginning
+                  return [updatedResult, ...prevResults];
+                });
+              }
+              
+              // Show error message only for unexpected errors
+              const errorMessage = error.message || '';
+              if (!errorMessage.includes('No approved students found') && 
+                  !errorMessage.includes('No students data available')) {
+                message.error('Result saved, but there was an error refreshing the data: ' + errorMessage);
+              }
+            } finally {
+              // Always switch back to list view
+              setActiveTab('list');
+            }
           }}
-          onCancel={() => setActiveTab('list')}
           courses={formatCourses(courses)}
           examSessions={formatExamSessions(examSessions)}
           students={formatStudents(students)}
+          onCancel={() => setActiveTab('list')}
         />
       </TabPane>
 

@@ -148,13 +148,13 @@ const getSidebarLinks = (user, variant = 'default') => {
         name: 'Results', 
         path: '/EnrolledStudents/results', 
         icon: <VscGraph style={{ fontSize: 20, color: ED_TEAL }} /> 
-      },
-      { 
-        id: 7, 
-        name: 'Fees & Payments', 
-        path: '/EnrolledStudents/fees', 
-        icon: <FaRegMoneyBillAlt style={{ fontSize: 20, color: ED_TEAL }} /> 
       }
+      // { 
+      //   id: 7, 
+      //   name: 'Fees & Payments', 
+      //   path: '/EnrolledStudents/fees', 
+      //   icon: <FaRegMoneyBillAlt style={{ fontSize: 20, color: ED_TEAL }} /> 
+      // }
      
     ];
   }
@@ -198,7 +198,7 @@ const getSidebarLinks = (user, variant = 'default') => {
   if (variant === 'ugpg' && (user?.accountType === 'SuperAdmin')) {
     return [
       { id: 100, name: 'MAIN', isHeader: true, icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
-      { id: 101, name: 'Dashboard', path: '/ugpg-admin', icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
+      // { id: 101, name: 'Dashboard', path: '/ugpg-admin', icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
       { 
         id: 102, 
         name: 'Settings', 

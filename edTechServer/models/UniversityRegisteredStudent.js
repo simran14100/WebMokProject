@@ -1,5 +1,6 @@
 const mongoose = require('mongoose');
 const mongoosePaginate = require('mongoose-paginate-v2');
+const Result = require('./resultModel');
 
 
 // Add these schemas at the top of your file
@@ -275,7 +276,26 @@ registeredStudentSchema.index({ email: 1 });
 registeredStudentSchema.index({ 'phone': 1 });
 registeredStudentSchema.index({ registrationNumber: 1 });
 
-// Add pagination plugin to the schema
+// Add the pagination plugin to the schema
 registeredStudentSchema.plugin(mongoosePaginate);
 
-module.exports = mongoose.model('UniversityRegisteredStudent', registeredStudentSchema);
+// Pre-remove hook to delete associated results when a student is deleted
+registeredStudentSchema.pre('findOneAndDelete', async function(next) {
+  try {
+    const studentId = this.getQuery()._id;
+    console.log(`Deleting all results for student ${studentId}...`);
+    
+    // Delete all results associated with this student
+    const result = await Result.deleteMany({ student: studentId });
+    
+    console.log(`Successfully deleted ${result.deletedCount} results for student ${studentId}`);
+    next();
+  } catch (error) {
+    console.error('Error deleting student results:', error);
+    next(error);
+  }
+});
+
+const UniversityRegisteredStudent = mongoose.model('UniversityRegisteredStudent', registeredStudentSchema);
+
+module.exports = UniversityRegisteredStudent;

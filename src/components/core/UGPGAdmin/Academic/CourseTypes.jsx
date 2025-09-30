@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { apiConnector } from "../../../../services/apiConnector";
+import { showSuccess } from "../../../../utils/toast";
 
 export default function CourseTypes() {
   const [items, setItems] = useState([]); // courses from backend
@@ -150,6 +151,7 @@ export default function CourseTypes() {
       await fetchCourses();
       setShowDeleteConfirm(false);
       setSelectedCourse(null);
+      showSuccess('Course deleted successfully!');
     } catch (error) {
       setSubmitError(error?.response?.data?.message || "Failed to delete course");
     } finally {
@@ -495,8 +497,10 @@ export default function CourseTypes() {
                       
                       if (isEditMode && selectedCourse?._id) {
                         await apiConnector("PATCH", `/api/v1/ugpg/courses/${selectedCourse._id}`, payload);
+                        showSuccess('Course updated successfully!');
                       } else {
                         await apiConnector("POST", "/api/v1/ugpg/courses", payload);
+                        showSuccess('Course created successfully!');
                       }
                       
                       await fetchCourses();

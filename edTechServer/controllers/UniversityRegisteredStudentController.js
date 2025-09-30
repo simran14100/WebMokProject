@@ -1,6 +1,7 @@
 
 
 const asyncHandler = require('express-async-handler');
+const mongoose = require('mongoose');
 const cloudinary = require('cloudinary').v2;
 const fs = require('fs').promises;
 const path = require('path');
@@ -655,39 +656,70 @@ const getStudent = asyncHandler(async (req, res) => {
 // @route   DELETE /api/university/registered-students/:id
 // @access  Private/Admin
 const deleteStudent = asyncHandler(async (req, res) => {
-  const student = await UniversityRegisteredStudent.findById(req.params.id);
-  
-  if (!student) {
-    return res.status(404).json({
+  const session = await mongoose.startSession();
+  session.startTransaction();
+
+  try {
+    console.log(`Starting deletion of student ${req.params.id}...`);
+    
+    // Find the student to be deleted
+    const student = await UniversityRegisteredStudent.findById(req.params.id).session(session);
+    
+    if (!student) {
+      await session.abortTransaction();
+      session.endSession();
+      return res.status(404).json({
+        success: false,
+        message: 'Student not found'
+      });
+    }
+    
+    // Delete from Cloudinary
+    const cleanupPromises = [];
+    if (student.photoId) {
+      cleanupPromises.push(
+        cloudinary.uploader.destroy(student.photoId).catch(err => 
+          console.error('Error deleting photo from Cloudinary:', err.message)
+        )
+      );
+    }
+    if (student.signatureId) {
+      cleanupPromises.push(
+        cloudinary.uploader.destroy(student.signatureId).catch(err => 
+          console.error('Error deleting signature from Cloudinary:', err.message)
+        )
+      );
+    }
+    
+    // Wait for Cloudinary cleanup to complete
+    await Promise.allSettled(cleanupPromises);
+    
+    // Delete the student (this will trigger the pre-remove hook to delete results)
+    await UniversityRegisteredStudent.findByIdAndDelete(req.params.id).session(session);
+    
+    // Commit the transaction
+    await session.commitTransaction();
+    session.endSession();
+    
+    console.log(`Successfully deleted student ${req.params.id} and all associated results`);
+    
+    res.json({
+      success: true,
+      message: 'Student and all associated results deleted successfully',
+      data: {}
+    });
+  } catch (error) {
+    // If an error occurred, abort the transaction
+    await session.abortTransaction();
+    session.endSession();
+    
+    console.error('Error deleting student:', error);
+    res.status(500).json({
       success: false,
-      message: 'Student not found'
+      message: 'Error deleting student',
+      error: error.message
     });
   }
-  
-  // Delete from Cloudinary
-  const cleanupPromises = [];
-  if (student.photoId) {
-    cleanupPromises.push(
-      cloudinary.uploader.destroy(student.photoId).catch(console.error)
-    );
-  }
-  if (student.signatureId) {
-    cleanupPromises.push(
-      cloudinary.uploader.destroy(student.signatureId).catch(console.error)
-    );
-  }
-  
-  // Wait for Cloudinary cleanup to complete
-  await Promise.allSettled(cleanupPromises);
-  
-  // Delete from database
-  await UniversityRegisteredStudent.findByIdAndDelete(req.params.id);
-  
-  res.json({
-    success: true,
-    message: 'Student deleted successfully',
-    data: {}
-  });
 });
 
 // @desc    Update student information

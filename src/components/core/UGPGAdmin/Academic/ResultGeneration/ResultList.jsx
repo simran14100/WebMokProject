@@ -8,7 +8,8 @@ import {
   CloseCircleOutlined,
   DownOutlined,
   RightOutlined,
-  FileTextOutlined
+  FileTextOutlined,
+  DeleteOutlined
 } from '@ant-design/icons';
 import { Link } from 'react-router-dom';
 import { downloadMarksheet } from '../../../../../../src/services/resultApi';
@@ -16,7 +17,7 @@ import './ResultList.css'; // We'll create this for custom styles
 
 const { Text } = Typography;
 
-const ResultList = ({ data = [], loading, pagination, onChange, onDownload, onView }) => {
+const ResultList = ({ data = [], loading, pagination, onChange, onDownload, onView, onDelete }) => {
   console.log('Raw data received in ResultList:', data);
   
   // Process data for the table
@@ -381,7 +382,19 @@ const ResultList = ({ data = [], loading, pagination, onChange, onDownload, onVi
               onClick={() => onView && onView(record)}
             />
           </Tooltip>
-         
+          <Tooltip title="Delete">
+            <Button 
+              type="text" 
+              danger
+              icon={<DeleteOutlined />} 
+              size="small"
+              className="action-btn"
+              onClick={(e) => {
+                e.stopPropagation();
+                onDelete && onDelete(record._id);
+              }}
+            />
+          </Tooltip>
         </div>
       ),
     },

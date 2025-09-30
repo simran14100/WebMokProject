@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useCallback } from "react";
 import { toast } from "react-hot-toast";
 import { FiEdit2, FiTrash2, FiSearch, FiFilter, FiPlus, FiChevronDown, FiChevronUp, FiDollarSign, FiBookOpen, FiCalendar, FiLayers } from "react-icons/fi";
@@ -12,6 +14,10 @@ const ManageFee = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [showAssignModal, setShowAssignModal] = useState(false);
   const [selectedItem, setSelectedItem] = useState(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [feeToDelete, setFeeToDelete] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteResult, setDeleteResult] = useState(null);
   const [filters, setFilters] = useState({
     session: "",
     course: "",
@@ -25,67 +31,56 @@ const ManageFee = () => {
   const fetchFeeAssignments = async () => {
     try {
       setLoading(true);
-      console.log('Fetching fee assignments...');
       
-      // Log the exact URL being called
       const apiUrl = `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-assignments`;
-      console.log('API URL:', apiUrl);
       
-      // Add query parameters for pagination and sorting
       const params = {
-        page: currentPage,
-        limit: itemsPerPage,
-        sortBy: 'createdAt',
-        sortOrder: 'desc'
+        limit: 100,
+        page: 1,
+        all: true,
+        includeAll: true,
+        showAll: true,
+        session: 'all',
       };
       
-      // Convert params to query string
       const queryString = new URLSearchParams(params).toString();
       const urlWithParams = `${apiUrl}?${queryString}`;
       
       console.log('Fetching from URL:', urlWithParams);
       
-      const response = await apiConnector(
-        "GET",
-        urlWithParams,
-        null,
-        {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      );
+      const response = await apiConnector("GET", urlWithParams, null, {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      });
       
       console.log('Fee assignments API response:', response);
       
       if (response.data?.success) {
-        console.log('Raw fee assignments data:', response.data.data);
+        console.log(`📊 API returned ${response.data.data?.length || 0} out of ${response.data.total} total records`);
         
-        // Log course data for each assignment
-        if (response.data.data && Array.isArray(response.data.data)) {
-          response.data.data.forEach((assignment, index) => {
-            console.log(`Assignment ${index} course data:`, assignment.course);
+        if (response.data.total > (response.data.data?.length || 0)) {
+          console.log('🚨 Not getting all records. Trying without parameters...');
+          
+          const simpleResponse = await apiConnector("GET", apiUrl, null, {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
           });
+          
+          console.log('Simple response (no params):', simpleResponse.data);
+          
+          if (simpleResponse.data?.success) {
+            setFeeAssignments(simpleResponse.data.data || []);
+            return;
+          }
         }
         
         setFeeAssignments(response.data.data || []);
-      } else {
-        const errorMessage = response.data?.message || 'Failed to fetch fee assignments';
-        console.error('API Error:', errorMessage, response.data);
-        throw new Error(errorMessage);
       }
     } catch (error) {
       console.error("Error fetching fee assignments:", error);
       const errorMessage = error.response?.data?.message || 
                          error.message || 
                          'Failed to fetch fee assignments. Please try again.';
-      
-      console.error('Full error details:', {
-        status: error.response?.status,
-        statusText: error.response?.statusText,
-        data: error.response?.data,
-        config: error.config
-      });
-      
       toast.error(errorMessage);
     } finally {
       setLoading(false);
@@ -131,104 +126,108 @@ const ManageFee = () => {
     }
   };
 
-
   // Map of known course IDs to their display names
   const courseNameMap = {
     '68c00f3f897d026b46cdf21f': 'B.Tech in Computer Science',
     'btech_it': 'B.Tech in Information Technology',
-    // Add more course mappings as needed
   };
 
-  // Process fee assignments to group by course and semester
+  // Process fee assignments to group by course only
   const processFeeAssignments = (assignments) => {
-    // First, process each assignment to ensure consistent data structure
+    console.log('🔍 RAW assignments from API:', assignments);
+    console.log('📊 Total assignments count:', assignments.length);
+
     const processed = assignments.map(item => {
-      // Initialize course data with defaults
       let courseData = {
         _id: 'N/A',
-        name: 'N/A',
+        name: 'Unknown Course',
         code: 'N/A',
-        type: 'N/A',
-        semester: item.semester || 'N/A'
+        type: 'N/A'
       };
-      
-      // Process course information if it exists
+
       if (item.course) {
-        const course = item.course;
-        const isCourseObject = typeof course === 'object' && course !== null;
-        
-        courseData = {
-          _id: isCourseObject ? course._id : course,
-          name: isCourseObject ? (course.courseName || course.name || 'Unnamed Course') : `Course (${course.slice(-4)})`,
-          code: isCourseObject ? (course.courseCode || course.code || 'N/A') : course.slice(-6).toUpperCase(),
-          type: isCourseObject ? (course.type || course.courseType || 'N/A') : 'N/A',
-          semester: item.semester || (isCourseObject ? course.semester : 'N/A') || 'N/A'
-        };
+        if (typeof item.course === 'string') {
+          courseData = {
+            _id: item.course,
+            name: courseNameMap[item.course] || 'BTech',
+            code: item.course.slice(-6).toUpperCase(),
+            type: 'Yearly'
+          };
+        } else if (typeof item.course === 'object' && item.course !== null) {
+          courseData = {
+            _id: item.course._id || 'N/A',
+            name: item.course.courseName || item.course.name || 'Unnamed Course',
+            code: item.course.courseCode || item.course.code || 'N/A',
+            type: item.course.type || item.course.courseType || 'Yearly'
+          };
+        }
       }
-      
-      // Handle semester
-      let semester = 'N/A';
-      if (item.semester) {
-        semester = item.semester;
-      } else if (item.course?.semester) {
-        semester = item.course.semester;
-      } else if (item.feeType?.semester) {
-        semester = item.feeType.semester;
-      }
-      
+
       return {
         ...item,
         course: courseData,
-        semester: semester.toString(),
-        displayName: courseData.code 
-          ? `${courseData.name} (${courseData.code})`
-          : courseData.name
+        displayName: courseData.name
       };
     });
 
-    // Group by course and then by semester
+    console.log('✅ PROCESSED assignments:', processed);
+
     const groupedByCourse = {};
     
-    processed.forEach(item => {
-      const courseId = item.course?._id || 'unknown';
-      const semester = item.semester || 'unknown';
+    processed.forEach((item, index) => {
+      const courseId = item.course._id;
+      
+      console.log(`📝 Processing item ${index}:`, {
+        courseId: courseId,
+        courseName: item.course.name,
+        amount: item.amount,
+        semester: item.semester
+      });
       
       if (!groupedByCourse[courseId]) {
         groupedByCourse[courseId] = {
           _id: courseId,
-          name: item.course?.name || 'Unknown Course',
-          code: item.course?.code || 'N/A',
-          type: item.course?.type || 'N/A',
-          semesters: {},
+          name: item.course.name,
+          code: item.course.code,
+          type: item.course.type,
+          fees: [],
           totalFees: 0,
+          feeCount: 0,
           isExpanded: true
         };
       }
       
-      if (!groupedByCourse[courseId].semesters[semester]) {
-        groupedByCourse[courseId].semesters[semester] = {
-          semester,
-          fees: [],
-          total: 0
-        };
-      }
-      
-      groupedByCourse[courseId].semesters[semester].fees.push(item);
+      groupedByCourse[courseId].fees.push(item);
       const amount = parseFloat(item.amount) || 0;
-      groupedByCourse[courseId].semesters[semester].total += amount;
       groupedByCourse[courseId].totalFees += amount;
+      groupedByCourse[courseId].feeCount += 1;
+
+      console.log(`➡️ Added to course ${courseId}:`, {
+        currentFeesCount: groupedByCourse[courseId].fees.length,
+        currentTotal: groupedByCourse[courseId].totalFees
+      });
     });
     
-    // Convert to array and sort by course name
-    return Object.values(groupedByCourse).sort((a, b) => 
+    const result = Object.values(groupedByCourse).sort((a, b) => 
       a.name.localeCompare(b.name)
     );
+
+    console.log('🎯 FINAL Grouped courses:', result);
+    
+    result.forEach(course => {
+      console.log(`📊 Course: ${course.name}`, {
+        feeCount: course.feeCount,
+        totalFees: course.totalFees,
+        fees: course.fees.map(f => ({ amount: f.amount, semester: f.semester }))
+      });
+    });
+
+    return result;
   };
-  
+
   const [expandedCourses, setExpandedCourses] = useState({});
   const [expandedSemesters, setExpandedSemesters] = useState({});
   
-  // Toggle course expansion
   const toggleCourse = useCallback((courseId) => {
     setExpandedCourses(prev => ({
       ...prev,
@@ -236,7 +235,6 @@ const ManageFee = () => {
     }));
   }, []);
   
-  // Toggle semester expansion
   const toggleSemester = useCallback((courseId, semester) => {
     setExpandedSemesters(prev => ({
       ...prev,
@@ -244,7 +242,6 @@ const ManageFee = () => {
     }));
   }, []);
   
-  // Process fee assignments with grouping
   const groupedFeeAssignments = processFeeAssignments(feeAssignments);
 
   // Filter and search logic
@@ -256,40 +253,29 @@ const ManageFee = () => {
     const searchLower = searchTerm.toLowerCase();
     
     return assignments.filter(course => {
-      // Check if course matches search
       const courseMatchesSearch = 
         course.name.toLowerCase().includes(searchLower) ||
         course.code.toLowerCase().includes(searchLower);
       
-      // Check if any semester matches search
-      const semesterMatchesSearch = Object.values(course.semesters).some(semester => {
-        return semester.fees.some(fee => 
-          fee.feeType?.name?.toLowerCase().includes(searchLower) ||
-          fee.session?.toLowerCase().includes(searchLower) ||
-          semester.semester.toString().toLowerCase().includes(searchLower)
-        );
-      });
+      const feeMatchesSearch = course.fees.some(fee => 
+        (fee.feeType?.name?.toLowerCase() || '').includes(searchLower) ||
+        (fee.session?.toLowerCase() || '').includes(searchLower) ||
+        (fee.semesterDisplay?.toLowerCase() || '').includes(searchLower)
+      );
       
-      // Check filters
       const matchesFilters = 
         (!filters.session || 
-          Object.values(course.semesters).some(s => 
-            s.fees.some(f => f.session === filters.session)
-          )
+          course.fees.some(fee => fee.session === filters.session)
         ) &&
         (!filters.course || course.name === filters.course) &&
         (!filters.type || 
-          Object.values(course.semesters).some(s => 
-            s.fees.some(f => f.feeType?.type === filters.type)
-          )
-        );
+          course.fees.some(fee => fee.feeType?.type === filters.type));
       
-      return (courseMatchesSearch || semesterMatchesSearch) && matchesFilters;
+      return (courseMatchesSearch || feeMatchesSearch) && matchesFilters;
     });
   };
-  
+
   const filteredData = filterAndSearchAssignments(groupedFeeAssignments);
-  
   console.log('Filtered data:', filteredData);
 
   // Pagination
@@ -298,7 +284,6 @@ const ManageFee = () => {
   const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem);
   const totalPages = Math.ceil(filteredData.length / itemsPerPage);
 
-  // Handle filter change
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
     setFilters(prev => ({
@@ -309,11 +294,10 @@ const ManageFee = () => {
   };
 
   // Get unique values for filters
-  const uniqueSessions = [...new Set(feeAssignments.map(item => item.session))];
+  const uniqueSessions = [...new Set(feeAssignments.flatMap(item => item.session).filter(Boolean))];
   const uniqueCourses = [...new Set(feeAssignments.map(item => item.course?.name).filter(Boolean))];
   const uniqueTypes = [...new Set(feeAssignments.map(item => item.feeType?.type).filter(Boolean))];
 
-  // Form validation
   const isFormValid = useCallback(() => {
     return (
       selectedItem?.feeType?._id &&
@@ -323,7 +307,6 @@ const ManageFee = () => {
     );
   }, [selectedItem]);
 
-  // Handle form submission
   const handleSubmit = useCallback(async () => {
     if (!isFormValid()) return;
     
@@ -338,7 +321,6 @@ const ManageFee = () => {
       };
       
       if (selectedItem._id) {
-        // Update existing fee assignment
         await apiConnector(
           'PUT',
           `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-assignments/${selectedItem._id}`,
@@ -350,7 +332,6 @@ const ManageFee = () => {
         );
         toast.success('Fee assignment updated successfully');
       } else {
-        // Create new fee assignment
         await apiConnector(
           'POST',
           `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/university/fee-assignments`,
@@ -363,7 +344,6 @@ const ManageFee = () => {
         toast.success('Fee assigned successfully');
       }
       
-      // Refresh the list and close modal
       await fetchFeeAssignments();
       setShowAssignModal(false);
       setSelectedItem(null);
@@ -373,7 +353,6 @@ const ManageFee = () => {
     }
   }, [selectedItem, token, user, isFormValid]);
 
-  // Handle delete fee assignment
   const handleDelete = useCallback(async (id) => {
     if (window.confirm('Are you sure you want to delete this fee assignment?')) {
       try {
@@ -394,9 +373,8 @@ const ManageFee = () => {
         toast.error(error.response?.data?.message || 'Failed to delete fee assignment');
       }
     }
-  }, [token, fetchFeeAssignments]);
+  }, [token]);
 
-  // Handle edit fee assignment
   const handleEdit = useCallback((assignment) => {
     setSelectedItem({
       _id: assignment._id,
@@ -408,7 +386,6 @@ const ManageFee = () => {
     setShowAssignModal(true);
   }, []);
 
-  // Handle add new fee assignment
   const handleAddNew = useCallback(() => {
     setSelectedItem({
       feeType: {},
@@ -418,6 +395,88 @@ const ManageFee = () => {
     });
     setShowAssignModal(true);
   }, []);
+
+  const handleDeleteClick = useCallback((id) => {
+    handleDelete(id);
+  }, [handleDelete]);
+
+  // Delete confirmation handler
+  const handleDeleteConfirm = async () => {
+    setDeleting(true);
+    try {
+      const response = await apiConnector(
+        "DELETE",
+        `${process.env.REACT_APP_BASE_URL}/api/v1/fee-types/${feeToDelete._id}`,
+        null,
+        {
+          Authorization: `Bearer ${token}`,
+        }
+      );
+      
+      if (response.data.success) {
+        setDeleteResult({
+          success: true,
+          deletedAssignmentsCount: response.data.deletedAssignmentsCount
+        });
+        fetchFeeAssignments();
+      } else {
+        setDeleteResult({
+          success: false,
+          message: response.data.message || 'Failed to delete fee type'
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting fee type:', error);
+      setDeleteResult({
+        success: false,
+        message: error.response?.data?.message || 'An error occurred while deleting the fee type'
+      });
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const closeDeleteModal = () => {
+    setShowDeleteConfirm(false);
+    setFeeToDelete(null);
+    setDeleteResult(null);
+  };
+
+  const renderDeleteConfirmationModal = () => {
+    if (!showDeleteConfirm) return null;
+    
+    return (
+      <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000
+      }}>
+        <div style={{
+          backgroundColor: 'white',
+          borderRadius: '8px',
+          padding: '24px',
+          maxWidth: '400px',
+          width: '90%'
+        }}>
+          <h3>Confirm Delete</h3>
+          <p>Are you sure you want to delete this fee type?</p>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '20px' }}>
+            <button onClick={closeDeleteModal}>Cancel</button>
+            <button onClick={handleDeleteConfirm} disabled={deleting}>
+              {deleting ? 'Deleting...' : 'Delete'}
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div style={{ padding: "20px", fontFamily: "'Poppins', sans-serif" }}>
@@ -474,8 +533,6 @@ const ManageFee = () => {
                 outline: 'none',
                 transition: 'border-color 0.3s',
               }}
-              onFocus={(e) => e.target.style.borderColor = '#6c5ce7'}
-              onBlur={(e) => e.target.style.borderColor = '#e0e0e0'}
             />
           </div>
           <button 
@@ -498,7 +555,6 @@ const ManageFee = () => {
           </button>
         </div>
 
-        {/* Filter Options */}
         {showFilters && (
           <div style={{
             display: 'grid',
@@ -647,11 +703,7 @@ const ManageFee = () => {
                 gap: '8px',
                 cursor: 'pointer',
                 fontWeight: '500',
-                fontSize: '14px',
-                transition: 'background-color 0.2s',
-                ':hover': {
-                  backgroundColor: '#5a4fcf'
-                }
+                fontSize: '14px'
               }}
             >
               <FiPlus size={16} />
@@ -668,10 +720,7 @@ const ManageFee = () => {
               borderBottom: '1px solid #e0e0e0',
               fontWeight: '600',
               color: '#4a4a4a',
-              fontSize: '14px',
-              position: 'sticky',
-              top: 0,
-              zIndex: 10
+              fontSize: '14px'
             }}>
               <div style={{ padding: '16px', textAlign: 'center' }}></div>
               <div style={{ padding: '16px' }}>Course Details</div>
@@ -681,24 +730,28 @@ const ManageFee = () => {
             </div>
             
             {/* Course Rows */}
-            {filteredData.map((course, courseIndex) => {
-              const isExpanded = expandedCourses[course._id] !== false; // Default to expanded
-              const semesters = Object.values(course.semesters).sort((a, b) => 
-                parseInt(a.semester) - parseInt(b.semester)
-              );
+            {currentItems.map((course, courseIndex) => {
+              const isExpanded = expandedCourses[course._id] !== false;
+              
+              const feesBySemester = course.fees.reduce((acc, fee) => {
+                const semester = fee.semester || 'general';
+                if (!acc[semester]) {
+                  acc[semester] = [];
+                }
+                acc[semester].push(fee);
+                return acc;
+              }, {});
+              
+              const semesters = Object.entries(feesBySemester).map(([semester, fees]) => ({
+                semester,
+                fees,
+                total: fees.reduce((sum, fee) => sum + (parseFloat(fee.amount) || 0), 0)
+              })).sort((a, b) => a.semester.localeCompare(b.semester));
               
               return (
                 <div key={course._id || courseIndex} style={{
                   borderBottom: '1px solid #f0f0f0',
-                  backgroundColor: isExpanded ? '#ffffff' : '#fafafa',
-                  transition: 'all 0.2s ease',
-                  ':hover': {
-                    backgroundColor: isExpanded ? '#ffffff' : '#f5f7fa',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.04)'
-                  },
-                  borderRadius: '8px',
-                  margin: '4px 0',
-                  overflow: 'hidden'
+                  backgroundColor: isExpanded ? '#ffffff' : '#fafafa'
                 }}>
                   {/* Course Summary Row */}
                   <div 
@@ -710,11 +763,7 @@ const ManageFee = () => {
                       alignItems: 'center',
                       padding: '12px 0',
                       borderBottom: isExpanded ? '1px solid #f0f0f0' : 'none',
-                      backgroundColor: isExpanded ? '#f9f9f9' : 'transparent',
-                      transition: 'all 0.2s ease',
-                      ':hover': {
-                        backgroundColor: isExpanded ? '#f0f4f8' : '#f5f7fa'
-                      }
+                      backgroundColor: isExpanded ? '#f9f9f9' : 'transparent'
                     }}
                   >
                     <div style={{ 
@@ -723,12 +772,7 @@ const ManageFee = () => {
                       alignItems: 'center',
                       color: '#6c5ce7',
                       transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
-                      transition: 'transform 0.2s ease',
-                      padding: '4px',
-                      borderRadius: '4px',
-                      ':hover': {
-                        backgroundColor: 'rgba(108, 92, 231, 0.1)'
-                      }
+                      transition: 'transform 0.2s ease'
                     }}>
                       <FiChevronDown size={20} />
                     </div>
@@ -782,13 +826,13 @@ const ManageFee = () => {
                         )}
                         <span style={{ display: 'flex', alignItems: 'center' }}>
                           <FiLayers size={12} style={{ marginRight: '4px' }} />
-                          {Object.keys(course.semesters).length} Semester{Object.keys(course.semesters).length !== 1 ? 's' : ''}
+                          {new Set(course.fees?.map(f => f.semester) || []).size} Semester{new Set(course.fees?.map(f => f.semester) || []).size !== 1 ? 's' : ''}
                         </span>
                       </div>
                     </div>
                     
                     <div style={{ padding: '0 8px', fontSize: '14px', color: '#666' }}>
-                      {semesters.length} fee structure{semesters.length !== 1 ? 's' : ''} defined
+                      {course.fees?.length || 0} fee component{course.fees?.length !== 1 ? 's' : ''} defined
                     </div>
                     
                     <div style={{ 
@@ -825,48 +869,44 @@ const ManageFee = () => {
                           borderRadius: '4px',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          ':hover': {
-                            backgroundColor: 'rgba(108, 92, 231, 0.1)'
-                          }
+                          justifyContent: 'center'
                         }}
                         title="Edit Course Fees"
                       >
                         <FiEdit2 size={16} />
                       </button>
                       <button 
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
                           if (window.confirm(`Are you sure you want to delete all fee assignments for ${course.name}?`)) {
-                            // Delete all semesters for this course
-                            Promise.all(
-                              semesters.flatMap(sem => 
-                                sem.fees.map(fee => 
-                                  handleDelete(fee._id)
+                            try {
+                              await Promise.all(
+                                semesters.flatMap(sem => 
+                                  sem.fees.map(fee => handleDelete(fee._id))
                                 )
-                              )
-                            ).then(() => {
-                              fetchFeeAssignments();
-                            });
+                              );
+                              toast.success('All fees deleted successfully');
+                            } catch (error) {
+                              console.error('Error deleting fees:', error);
+                              toast.error('Failed to delete some fees');
+                            }
                           }
                         }}
                         style={{
                           background: 'none',
                           border: 'none',
-                          color: '#ff5252',
+                          color: '#ef4444',
                           cursor: 'pointer',
-                          padding: '6px',
-                          borderRadius: '4px',
                           display: 'flex',
                           alignItems: 'center',
-                          justifyContent: 'center',
-                          ':hover': {
-                            backgroundColor: 'rgba(255, 82, 82, 0.1)'
-                          }
+                          gap: '4px',
+                          fontSize: '13px',
+                          padding: '4px 8px',
+                          borderRadius: '4px'
                         }}
-                        title="Delete All Fees for Course"
                       >
-                        <FiTrash2 size={16} />
+                        <FiTrash2 size={14} />
+                        <span>Delete All</span>
                       </button>
                     </div>
                   </div>
@@ -874,7 +914,7 @@ const ManageFee = () => {
                   {/* Semester Rows - Only show if expanded */}
                   {isExpanded && semesters.map((semester, semIndex) => {
                     const isSemesterExpanded = expandedSemesters[`${course._id}-${semester.semester}`] !== false;
-                    
+          
                     return (
                       <div key={`${course._id}-${semester.semester}-${semIndex}`}>
                         {/* Semester Summary Row */}
@@ -890,11 +930,6 @@ const ManageFee = () => {
                             borderBottom: isSemesterExpanded ? '1px solid #f0f0f0' : 'none',
                             cursor: 'pointer',
                             padding: '10px 0',
-                            transition: 'all 0.2s ease',
-                            ':hover': {
-                              backgroundColor: isSemesterExpanded ? '#f0f4f8' : '#f0f4f8',
-                              boxShadow: '0 1px 4px rgba(0,0,0,0.05)'
-                            },
                             paddingLeft: '16px'
                           }}
                         >
@@ -954,16 +989,7 @@ const ManageFee = () => {
                             <div style={{
                               transform: isSemesterExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                               transition: 'transform 0.2s',
-                              color: '#6c5ce7',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              width: '24px',
-                              height: '24px',
-                              borderRadius: '4px',
-                              ':hover': {
-                                backgroundColor: 'rgba(108, 92, 231, 0.1)'
-                              }
+                              color: '#6c5ce7'
                             }}>
                               <FiChevronDown size={16} />
                             </div>
@@ -1003,13 +1029,7 @@ const ManageFee = () => {
                                   gridTemplateColumns: '60px 1fr 1fr 1fr 100px',
                                   padding: '12px 0',
                                   margin: '0 16px',
-                                  borderBottom: '1px solid #f5f5f5',
-                                  ':last-child': {
-                                    borderBottom: 'none'
-                                  },
-                                  ':hover': {
-                                    backgroundColor: '#f8f9ff'
-                                  }
+                                  borderBottom: '1px solid #f5f5f5'
                                 }}
                               >
                                 <div style={{ 
@@ -1030,11 +1050,11 @@ const ManageFee = () => {
                                 }}>
                                   <div style={{ 
                                     fontWeight: '500',
-                                    color: '#333',
+                                    color: '#4a4a4a',
                                     fontSize: '14px',
                                     marginBottom: '2px'
                                   }}>
-                                    {fee.feeType?.name || 'N/A'}
+                                    {fee.feeType?.name || fee.feeType?.category || 'N/A'}
                                   </div>
                                   <div style={{ 
                                     fontSize: '12px',
@@ -1090,17 +1110,17 @@ const ManageFee = () => {
                                       borderRadius: '4px',
                                       display: 'flex',
                                       alignItems: 'center',
-                                      justifyContent: 'center',
-                                      ':hover': {
-                                        backgroundColor: 'rgba(108, 92, 231, 0.1)'
-                                      }
+                                      justifyContent: 'center'
                                     }}
                                     title="Edit"
                                   >
                                     <FiEdit2 size={16} />
                                   </button>
                                   <button 
-                                    onClick={() => handleDelete(fee._id)}
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      handleDeleteClick(fee._id);
+                                    }}
                                     style={{
                                       background: 'none',
                                       border: 'none',
@@ -1110,10 +1130,7 @@ const ManageFee = () => {
                                       borderRadius: '4px',
                                       display: 'flex',
                                       alignItems: 'center',
-                                      justifyContent: 'center',
-                                      ':hover': {
-                                        backgroundColor: 'rgba(255, 82, 82, 0.1)'
-                                      }
+                                      justifyContent: 'center'
                                     }}
                                     title="Delete"
                                   >
@@ -1125,7 +1142,8 @@ const ManageFee = () => {
                           </div>
                         )}
                       </div>
-                    )})}
+                    );
+                  })}
                 </div>
               );
             })}
@@ -1160,12 +1178,7 @@ const ManageFee = () => {
                 borderRadius: '4px',
                 cursor: currentPage === 1 ? 'not-allowed' : 'pointer',
                 opacity: currentPage === 1 ? 0.6 : 1,
-                color: currentPage === 1 ? '#9e9e9e' : '#4a4a4a',
-                transition: 'all 0.2s',
-                ':hover': {
-                  backgroundColor: currentPage === 1 ? 'white' : '#f5f5f5',
-                  borderColor: currentPage === 1 ? '#e0e0e0' : '#c0c0c0'
-                }
+                color: currentPage === 1 ? '#9e9e9e' : '#4a4a4a'
               }}
             >
               Previous
@@ -1193,12 +1206,7 @@ const ManageFee = () => {
                     backgroundColor: currentPage === pageNum ? '#6c5ce7' : 'white',
                     color: currentPage === pageNum ? 'white' : '#4a4a4a',
                     borderRadius: '4px',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    ':hover': {
-                      backgroundColor: currentPage === pageNum ? '#5a4fcf' : '#f5f5f5',
-                      borderColor: currentPage === pageNum ? '#5a4fcf' : '#c0c0c0'
-                    }
+                    cursor: 'pointer'
                   }}
                 >
                   {pageNum}
@@ -1216,12 +1224,7 @@ const ManageFee = () => {
                 borderRadius: '4px',
                 cursor: currentPage === totalPages ? 'not-allowed' : 'pointer',
                 opacity: currentPage === totalPages ? 0.6 : 1,
-                color: currentPage === totalPages ? '#9e9e9e' : '#4a4a4a',
-                transition: 'all 0.2s',
-                ':hover': {
-                  backgroundColor: currentPage === totalPages ? 'white' : '#f5f5f5',
-                  borderColor: currentPage === totalPages ? '#e0e0e0' : '#c0c0c0'
-                }
+                color: currentPage === totalPages ? '#9e9e9e' : '#4a4a4a'
               }}
             >
               Next
@@ -1241,15 +1244,7 @@ const ManageFee = () => {
                   borderRadius: '4px',
                   backgroundColor: 'white',
                   outline: 'none',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  ':hover': {
-                    borderColor: '#c0c0c0'
-                  },
-                  ':focus': {
-                    borderColor: '#6c5ce7',
-                    boxShadow: '0 0 0 2px rgba(108, 92, 231, 0.2)'
-                  }
+                  cursor: 'pointer'
                 }}
               >
                 <option value={5}>5</option>
@@ -1258,7 +1253,6 @@ const ManageFee = () => {
                 <option value={50}>50</option>
                 <option value={100}>100</option>
               </select>
-              <span style={{ marginLeft: '8px', fontSize: '14px', color: '#757575' }}>courses per page</span>
             </div>
           </div>
         </div>
@@ -1284,8 +1278,7 @@ const ManageFee = () => {
             width: '100%',
             maxWidth: '500px',
             boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
-            overflow: 'hidden',
-            animation: 'modalFadeIn 0.3s ease-out'
+            overflow: 'hidden'
           }}>
             <div style={{
               padding: '16px 24px',
@@ -1314,11 +1307,7 @@ const ManageFee = () => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  borderRadius: '4px',
-                  ':hover': {
-                    backgroundColor: '#f5f5f5',
-                    color: '#333'
-                  }
+                  borderRadius: '4px'
                 }}
               >
                 &times;
@@ -1344,11 +1333,7 @@ const ManageFee = () => {
                     borderRadius: '6px',
                     fontSize: '14px',
                     backgroundColor: 'white',
-                    outline: 'none',
-                    ':focus': {
-                      borderColor: '#6c5ce7',
-                      boxShadow: '0 0 0 2px rgba(108, 92, 231, 0.2)'
-                    }
+                    outline: 'none'
                   }}
                   value={selectedItem.feeType?._id || ''}
                   onChange={(e) => setSelectedItem({
@@ -1387,11 +1372,7 @@ const ManageFee = () => {
                     border: '1px solid #e0e0e0',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    outline: 'none',
-                    ':focus': {
-                      borderColor: '#6c5ce7',
-                      boxShadow: '0 0 0 2px rgba(108, 92, 231, 0.2)'
-                    }
+                    outline: 'none'
                   }}
                   value={selectedItem.session || ''}
                   onChange={(e) => setSelectedItem({
@@ -1419,24 +1400,26 @@ const ManageFee = () => {
                     borderRadius: '6px',
                     fontSize: '14px',
                     backgroundColor: 'white',
-                    outline: 'none',
-                    ':focus': {
-                      borderColor: '#6c5ce7',
-                      boxShadow: '0 0 0 2px rgba(108, 92, 231, 0.2)'
-                    }
+                    outline: 'none'
                   }}
-                  value={selectedItem.course || ''}
+                  value={selectedItem.course?._id || ''}
                   onChange={(e) => setSelectedItem({
                     ...selectedItem,
-                    course: e.target.value
+                    course: {
+                      ...selectedItem.course,
+                      _id: e.target.value
+                    }
                   })}
                 >
                   <option value="">-- Select Course --</option>
-                  {[...new Set(feeAssignments.map(item => item.course))].map((course, index) => (
-                    <option key={index} value={course}>
-                      {course}
-                    </option>
-                  ))}
+                  {[...new Set(feeAssignments.map(item => item.course?._id).filter(Boolean))].map((courseId, index) => {
+                    const course = feeAssignments.find(item => item.course?._id === courseId)?.course;
+                    return (
+                      <option key={courseId} value={courseId}>
+                        {course?.name || `Course ${index + 1}`}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
               
@@ -1459,11 +1442,7 @@ const ManageFee = () => {
                     border: '1px solid #e0e0e0',
                     borderRadius: '6px',
                     fontSize: '14px',
-                    outline: 'none',
-                    ':focus': {
-                      borderColor: '#6c5ce7',
-                      boxShadow: '0 0 0 2px rgba(108, 92, 231, 0.2)'
-                    }
+                    outline: 'none'
                   }}
                   value={selectedItem.amount || ''}
                   onChange={(e) => setSelectedItem({
@@ -1491,11 +1470,7 @@ const ManageFee = () => {
                     color: '#4a4a4a',
                     fontSize: '14px',
                     fontWeight: '500',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    ':hover': {
-                      backgroundColor: '#f5f5f5'
-                    }
+                    cursor: 'pointer'
                   }}
                 >
                   Cancel
@@ -1506,33 +1481,23 @@ const ManageFee = () => {
                   style={{
                     padding: '8px 20px',
                     border: 'none',
-                    backgroundColor: isFormValid() ? '#6c5ce7' : '#b8b5ff',
-                    color: 'white',
+                    backgroundColor: isFormValid() ? '#6c5ce7' : '#cccccc',
                     borderRadius: '6px',
+                    color: 'white',
                     fontSize: '14px',
                     fontWeight: '500',
-                    cursor: isFormValid() ? 'pointer' : 'not-allowed',
-                    transition: 'all 0.2s',
-                    ':hover': isFormValid() ? {
-                      backgroundColor: '#5a4fcf'
-                    } : {}
+                    cursor: isFormValid() ? 'pointer' : 'not-allowed'
                   }}
                 >
-                  {selectedItem._id ? 'Update Fee' : 'Assign Fee'}
+                  {selectedItem._id ? 'Update' : 'Assign Fee'}
                 </button>
               </div>
             </div>
           </div>
         </div>
       )}
-      
-      {/* Global styles for modal animation */}
-      <style jsx global>{`
-        @keyframes modalFadeIn {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-      `}</style>
+
+      {renderDeleteConfirmationModal()}
     </div>
   );
 };

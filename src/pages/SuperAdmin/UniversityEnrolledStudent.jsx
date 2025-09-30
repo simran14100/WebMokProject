@@ -82,7 +82,6 @@ const UniversityEnrolledStudent = () => {
       }
     } catch (error) {
       console.error('Error processing payment:', error);
-      toast.error(error.response?.data?.message || 'Error processing payment');
     } finally {
       setIsProcessingPayment(false);
     }
@@ -94,25 +93,31 @@ const UniversityEnrolledStudent = () => {
       setFeeLoading(true);
       setSelectedStudentForFee(student);
       
+      if (!student.course?._id) {
+        console.error('❌ [fetchFeeDetails] Student course ID is missing');
+        toast.error('Student course information is missing');
+        setFeeData([]);
+        return;
+      }
+      
       const url = `${API_URL}/university/payments/fee-details/${student._id}`;
       console.log('🔍 [fetchFeeDetails] Fetching fee details from:', url);
       console.log('👤 [fetchFeeDetails] Student ID:', student._id);
+      console.log('📚 [fetchFeeDetails] Student Course ID:', student.course._id);
       
       const response = await axios.get(url, {
+        params: {
+          courseId: student.course._id // Send course ID to filter fees
+        },
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         withCredentials: true,
-        // Add timeout to prevent hanging
         timeout: 10000
       });
       
-      console.log('✅ [fetchFeeDetails] Response status:', response.status);
-      console.log('📊 [fetchFeeDetails] Response data:', response.data);
-      
       if (response.data?.success) {
-        // Log raw data for debugging
         console.log('📦 [fetchFeeDetails] Raw fee data from backend:', 
           JSON.stringify(response.data.data, null, 2));
         
@@ -121,8 +126,41 @@ const UniversityEnrolledStudent = () => {
           throw new Error('Invalid data format: expected array of fee items');
         }
         
+        // Log the student's course information for debugging
+        console.log('🎓 [fetchFeeDetails] Student course info:', {
+          studentId: student._id,
+          courseId: student.course._id,
+          courseName: student.course.name
+        });
+
+        // First filter fees by course ID
+        const filteredFees = response.data.data.filter(feeItem => {
+          const feeCourseId = feeItem.course?._id;
+          const matchesCourse = feeCourseId === student.course._id;
+          
+          // Log each fee item's course info for debugging
+          console.log('🔍 [fetchFeeDetails] Checking fee item:', {
+            feeId: feeItem.id || feeItem._id,
+            feeType: feeItem.feeType?.name || 'Unknown',
+            feeCourseId,
+            matchesCourse,
+            feeCourseName: feeItem.course?.name || 'N/A'
+          });
+          
+          return matchesCourse; // Only include fees that match the student's course
+        });
+
+        console.log('✅ [fetchFeeDetails] Filtered fees by course ID (', student.course._id, '):', 
+          JSON.stringify(filteredFees.map(f => ({
+            id: f.id || f._id,
+            type: f.feeType?.name || 'Unknown',
+            amount: f.amount,
+            courseId: f.course?._id,
+            courseName: f.course?.name || 'N/A'
+          })), null, 2));
+        
         // Format the fee data from the backend
-        const formattedData = response.data.data.map((item, index) => {
+        const formattedData = filteredFees.map((item, index) => {
           if (!item) {
             console.warn(`⚠️ [fetchFeeDetails] Undefined item at index ${index}`);
             return null;
@@ -195,6 +233,9 @@ const UniversityEnrolledStudent = () => {
       
       setFeeModalVisible(true);
     } catch (error) {
+      console.error('❌ [fetchFeeDetails] Error:', error);
+      
+      // Log detailed error information
       const errorDetails = {
         message: error.message,
         name: error.name,
@@ -215,38 +256,26 @@ const UniversityEnrolledStudent = () => {
         isAxiosError: error.isAxiosError
       };
       
-      console.error('❌ [fetchFeeDetails] Error details:', JSON.stringify(errorDetails, null, 2));
+      console.error('❌ [fetchFeeDetails] Error details:', errorDetails);
       
+      // Show appropriate error message to user
       if (error.response) {
-        // The request was made and the server responded with a status code
-        // that falls out of the range of 2xx
         if (error.response.status === 401) {
           toast.error('Session expired. Please log in again.');
-          // Handle unauthorized (e.g., redirect to login)
         } else if (error.response.status === 404) {
-          console.warn('⚠️ [fetchFeeDetails] No fee details found for student');
-          toast.info('No fee details found for this student');
-        } else if (error.response.status >= 500) {
-          toast.error('Server error. Please try again later.');
+          toast.error('No fee details found for this student');
         } else {
-          toast.error(error.response.data?.message || 'Error loading fee details');
+          toast.error(error.response.data?.message || 'Failed to fetch fee details');
         }
       } else if (error.request) {
-        // The request was made but no response was received
-        console.error('❌ [fetchFeeDetails] No response received:', error.request);
         toast.error('No response from server. Please check your connection.');
-      } else if (error.code === 'ECONNABORTED') {
-        console.error('❌ [fetchFeeDetails] Request timeout:', error.message);
-        toast.error('Request timed out. Please try again.');
       } else {
-        // Something happened in setting up the request that triggered an Error
-        console.error('❌ [fetchFeeDetails] Request setup error:', error.message);
-        toast.error('Error setting up request: ' + error.message);
+        toast.error('Failed to fetch fee details. Please try again.');
       }
       
+      // Reset fee data
       setFeeData([]);
       setSelectedFees([]);
-      setFeeModalVisible(true);
     } finally {
       setFeeLoading(false);
     }
@@ -950,7 +979,7 @@ const UniversityEnrolledStudent = () => {
       width: 120,
       render: (semester) => (
         <div style={{ textAlign: 'center' }}>
-          {semester ? `Semester ${semester}` : '-'}
+          {semester ? `Semester ${semester}` : 'yearly'}
         </div>
       )
     },
@@ -977,11 +1006,11 @@ const UniversityEnrolledStudent = () => {
                 <Tag color="success" style={{ marginLeft: 8 }}>Paid</Tag>
               )}
             </div>
-            {record.dueDate && (
+            {/* {record.dueDate && (
               <div style={{ fontSize: '12px', color: '#666' }}>
                 Due: {new Date(record.dueDate).toLocaleDateString()}
               </div>
-            )}
+            )} */}
           </div>
         );
       }
@@ -1522,6 +1551,8 @@ const UniversityEnrolledStudent = () => {
       </Form>
     </Modal>
   );
+
+ 
 
   return (
     <div className="p-6">
