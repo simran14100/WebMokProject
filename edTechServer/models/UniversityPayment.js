@@ -26,6 +26,11 @@ const universityPaymentSchema = new mongoose.Schema({
     type: String,
     required: true
   },
+  feeTypeRef: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'FeeType',
+    required: true
+  },
   totalAmount: {
     type: Number,
     required: true

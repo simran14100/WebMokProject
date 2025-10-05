@@ -311,7 +311,12 @@ router.post('/register',
 // Check if Aadhar exists - Allow both authenticated students and admins
 router.get('/check-aadhar/:aadhar', protect, checkAadharExists);
 
-
+// Get a single student by ID - Allow students to view their own data
+router.get('/:id', 
+  protect, 
+  authorize('admin', 'accountant', 'student', 'SuperAdmin'),
+  getStudent
+);
 // Apply authentication and authorization middleware to remaining admin routes
 router.use(protect);
 router.use(authorize('admin', 'superadmin'));

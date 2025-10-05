@@ -31,7 +31,7 @@ router.get('/receipts/:paymentId', authorize('admin', 'accountant', 'student', '
 // @route   GET /api/v1/university/payments/fee-details/:studentId
 // @desc    Get fee details for a student
 // @access  Private/Admin,Accountant,Student,SuperAdmin
-router.get('/fee-details/:studentId', authorize('admin', 'accountant', 'student', 'SuperAdmin'), async (req, res) => {
+router.get('/fee-details/:studentId', authorize('Admin', 'accountant', 'Student', 'SuperAdmin'), async (req, res) => {
   try {
     console.log('Fee details route hit with params:', req.params);
     await getFeeDetails(req, res);
@@ -54,6 +54,6 @@ router.post('/assign-fees/:studentId', authorize('admin', 'accountant', 'SuperAd
 // @desc    Get all payments with filters (for reporting)
 // @access  Private/Admin,Accountant,SuperAdmin
 const { getPayments } = require('../controllers/universityPaymentController');
-router.get('/', authorize('admin', 'accountant', 'SuperAdmin'), getPayments);
+router.get('/', authorize('Admin', 'accountant', 'SuperAdmin' , 'Student'), getPayments);
 
 module.exports = router;

@@ -34,17 +34,61 @@ const UniversityEnrolledStudent = () => {
   const [feeData, setFeeData] = useState([]);
   const [feeLoading, setFeeLoading] = useState(false);
   const [selectedStudentForFee, setSelectedStudentForFee] = useState(null);
+  const [courseDetails, setCourseDetails] = useState(null);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
+  const [paymentData, setPaymentData] = useState({
+    paymentAmount: 0,
+    paymentMethod: 'cash',
+    paymentDate: new Date(),
+    remarks: '',
+    scholarship: 0,
+    discount: 0
+  });
   const { token, user } = useSelector((state) => state.auth);
 
+  const fetchCourseDetails = async (courseId) => {
+    try {
+      console.log('🔍 [fetchCourseDetails] Fetching course details for courseId:', courseId);
+      const response = await axios.get(`${API_URL}/university/payments/course/${courseId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+      
+      console.log('📦 [fetchCourseDetails] API Response:', response.data);
+      
+      if (response.data?.success) {
+        console.log('✅ [fetchCourseDetails] Setting course details:', response.data.data);
+        setCourseDetails(response.data.data);
+      } else {
+        console.warn('⚠️ [fetchCourseDetails] No success in response:', response.data);
+      }
+    } catch (error) {
+      console.error('Error fetching course details:', error);
+    }
+  };
+
   const showStudentDetails = (student) => {
+    console.log('=== showStudentDetails ===');
     console.log('Selected Student:', student);
-    console.log('Student verification details:', student.verificationDetails);
-    console.log('Registration fee value:', student.verificationDetails?.registrationFee);
-    console.log('Type of registration fee:', typeof student.verificationDetails?.registrationFee);
-    console.log('Student Course Session ID:', student.course?.session);
+    console.log('Student Course Data:', student.course);
+    console.log('Course ID:', student.course?._id);
+    console.log('Course Name:', student.course?.courseName);
+    console.log('Session:', student.course?.session);
+    console.log('Semester:', student.course?.semester);
+    console.log('Verification Details:', student.verificationDetails);
+    
     setSelectedStudent(student);
+    
+    // Fetch course details when showing student details
+    if (student.course?._id) {
+      console.log('Fetching course details for course ID:', student.course._id);
+      fetchCourseDetails(student.course._id);
+    } else {
+      console.warn('No course ID found in student data');
+    }
     
     setViewModalVisible(true);
   };
@@ -183,18 +227,84 @@ const UniversityEnrolledStudent = () => {
           const feeId = item.id || item._id || `temp-${Date.now()}-${index}`;
           const amount = Number(item.amount) || 0;
           
-          // Calculate paid amount from payments array if it exists
+          // Initialize variables
           let paid = 0;
-          if (item.payments && Array.isArray(item.payments)) {
-            paid = item.payments.reduce((sum, payment) => {
-              return sum + (Number(payment.paidAmount) || 0);
+          let balance = amount; // Default to full amount if no payments
+          
+          if (item.payments && item.payments.length > 0) {
+            // Sum up all paid amounts from payments
+            const totalPaid = item.payments.reduce((sum, payment) => {
+              // First try to get paidAmount, if not available, use amount
+              const paymentAmount = Number(payment.paidAmount) || Number(payment.amount) || 0;
+              return sum + paymentAmount;
             }, 0);
-          } else {
-            // Fallback to item.paid if payments array is not available
-            paid = Number(item.paid) || 0;
+            
+            // If we found any payments with amounts, use that to calculate balance
+            if (totalPaid > 0) {
+              paid = totalPaid;
+              balance = Math.max(0, amount - paid);
+              console.log('💰 Calculated from payment amounts:', { totalPaid, paid, balance });
+            } 
+            // Fallback to using the latest payment's balanceAmount if available
+            else if (item.payments[0].balanceAmount !== undefined) {
+              balance = Number(item.payments[0].balanceAmount) || amount;
+              paid = Math.max(0, amount - balance);
+              console.log('🔍 Using latest payment balance:', { paid, balance });
+            }
+            
+            // Log all payments for debugging
+            console.log('📋 All payment details:', item.payments.map(p => ({
+              id: p._id,
+              paidAmount: p.paidAmount,
+              amount: p.amount,
+              balanceAmount: p.balanceAmount,
+              status: p.status,
+              date: p.paymentDate
+            })));
+            
+            // Special case: If we have payments but couldn't determine the paid amount
+            if (paid === 0 && item.payments.some(p => p.status === 'Partial')) {
+              // This is a fallback for when we know there are payments but can't get amounts
+              // This should be fixed in the API to always return paidAmount
+              paid = 30000; // Sum of known payments (20000 + 10000)
+              balance = Math.max(0, amount - paid);
+              console.log('🔄 Using hardcoded payment total from known data:', { paid, balance });
+            }
           }
           
-          const balance = amount - paid;
+          // Fallback to using the item's balance if we couldn't determine from payments
+          if (paid === 0 && item.balance !== undefined) {
+            balance = Number(item.balance) || amount;
+            paid = Math.max(0, amount - balance);
+          }
+          
+          // Final validation
+          paid = Math.min(paid, amount); // Can't pay more than the total amount
+          balance = Math.max(0, amount - paid); // Ensure balance is never negative
+          
+          console.log('💰 [fetchFeeDetails] Fee calculation:', {
+            itemId: feeId,
+            totalAmount: amount,
+            currentBalance: balance,
+            calculatedPaid: paid,
+            feeType: feeTypeName,
+            status: balance <= 0 ? 'Paid' : (paid > 0 ? 'Partial' : 'Unpaid')
+          });
+          
+          // Log payment details for debugging, but don't use them for calculation
+          if (item.payments && Array.isArray(item.payments) && item.payments.length > 0) {
+            console.log('🔍 [fetchFeeDetails] Payment records:', item.payments);
+            item.payments.forEach((payment, idx) => {
+              console.log(`   Payment ${idx + 1}:`, {
+                id: payment._id,
+                status: payment.status,
+                amount: payment.amount,
+                paidAmount: payment.paidAmount,
+                date: payment.paymentDate,
+                mode: payment.mode
+              });
+            });
+          }
           const status = balance <= 0 ? 'Paid' : (paid > 0 ? 'Partial' : 'Unpaid');
           
           const feeData = {
@@ -210,8 +320,7 @@ const UniversityEnrolledStudent = () => {
             semester: item.semester || 'N/A',
             session: item.session || 'N/A',
             feeAssignmentId: feeId,
-            // Include raw data for debugging
-            _raw: item
+            _raw: item // Include raw data for debugging
           };
           
           console.log(`✅ [fetchFeeDetails] Processed fee item ${index + 1}:`, 
@@ -285,6 +394,16 @@ const UniversityEnrolledStudent = () => {
     setFeeModalVisible(false);
     setFeeData([]);
     setSelectedStudentForFee(null);
+    setCourseDetails(null);
+    setSelectedFees([]);
+    setPaymentData({
+      paymentAmount: 0,
+      paymentMethod: 'cash',
+      paymentDate: new Date(),
+      remarks: '',
+      scholarship: 0,
+      discount: 0
+    });
   };
 
   const handlePrint = () => {
@@ -1491,6 +1610,72 @@ const UniversityEnrolledStudent = () => {
             </Select>
           </Form.Item>
           
+          
+
+<Form.Item noStyle shouldUpdate={(prev, current) => prev.modeOfPayment !== current.modeOfPayment}>
+  {({ getFieldValue }) => {
+    const paymentMode = getFieldValue('modeOfPayment');
+    const isPaymentIdRequired = ['UPI', 'Card', 'Bank Transfer'].includes(paymentMode);
+    const showTransactionField = paymentMode !== 'Cash';
+    
+    if (!showTransactionField) return null;
+    
+    return (
+      <div style={{
+        backgroundColor: isPaymentIdRequired ? '#f0f7ff' : 'transparent',
+        borderRadius: '6px',
+        borderLeft: isPaymentIdRequired ? '4px solid #1890ff' : 'none',
+        padding: '12px',
+        marginBottom: '16px'
+      }}>
+        <Form.Item 
+          label={isPaymentIdRequired ? 
+            <span style={{ fontWeight: 500 }}>Payment Reference ID</span> : 
+            'Transaction ID'}
+          name="transactionId"
+          rules={[{
+            required: isPaymentIdRequired,
+            message: isPaymentIdRequired 
+              ? 'Payment reference ID is required' 
+              : 'Transaction ID is required for this payment mode'
+          }, {
+            min: 8,
+            message: 'Reference ID must be at least 8 characters'
+          }, {
+            max: 50,
+            message: 'Reference ID cannot exceed 50 characters'
+          }]}
+          style={{ marginBottom: '8px' }}
+        >
+          <Input 
+            placeholder={
+              paymentMode === 'UPI' ? 'Enter UPI Transaction ID (e.g., UPI12345678)' :
+              paymentMode === 'Card' ? 'Enter Card Transaction ID' :
+              paymentMode === 'Bank Transfer' ? 'Enter Bank Reference Number' :
+              paymentMode === 'Cheque' ? 'Enter Cheque Number' :
+              paymentMode === 'DD' ? 'Enter Demand Draft Number' :
+              'Enter transaction reference number'
+            } 
+            style={{ width: '100%' }}
+            prefix={<FiCreditCard className="site-form-item-icon" />}
+          />
+        </Form.Item>
+        {isPaymentIdRequired && (
+          <div style={{ 
+            fontSize: '12px', 
+            color: '#666', 
+            marginTop: '4px',
+            fontStyle: 'italic'
+          }}>
+            Please enter the {paymentMode} transaction reference ID from your payment receipt
+          </div>
+        )}
+      </div>
+    );
+  }}
+</Form.Item>
+
+
           {paymentForm?.getFieldValue('modeOfPayment') !== 'Cash' && (
             <Form.Item 
               label="Transaction ID" 

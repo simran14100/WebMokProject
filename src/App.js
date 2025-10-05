@@ -1,10 +1,10 @@
 import "./App.css";
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from "react-router-dom";
 import React, { useState, useEffect } from 'react';
+import { Toaster } from 'react-hot-toast';
 import { Provider, useSelector } from 'react-redux';
 import { PersistGate } from 'redux-persist/integration/react';
 import store, { persistor } from './store';
-import { Toaster } from 'react-hot-toast';
 import { debugLocalStorage } from './utils/localStorage';
 import { ACCOUNT_TYPE } from './utils/constants';
 import Navbar from "./components/common/Navbar";
@@ -141,7 +141,8 @@ import UniversityEnrolledStudent from "./pages/SuperAdmin/UniversityEnrolledStud
 import { withEnrollmentVerification } from "./middleware/enrollmentMiddleware";
 import DashboardLayout from './components/common/DashboardLayout';
 import Accounts from "./pages/Dashboard/Accounts";
-import StudentResults from "./pages/Dashboard/StudentResults"; 
+import StudentResults from "./pages/Dashboard/StudentResults";
+import StudentFees from "./pages/Dashboard/StudentFees";
 import VisitDepartments from './components/core/UGPGAdmin/FrontDesk/VisitDepartments';
 import Schools from './pages/University/Schools';
 import ProgramDetails from './pages/University/ProgramDetails';
@@ -251,7 +252,11 @@ function AppRoutes() {
             <Leave />
         } />
          <Route path="results" element={<StudentResults />} />
-        <Route path="fees" element={<div>Fees & Payments</div>} />
+        <Route path="fees" element={
+          <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.STUDENT]}>
+            <StudentFees />
+          </ProtectedRoute>
+        } />
         <Route path="change-password" element={<div>Change Password</div>} />
         <Route path="notification-settings" element={<div>Notification Settings</div>} />
       </Route>
@@ -679,11 +684,9 @@ function AppRoutes() {
       {/* Instructor Routes */}
       {user?.accountType === ACCOUNT_TYPE.INSTRUCTOR && (
         <>
-          } />
+          {/* Add instructor-specific routes here */}
         </>
       )}
-
-
     </Routes>
   );
 }
@@ -702,61 +705,13 @@ function App() {
             {/* <Footer /> */}
             <Toaster 
               position="top-right"
-              containerStyle={{ zIndex: 40000 }}
               toastOptions={{
                 duration: 4000,
                 style: {
-                  background: '#ffffff',
-                  color: '#191A1F',
-                  marginLeft: 'auto',
-                  marginRight: 40,
                   maxWidth: 450,
-                  marginTop: 120,
-                  borderRadius: '16px',
-                  boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-                  border: '1px solid #e0e0e0',
-                  fontFamily: 'Poppins, sans-serif',
-                  fontSize: '14px',
-                  fontWeight: '500',
-                  padding: '16px 20px',
-                  lineHeight: '1.5',
-                },
-                success: {
-                  style: {
-                    background: 'linear-gradient(135deg, #07A698 0%, #059a8c 100%)',
-                    color: '#ffffff',
-                    border: '1px solid #07A698',
-                    boxShadow: '0 20px 25px -5px rgba(7, 166, 152, 0.2), 0 10px 10px -5px rgba(7, 166, 152, 0.1)',
-                  },
-                  iconTheme: {
-                    primary: '#ffffff',
-                    secondary: '#07A698',
-                  },
-                },
-                error: {
-                  style: {
-                    background: 'linear-gradient(135deg, #ef4444 0%, #dc2626 100%)',
-                    color: '#ffffff',
-                    border: '1px solid #ef4444',
-                    boxShadow: '0 20px 25px -5px rgba(239, 68, 68, 0.2), 0 10px 10px -5px rgba(239, 68, 68, 0.1)',
-                  },
-                  iconTheme: {
-                    primary: '#ffffff',
-                    secondary: '#ef4444',
-                  },
-                },
-                loading: {
-                  style: {
-                    background: 'linear-gradient(135deg, #07A698 0%, #059a8c 100%)',
-                    color: '#ffffff',
-                    border: '1px solid #07A698',
-                    boxShadow: '0 20px 25px -5px rgba(7, 166, 152, 0.2), 0 10px 10px -5px rgba(7, 166, 152, 0.1)',
-                  },
-                  iconTheme: {
-                    primary: '#ffffff',
-                    secondary: '#07A698',
-                  },
-                },
+                  marginTop: 80,
+                  zIndex: 99999
+                }
               }}
             />
           </div>

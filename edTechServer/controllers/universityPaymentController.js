@@ -111,17 +111,19 @@ exports.recordPayment = async (req, res) => {
         const paymentAmount = parseFloat(amount);
         const scholarship = parseFloat(scholarshipAmount) || 0;
         const discount = parseFloat(discountAmount) || 0;
-        const totalPaid = (feeAssignment.paidAmount || 0) + paymentAmount;
-        const isFullyPaid = totalPaid >= (feeAssignment.totalAmount - scholarship - discount);
-        
-        // Calculate the new balance
-        const newBalance = (feeAssignment.balance || feeAssignment.amount) - amount;
+        const currentPaidAmount = feeAssignment.paidAmount || 0;
+        const newTotalPaid = currentPaidAmount + paymentAmount;
+        const totalAmount = feeAssignment.amount;
+        const updatedBalance = Math.max(0, totalAmount - newTotalPaid);
+        const isFullyPaid = updatedBalance <= 0;
         
         console.log('Creating payment with details:', {
             amount: amount,
-            feeAssignmentAmount: feeAssignment.amount,
+            feeAssignmentAmount: totalAmount,
             currentBalance: feeAssignment.balance,
-            newBalance: newBalance,
+            updatedBalance: updatedBalance,
+            currentPaidAmount: currentPaidAmount,
+            newTotalPaid: newTotalPaid,
             session: feeAssignment.session,
             createdBy: req.user.id
         });
@@ -139,12 +141,14 @@ exports.recordPayment = async (req, res) => {
         // Get course details for reference
         const courseDetails = await UGPGCourse.findById(feeAssignment.course?._id || feeAssignment.course).lean();
         
-        // Prepare payment data with comprehensive details
+        // Prepare payment data
         const paymentData = {
             student: studentId,
-            feeType: feeTypeDetails.name, // Store fee type name directly
-            feeTypeId: feeType, // Keep reference to fee type ID
+            feeType: feeTypeDetails.name,
+            feeTypeId: feeType,
+            feeTypeRef: feeType, // Add feeTypeRef as required
             feeAssignment: feeAssignment._id,
+            registrationNumber: student.registrationNumber, // Add registrationNumber from student
             semesterDetails: {
                 semester: feeAssignment.semester,
                 semesterName: `Semester ${feeAssignment.semester}`,
@@ -154,6 +158,7 @@ exports.recordPayment = async (req, res) => {
             course: courseDetails?._id?.toString() || feeAssignment.course?.toString() || '',
             semester: feeAssignment.semester,
             amount: paymentAmount,
+            paidAmount: paymentAmount,
             modeOfPayment: paymentMethod,
             paymentDate: paymentDate ? new Date(paymentDate) : new Date(),
             receiptNo: receiptNo || `RCPT-${Date.now().toString().slice(-6)}`,
@@ -162,64 +167,130 @@ exports.recordPayment = async (req, res) => {
             scholarshipAmount: scholarship,
             discountAmount: discount,
             transactionId: transactionId,
-            status: isFullyPaid ? 'Paid' : 'Partial',
-            balanceAmount: newBalance,
+            status: 'Partial', // Will be updated after calculation
+            balanceAmount: 0, // Will be calculated and updated
             totalAmount: feeAssignment.amount,
-            session: feeAssignment.session, // Keep for backward compatibility
-            academicYear: feeAssignment.session, // Keep for backward compatibility
-            semester: feeAssignment.semester, // Keep for backward compatibility
-            createdBy: createdBy || req.user.id,
-            updatedBy: createdBy || req.user.id,
-            paidAmount: paymentAmount,
-            registrationNumber: student.registrationNumber || `TEMP-${Date.now()}`,
-            // Additional metadata
-            paymentDetails: {
-                feeType: feeTypeDetails?.name || 'Unknown',
-                category: feeTypeDetails?.category || 'General',
-                semester: feeAssignment.semester,
-                academicYear: feeAssignment.session,
-                description: feeTypeDetails?.description || ''
-            },
-            isActive: true
+            session: feeAssignment.session,
+            createdBy: req.user?.id || (typeof createdBy === 'object' ? createdBy._id : createdBy) || req.user._id,
+            updatedBy: req.user?.id || (typeof createdBy === 'object' ? createdBy._id : createdBy) || req.user._id
         };
-        
-        // Ensure all required fields are present
-        if (!paymentData.createdBy) {
-            throw new Error('createdBy is required');
-        }
-        if (!paymentData.student) {
-            throw new Error('student is required');
-        }
-        if (!paymentData.feeType) {
-            throw new Error('feeType is required');
-        }
-        if (!paymentData.feeAssignment) {
-            throw new Error('feeAssignment is required');
-        }
-        
-        console.log('Creating payment with data:', paymentData);
-        
+
+        // Create and save the payment
         const payment = new UniversityPayment(paymentData);
-
         await payment.save({ session });
+        
+        // Get all payments including the new one
+        const allPayments = await UniversityPayment.find({
+            feeAssignment: feeAssignment._id
+        }).sort({ paymentDate: 1 }).session(session);
+        
+        // Calculate running balances and total paid amount
+        let runningBalance = feeAssignment.amount;
+        let totalPaidSoFar = 0;
+        
+        for (const pmt of allPayments) {
+            const paymentAmount = pmt.paidAmount || 0;
+            runningBalance = Math.max(0, runningBalance - paymentAmount);
+            totalPaidSoFar += paymentAmount;
+            
+            await UniversityPayment.findByIdAndUpdate(
+                pmt._id,
+                { 
+                    $set: { 
+                        balanceAmount: runningBalance,
+                        status: runningBalance <= 0 ? 'Paid' : 'Partial',
+                        updatedAt: new Date()
+                    } 
+                },
+                { session, new: true }
+            );
+        }
+        
+        const totalFeeAmount = feeAssignment.amount;
+        const remainingBalance = Math.max(0, totalFeeAmount - totalPaidSoFar);
+        const isPaymentComplete = remainingBalance <= 0;
 
-        // Update fee assignment
+        // Update the fee assignment with the new payment
         const updateData = {
             $inc: { 
                 paidAmount: paymentAmount,
-                scholarshipAmount: scholarship,
-                discountAmount: discount
+                balanceAmount: -paymentAmount
             },
-            $push: { payments: payment._id },
-            status: isFullyPaid ? 'completed' : 'partially_paid',
-            lastPaymentDate: new Date()
+            $set: {
+                status: isPaymentComplete ? 'Paid' : 'Partial',
+                updatedAt: new Date()
+            },
+            $push: {
+                payments: {
+                    paymentId: payment._id,
+                    amount: paymentAmount,
+                    date: new Date(),
+                    receiptNo: receiptNo || `RCPT-${Date.now().toString().slice(-6)}`,
+                    modeOfPayment: paymentMethod,
+                    remarks: remarks || ''
+                }
+            }
         };
 
+        // Update the fee assignment with the new payment
         const updatedFeeAssignment = await FeeAssignment.findByIdAndUpdate(
             feeAssignment._id,
             updateData,
             { new: true, session }
         );
+        
+        // Fetch payments separately to avoid population errors
+        const payments = await UniversityPayment.find({
+            feeAssignment: feeAssignment._id
+        }).session(session);
+
+        // Update the payment with the fee assignment details
+        payment.paymentDetails = {
+            feeType: feeTypeDetails?.name || 'Unknown',
+            category: feeTypeDetails?.category || 'General',
+            semester: feeAssignment.semester,
+            academicYear: feeAssignment.session,
+            description: feeTypeDetails?.description || ''
+        };
+        payment.isActive = true;
+        await payment.save({ session });
+
+        // Log the updated fee assignment with payment details
+        console.log('Updated fee assignment:', {
+            feeAssignmentId: updatedFeeAssignment._id,
+            totalAmount: updatedFeeAssignment.amount,
+            totalPaid: updatedFeeAssignment.paidAmount,
+            balance: updatedFeeAssignment.balanceAmount,
+            status: updatedFeeAssignment.status,
+            paymentCount: payments.length,
+            lastPayment: payments[payments.length - 1] ? {
+                amount: payments[payments.length - 1].paidAmount,
+                date: payments[payments.length - 1].paymentDate
+            } : null
+        });
+
+        // Calculate total paid amount for email
+        const totalPaid = allPayments.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
+        
+        await session.commitTransaction();
+        
+        // Send payment confirmation email
+        if (student?.email) {
+            try {
+                await sendEmail(
+                    student.email,
+                    'Payment Confirmation',
+                    paymentSuccessEmail(
+                        student.firstName,
+                        paymentAmount,
+                        updatedFeeAssignment.totalAmount - scholarship - discount,
+                        totalPaid
+                    )
+                );
+            } catch (emailError) {
+                console.error('Error sending payment confirmation email:', emailError);
+            }
+        }
 
         // Update student's registration fee status if this is a registration fee payment
         if (feeType === 'Registration') {
@@ -238,29 +309,12 @@ exports.recordPayment = async (req, res) => {
         }
         
         // Update student status based on payment
-        if (isFullyPaid && student.status === 'pending_payment') {
+        if (isPaymentComplete && student.status === 'pending_payment') {
             await UniversityRegisteredStudent.findByIdAndUpdate(
                 studentId,
                 { $set: { status: 'active' } },
                 { session }
             );
-        }
-
-        // Send payment confirmation email
-        try {
-            await sendEmail(
-                student.email,
-                'Payment Received',
-                paymentSuccessEmail(
-                    student.firstName,
-                    paymentAmount,
-                    updatedFeeAssignment.totalAmount - scholarship - discount,
-                    totalPaid
-                )
-            );
-        } catch (emailError) {
-            console.error('Failed to send payment confirmation email:', emailError);
-            // Don't fail the transaction if email fails
         }
 
         await session.commitTransaction();
@@ -274,7 +328,8 @@ exports.recordPayment = async (req, res) => {
             message: 'Payment recorded successfully',
             data: {
                 payment: savedPayment,
-                feeAssignment: updatedFeeAssignment
+                feeAssignment: updatedFeeAssignment,
+                isPaymentComplete
             }
         });
 
@@ -418,7 +473,6 @@ exports.assignFeesToStudent = async (req, res) => {
 // Get fee details for a student
 exports.getFeeDetails = async (req, res) => {
     try {
-        console.log('getFeeDetails called with params:', req.params);
         const { studentId } = req.params;
         
         if (!studentId || !mongoose.Types.ObjectId.isValid(studentId)) {
@@ -428,10 +482,11 @@ exports.getFeeDetails = async (req, res) => {
             });
         }
 
-        // Get student details first
+        // Get student details with course information
         const student = await UniversityRegisteredStudent.findById(studentId)
-            .select('course semester session registrationNumber')
-            .populate('course', 'name code');
+            .select('course semester session registrationNumber firstName lastName email phone')
+            .populate('course', 'name code')
+            .lean();
 
         if (!student) {
             return res.status(404).json({
@@ -439,50 +494,62 @@ exports.getFeeDetails = async (req, res) => {
                 message: 'Student not found'
             });
         }
-        
-        console.log('Looking up fee details for student:', {
-            studentId,
-            registrationNumber: student.registrationNumber,
-            course: student.course?._id,
-            semester: student.semester,
-            session: student.session
-        });
 
-        // Build the match conditions
-        const matchConditions = [
-            // Try with student's ID as assigneeId
-            { assigneeId: new mongoose.Types.ObjectId(studentId) },
-            // Also try with admin's ID as assigneeId
-            { assigneeId: req.user._id }
-        ];
-
-        // Add course-based conditions if we have course info
-        if (student.course?._id) {
-            const courseCondition = {
-                course: student.course._id.toString()
-            };
-            
-            if (student.session) {
-                courseCondition.session = student.session;
-            }
-            
-            if (student.semester) {
-                courseCondition.$or = [
-                    { semester: student.semester },
-                    { semester: { $exists: false } }
-                ];
-            }
-            
-            matchConditions.push(courseCondition);
-        }
-
-        console.log('Searching fee assignments with conditions:', JSON.stringify(matchConditions, null, 2));
-
-        // Find all fee assignments for the student
+        // Get all fee assignments for the student with payment details
         const feeAssignments = await FeeAssignment.aggregate([
             {
                 $match: {
-                    $or: matchConditions
+                    $or: [
+                        { assigneeId: new mongoose.Types.ObjectId(studentId) },
+                        { 
+                            course: student.course?._id,
+                            $or: [
+                                { semester: student.semester || { $exists: false } },
+                                { semester: { $exists: false } }
+                            ]
+                        }
+                    ],
+                    $or: [
+                        { status: { $exists: false } },
+                        { status: { $ne: 'cancelled' } }
+                    ]
+                }
+            },
+            {
+                $lookup: {
+                    from: 'universitypayments',
+                    localField: '_id',
+                    foreignField: 'feeAssignment',
+                    as: 'payments'
+                }
+            },
+            {
+                $unwind: {
+                    path: '$payments',
+                    preserveNullAndEmptyArrays: true
+                }
+            },
+            {
+                $sort: { 'payments.paymentDate': -1 }
+            },
+            {
+                $group: {
+                    _id: '$_id',
+                    feeType: { $first: '$feeType' },
+                    amount: { $first: '$amount' },
+                    semester: { $first: '$semester' },
+                    session: { $first: '$session' },
+                    status: { $first: '$status' },
+                    course: { $first: '$course' },
+                    payments: {
+                        $push: {
+                            $cond: {
+                                if: { $eq: [{ $type: '$payments' }, 'object'] },
+                                then: '$payments',
+                                else: '$$REMOVE'
+                            }
+                        }
+                    }
                 }
             },
             {
@@ -493,7 +560,7 @@ exports.getFeeDetails = async (req, res) => {
                     as: 'feeType'
                 }
             },
-            { $unwind: { path: '$feeType', preserveNullAndEmptyArrays: true } },
+            { $unwind: '$feeType' },
             {
                 $lookup: {
                     from: 'ugpgcourses',
@@ -502,79 +569,64 @@ exports.getFeeDetails = async (req, res) => {
                     as: 'course'
                 }
             },
-            { $unwind: { path: '$course', preserveNullAndEmptyArrays: true } },
-            {
-                $lookup: {
-                    from: 'universitypayments',
-                    let: { feeAssignmentId: '$_id' },
-                    pipeline: [
-                        {
-                            $match: {
-                                $expr: {
-                                    $and: [
-                                        { $eq: ['$feeAssignment', '$$feeAssignmentId'] },
-                                        { $eq: ['$student', new mongoose.Types.ObjectId(studentId)] }
-                                    ]
-                                }
-                            }
-                        }
-                    ],
-                    as: 'payments'
-                }
-            }
+            { $unwind: { path: '$course', preserveNullAndEmptyArrays: true } }
         ]);
-        
-        console.log(`Found ${feeAssignments.length} fee assignments for student`);
-        
-        // Transform the data to include detailed fee information
-        const formattedData = feeAssignments.map(assignment => {
-            const totalAmount = assignment.amount || 0;
-            const paidAmount = assignment.payments?.reduce((sum, payment) => sum + (payment.amount || 0), 0) || 0;
-            const balance = totalAmount - paidAmount;
-            
+
+        // Process fee assignments to calculate paid and balance amounts
+        const processedFees = feeAssignments.map(fee => {
+            // Calculate total paid amount from all payments
+            const totalPaid = (fee.payments || []).reduce((sum, payment) => {
+                return sum + (payment.paidAmount || payment.amount || 0);
+            }, 0);
+
+            const amount = Number(fee.amount) || 0;
+            const paid = Math.min(totalPaid, amount); // Can't pay more than the total amount
+            const balance = Math.max(0, amount - paid);
+
+            // Determine status
+            let status = 'Unpaid';
+            if (paid > 0) {
+                status = balance > 0 ? 'Partial' : 'Paid';
+            }
+
             return {
-                id: assignment._id,
-                feeType: assignment.feeType ? {
-                    _id: assignment.feeType._id,
-                    name: assignment.feeType.name,
-                    category: assignment.feeType.category,
-                    type: assignment.feeType.type,
-                    refundable: assignment.feeType.refundable
-                } : {
-                    name: 'General Fee',
-                    category: 'General',
-                    type: 'One Time',
-                    refundable: false
-                },
-                amount: totalAmount,
-                paid: paidAmount,
+                _id: fee._id,
+                id: fee._id,
+                feeType: fee.feeType,
+                amount: amount,
+                paid: paid,
                 balance: balance,
-                semester: assignment.semester || student.semester,
-                session: assignment.session || student.session,
-                status: balance <= 0 ? 'Paid' : (paidAmount > 0 ? 'Partial' : 'Unpaid'),
-                dueDate: assignment.dueDate,
-                createdAt: assignment.createdAt,
-                course: {
-                    _id: assignment.course?._id || student.course?._id,
-                    name: assignment.course?.name || student.course?.name || 'N/A',
-                    code: assignment.course?.code || student.course?.code || 'N/A'
-                },
-                payments: assignment.payments || []
+                semester: fee.semester,
+                session: fee.session,
+                status: status,
+                course: fee.course || { _id: null, name: 'N/A', code: 'N/A' },
+                payments: (fee.payments || []).map(p => ({
+                    _id: p._id,
+                    paidAmount: p.paidAmount,
+                    amount: p.amount,
+                    balanceAmount: p.balanceAmount,
+                    paymentDate: p.paymentDate,
+                    transactionId: p.transactionId,
+                    status: p.status,
+                    mode: p.mode || p.modeOfPayment,
+                    receiptNo: p.receiptNo,
+                    receiptDate: p.receiptDate
+                }))
             };
         });
-        
-        res.status(200).json({
+
+        return res.status(200).json({
             success: true,
-            data: formattedData
+            data: processedFees
         });
-        
     } catch (error) {
-        console.error('Error fetching fee details:', error);
-        res.status(500).json({
+        console.error('Error in getFeeDetails:', error);
+        console.error('Error in getFeeDetails:', error);
+        return res.status(500).json({
             success: false,
-            message: 'Failed to fetch fee details',
+            message: 'Server error while fetching fee details',
             error: error.message,
-            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+            ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
         });
     }
 };

@@ -25,6 +25,12 @@ const verificationDetailsSchema = new mongoose.Schema({
 });
 
 const registeredStudentSchema = new mongoose.Schema({
+  // Payments
+  payments: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'StudentPayment'
+  }],
+  
   // Personal Information
   firstName: { type: String, required: true, trim: true },
   middleName: { type: String, trim: true },

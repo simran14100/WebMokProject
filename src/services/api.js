@@ -1,6 +1,5 @@
 // Define your API base URL
-const BASE_URL = process.env.REACT_APP_API_BASE_URL;
-
+const BASE_URL = process.env.REACT_APP_API_BASE_URL || 'http://localhost:4000';
 // Authentication Endpoints
 export const endpoints = {
   // Auth Endpoints
@@ -23,9 +22,10 @@ export const endpoints = {
   COURSE_CATEGORIES_API: `${BASE_URL}/course/showAllCategories`,
   
   // Fee Endpoints
-  GET_STUDENT_FEES: `${BASE_URL}/fees/student`,
-  INITIATE_PAYMENT: `${BASE_URL}/payment/initiate`,
-  VERIFY_PAYMENT: `${BASE_URL}/payment/verify`,
+  GET_STUDENT_FEES: `${BASE_URL}/api/v1/university/payments/fee-details`,
+  INITIATE_PAYMENT: `${BASE_URL}/api/v1/university/payments`,
+  VERIFY_PAYMENT: `${BASE_URL}/api/v1/university/payments/verify`,
+  GET_PAYMENT_HISTORY: `${BASE_URL}/api/v1/university/payments`,
   
   // Add other endpoints as needed
 };

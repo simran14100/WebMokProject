@@ -884,16 +884,60 @@ module.exports.getMyRegistrationStatus = asyncHandler(async (req, res) => {
     }
     if (query.$or.length === 0) delete query.$or;
 
-    const record = await UniversityRegisteredStudent.findOne(query).select('-__v');
+    console.log('🔍 [getMyRegistrationStatus] Querying student with:', { userEmail, userPhone });
+    
+    // First, get the student record without population to verify the course ID
+    const studentRecord = await UniversityRegisteredStudent.findOne(query).select('-__v').lean();
+    
+    if (!studentRecord) {
+      console.log('❌ [getMyRegistrationStatus] No student record found');
+      return res.json({ success: true, data: { matched: false, status: 'not_found' } });
+    }
+    
+    console.log('✅ [getMyRegistrationStatus] Found student record. Course ID:', studentRecord.course);
+    
+    // Manually populate the course
+    let populatedCourse = null;
+    if (studentRecord.course) {
+      try {
+        // Try with UGGPCourse model first
+        const UGGPCourse = mongoose.model('UGPGCourse');
+        populatedCourse = await UGGPCourse.findById(studentRecord.course)
+          .select('name code duration fee -_id')
+          .lean();
+          
+        if (!populatedCourse) {
+          console.log('⚠️ [getMyRegistrationStatus] Course not found with UGGPCourse model, trying Course model');
+          // Fallback to Course model if UGGPCourse doesn't work
+          const Course = mongoose.model('Course');
+          populatedCourse = await Course.findById(studentRecord.course)
+            .select('name code duration fee -_id')
+            .lean();
+        }
+        
+        console.log('📚 [getMyRegistrationStatus] Populated course:', populatedCourse);
+      } catch (populateError) {
+        console.error('❌ [getMyRegistrationStatus] Error populating course:', populateError);
+      }
+    }
+    
+    // Create the response object
+    const responseData = {
+      matched: true,
+      status: studentRecord.status,
+      firstName: studentRecord.firstName,
+      lastName: studentRecord.lastName,
+      email: studentRecord.email,
+      registrationNumber: studentRecord.registrationNumber || null,
+      registeredAt: studentRecord.registrationDate || studentRecord.createdAt,
+      course: populatedCourse || null,
+      ...studentRecord
+    };
 
+    console.log('📤 [getMyRegistrationStatus] Sending response with course data:', responseData.course);
     return res.json({
       success: true,
-      data: record ? {
-        matched: true,
-        status: record.status,
-        registrationNumber: record.registrationNumber || null,
-        registeredAt: record.registrationDate || record.createdAt,
-      } : { matched: false, status: 'not_found' }
+      data: responseData
     });
   } catch (error) {
     console.error('getMyRegistrationStatus error:', error);

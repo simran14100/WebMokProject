@@ -221,9 +221,17 @@ try {
 // Connecting to cloudinary
 cloudinaryConnect();
 
+// Import student payment routes
+const studentPaymentRoutes = require('./routes/studentPayment');
+
 // Mount the routes
 app.use("/api/v1/auth", userRoutes);
 app.use("/api/v1/profile", profileRoutes);
+
+// Mount student payment routes with explicit path
+app.use("/api/v1/student-payment", studentPaymentRoutes);
+console.log('Mounted student payment routes at /api/v1/student-payment');
+
 app.use("/api/v1/course", courseRoutes);
 app.use("/api/v1/payment", paymentRoutes);
 app.use("/api/v1/reviews", profileRoutes);
@@ -300,7 +308,9 @@ app.use("/api/v1/meeting-types", meetingTypeRoutes);
 
 // Leave request routes
 app.use("/api/v1/leave-requests", require("./routes/leaveRequestRoutes"));
-
+// Student payment routes - Mounted at /api/v1/student-payment
+app.use('/api/v1/student-payment', studentPaymentRoutes);
+console.log('Mounted student payment routes at /api/v1/student-payment');
 // Testing the server
 app.get("/", (req, res) => {
 	return res.json({

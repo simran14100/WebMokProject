@@ -148,13 +148,13 @@ const getSidebarLinks = (user, variant = 'default') => {
         name: 'Results', 
         path: '/EnrolledStudents/results', 
         icon: <VscGraph style={{ fontSize: 20, color: ED_TEAL }} /> 
+      },
+      { 
+        id: 7, 
+        name: 'Fees & Payments', 
+        path: '/EnrolledStudents/fees', 
+        icon: <FaRegMoneyBillAlt style={{ fontSize: 20, color: ED_TEAL }} /> 
       }
-      // { 
-      //   id: 7, 
-      //   name: 'Fees & Payments', 
-      //   path: '/EnrolledStudents/fees', 
-      //   icon: <FaRegMoneyBillAlt style={{ fontSize: 20, color: ED_TEAL }} /> 
-      // }
      
     ];
   }
