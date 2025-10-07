@@ -287,7 +287,7 @@ const getSidebarLinks = (user, variant = 'default') => {
           { name: 'Fee Type', path: '/ugpg-admin/fee/type', icon: <FaRegMoneyBillAlt style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Manage Course Fee', path: '/ugpg-admin/fee/manage', icon: <MdOutlineManageAccounts style={{ fontSize: 20, color: ED_TEAL }} /> },
           { name: 'Student Ledgers', path: '/ugpg-admin/fee/ledgers', icon: <FaRegFileAlt style={{ fontSize: 20, color: ED_TEAL }} /> },
-        //   { name: 'Paid Fee', path: '/ugpg-admin/fee/paid', icon: <MdPayment style={{ fontSize: 20, color: ED_TEAL }} /> },
+          { name: 'Paid Fee', path: '/ugpg-admin/fee/paid', icon: <MdPayment style={{ fontSize: 20, color: ED_TEAL }} /> },
         //   { name: 'Daily Collection', path: '/ugpg-admin/fee/collection', icon: <RiMoneyDollarCircleLine style={{ fontSize: 20, color: ED_TEAL }} /> },
         //   { name: 'Fee Summary', path: '/ugpg-admin/fee/summary', icon: <MdSummarize style={{ fontSize: 20, color: ED_TEAL }} /> },
         //   { name: 'Session Wise Pending', path: '/ugpg-admin/fee/session-pending', icon: <FaTasks style={{ fontSize: 20, color: ED_TEAL }} /> },

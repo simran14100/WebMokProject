@@ -74,7 +74,7 @@ import DepartmentManagement from './components/core/SuperAdmin/DepartmentManagem
 import SubjectManagement from './components/core/SuperAdmin/SubjectManagement';
 import NewApplications from './components/core/SuperAdmin/NewApplications';
 import ProEnrolled from './components/core/SuperAdmin/ProEnrolled';
-import PaidFee from './components/core/SuperAdmin/PaidFee';
+
 // import Coursework from './components/core/SuperAdmin/Coursework';
 import CourseworkPapers from './components/core/SuperAdmin/CourseworkPapers';
 import CourseworkSlot from './components/core/SuperAdmin/CourseworkSlot';
@@ -92,6 +92,7 @@ import UsersManagement from './components/core/SuperAdmin/UsersManagement';
 import Feetype from './components/core/UGPGAdmin/Fees/Feetype';
 import ManageFee from './components/core/UGPGAdmin/Fees/ManageFee';
 import StudentLedgers from './pages/UGPGAdmin/Fee/StudentLedgers';
+import PaidFee from './pages/UGPGAdmin/Fee/PaidFee';
 import TeacherList from './components/core/UGPGAdmin/Users/TeacherList';
 import TeacherForm from './components/core/UGPGAdmin/Users/TeacherForm';
 import HonoraryApplications from './components/core/SuperAdmin/HonoraryApplications';
@@ -397,6 +398,11 @@ function AppRoutes() {
         <Route path="fee/ledgers" element={
           <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN, 'accountant']}>
             <StudentLedgers />
+          </ProtectedRoute>
+        } />
+        <Route path="fee/paid" element={
+          <ProtectedRoute allowedRoles={[ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN, 'accountant']}>
+            <PaidFee />
           </ProtectedRoute>
         } />
         
