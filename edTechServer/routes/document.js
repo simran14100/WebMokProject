@@ -7,7 +7,7 @@ const {
   getStudentDocuments,
   deleteDocument
 } = require('../controllers/documentController');
-
+const UniversityRegisteredStudent = require('../models/UniversityRegisteredStudent');
 // Protected routes (require authentication)
 router.use(protect);
 
@@ -35,6 +35,7 @@ router.post('/upload',
   },
   cleanupUploads
 );
+
 
 // Get all documents for logged-in student
 router.get('/my-documents', getStudentDocuments);

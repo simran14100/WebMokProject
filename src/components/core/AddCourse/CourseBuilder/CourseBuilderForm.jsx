@@ -522,7 +522,7 @@ export default function CourseBuilderForm() {
           display: 'flex', 
           flexDirection: 'column', 
           gap: '1rem',
-          '@media (min-width: 640px)': {
+          '@media (minWidth: 640px)': {
             flexDirection: 'row',
             justifyContent: 'space-between',
           }
@@ -530,7 +530,6 @@ export default function CourseBuilderForm() {
           <button
             onClick={goBack}
             style={styles.backButton}
-            disabled={loading}
           >
             Back
           </button>
