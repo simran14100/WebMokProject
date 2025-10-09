@@ -19,7 +19,7 @@ const CARD_SHADOW = '0 1px 3px rgba(0, 0, 0, 0.1)';
 export default function AllBatches() {
   const token = useSelector((state) => state.auth.token);
   const user = useSelector((state) => state.profile.user);
-  const isAdmin = user?.accountType === "Admin";
+  const isAdmin = user?.accountType === "Admin" || user?.accountType === "SuperAdmin";
   const navigate = useNavigate();
 
   const [items, setItems] = useState([]);

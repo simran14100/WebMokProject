@@ -20,6 +20,7 @@ const {
     updateUserStatus,
     createStudentByAdmin,
     createUserByAdmin,
+    updateUser, 
     downloadStudentsTemplate,
     bulkCreateStudents
 } = require("../controllers/AdminDashboard");
@@ -27,7 +28,7 @@ const {
 // Import batch controllers
 const { createBatch, listBatches, exportBatches, getBatchById, updateBatch, deleteBatch, addStudentToBatch, removeStudentFromBatch, listBatchStudents, listTempStudentsInBatch, addTempStudentToBatch, removeTempStudentFromBatch, listBatchCourses, addCourseToBatch, removeCourseFromBatch, addLiveClassToBatch, getBatchLiveClasses, listBatchTrainers, addTrainerToBatch, removeTrainerFromBatch } = require("../controllers/Batch");
 const { createAdminReview, deleteReview } = require("../controllers/RatingAndReview");
-const { createUserType, listUserTypes } = require("../controllers/UserType");
+const { createUserType, listUserTypes, updateUserType, deleteUserType } = require("../controllers/UserType");
 const { createMeetEvent } = require("../controllers/GoogleCalendar");
 // Notifications
 const { createNotification, listNotifications, deleteNotification } = require("../controllers/Notification");
@@ -77,8 +78,8 @@ router.put("/update-user-status", auth, isAdminLevel, updateUserStatus);
 
 // Create a student (Admin only)
 router.post("/create-student", auth, isAdmin, createStudentByAdmin);
-
-// Create a user with specific role (Admin only)
+// Update user details
+router.put("/users/:id", auth, isAdminLevel, updateUser);
 router.post("/create-user", auth, isAdmin, createUserByAdmin);
 
 // ***********************************
@@ -86,12 +87,13 @@ router.post("/create-user", auth, isAdmin, createUserByAdmin);
 // ***********************************
 router.post("/user-types", auth, isAdminLevel, createUserType);
 router.get("/user-types", auth, isAdminLevel, listUserTypes);
+router.put("/user-types/:id", auth, isAdminLevel, updateUserType);
+router.delete("/user-types/:id", auth, isAdminLevel, deleteUserType);
 
 // ***********************************
 // Bulk Students (Admin only)
 // ***********************************
 // Download CSV template
-router.get("/students/template", auth, isAdmin, downloadStudentsTemplate);
 // Upload CSV/XLSX to bulk create students and add to batch
 router.post("/students/bulk-upload", auth, isAdmin, bulkCreateStudents);
 

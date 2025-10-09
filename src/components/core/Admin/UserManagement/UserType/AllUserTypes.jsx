@@ -1,5 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { toast } from 'react-hot-toast';
+import { FiEdit, FiTrash2, FiSave, FiX, FiCheck } from 'react-icons/fi';
 import DashboardLayout from '../../../../common/DashboardLayout';
 import { apiConnector } from '../../../../../services/apiConnector';
 import { admin as adminApi } from '../../../../../services/apis';
@@ -18,12 +20,20 @@ export default function AllUserTypes() {
   const [search, setSearch] = useState('');
   const [limit, setLimit] = useState(10);
   const [page, setPage] = useState(1);
+  const [editingId, setEditingId] = useState(null);
+  const [editForm, setEditForm] = useState({
+    name: '',
+    contentManagement: false,
+    trainerManagement: false
+  });
 
   const fetchAll = async () => {
     setLoading(true);
     setError('');
     try {
-      const res = await apiConnector('GET', adminApi.USER_TYPES_API, null, token ? { Authorization: `Bearer ${token}` } : undefined);
+      const res = await apiConnector('GET', adminApi.USER_TYPES_API, null, 
+        token ? { Authorization: `Bearer ${token}` } : undefined
+      );
       if (res?.data?.success) {
         setItems(res.data.data || []);
       } else {
@@ -39,7 +49,65 @@ export default function AllUserTypes() {
     }
   };
 
-  useEffect(() => { fetchAll(); /* eslint-disable-next-line */ }, []);
+  useEffect(() => { 
+    fetchAll();
+  }, []);
+
+  const handleEdit = (item) => {
+    setEditingId(item._id);
+    setEditForm({
+      name: item.name,
+      contentManagement: item.contentManagement,
+      trainerManagement: item.trainerManagement
+    });
+  };
+
+  const handleUpdate = async (id) => {
+    try {
+      const response = await apiConnector(
+        'PUT',
+        adminApi.UPDATE_USER_TYPE(id),
+        editForm,
+        { 'Authorization': `Bearer ${token}` }
+      );
+      
+      if (response.data.success) {
+        toast.success('User type updated successfully');
+        setEditingId(null);
+        fetchAll();
+      } else {
+        toast.error(response.data.message || 'Failed to update user type');
+      }
+    } catch (error) {
+      console.error('Update error:', error);
+      toast.error(error.response?.data?.message || 'Failed to update user type');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this user type?')) {
+      return;
+    }
+
+    try {
+      const response = await apiConnector(
+        'DELETE',
+        adminApi.DELETE_USER_TYPE(id),
+        null,
+        { 'Authorization': `Bearer ${token}` }
+      );
+      
+      if (response.data.success) {
+        toast.success('User type deleted successfully');
+        fetchAll();
+      } else {
+        toast.error(response.data.message || 'Failed to delete user type');
+      }
+    } catch (error) {
+      console.error('Delete error:', error);
+      toast.error(error.response?.data?.message || 'Failed to delete user type');
+    }
+  };
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -48,113 +116,300 @@ export default function AllUserTypes() {
   }, [items, search]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / limit));
-  const paginated = useMemo(() => {
+  const paginatedItems = useMemo(() => {
     const start = (page - 1) * limit;
     return filtered.slice(start, start + limit);
   }, [filtered, page, limit]);
 
-  useEffect(() => { setPage(1); }, [search, limit]);
-
   return (
     <DashboardLayout>
-      <div className="all-user-types-container">
-        <h1 style={{ fontSize: 24, fontWeight: 800, color: ED_TEAL, marginBottom: 8 }}>All User Types</h1>
-        <div style={{ color: '#777', fontSize: 13, marginBottom: 16 }}>User Type {'>'} All User Types</div>
-
-        <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 12, padding: 16, marginBottom: 16 }}>
-          <div className="controls-row">
-            <div className="entries-row">
-              <span style={{ color: TEXT_GRAY, fontSize: 13 }}>Show entries</span>
-              <select value={limit} onChange={(e) => { setLimit(Number(e.target.value)); }} style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '6px 10px', background: BG }}>
-                {[10, 25, 50, 100].map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
-            </div>
-            <input className="search-input" placeholder="Search" value={search} onChange={(e) => setSearch(e.target.value)} style={{ border: `1px solid ${BORDER}`, borderRadius: 8, padding: '8px 12px', background: '#fff' }} />
+      <div style={{ padding: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between', 
+          alignItems: 'center', 
+          marginBottom: '20px' 
+        }}>
+          <h2 style={{ color: TEXT_DARK, margin: 0 }}>User Types</h2>
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <input
+              type="text"
+              placeholder="Search user types..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              style={{
+                padding: '8px 12px',
+                borderRadius: '4px',
+                border: `1px solid ${BORDER}`,
+                minWidth: '250px'
+              }}
+            />
           </div>
         </div>
 
-        <div style={{ background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 12, overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
+        {loading ? (
+          <div>Loading...</div>
+        ) : error ? (
+          <div style={{ color: 'red' }}>{error}</div>
+        ) : (
+          <div style={{ 
+            backgroundColor: 'white', 
+            borderRadius: '8px', 
+            border: `1px solid ${BORDER}`,
+            overflow: 'hidden'
+          }}>
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead style={{ background: BG }}>
-                <tr>
-                  {['Serial No.', 'Name'].map((h) => (
-                    <th key={h} style={{ padding: '12px 16px', textAlign: 'left', fontSize: 12, letterSpacing: 0.5, color: TEXT_GRAY, borderBottom: `1px solid ${BORDER}` }}>{h}</th>
-                  ))}
+              <thead>
+                <tr style={{ 
+                  backgroundColor: BG, 
+                  borderBottom: `1px solid ${BORDER}`,
+                  textAlign: 'left'
+                }}>
+                  <th style={{ padding: '12px 16px' }}>Name</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center' }}>Content Management</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'center' }}>Trainer Management</th>
+                  <th style={{ padding: '12px 16px', textAlign: 'right' }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {loading ? (
-                  <tr><td colSpan={2} style={{ padding: 24, textAlign: 'center', color: TEXT_GRAY }}>Loading...</td></tr>
-                ) : error ? (
-                  <tr><td colSpan={2} style={{ padding: 24, textAlign: 'center', color: 'crimson' }}>{error}</td></tr>
-                ) : paginated.length === 0 ? (
-                  <tr><td colSpan={2} style={{ padding: 24, textAlign: 'center', color: TEXT_GRAY }}>No user types found</td></tr>
-                ) : (
-                  paginated.map((it, idx) => (
-                    <tr key={it._id || it.name} style={{ borderBottom: `1px solid ${BORDER}` }}>
-                      <td style={{ padding: '12px 16px', color: TEXT_DARK }}>{(page - 1) * limit + idx + 1}</td>
-                      <td style={{ padding: '12px 16px', color: TEXT_DARK }}>{it.name}</td>
-                    </tr>
-                  ))
-                )}
+                {paginatedItems.map((item) => (
+                  <tr key={item._id} style={{ 
+                    borderBottom: `1px solid ${BORDER}`,
+                    '&:last-child': { borderBottom: 'none' }
+                  }}>
+                    <td style={{ padding: '12px 16px' }}>
+                      {editingId === item._id ? (
+                        <input
+                          type="text"
+                          value={editForm.name}
+                          onChange={(e) => setEditForm({...editForm, name: e.target.value})}
+                          style={{
+                            padding: '6px 8px',
+                            borderRadius: '4px',
+                            border: `1px solid ${BORDER}`,
+                            width: '100%'
+                          }}
+                        />
+                      ) : (
+                        <div style={{ fontWeight: 500 }}>{item.name}</div>
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      {editingId === item._id ? (
+                        <input
+                          type="checkbox"
+                          checked={editForm.contentManagement}
+                          onChange={(e) => setEditForm({...editForm, contentManagement: e.target.checked})}
+                        />
+                      ) : (
+                        item.contentManagement ? <FiCheck color="green" /> : <FiX color="red" />
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      {editingId === item._id ? (
+                        <input
+                          type="checkbox"
+                          checked={editForm.trainerManagement}
+                          onChange={(e) => setEditForm({...editForm, trainerManagement: e.target.checked})}
+                        />
+                      ) : (
+                        item.trainerManagement ? <FiCheck color="green" /> : <FiX color="red" />
+                      )}
+                    </td>
+                    <td style={{ textAlign: 'right', padding: '12px 16px' }}>
+                      {editingId === item._id ? (
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => handleUpdate(item._id)}
+                            style={{
+                              background: ED_TEAL,
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '6px 12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <FiSave size={16} /> Save
+                          </button>
+                          <button
+                            onClick={() => setEditingId(null)}
+                            style={{
+                              background: '#6c757d',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '6px 12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <FiX size={16} /> Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                          <button
+                            onClick={() => handleEdit(item)}
+                            style={{
+                              background: '#17a2b8',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '6px 12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <FiEdit size={16} /> Edit
+                          </button>
+                          <button
+                            onClick={() => handleDelete(item._id)}
+                            style={{
+                              background: '#dc3545',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '6px 12px',
+                              cursor: 'pointer',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px'
+                            }}
+                          >
+                            <FiTrash2 size={16} /> Delete
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-        </div>
+        )}
+
+        {!loading && paginatedItems.length === 0 && (
+          <div style={{ 
+            padding: '40px', 
+            textAlign: 'center', 
+            color: TEXT_GRAY,
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            border: `1px solid ${BORDER}`,
+            marginTop: '20px'
+          }}>
+            No user types found
+          </div>
+        )}
 
         {totalPages > 1 && (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: 8, marginTop: 16 }}>
-            <button onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1} style={{ border: `1px solid ${BORDER}`, padding: '8px 12px', borderRadius: 8, color: page === 1 ? TEXT_GRAY : TEXT_DARK, background: '#fff' }}>Previous</button>
-            <span style={{ alignSelf: 'center', color: TEXT_GRAY, fontSize: 13 }}>Page {page} of {totalPages}</span>
-            <button onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages} style={{ border: `1px solid ${BORDER}`, padding: '8px 12px', borderRadius: 8, color: page === totalPages ? TEXT_GRAY : TEXT_DARK, background: '#fff' }}>Next</button>
+          <div style={{ 
+            display: 'flex', 
+            justifyContent: 'space-between', 
+            alignItems: 'center', 
+            marginTop: '20px',
+            padding: '12px 16px',
+            backgroundColor: 'white',
+            borderRadius: '8px',
+            border: `1px solid ${BORDER}`
+          }}>
+            <div>
+              <span>Show </span>
+              <select 
+                value={limit} 
+                onChange={(e) => {
+                  setLimit(Number(e.target.value));
+                  setPage(1);
+                }}
+                style={{
+                  padding: '4px 8px',
+                  borderRadius: '4px',
+                  border: `1px solid ${BORDER}`,
+                  margin: '0 8px'
+                }}
+              >
+                {[5, 10, 20, 50].map(num => (
+                  <option key={num} value={num}>{num}</option>
+                ))}
+              </select>
+              <span> entries</span>
+            </div>
+            
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button
+                onClick={() => setPage(p => Math.max(1, p - 1))}
+                disabled={page === 1}
+                style={{
+                  padding: '6px 12px',
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: '4px',
+                  background: 'white',
+                  cursor: page === 1 ? 'not-allowed' : 'pointer',
+                  opacity: page === 1 ? 0.5 : 1
+                }}
+              >
+                Previous
+              </button>
+              
+              <div style={{ display: 'flex', gap: '4px' }}>
+                {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                  let pageNum;
+                  if (totalPages <= 5) {
+                    pageNum = i + 1;
+                  } else if (page <= 3) {
+                    pageNum = i + 1;
+                  } else if (page >= totalPages - 2) {
+                    pageNum = totalPages - 4 + i;
+                  } else {
+                    pageNum = page - 2 + i;
+                  }
+                  
+                  return (
+                    <button
+                      key={pageNum}
+                      onClick={() => setPage(pageNum)}
+                      style={{
+                        width: '32px',
+                        height: '32px',
+                        borderRadius: '4px',
+                        border: `1px solid ${page === pageNum ? ED_TEAL : BORDER}`,
+                        background: page === pageNum ? ED_TEAL : 'white',
+                        color: page === pageNum ? 'white' : TEXT_DARK,
+                        cursor: 'pointer'
+                      }}
+                    >
+                      {pageNum}
+                    </button>
+                  );
+                })}
+              </div>
+              
+              <button
+                onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                disabled={page === totalPages}
+                style={{
+                  padding: '6px 12px',
+                  border: `1px solid ${BORDER}`,
+                  borderRadius: '4px',
+                  background: 'white',
+                  cursor: page === totalPages ? 'not-allowed' : 'pointer',
+                  opacity: page === totalPages ? 0.5 : 1
+                }}
+              >
+                Next
+              </button>
+            </div>
           </div>
         )}
       </div>
-      <style jsx>{`
-        .all-user-types-container {
-          width: calc(100% - 250px);
-          margin-left: 250px;
-          padding: 24px;
-          min-height: 100vh;
-          background: ${BG};
-          
-        }
-        .controls-row {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-          justify-content: space-between;
-          flex-wrap: wrap;
-        }
-        .entries-row {
-          display: flex;
-          gap: 12px;
-          align-items: center;
-        }
-        .search-input {
-          width: 240px;
-        }
-        @media (max-width: 1024px) {
-          .all-user-types-container {
-            width: calc(100% - 200px);
-            margin-left: 200px;
-            padding: 16px;
-            margin-top: 4rem;
-          }
-        }
-        @media (max-width: 768px) {
-          .all-user-types-container {
-            width: 100%;
-            margin-left: 0;
-            padding: 16px;
-            
-          }
-          .search-input {
-            width: 100%;
-          }
-        }
-      `}</style>
     </DashboardLayout>
   );
 }

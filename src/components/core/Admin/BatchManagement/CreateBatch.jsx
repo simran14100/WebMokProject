@@ -25,8 +25,8 @@ export default function CreateBatch() {
 
   const token = useSelector((state) => state.auth.token);
   const user = useSelector((state) => state.profile.user);
-  const isAdmin = user?.accountType === "Admin";
-
+  // const isAdmin = user?.accountType === "Admin";
+  const isAdmin = user?.accountType === "Admin" || user?.accountType === "SuperAdmin";
   useEffect(() => {
     setDeptLoading(true);
     listBatchDepartments({ onlyActive: true })

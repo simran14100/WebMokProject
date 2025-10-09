@@ -12,7 +12,7 @@ export default function BatchDepartments() {
   const token = useSelector((s) => s.auth.token);
   const user = useSelector((s) => s.profile.user);
 
-  const isAdmin = user?.accountType === "Admin";
+  const isAdmin = user?.accountType === "Admin" || user?.accountType === "SuperAdmin";
 
   const reload = () => {
     listBatchDepartments({ onlyActive: false })

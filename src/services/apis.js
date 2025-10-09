@@ -10,6 +10,7 @@ export const categories = {
 // Super Admin specific endpoints (separate from generic admin controller)
 export const superAdmin = {
     CREATE_USER_API: "/api/v1/super-admin/create-user",
+    UPDATE_USER_API: (id) => `/api/v1/super-admin/users/${id}`,
 };
 
 export const auth = {
@@ -120,8 +121,11 @@ export const admin = {
     EXPORT_BATCHES_API: "/api/v1/admin/batches/export",
     CREATE_STUDENT_API: "/api/v1/admin/create-student",
     CREATE_USER_API: "/api/v1/admin/create-user",
+    UPDATE_USER_API: (id) => `/api/v1/admin/users/${id}`,
     // User Types
     USER_TYPES_API: "/api/v1/admin/user-types",
+    UPDATE_USER_TYPE: (id) => `/api/v1/admin/user-types/${id}`,
+DELETE_USER_TYPE: (id) => `/api/v1/admin/user-types/${id}`,
     // Bulk Students
     STUDENTS_TEMPLATE_API: "/api/v1/admin/students/template",
     BULK_UPLOAD_STUDENTS_API: "/api/v1/admin/students/bulk-upload",

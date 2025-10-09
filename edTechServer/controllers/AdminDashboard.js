@@ -844,6 +844,60 @@ exports.createStudentByAdmin = async (req, res) => {
     }
 };
 
+// Update user details
+exports.updateUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { firstName, lastName, email, contactNumber, accountType } = req.body;
+
+        // Find the user
+        const user = await User.findById(id);
+        if (!user) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "User not found" 
+            });
+        }
+
+        // Update user fields
+        if (firstName) user.firstName = firstName;
+        if (lastName) user.lastName = lastName;
+        if (email) user.email = email;
+        if (accountType) user.accountType = accountType;
+
+        // Update additional details if they exist
+        if (contactNumber) {
+            let profile = await Profile.findOne({ _id: user.additionalDetails });
+            if (!profile) {
+                profile = await Profile.create({ contactNumber });
+                user.additionalDetails = profile._id;
+            } else {
+                profile.contactNumber = contactNumber;
+                await profile.save();
+            }
+        }
+
+        await user.save();
+
+        // Get the updated user with populated data
+        const updatedUser = await User.findById(id)
+            .populate('additionalDetails')
+            .select('-password -token -resetPasswordExpires');
+
+        res.status(200).json({
+            success: true,
+            data: updatedUser,
+            message: "User updated successfully"
+        });
+
+    } catch (error) {
+        console.error("Error updating user:", error);
+        res.status(500).json({
+            success: false,
+            message: error.message || "Error updating user"
+        });
+    }
+};
 // Admin-only: Generic create user (Admin, Instructor, Content-management, Student)
 // Required body: { name, email, phone, password, confirmPassword, accountType }
 // Optional body for Student: { enrollmentFeePaid }

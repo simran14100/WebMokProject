@@ -34,7 +34,7 @@ export default function EditPage() {
   const navigate = useNavigate();
   const user = useSelector((state) => state.profile.user);
   const token = useSelector((state) => state.auth.token);
-  const isAdmin = user?.accountType === "Admin";
+  const isAdmin = user?.accountType === "Admin" || user?.accountType === "SuperAdmin";
 
   // State variables
   const [activeTab, setActiveTab] = useState("info");
