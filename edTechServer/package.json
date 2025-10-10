@@ -5,8 +5,7 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "preinstall": "npm install -g node-gyp",
-    "build": "npm install --no-optional && npm rebuild bcrypt --build-from-source",
+    "build": "npm install",
     "dev": "nodemon index.js"
   },
   "keywords": [],
@@ -16,7 +15,7 @@
     "node": "18.x"
   },
   "dependencies": {
-    "bcrypt": "^5.1.1",
+    "bcrypt": "5.0.1",
     "cloudinary": "^2.4.0",
     "cookie-parser": "^1.4.6",
     "cors": "^2.8.5",
