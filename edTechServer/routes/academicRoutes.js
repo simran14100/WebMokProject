@@ -18,3 +18,5 @@ router.get('/subjects/:schoolId', getSubjectsBySchool);
 router.get('/sessions', getAcademicSessions);
 
 module.exports = router;
+
+

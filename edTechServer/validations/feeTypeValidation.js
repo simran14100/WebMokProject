@@ -1,7 +1,7 @@
-import Joi from 'joi';
+const Joi = require('joi');
 
 // Validation for creating a new fee type
-export const validateCreateFeeType = (data) => {
+const validateCreateFeeType = (data) => {
   const schema = Joi.object({
     name: Joi.string().required().trim().min(2).max(100).messages({
       'string.empty': 'Fee type name is required',
@@ -29,7 +29,7 @@ export const validateCreateFeeType = (data) => {
 };
 
 // Validation for updating a fee type
-export const validateUpdateFeeType = (data) => {
+const validateUpdateFeeType = (data) => {
   const schema = Joi.object({
     name: Joi.string().trim().min(2).max(100).messages({
       'string.empty': 'Fee type name cannot be empty',
@@ -53,4 +53,9 @@ export const validateUpdateFeeType = (data) => {
   }).min(1); // At least one field must be provided for update
 
   return schema.validate(data, { abortEarly: false });
+};
+
+module.exports = {
+  validateCreateFeeType,
+  validateUpdateFeeType
 };
