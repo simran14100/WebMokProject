@@ -21,14 +21,124 @@ export default function EnrollmentApproved() {
   const navigate = useNavigate();
   const { token } = useSelector((state) => state.auth);
   const { user } = useSelector((state) => state.profile);
-
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [statusData, setStatusData] = useState(null);
+  const [courseDetails, setCourseDetails] = useState(null);
   const [isApproved, setIsApproved] = useState(false);
+  const [statusData, setStatusData] = useState(null);
 
   const searchParams = new URLSearchParams(location.search);
   const programType = useMemo(() => searchParams.get('program') || user?.programType || localStorage.getItem('selectedProgram') || '-', [location.search, user]);
+  
+  // Calculate derived data
+  const d = statusData || {};
+  const approvedAt = d?.approvedAt || d?.updatedAt || d?.createdAt;
+  
+  // Debug: Log the entire status data and course info
+  useEffect(() => {
+    console.log('Status Data:', d);
+    console.log('Course data from status:', d?.course);
+    console.log('Course name from status:', d?.courseName);
+    console.log('User selected course:', user?.selectedCourse);
+  }, [d, user?.selectedCourse]);
+  
+  // Fetch course details when we have a course ID
+  useEffect(() => {
+    const fetchCourseDetails = async () => {
+      if (!d?.course) {
+        console.log('No course ID found in status data');
+        return;
+      }
+
+      // If course is a string ID, fetch the course details
+      if (typeof d.course === 'string') {
+        try {
+          console.log('Fetching course details for ID:', d.course);
+          const response = await apiConnector(
+            'GET',
+            `/api/v1/ugpgcourse/${d.course}`,  // Using the correct UGPG course endpoint
+            null,
+            { 'Authorization': `Bearer ${token}` }
+          );
+          console.log('API Response:', response);  // Add this line for debugging
+
+          if (response?.data?.success && response.data.data) {
+            console.log('Fetched course details:', response.data.data);
+            setCourseDetails({
+              name: response.data.data.courseName || response.data.data.name || `Course (${d.course})`,
+              ...response.data.data
+            });
+          } else {
+            console.log('No course data found, using fallback');
+            setCourseDetails({ name: `Course (${d.course})`  });
+          }
+        } catch (error) {
+          console.error('Error fetching course details:', error);
+          setCourseDetails({ name: `Course (${d.course})`  });
+        }
+      }
+      // If course is already an object, use it directly
+      else if (typeof d.course === 'object') {
+        console.log('Using course object from response:', d.course);
+        setCourseDetails({
+          name: d.course.courseName || d.course.name || `Course (${d.course._id})`,
+          ...d.course
+        });
+      }
+    };
+
+    fetchCourseDetails();
+  }, [d?.course, token]);
+
+  // Get course name from the most reliable source first
+  const courseName = useMemo(() => {
+    console.log('Calculating course name...');
+    
+    // 1. First check if we have courseDetails with a name
+    if (courseDetails?.courseName) {
+      console.log('Using courseDetails.courseName:', courseDetails.courseName);
+      return courseDetails.courseName;
+    }
+    if (courseDetails?.name) {
+      console.log('Using courseDetails.name:', courseDetails.name);
+      return courseDetails.name;
+    }
+    
+    // 2. Check direct properties in the status data
+    if (d?.courseName) {
+      console.log('Using courseName from status data:', d.courseName);
+      return d.courseName;
+    }
+    
+    // 3. Check if course is an object with name properties
+    if (d?.course) {
+      if (typeof d.course === 'object') {
+        if (d.course.courseName) {
+          console.log('Using course.courseName:', d.course.courseName);
+          return d.course.courseName;
+        }
+        if (d.course.name) {
+          console.log('Using course.name:', d.course.name);
+          return d.course.name;
+        }
+      }
+    }
+    
+    // 4. Check if course is a string ID (last resort)
+    if (d?.course && typeof d.course === 'string') {
+      console.log('Using course ID as fallback:', d.course);
+      return `Course (${d.course})`;
+    }
+    
+    // 5. Fallback to user's selected course or default
+    const fallback = user?.selectedCourse || 'Course not specified';
+    console.log('Using fallback course name:', fallback);
+    return fallback;
+  }, [courseDetails, d, user?.selectedCourse]);
+  
+  const schoolName = d?.school?.name || d?.schoolName || d?.school || '-';
+  const sessionName = d?.session?.name || d?.sessionName || d?.session || '-';
+  const enrollmentId = d?.registrationId || d?._id || '-';
 
   useEffect(() => {
     const load = async () => {
@@ -49,6 +159,8 @@ export default function EnrollmentApproved() {
         const ok = res?.data?.success;
         const data = res?.data?.data || {};
         const approved = ok && data?.matched && (data?.status === 'approved' || data?.status === 'Approved');
+        console.log('API Response:', { ok, data, approved });
+        console.log('Course data from API:', data?.course);
         setIsApproved(!!approved);
         setStatusData(data);
       } catch (e) {
@@ -97,12 +209,6 @@ export default function EnrollmentApproved() {
     );
   }
 
-  const d = statusData || {};
-  const approvedAt = d?.approvedAt || d?.updatedAt || d?.createdAt;
-  const courseName = d?.courseName || d?.course?.courseName || d?.course?.name || d?.course || user?.selectedCourse || '-';
-  const schoolName = d?.school?.name || d?.schoolName || d?.school || '-';
-  const sessionName = d?.session?.name || d?.sessionName || d?.session || '-';
-  const enrollmentId = d?.registrationId || d?._id || '-';
 
   // If not approved, render a simple Pending view inside this page
   if (!isApproved) {
@@ -193,8 +299,8 @@ export default function EnrollmentApproved() {
                       ))}
                       {row('Program', programType)}
                       {row('Course', courseName)}
-                      {row('School', schoolName)}
-                      {row('Session', sessionName)}
+                      {/* {row('School', schoolName)}
+                      {row('Session', sessionName)} */}
                       {row('Approved On', approvedAt ? new Date(approvedAt).toLocaleString() : '-')}
                     </tbody>
                   </table>

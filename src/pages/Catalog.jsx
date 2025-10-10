@@ -173,8 +173,81 @@ function Catalog() {
       </div>
     );
   }
-  if (!loading && !catalogPageData.success) {
-    return <div className="text-center text-red-500 py-10 bg-white">An error occurred while loading the catalog page.</div>;
+  // Handle API errors and no courses found cases
+  if (!loading && (!catalogPageData?.success || !catalogPageData?.data?.selectedCategory?.courses?.length)) {
+    const errorTitle = catalogPageData?.success ? 'No Courses Available' : 'Unable to Load Courses';
+    const errorMessage = catalogPageData?.message || 'We couldn\'t find any courses matching your selection.';
+    const isNoCoursesError = catalogPageData?.message?.includes('No courses found');
+    
+    return (
+      <div className="min-h-[calc(100vh-3.5rem)] bg-gradient-to-b from-gray-50 to-white py-16 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-3xl mx-auto">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+            <div className="p-8 md:p-10 text-center">
+              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-red-50 mb-5">
+                <svg className="w-8 h-8 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              
+              <h2 className="text-2xl font-bold text-gray-900 mb-3">{errorTitle}</h2>
+              <p className="text-gray-600 mb-8 max-w-lg mx-auto">
+                {errorMessage} {isNoCoursesError && 'Please check back later or explore other categories.'}
+              </p>
+              
+              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                <Link
+                  to="/courses"
+                  className="px-6 py-3 bg-edu-teal hover:bg-edu-teal-dark text-white font-medium rounded-lg transition-colors duration-200 shadow-sm hover:shadow-md"
+                >
+                  Browse All Courses
+                </Link>
+                <Link
+                  to="/"
+                  className="px-6 py-3 bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 font-medium rounded-lg transition-colors duration-200"
+                >
+                  Back to Home
+                </Link>
+              </div>
+              
+              {/* Debug Information - Only shown in development */}
+              {process.env.NODE_ENV === 'development' && (
+                <div className="mt-10 border-t border-gray-100 pt-6">
+                  <button 
+                    onClick={() => document.getElementById('debug-details').classList.toggle('hidden')}
+                    className="text-sm text-gray-500 hover:text-gray-700 flex items-center justify-center mx-auto mb-3"
+                  >
+                    <span>Technical Details</span>
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  <div id="debug-details" className="hidden bg-gray-50 p-4 rounded-lg text-left text-xs text-gray-500 overflow-x-auto">
+                    <pre className="whitespace-pre-wrap break-words font-mono">
+                      {JSON.stringify({
+                        status: catalogPageData?.success ? 'success' : 'error',
+                        categoryId,
+                        categoryFound: !!catalogPageData?.data?.selectedCategory,
+                        coursesAvailable: catalogPageData?.data?.selectedCategory?.courses?.length || 0,
+                        timestamp: new Date().toISOString(),
+                        ...(catalogPageData?.message && { message: catalogPageData.message })
+                      }, null, 2)}
+                    </pre>
+                  </div>
+                </div>
+              )}
+              
+              <Link
+                to="/courses"
+                className="px-6 py-3 bg-edu-teal text-white rounded-md hover:bg-edu-teal-dark transition-colors duration-200"
+              >
+                Browse All Courses
+              </Link>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Helper to get at least 2 courses from a main array, then fill from others if needed

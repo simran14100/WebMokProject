@@ -425,7 +425,7 @@ const AdminDashboard = () => {
     <DashboardLayout>
   <div className="admin-container">
     <div style={{ textAlign: "center", marginBottom: "24px" }}>
-      <h1
+      <h1  
         style={{
           fontSize: "36px",
           fontWeight: 700,
@@ -766,6 +766,30 @@ const AdminDashboard = () => {
       .bar-box { height: 220px; }
       .batch-bar-box { height: 260px; }
     }
+
+    /* Responsive heading styles */
+  .admin-heading {
+    text-align: center;
+    margin-bottom: 24px;
+  }
+  .admin-heading h1 {
+    font-size: 28px;
+    font-weight: 700;
+    color: #07A698;
+    margin: 10px 0 12px;
+  }
+  @media (min-width: 640px) { /* sm */
+    .admin-heading h1 {
+      font-size: 32px;
+      margin: 18px 0 12px;
+    }
+  }
+  @media (min-width: 1024px) { /* lg */
+    .admin-heading h1 {
+      font-size: 36px;
+      margin: 22px 0 12px;
+    }
+  }
   `}</style>
   </div>
 </DashboardLayout>

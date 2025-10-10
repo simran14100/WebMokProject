@@ -114,17 +114,37 @@ exports.deleteCourse = async (req, res) => {
 };
 
 // Get one by ID
-exports.getCourseById = async (req, res) => {
-  try {
-    const { id } = req.params;
-    const doc = await UGPGCourse.findById(id)
-      .populate("school", "name")
-      .populate("session", "name")
-      .exec();
-    if (!doc) return res.status(404).json({ success: false, message: "Course not found" });
-    return res.json({ success: true, data: doc });
-  } catch (err) {
-    console.error("getCourseById error", err);
-    return res.status(500).json({ success: false, message: "Failed to fetch course" });
-  }
-};
+// exports.getCourseById = async (req, res) => {
+//   try {
+//     const { id } = req.params;
+//     const doc = await UGPGCourse.findById(id)
+//       .populate("school", "name")
+//       .populate("session", "name")
+//       .exec();
+//     if (!doc) return res.status(404).json({ success: false, message: "Course not found" });
+//     return res.json({ success: true, data: doc });
+//   } catch (err) {
+//     console.error("getCourseById error", err);
+//     return res.status(500).json({ success: false, message: "Failed to fetch course" });
+//   }
+// };
+   // In UGPGCourse.js controller
+   exports.getCourseById = async (req, res) => {
+    console.log('getCourseById called with ID:', req.params.id);
+    try {
+      const course = await UGPGCourse.findById(req.params.id)
+        .populate('school', 'name')
+        .populate('session', 'name');
+      
+      if (!course) {
+        console.log('Course not found with ID:', req.params.id);
+        return res.status(404).json({ success: false, message: 'Course not found' });
+      }
+      
+      console.log('Found course:', course);
+      res.json({ success: true, data: course });
+    } catch (err) {
+      console.error('Error in getCourseById:', err);
+      res.status(500).json({ success: false, message: 'Server error' });
+    }
+  };

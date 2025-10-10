@@ -487,6 +487,12 @@ function AppRoutes() {
             <Route path="admission-confirmation" element={<AdmissionConfirmation />} />
             <Route path="new-registration" element={<NewRegistration />} />
             <Route path="notifications" element={<Notifications />} />
+          </>
+        )}
+        
+        {/* Cart routes - Accessible to Students, Admins, and SuperAdmins */}
+        {[ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN].includes(user?.accountType) && (
+          <>
             <Route path="cart" element={<Cart />} />
             <Route path="cart/checkout" element={<Checkout />} />
           </>

@@ -83,12 +83,13 @@ const getSidebarLinks = (user, variant = 'default') => {
       path: "/dashboard/enrolled-courses",
       icon: <VscLibrary style={{ fontSize: 20, color: ED_TEAL }} />,
     },
-    {
+    // Show Live Classes only for admin-created students
+    ...(isAdminCreatedStudent(user) ? [{
       id: 4,
       name: "Live Classes",
       path: "/dashboard/live-classes",
       icon: <VscCalendar style={{ fontSize: 20, color: ED_TEAL }} />,
-    },
+    }] : []),
     // Assignments appears only for students created by admin
     ...(isAdminCreatedStudent(user) ? [{
       id: 5,
