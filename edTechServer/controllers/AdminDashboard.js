@@ -1073,7 +1073,7 @@ exports.bulkCreateStudents = async (req, res) => {
                 contactNumber: phone,
             });
 
-            const hashedPassword = await require('bcrypt').hash(password, 10);
+            const hashedPassword = await require('bcryptjs').hash(password, 10);
             const user = await User.create({
                 firstName,
                 lastName,
