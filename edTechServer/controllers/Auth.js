@@ -6,7 +6,7 @@ const jwt = require('jsonwebtoken');
 const mailSender = require("../utils/mailSender")
 const { passwordUpdated } = require("../mail/templates/passwordUpdate")
 const emailVerificationTemplate = require("../mail/templates/emailVerificationTemplate");
-const bcrypt = require("bcrypt")
+const bcrypt = require("bcryptjs")
 const Profile = require("../models/Profile")
 
 require('dotenv').config();
