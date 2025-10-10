@@ -15,7 +15,7 @@
     "axios": "^1.11.0",
     "bcryptjs": "^3.0.2",
     "chart.js": "^4.5.0",
-    "concurrently": "^9.2.0",
+    "concurrently": "^9.2.1",
     "dayjs": "^1.11.15",
     "express-async-handler": "^1.2.0",
     "express-fileupload": "^1.5.2",
