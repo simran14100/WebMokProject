@@ -15,7 +15,7 @@ import { useSelector } from "react-redux";
 import DashboardLayout from '../components/common/DashboardLayout';
 import { fetchEnrolledStudents } from "../services/operations/enrollmentApi";
 import { getDashboardStats } from "../services/operations/adminApi";
-import { jwtDecode } from "jwt-decode";
+import jwtDecode from "jwt-decode";
 import EnrolledStudents from './EnrolledStudents'; // Add this import at the top
 
 const ED_TEAL = "#07A698";

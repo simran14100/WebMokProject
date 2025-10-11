@@ -1,4 +1,4 @@
-import { jwtDecode } from "jwt-decode";
+import jwtDecode from "jwt-decode";
 import { store } from "../store";
 
 // Check if token is expired or will expire soon
