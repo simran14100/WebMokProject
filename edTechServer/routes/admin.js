@@ -22,6 +22,7 @@ const {
     createStudentByAdmin,
     createUserByAdmin,
     updateUser, 
+    deleteStudent,
     downloadStudentsTemplate,
     bulkCreateStudents
 } = require("../controllers/AdminDashboard");
@@ -76,7 +77,8 @@ router.get("/dashboard-stats", auth, isAdminLevel, getDashboardStats);
 
 // Update user status (activate/deactivate)
 router.put("/update-user-status", auth, isAdminLevel, updateUserStatus);
-router.delete("/users/:userId", auth, isAdminLevel, deleteUser);
+// Delete user/student
+router.delete("/users/:userId", auth, isAdminLevel, deleteStudent);
 // Create a student (Admin only)
 router.post("/create-student", auth, isAdmin, createStudentByAdmin);
 // Update user details

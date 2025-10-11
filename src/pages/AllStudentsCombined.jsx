@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useSelector } from 'react-redux';
 import DashboardLayout from '../components/common/DashboardLayout';
 import { getEnrolledStudents, getRegisteredUsers, updateUserStatus } from '../services/operations/adminApi';
+import { apiConnector } from '../services/apiConnector';
 
 export default function AllStudentsCombined() {
   const { token } = useSelector((state) => state.auth);
@@ -59,11 +60,34 @@ export default function AllStudentsCombined() {
 
   const handleDelete = async (userId) => {
     if (!userId) return;
-    if (!window.confirm('Delete this student? This will deactivate the account.')) return;
+    
+    if (!window.confirm('Are you sure you want to delete this student? This action cannot be undone.')) {
+        return;
+    }
+
     try {
-      await updateUserStatus(userId, 'Inactive', token);
-      setStudents((prev) => prev.filter((s) => String(s._id || s.id) !== String(userId)));
-    } catch (_) {}
+        const response = await apiConnector(
+            'DELETE',
+            `/api/v1/admin/users/${userId}`,
+            null,
+            {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        );
+
+        if (response.data?.success) {
+            setStudents(prevStudents => 
+                prevStudents.filter(student => (student._id || student.id) !== userId)
+            );
+            alert('Student deleted successfully');
+        } else {
+            throw new Error(response.data?.message || 'Failed to delete student');
+        }
+    } catch (error) {
+        console.error('Error deleting student:', error);
+        alert(error.response?.data?.message || error.message || 'Failed to delete student. Please try again.');
+    }
   };
 
   return (
@@ -246,7 +270,30 @@ export default function AllStudentsCombined() {
                           </span>
                         </td>
                         <td style={{ padding: '16px 24px' }}>
-                          <button onClick={() => handleDelete(student._id || student.id)} style={{ padding: '6px 10px', background: '#fee2e2', color: '#b91c1c', border: 0, borderRadius: 6, cursor: 'pointer' }}>Delete</button>
+                          <button 
+                            onClick={() => handleDelete(student._id || student.id)} 
+                            style={{ 
+                              padding: '6px 12px', 
+                              background: '#fee2e2', 
+                              color: '#b91c1c', 
+                              border: 'none',
+                              borderRadius: '6px',
+                              cursor: 'pointer',
+                              fontWeight: '500',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              transition: 'all 0.2s ease',
+                              ':hover': {
+                                background: '#fecaca'
+                              }
+                            }}
+                          >
+                            <svg style={{ width: '16px', height: '16px' }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                            </svg>
+                            Delete
+                          </button>
                         </td>
                       </tr>
                     ))

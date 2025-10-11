@@ -1263,3 +1263,83 @@ exports.deleteUser = async (req, res) => {
         });
     }
 };
+
+// In AdminDashboard.js
+exports.deleteStudent = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // Find the user first to check if they exist
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'Student not found'
+            });
+        }
+
+        // Check if user is a student
+        if (user.accountType.toLowerCase() !== 'student') {
+            return res.status(400).json({
+                success: false,
+                message: 'Can only delete student accounts using this endpoint'
+            });
+        }
+
+        // Start transaction to ensure data consistency
+        const session = await User.startSession();
+        session.startTransaction();
+
+        try {
+            // 1. Remove user from any batches they're enrolled in
+            await Batch.updateMany(
+                { students: userId },
+                { $pull: { students: userId } },
+                { session }
+            );
+
+            // 2. Remove course progress
+            await CourseProgress.deleteMany({ userID: userId }, { session });
+
+            // 3. Remove admission confirmations
+            await AdmissionConfirmation.deleteMany({ student: userId }, { session });
+
+            // 4. Remove user's profile
+            if (user.additionalDetails) {
+                await Profile.findByIdAndDelete(user.additionalDetails, { session });
+            }
+
+            // 5. Finally, remove the user
+            await User.findByIdAndDelete(userId, { session });
+
+            // Commit the transaction
+            await session.commitTransaction();
+            session.endSession();
+
+            // Remove profile image if it exists and is not a default image
+            if (user.image && !user.image.includes('api.dicebear.com')) {
+                const imagePath = path.join(__dirname, '..', user.image);
+                if (fs.existsSync(imagePath)) {
+                    fs.unlinkSync(imagePath);
+                }
+            }
+
+            res.status(200).json({
+                success: true,
+                message: 'Student and associated data deleted successfully'
+            });
+        } catch (error) {
+            // If anything fails, abort the transaction
+            await session.abortTransaction();
+            session.endSession();
+            throw error;
+        }
+    } catch (error) {
+        console.error('Error deleting student:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete student',
+            error: error.message
+        });
+    }
+};
