@@ -216,13 +216,25 @@ export default function AllUsers() {
                           </button>
                           <button
                             onClick={async () => {
-                              if (!window.confirm('Deactivate this user?')) return;
+                              if (!window.confirm('Are you sure you want to deactivate and remove this user? This action cannot be undone.')) return;
                               try {
-                                await updateUserStatus(u._id, 'Inactive', token);
-                                setUsers(prev => prev.filter(x => x._id !== u._id));
-                                toast.success('User deactivated successfully');
+                                const response = await apiConnector(
+                                  'DELETE',
+                                  `/api/v1/admin/users/${u._id}`,
+                                  null,
+                                  { 'Authorization': `Bearer ${token}` }
+                                );
+                                
+                                if (response.data.success) {
+                                  // Remove the user from the local state
+                                  setUsers(prevUsers => prevUsers.filter(user => user._id !== u._id));
+                                  toast.success('User deactivated and removed successfully');
+                                } else {
+                                  throw new Error(response.data.message || 'Failed to delete user');
+                                }
                               } catch (e) {
-                                toast.error('Failed to deactivate user');
+                                console.error('Error deleting user:', e);
+                                toast.error(e.response?.data?.message || 'Failed to delete user. Please try again.');
                               }
                             }}
                             style={{ 

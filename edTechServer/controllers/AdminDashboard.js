@@ -1182,3 +1182,84 @@ exports.updateUserStatus = async (req, res) => {
         });
     }
 }; 
+
+// Delete user and associated data
+exports.deleteUser = async (req, res) => {
+    try {
+        const { userId } = req.params;
+
+        // Find the user first to check if they exist
+        const user = await User.findById(userId);
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: 'User not found'
+            });
+        }
+
+        // Start transaction to ensure data consistency
+        const session = await User.startSession();
+        session.startTransaction();
+
+        try {
+            // 1. Remove user from any batches they're enrolled in
+            await Batch.updateMany(
+                { students: userId },
+                { $pull: { students: userId } },
+                { session }
+            );
+
+            // 2. Remove course progress
+            await CourseProgress.deleteMany({ userID: userId }, { session });
+
+            // 3. Remove admission confirmations
+            await AdmissionConfirmation.deleteMany({ student: userId }, { session });
+
+            // 4. If user is an instructor, remove from courses they teach
+            if (user.accountType === 'Instructor') {
+                await Course.updateMany(
+                    { instructor: userId },
+                    { $unset: { instructor: "" } },
+                    { session }
+                );
+            }
+
+            // 5. Remove user's profile
+            if (user.additionalDetails) {
+                await Profile.findByIdAndDelete(user.additionalDetails, { session });
+            }
+
+            // 6. Finally, remove the user
+            await User.findByIdAndDelete(userId, { session });
+
+            // Commit the transaction
+            await session.commitTransaction();
+            session.endSession();
+
+            // Remove profile image if it exists and is not a default image
+            if (user.image && !user.image.includes('api.dicebear.com')) {
+                const imagePath = path.join(__dirname, '..', user.image);
+                if (fs.existsSync(imagePath)) {
+                    fs.unlinkSync(imagePath);
+                }
+            }
+
+            res.status(200).json({
+                success: true,
+                message: 'User and associated data deleted successfully'
+            });
+        } catch (error) {
+            // If anything fails, abort the transaction
+            await session.abortTransaction();
+            session.endSession();
+            throw error;
+        }
+    } catch (error) {
+        console.error('Error deleting user:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to delete user',
+            error: error.message
+        });
+    }
+};

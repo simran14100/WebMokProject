@@ -18,6 +18,7 @@ const {
     approveInstructor,
     getDashboardStats,
     updateUserStatus,
+    deleteUser,
     createStudentByAdmin,
     createUserByAdmin,
     updateUser, 
@@ -75,7 +76,7 @@ router.get("/dashboard-stats", auth, isAdminLevel, getDashboardStats);
 
 // Update user status (activate/deactivate)
 router.put("/update-user-status", auth, isAdminLevel, updateUserStatus);
-
+router.delete("/users/:userId", auth, isAdminLevel, deleteUser);
 // Create a student (Admin only)
 router.post("/create-student", auth, isAdmin, createStudentByAdmin);
 // Update user details
