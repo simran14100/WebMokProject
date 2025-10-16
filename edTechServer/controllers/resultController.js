@@ -522,6 +522,7 @@ const getResultsByStudent = asyncHandler(async (req, res) => {
 // @desc    Delete a result
 // @route   DELETE /api/v1/results/:id
 // @access  Private/Admin
+// In resultController.js
 const deleteResult = asyncHandler(async (req, res) => {
   const result = await Result.findById(req.params.id);
 
@@ -530,17 +531,27 @@ const deleteResult = asyncHandler(async (req, res) => {
     throw new Error('Result not found');
   }
 
-  // Check if the user has permission to delete this result
-  if (result.createdBy.toString() !== req.user.id && req.user.role !== 'super_admin') {
+  // Check if user is admin or super admin
+  const isAdmin = req.user.accountType === 'Admin' || req.user.accountType === 'SuperAdmin';
+  const isOwner = result.createdBy && result.createdBy.toString() === req.user.id;
+
+  if (!isAdmin && !isOwner) {
     res.status(403);
     throw new Error('Not authorized to delete this result');
   }
-  
-  await result.remove();
-  
+
+  // Use findByIdAndDelete for better error handling
+  const deletedResult = await Result.findByIdAndDelete(req.params.id);
+
+  if (!deletedResult) {
+    res.status(404);
+    throw new Error('Result not found or already deleted');
+  }
+
   res.status(200).json({
     success: true,
-    data: {}
+    data: {},
+    message: 'Result deleted successfully'
   });
 });
 

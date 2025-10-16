@@ -681,12 +681,12 @@ export default function CourseInformationForm() {
       return false;
     }
     
-    // Check if user is either an Admin or an approved Instructor
-    const isAdmin = user?.accountType === 'Admin';
+    // Check if user is either an Admin, SuperAdmin, or an approved Instructor
+    const isAdmin = ['Admin', 'SuperAdmin'].includes(user?.accountType);
     const isApprovedInstructor = user?.accountType === 'Instructor' && user?.isApproved;
     
     if (!isAdmin && !isApprovedInstructor) {
-      toast.error('You need to be an Admin or an approved Instructor to create or edit courses');
+      toast.error('You need to be an Admin, SuperAdmin, or an approved Instructor to create or edit courses');
       console.error('Insufficient permissions:', { 
         isAdmin,
         isApprovedInstructor,
@@ -876,6 +876,7 @@ export default function CourseInformationForm() {
         // Update Redux store with the course data
         dispatch(setCourse(result));
 
+
         toast.success(
           editCourse 
             ? 'Course updated successfully!'
@@ -884,6 +885,8 @@ export default function CourseInformationForm() {
 
         // Move to next step only after success
         dispatch(setStep(2));
+        
+
       }
     } catch (error) {
       console.error('Error submitting form:', error);

@@ -48,6 +48,9 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
   const [ugpgSubjects, setUgpgSubjects] = useState([]);
   const [loadingSubjects, setLoadingSubjects] = useState(false);
 
+
+ 
+
   // Fetch UG/PG subjects for the selected course and semester
   const fetchUgpgSubjects = useCallback(async (courseId, semester) => {
     if (!courseId) {
@@ -1595,6 +1598,7 @@ const ResultForm = ({ initialValues, onSuccess, onCancel, courses, examSessions,
         <Button onClick={onCancel}>
           Cancel
         </Button>
+        
         <Button type="primary" htmlType="submit" loading={loading}>
           Save Result
         </Button>

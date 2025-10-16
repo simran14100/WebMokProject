@@ -59,6 +59,11 @@ router.get('/:id', getResultById);
 // @route   DELETE /api/v1/results/:id
 // @desc    Delete a result
 // @access  Private/Admin
-router.delete('/:id', deleteResult);
+router.delete(
+  '/:id', 
+  protect, 
+  authorize('Admin', 'SuperAdmin'), 
+  deleteResult
+);
 
 module.exports = router;

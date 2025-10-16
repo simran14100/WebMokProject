@@ -45,6 +45,13 @@ const AdmissionEnquiryForm = () => {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Check if the field is phone or alternateNumber
+    if ((name === 'phone' || name === 'alternateNumber') && value.length > 10) {
+      toast.error('Phone number cannot exceed 10 digits');
+      return; // Don't update the state if more than 10 digits
+    }
+    
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 

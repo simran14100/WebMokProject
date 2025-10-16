@@ -333,8 +333,8 @@ function AppRoutes() {
           <UGPGInlineLayout />
         </ProtectedRoute>
       }>
-        {/* <Route index element={<UGPGDashboard />} />
-        <Route path="new-registration" element={
+        <Route index element={<UGPGDashboard />} />
+        {/* <Route path="new-registration" element={
           
             <NewRegistration />
         } /> */}

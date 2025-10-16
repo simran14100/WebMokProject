@@ -903,43 +903,84 @@ const ResultGeneration = () => {
     }
   };
 
-  const handleDeleteResult = (resultId) => {
-    if (!resultId) {
-      message.error('Invalid result ID');
-      return;
-    }
+  // const handleDeleteResult = (resultId) => {
+  //   if (!resultId) {
+  //     message.error('Invalid result ID');
+  //     return;
+  //   }
 
-    // Show confirmation dialog
-    Modal.confirm({
-      title: 'Confirm Deletion',
-      content: 'Are you sure you want to delete this result? This action cannot be undone.',
-      okText: 'Yes, Delete',
-      okType: 'danger',
-      cancelText: 'Cancel',
-      onOk: async () => {
-        try {
-          setLoading(true);
-          const response = await deleteResult(resultId);
+  //   // Show confirmation dialog
+  //   Modal.confirm({
+  //     title: 'Confirm Deletion',
+  //     content: 'Are you sure you want to delete this result? This action cannot be undone.',
+  //     okText: 'Yes, Delete',
+  //     okType: 'danger',
+  //     cancelText: 'Cancel',
+  //     onOk: async () => {
+  //       try {
+  //         setLoading(true);
+  //         const response = await deleteResult(resultId);
           
-          if (response.success) {
-            message.success('Result deleted successfully');
-            await refreshResults();
-          } else {
-            throw new Error(response.message || 'Failed to delete result');
-          }
-        } catch (error) {
-          console.error('Error deleting result:', error);
-          message.error(error.message || 'Failed to delete result');
-        } finally {
-          setLoading(false);
-        }
-      },
-      onCancel() {
-        console.log('Deletion cancelled');
-      },
-    });
-  };
+  //         if (response.success) {
+  //           message.success('Result deleted successfully');
+  //           await refreshResults();
+  //         } else {
+  //           throw new Error(response.message || 'Failed to delete result');
+  //         }
+  //       } catch (error) {
+  //         console.error('Error deleting result:', error);
+  //         message.error(error.message || 'Failed to delete result');
+  //       } finally {
+  //         setLoading(false);
+  //       }
+  //     },
+  //     onCancel() {
+  //       console.log('Deletion cancelled');
+  //     },
+  //   });
+  // };
+const handleDeleteResult = (resultId) => {
+  if (!resultId) {
+    message.error('Invalid result ID');
+    return;
+  }
 
+  // Show confirmation dialog
+  Modal.confirm({
+    title: 'Confirm Deletion',
+    content: 'Are you sure you want to delete this result? This action cannot be undone.',
+    okText: 'Yes, Delete',
+    okType: 'danger',
+    cancelText: 'Cancel',
+    onOk: async () => {
+      try {
+        setLoading(true);
+        console.log('Attempting to delete result with ID:', resultId); // Debug log
+        const response = await deleteResult(resultId);
+        console.log('Delete response:', response); // Debug log
+        
+        if (response.success) {
+          message.success('Result deleted successfully');
+          await refreshResults();
+        } else {
+          throw new Error(response.message || 'Failed to delete result');
+        }
+      } catch (error) {
+        console.error('Error details:', { // More detailed error logging
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status
+        });
+        message.error(error.message || 'Failed to delete result');
+      } finally {
+        setLoading(false);
+      }
+    },
+    onCancel() {
+      console.log('Deletion cancelled');
+    },
+  });
+};
   // Format results for the ResultList component
   const formatResults = (results) => {
     if (!Array.isArray(results)) return [];

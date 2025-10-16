@@ -753,7 +753,29 @@ const Home = () => {
                       </div>
                       <div className="bottom-content">
                         <span className="price">₹{course.price || "Free"}</span>
-                        <Link to={`/courses/${course._id}`} className="course-btn">View Details</Link>
+                        <Link 
+                          to={`/course/${course._id}`} 
+                          className="course-btn" 
+                          style={{
+                            color: '#191A1F',
+                            fontSize: '16px',
+                            fontWeight: '600',
+                            padding: '5px 20px',
+                            border: '1px solid #E0E5EB',
+                            borderRadius: '100px',
+                            textDecoration: 'none',
+                            transition: 'all 0.3s ease',
+                            cursor: 'pointer'
+                          }}
+                          onMouseEnter={(e) => {
+                            e.target.style.border = '1px solid #07A698';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.target.style.border = '1px solid #E0E5EB';
+                          }}
+                        >
+                          View Details
+                        </Link>
                       </div>
                     </div>
                   </motion.div>

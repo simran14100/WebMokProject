@@ -160,22 +160,30 @@ exports.isStudent = async (req, res, next) => {
 exports.isAdmin = async (req, res, next) => {
   try {
     const userDetails = await User.findOne({ email: req.user.email });
-
-    // Allow Admin, SuperAdmin, Instructor, and Content Manager to access Admin-protected routes
-    if (!["Admin", "SuperAdmin", "Instructor", "Content Manager"].includes(userDetails.accountType)) {
-      return res.status(401).json({
-        success: false,
-        message: "You don't have permission to access this resource",
-        requiredRoles: ["Admin", "SuperAdmin", "Instructor", "Content Manager"],
-        yourRole: userDetails.accountType
-      });
+    
+    // Allow both Admin and SuperAdmin
+    if (["Admin", "SuperAdmin"].includes(userDetails.accountType)) {
+      return next();
     }
-    next();
+    
+    // For other roles, check if they have specific permissions
+    const allowedRoles = ["Instructor", "Content Manager"];
+    if (allowedRoles.includes(userDetails.accountType) && userDetails.isApproved) {
+      return next();
+    }
+    
+    return res.status(403).json({
+      success: false,
+      message: 'Access denied. Requires admin privileges.',
+      userRole: userDetails.accountType,
+      isAdmin: ["Admin", "SuperAdmin"].includes(userDetails.accountType),
+      isApproved: userDetails.isApproved
+    });
   } catch (error) {
     console.error('Error in isAdmin middleware:', error);
-    return res.status(500).json({ 
-      success: false, 
-      message: `Error verifying user role: ${error.message}` 
+    return res.status(500).json({
+      success: false,
+      message: `Error verifying admin status: ${error.message}`
     });
   }
 };
@@ -242,23 +250,50 @@ exports.isInstructor = async (req, res, next) => {
 			.json({ success: false, message: `User Role Can't be Verified` });
 	}
 };
-// Middleware for admin-level access (Admin, SuperAdmin, Staff)
+// Middleware for admin-level access (Admin, SuperAdmin, Content-management, approved Instructors)
 exports.isAdminLevel = async (req, res, next) => {
   try {
     const userDetails = await User.findOne({ email: req.user.email });
+    
+    // Log for debugging
+    console.log('Admin level check:', {
+      email: userDetails.email,
+      accountType: userDetails.accountType,
+      isApproved: userDetails.isApproved
+    });
 
-    // Include Instructor and Content-management as admin-level access
-    if (!["Admin", "SuperAdmin", "Staff", "Instructor", "Content-management"].includes(userDetails.accountType)) {
-      return res.status(401).json({
-        success: false,
-        message: "This is a Protected Route for Admin Level Users (Admin, SuperAdmin, Staff, Instructor, Content-management)",
-      });
+    // Allow SuperAdmin, Admin, and Content-management directly
+    if (["SuperAdmin", "Admin", "Content-management"].includes(userDetails.accountType)) {
+      console.log('Access granted - admin level');
+      return next();
     }
-    next();
+    
+    // For Instructors, check if they're approved
+    if (userDetails.accountType === "Instructor" && userDetails.isApproved) {
+      console.log('Access granted - approved instructor');
+      return next();
+    }
+
+    // If we get here, the user doesn't have the required permissions
+    console.log('Access denied - insufficient permissions:', {
+      userRole: userDetails.accountType,
+      isApproved: userDetails.isApproved
+    });
+    
+    return res.status(403).json({
+      success: false,
+      message: 'You do not have permission to access this resource',
+      userRole: userDetails.accountType,
+      isAdmin: ["SuperAdmin", "Admin"].includes(userDetails.accountType),
+      isApprovedInstructor: userDetails.accountType === "Instructor" && userDetails.isApproved,
+      isApproved: userDetails.isApproved
+    });
   } catch (error) {
-    return res
-      .status(500)
-      .json({ success: false, message: `User Role Can't be Verified` });
+    console.error('Error in isAdminLevel middleware:', error);
+    return res.status(500).json({
+      success: false,
+      message: `Error verifying user role: ${error.message}`
+    });
   }
 };
 

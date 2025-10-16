@@ -169,7 +169,7 @@ const getSidebarLinks = (user, variant = 'default') => {
       { id: 4, name: 'Subject Management', path: '/phd-admin/subjects', icon: <VscBook style={{ fontSize: 20, color: ED_TEAL }} /> },
       { id: 5, name: 'New Applications', path: '/phd-admin/applications', icon: <VscFiles style={{ fontSize: 20, color: ED_TEAL }} /> },
       // { id: 6, name: 'Entrance', path: '/phd-admin/entrance', icon: <VscHome style={{ fontSize: 20, color: ED_TEAL }} /> },
-      { id: 7, name: 'Pro Enrolled Students', path: '/phd-admin/pro-enrolled', icon: <VscPerson style={{ fontSize: 20, color: ED_TEAL }} /> },
+      // { id: 7, name: 'Pro Enrolled Students', path: '/phd-admin/pro-enrolled', icon: <VscPerson style={{ fontSize: 20, color: ED_TEAL }} /> },
       { id: 8, name: 'Paid Fee', path: '/phd-admin/paid-fee', icon: <VscGift style={{ fontSize: 20, color: ED_TEAL }} /> },
       {
         id: 9,
@@ -183,13 +183,23 @@ const getSidebarLinks = (user, variant = 'default') => {
         ],
       },
       // { id: 10, name: 'Enrolled Students', path: '/phd-admin/enrolled-students', icon: <VscMortarBoard style={{ fontSize: 20, color: ED_TEAL }} /> },
-      { id: 11, name: 'Student Report', path: '/phd-admin/student-reports', icon: <VscGraph style={{ fontSize: 20, color: ED_TEAL }} /> },
+      // { id: 11, name: 'Student Report', path: '/phd-admin/student-reports', icon: <VscGraph style={{ fontSize: 20, color: ED_TEAL }} /> },
       { id: 12, name: 'Guide Management', path: '/phd-admin/guides', icon: <VscPerson style={{ fontSize: 20, color: ED_TEAL }} /> },
       { id: 13, name: 'RAC Members', path: '/phd-admin/rac-members', icon: <VscListSelection style={{ fontSize: 20, color: ED_TEAL }} /> },
       { id: 14, name: 'External Experts', path: '/phd-admin/experts', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
-      { id: 15, name: 'Users Management', path: '/phd-admin/users', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
-      { id: 16, name: 'Final Data', path: '/phd-admin/final-data', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
-      { id: 17, name: 'Honorary Registration', path: '/phd-admin/honorary', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+      // { id: 15, name: 'Users Management', path: '/phd-admin/users', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+      
+      // {
+      //   id: 16,
+      //   name: "Users",
+      //   icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} />,
+      //   subLinks: [
+      //     { name: "Create User", path: "/admin/users/create" },
+      //     { name: "All Users", path: "/admin/all-users" }
+      //   ]
+      // },
+      { id: 17, name: 'Final Data', path: '/phd-admin/final-data', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 18, name: 'Honorary Registration', path: '/phd-admin/honorary', icon: <VscAccount style={{ fontSize: 20, color: ED_TEAL }} /> },
     
     ];
 
@@ -199,7 +209,7 @@ const getSidebarLinks = (user, variant = 'default') => {
   if (variant === 'ugpg' && (user?.accountType === 'SuperAdmin')) {
     return [
       { id: 100, name: 'MAIN', isHeader: true, icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
-      // { id: 101, name: 'Dashboard', path: '/ugpg-admin', icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
+      { id: 101, name: 'Dashboard', path: '/ugpg-admin', icon: <VscDashboard style={{ fontSize: 20, color: ED_TEAL }} /> },
       { 
         id: 102, 
         name: 'Settings', 

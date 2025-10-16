@@ -222,6 +222,7 @@ cloudinaryConnect();
 
 // Import student payment routes
 const studentPaymentRoutes = require('./routes/studentPayment');
+const finalDataRoutes = require('./routes/finalData');
 
 // Mount the routes
 app.use("/api/v1/auth", userRoutes);
@@ -230,6 +231,10 @@ app.use("/api/v1/profile", profileRoutes);
 // Mount student payment routes with explicit path
 app.use("/api/v1/student-payment", studentPaymentRoutes);
 console.log('Mounted student payment routes at /api/v1/student-payment');
+
+// Mount FinalData routes
+app.use("/api/v1/final-data", finalDataRoutes);
+console.log('Mounted final data routes at /api/v1/final-data');
 
 app.use("/api/v1/course", courseRoutes);
 app.use("/api/v1/payment", paymentRoutes);

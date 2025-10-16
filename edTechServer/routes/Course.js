@@ -47,7 +47,7 @@ const {
 router.post("/addSubSection", auth, async (req, res) => {
   try {
     // Check user role
-    if (req.user.accountType !== 'Instructor' && req.user.accountType !== 'Admin') {
+    if (req.user.accountType !== 'Instructor' && req.user.accountType !== 'Admin'&& req.user.accountType !== 'SuperAdmin') {
       return res.status(403).json({
         success: false,
         message: "Only instructors and admins can add subsections"
@@ -268,7 +268,7 @@ router.post("/editCourse", auth, async (req, res, next) => {
 // Add a Section to a Course
 // Section routes
 router.post("/addSection", auth, (req, res, next) => {
-  if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
+  if (req.user.accountType === 'Admin' || req.user.accountType === 'SuperAdmin' ||(req.user.accountType === 'Instructor' && req.user.isApproved)) {
     next();
   } else {
     return res.status(403).json({
@@ -280,7 +280,7 @@ router.post("/addSection", auth, (req, res, next) => {
 
 // Update a Section
 router.post("/updateSection", auth, (req, res, next) => {
-  if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
+  if (req.user.accountType === 'Admin' || req.user.accountType === 'SuperAdmin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
     next();
   } else {
     return res.status(403).json({
@@ -292,7 +292,7 @@ router.post("/updateSection", auth, (req, res, next) => {
 
 // Delete a Section
 router.post("/deleteSection", auth, (req, res, next) => {
-  if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
+  if (req.user.accountType === 'Admin' ||  req.user.accountType === 'SuperAdmin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
     next();
   } else {
     return res.status(403).json({
@@ -313,7 +313,7 @@ router.post("/addSubSection", auth, async (req, res) => {
     });
 
     // Check user authorization
-    if (req.user.accountType !== 'Admin' && (req.user.accountType !== 'Instructor' || !req.user.isApproved)) {
+    if (req.user.accountType !== 'Admin' && (req.user.accountType !== 'Instructor' ||req.user.accountType === 'SuperAdmin' || !req.user.isApproved)) {
       return res.status(403).json({
         success: false,
         message: 'Unauthorized: Only approved instructors and admins can add subsections'
@@ -354,7 +354,7 @@ router.post("/addSubSection", auth, async (req, res) => {
 });
 // Edit Sub Section
 router.post("/updateSubSection", auth, (req, res, next) => {
-  if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
+  if (req.user.accountType === 'Admin' || req.user.accountType === 'SuperAdmin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
     next();
   } else {
     return res.status(403).json({
@@ -366,7 +366,7 @@ router.post("/updateSubSection", auth, (req, res, next) => {
 
 // Delete Sub Section
 router.post("/deleteSubSection", auth, (req, res, next) => {
-  if (req.user.accountType === 'Admin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
+  if (req.user.accountType === 'Admin' ||req.user.accountType === 'SuperAdmin' || (req.user.accountType === 'Instructor' && req.user.isApproved)) {
     next();
   } else {
     return res.status(403).json({

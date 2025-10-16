@@ -1,97 +1,13 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
+import { finalDataApi } from "../../../services/finalDataApi";
+import { toast } from "react-hot-toast";
+import { useSelector } from "react-redux";
 
 const ED_TEAL = "#07A698";
 
-export default function FinalData() {
-  const [showModal, setShowModal] = useState(false);
-  const initialForm = {
-    panel: "",
-    awardYear: "",
-    status: "",
-    regDate: "",
-    drcDate: "",
-    proEnrollmentNo: "",
-    batch: "",
-    studentName: "",
-    addressEmailContact: "",
-    city: "",
-    state: "",
-    pincode: "",
-    pgPercent: "",
-    university: "",
-    entranceType: "",
-    mode: "",
-    enrollmentNo: "",
-    allocationProcess: "",
-    supervisorName: "",
-    supervisorDesignation: "",
-    supervisorDepartment: "",
-    isRegularTeacher: "",
-    totalPhDNo: "",
-    coSupervisorName: "",
-    coSupervisorDesignation: "",
-    coSupervisorDepartment: "",
-    courseworkDate: "",
-    courseworkStartDate: "",
-    courseworkEndDate: "",
-    courseworkReport: "",
-    rac: "",
-    researchProposalFinalizationReport: "",
-    periodicalReviewReport: "",
-    presentationDate: "",
-    papersPublished: "",
-    thesisSubmissionDate: "",
-    examinerName: "",
-    examinerState: "",
-    plagiarismReport: "",
-    thesisSendingDate: "",
-    thesisReceivingDate: "",
-    thesisSuggestion: "",
-    vivaDate: "",
-    vivaReport: "",
-    awardDate: "",
-    shodhgangaLink: "",
-    provisionalCertificateDate: "",
-    otherInformation: "",
-    guideChange: "",
-    motherName: "",
-    fatherName: "",
-    aadharNo: "",
-    category: "",
-    gender: "",
-    title: "",
-  };
-  const [form, setForm] = useState(initialForm);
-  const [students, setStudents] = useState([]);
-
-  // Lock body scroll when modal is open
-  useEffect(() => {
-    if (showModal) {
-      document.body.classList.add("modal-open");
-    } else {
-      document.body.classList.remove("modal-open");
-    }
-    return () => document.body.classList.remove("modal-open");
-  }, [showModal]);
-
-  const onChange = (e) => {
-    const { name, value } = e.target;
-    setForm((f) => ({ ...f, [name]: value }));
-  };
-
-  const onSubmit = (e) => {
-    e.preventDefault();
-    // TODO: hook API here
-    console.log("Submitting Final Data form", form);
-    // Add to table locally
-    setStudents((prev) => [{ id: Date.now(), ...form }, ...prev]);
-    // Reset form
-    setForm(initialForm);
-    // Close modal
-    setShowModal(false);
-  };
-
-  const FormFields = ({ onSubmitHandler }) => (
+// Memoized FormFields component to prevent unnecessary re-renders
+const FormFields = React.memo(({ form, onChange, onSubmitHandler, isLoading, setShowModal }) => {
+  return (
     <form className="form-grid" onSubmit={onSubmitHandler}>
       {/* Row 1 */}
       <div className="field">
@@ -373,11 +289,184 @@ export default function FinalData() {
       </div>
 
       <div className="actions">
-        <button type="button" className="secondary" onClick={() => showModal ? setShowModal(false) : setForm(form)}>Cancel</button>
-        <button type="submit" className="primary">Submit</button>
+        <button 
+          type="button" 
+          className="secondary" 
+          onClick={() => setShowModal(false)}
+          disabled={isLoading}
+        >
+          Cancel
+        </button>
+        <button 
+          type="submit" 
+          className="primary"
+          disabled={isLoading}
+        >
+          {isLoading ? 'Saving...' : 'Submit'}
+        </button>
       </div>
     </form>
   );
+});
+
+export default function FinalData() {
+  const [showModal, setShowModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [students, setStudents] = useState([]);
+  
+  const initialForm = {
+    panel: "",
+    awardYear: "",
+    status: "",
+    regDate: "",
+    drcDate: "",
+    proEnrollmentNo: "",
+    batch: "",
+    studentName: "",
+    addressEmailContact: "",
+    city: "",
+    state: "",
+    pincode: "",
+    pgPercent: "",
+    university: "",
+    entranceType: "",
+    mode: "",
+    enrollmentNo: "",
+    allocationProcess: "",
+    supervisorName: "",
+    supervisorDesignation: "",
+    supervisorDepartment: "",
+    isRegularTeacher: "",
+    totalPhDNo: "",
+    coSupervisorName: "",
+    coSupervisorDesignation: "",
+    coSupervisorDepartment: "",
+    courseworkDate: "",
+    courseworkStartDate: "",
+    courseworkEndDate: "",
+    courseworkReport: "",
+    rac: "",
+    researchProposalFinalizationReport: "",
+    periodicalReviewReport: "",
+    presentationDate: "",
+    papersPublished: "",
+    thesisSubmissionDate: "",
+    examinerName: "",
+    examinerState: "",
+    plagiarismReport: "",
+    thesisSendingDate: "",
+    thesisReceivingDate: "",
+    thesisSuggestion: "",
+    vivaDate: "",
+    vivaReport: "",
+    awardDate: "",
+    shodhgangaLink: "",
+    provisionalCertificateDate: "",
+    otherInformation: "",
+    guideChange: "",
+    motherName: "",
+    fatherName: "",
+    aadharNo: "",
+    category: "",
+    gender: "",
+    title: "",
+  };
+
+  const [form, setForm] = useState(initialForm);
+
+  // Load students data on component mount
+  useEffect(() => {
+    const fetchStudents = async () => {
+      try {
+        setIsLoading(true);
+        const response = await finalDataApi.getFinalData();
+        setStudents(response.data || []);
+      } catch (error) {
+        console.error("Error fetching students:", error);
+        toast.error("Failed to load student data");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchStudents();
+  }, []);
+
+  // Memoized onChange handler
+  const onChange = useCallback((e) => {
+    const { name, value } = e.target;
+    setForm((f) => ({ ...f, [name]: value }));
+  }, []);
+
+  // Get user from Redux store
+  const { user } = useSelector((state) => state.profile);
+
+  const formatDate = (dateString) => {
+    if (!dateString) return undefined;
+    const date = new Date(dateString);
+    return isNaN(date.getTime()) ? undefined : date.toISOString();
+  };
+
+ const onSubmit = async (e) => {
+  e.preventDefault();
+  setIsLoading(true);
+  
+  try {
+    if (!user) {
+      throw new Error('User not authenticated. Please log in again.');
+    }
+    
+    // Create a clean copy of the form data
+    const cleanedForm = { ...form };
+    
+    // Format all date fields
+    const dateFields = [
+      'regDate', 'drcDate', 'courseworkDate', 'courseworkStartDate',
+      'courseworkEndDate', 'presentationDate', 'thesisSubmissionDate',
+      'thesisSendingDate', 'thesisReceivingDate', 'vivaDate', 'awardDate',
+      'provisionalCertificateDate'
+    ];
+    
+    dateFields.forEach(field => {
+      if (cleanedForm[field]) {
+        cleanedForm[field] = formatDate(cleanedForm[field]);
+      }
+    });
+    
+    // Format numeric fields
+    if (cleanedForm.pgPercent) {
+      cleanedForm.pgPercent = parseFloat(cleanedForm.pgPercent);
+    }
+    if (cleanedForm.totalPhDNo) {
+      cleanedForm.totalPhDNo = parseInt(cleanedForm.totalPhDNo, 10);
+    }
+    
+    // Remove any empty strings, undefined, or null values
+    Object.keys(cleanedForm).forEach(key => {
+      if (cleanedForm[key] === '' || cleanedForm[key] === undefined || cleanedForm[key] === null) {
+        delete cleanedForm[key];
+      }
+    });
+    
+    console.log('Submitting form data:', cleanedForm);
+    const response = await finalDataApi.createFinalData(cleanedForm);
+    
+    // Update local state with the new student data
+    setStudents(prev => [response.data, ...prev]);
+    
+    // Show success message
+    toast.success("Student data saved successfully!");
+    
+    // Reset form and close modal
+    setForm(initialForm);
+    setShowModal(false);
+  } catch (error) {
+    console.error("Error saving student data:", error);
+    // Error message is already shown by the API service
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   return (
     <div className="finaldata-container">
@@ -389,6 +478,7 @@ export default function FinalData() {
             setForm(initialForm);
             setShowModal(true);
           }}
+          disabled={isLoading}
         >
           Add New Student
         </button>
@@ -396,99 +486,344 @@ export default function FinalData() {
 
       {/* Table view */}
       <div className="table-wrapper">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Name</th>
-              <th>Enrollment No</th>
-              <th>Panel</th>
-              <th>Status</th>
-              <th>Reg. Date</th>
-              <th>Supervisor</th>
-              <th>Coursework Date</th>
-              <th>Thesis Submission</th>
-              <th>Viva Date</th>
-              <th>Award Date</th>
-            </tr>
-          </thead>
-          <tbody>
-            {students.length === 0 ? (
+        {isLoading && students.length === 0 ? (
+          <div className="loading">Loading...</div>
+        ) : (
+          <table className="data-table">
+            <thead>
               <tr>
-                <td colSpan={11} className="empty">No records yet. Click "Add New Student" to create one.</td>
+                <th>#</th>
+                <th>Name</th>
+                <th>Enrollment No</th>
+                <th>Panel</th>
+                <th>Status</th>
+                <th>Reg. Date</th>
+                <th>Supervisor</th>
+                <th>Coursework Date</th>
+                <th>Thesis Submission</th>
+                <th>Viva Date</th>
+                <th>Award Date</th>
               </tr>
-            ) : (
-              students.map((s, idx) => (
-                <tr key={s.id}>
-                  <td>{idx + 1}</td>
-                  <td>{s.studentName || "-"}</td>
-                  <td>{s.enrollmentNo || "-"}</td>
-                  <td>{s.panel || "-"}</td>
-                  <td>{s.status || "-"}</td>
-                  <td>{s.regDate || "-"}</td>
-                  <td>{s.supervisorName || "-"}</td>
-                  <td>{s.courseworkDate || "-"}</td>
-                  <td>{s.thesisSubmissionDate || "-"}</td>
-                  <td>{s.vivaDate || "-"}</td>
-                  <td>{s.awardDate || "-"}</td>
+            </thead>
+            <tbody>
+              {students.length === 0 ? (
+                <tr>
+                  <td colSpan={11} className="empty">No records found.</td>
                 </tr>
-              ))
-            )}
-          </tbody>
-        </table>
+              ) : (
+                students.map((s, idx) => (
+                  <tr key={s._id || idx}>
+                    <td>{idx + 1}</td>
+                    <td>{s.studentName || "-"}</td>
+                    <td>{s.enrollmentNo || "-"}</td>
+                    <td>{s.panel || "-"}</td>
+                    <td>{s.status || "-"}</td>
+                    <td>{s.regDate ? new Date(s.regDate).toLocaleDateString() : "-"}</td>
+                    <td>{s.supervisorName || "-"}</td>
+                    <td>{s.courseworkDate ? new Date(s.courseworkDate).toLocaleDateString() : "-"}</td>
+                    <td>{s.thesisSubmissionDate ? new Date(s.thesisSubmissionDate).toLocaleDateString() : "-"}</td>
+                    <td>{s.vivaDate ? new Date(s.vivaDate).toLocaleDateString() : "-"}</td>
+                    <td>{s.awardDate ? new Date(s.awardDate).toLocaleDateString() : "-"}</td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        )}
       </div>
 
       {showModal && (
-        <div className="modal-overlay" onClick={() => setShowModal(false)}>
+        <div className="modal-overlay" onClick={() => !isLoading && setShowModal(false)}>
           <div className="modal" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
               <h2>Add New Student</h2>
-              <button className="close" onClick={() => setShowModal(false)}>×</button>
+              <button 
+                className="close" 
+                onClick={() => !isLoading && setShowModal(false)}
+                disabled={isLoading}
+              >
+                ×
+              </button>
             </div>
-            <FormFields onSubmitHandler={onSubmit} />
+            <FormFields 
+              form={form}
+              onChange={onChange}
+              onSubmitHandler={onSubmit}
+              isLoading={isLoading}
+              setShowModal={setShowModal}
+            />
           </div>
         </div>
       )}
 
       <style jsx>{`
-        .finaldata-container { padding: 16px;  margin-top:10rem}
-        .header { display: flex; align-items: center; justify-content: space-between; }
-        h1 { font-size: 28px; font-weight: 800; color: ${ED_TEAL}; }
-        .primary { background: ${ED_TEAL}; color: #fff; border: none; border-radius: 8px; padding: 10px 14px; font-weight: 600; cursor: pointer; }
-        .secondary { background: #f3f4f6; color: #111827; border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 14px; font-weight: 600; cursor: pointer; }
-
-        /* Prevent background scroll when modal is open */
-        :global(body.modal-open) { overflow: hidden; }
-
-        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.55); backdrop-filter: blur(2px); display: flex; align-items: center; justify-content: center; z-index: 100000; padding: 20px; pointer-events: auto; }
-        .modal { position: relative; z-index: 100001; width: min(96vw, 1200px); max-height: 92vh; background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; box-shadow: 0 24px 64px rgba(0,0,0,0.35); }
-        .modal-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-bottom: 1px solid #e5e7eb; background: #f9fafb; }
-        .close { background: transparent; border: none; font-size: 22px; cursor: pointer; color: #64748b; }
-
-        /* Make content scroll inside the modal rather than the page */
-        .form-grid { padding: 16px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; overflow: auto; max-height: calc(92vh - 60px); }
-        @media (max-width: 1024px) {
-          .modal { width: 96vw; max-height: 94vh; }
-          .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); max-height: calc(94vh - 60px); }
+        .finaldata-container { padding: 16px; margin-top: 10rem; }
+        .header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+        h1 { font-size: 28px; font-weight: 800; color: ${ED_TEAL}; margin: 0; }
+        
+        .primary { 
+          background: ${ED_TEAL}; 
+          color: #fff; 
+          border: none; 
+          border-radius: 8px; 
+          padding: 10px 14px; 
+          font-weight: 600; 
+          cursor: pointer;
+          transition: opacity 0.2s;
         }
-        .table-wrapper { margin-top: 16px; border: 1px solid #e5e7eb; border-radius: 12px; overflow: hidden; background: #fff; }
-        .data-table { width: 100%; border-collapse: collapse; }
-        .data-table thead { background: #f9fafb; }
-        .data-table th, .data-table td { padding: 10px 12px; border-bottom: 1px solid #e5e7eb; text-align: left; font-size: 14px; }
-        .data-table th { color: #374151; font-weight: 700; }
-        .data-table td { color: #111827; }
-        .data-table .empty { text-align: center; padding: 24px; color: #6b7280; }
-        .field { display: flex; flex-direction: column; gap: 6px; }
-        .field.col-2 { grid-column: span 2 / span 2; }
-        .field.col-3 { grid-column: span 3 / span 3; }
-        .field.col-4 { grid-column: span 4 / span 4; }
-        label { font-size: 12px; color: #374151; }
-        input, select, textarea { border: 1px solid #e5e7eb; border-radius: 8px; padding: 10px 12px; outline: none; font-size: 14px; }
-        textarea { min-height: 80px; }
-        .actions { grid-column: 1 / -1; display: flex; justify-content: flex-end; gap: 8px; padding-top: 8px; }
+        
+        .primary:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        
+        .secondary { 
+          background: #f3f4f6; 
+          color: #111827; 
+          border: 1px solid #e5e7eb; 
+          border-radius: 8px; 
+          padding: 10px 14px; 
+          font-weight: 600; 
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        
+        .secondary:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        
+        .secondary:hover:not(:disabled) {
+          background: #e5e7eb;
+        }
 
-        @media (max-width: 1024px) { .form-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-        @media (max-width: 640px) { .form-grid { grid-template-columns: 1fr; } }
+        /* Modal styles */
+        .modal-overlay { 
+          position: fixed; 
+          inset: 0; 
+          background: rgba(0,0,0,0.55); 
+          backdrop-filter: blur(2px); 
+          display: flex; 
+          align-items: center; 
+          justify-content: center; 
+          z-index: 100000; 
+          padding: 20px; 
+          pointer-events: auto; 
+        }
+        
+        .modal { 
+          position: relative; 
+          z-index: 100001; 
+          width: min(96vw, 1200px); 
+          max-height: 92vh; 
+          background: #fff; 
+          border: 1px solid #e5e7eb; 
+          border-radius: 12px; 
+          overflow: hidden; 
+          display: flex; 
+          flex-direction: column; 
+          box-shadow: 0 24px 64px rgba(0,0,0,0.35); 
+        }
+        
+        .modal-header { 
+          display: flex; 
+          align-items: center; 
+          justify-content: space-between; 
+          padding: 12px 16px; 
+          border-bottom: 1px solid #e5e7eb; 
+          background: #f9fafb; 
+        }
+        
+        .close { 
+          background: transparent; 
+          border: none; 
+          font-size: 22px; 
+          cursor: pointer; 
+          color: #64748b;
+          padding: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border-radius: 4px;
+        }
+        
+        .close:hover:not(:disabled) {
+          background: #e5e7eb;
+        }
+        
+        .close:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+
+        /* Form grid */
+        .form-grid { 
+          padding: 16px; 
+          display: grid; 
+          grid-template-columns: repeat(4, minmax(0, 1fr)); 
+          gap: 12px; 
+          overflow: auto; 
+          max-height: calc(92vh - 60px); 
+        }
+        
+        .table-wrapper {
+          margin-top: 16px; 
+          border: 1px solid #e5e7eb; 
+          border-radius: 12px; 
+          overflow: hidden; 
+          background: #fff;
+          min-height: 100px;
+          position: relative;
+        }
+        
+        .loading {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 20px;
+          color: #6b7280;
+        }
+        
+        .data-table { 
+          width: 100%; 
+          border-collapse: collapse; 
+          font-size: 14px;
+        }
+        
+        .data-table thead { 
+          background: #f9fafb; 
+        }
+        
+        .data-table th, 
+        .data-table td { 
+          padding: 12px; 
+          border-bottom: 1px solid #e5e7eb; 
+          text-align: left; 
+        }
+        
+        .data-table th { 
+          color: #374151; 
+          font-weight: 600;
+          text-transform: uppercase;
+          font-size: 12px;
+          letter-spacing: 0.5px;
+        }
+        
+        .data-table td { 
+          color: #111827; 
+          vertical-align: middle;
+        }
+        
+        .data-table tr:hover {
+          background-color: #f9fafb;
+        }
+        
+        .data-table .empty { 
+          text-align: center; 
+          padding: 24px; 
+          color: #6b7280; 
+        }
+        
+        .field { 
+          display: flex; 
+          flex-direction: column; 
+          gap: 6px; 
+        }
+        
+        .field.col-2 { 
+          grid-column: span 2 / span 2; 
+        }
+        
+        .field.col-3 { 
+          grid-column: span 3 / span 3; 
+        }
+        
+        .field.col-4 { 
+          grid-column: span 4 / span 4; 
+        }
+        
+        label { 
+          font-size: 12px; 
+          color: #374151; 
+          font-weight: 500;
+        }
+        
+        input, 
+        select { 
+          border: 1px solid #e5e7eb; 
+          border-radius: 8px; 
+          padding: 10px 12px; 
+          outline: none; 
+          font-size: 14px; 
+          transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        
+        input:focus,
+        select:focus {
+          border-color: ${ED_TEAL};
+          box-shadow: 0 0 0 3px rgba(7, 166, 152, 0.1);
+        }
+        
+        .actions { 
+          grid-column: 1 / -1; 
+          display: flex; 
+          justify-content: flex-end; 
+          gap: 12px; 
+          padding-top: 16px;
+          margin-top: 8px;
+          border-top: 1px solid #e5e7eb;
+        }
+        
+        @media (max-width: 1024px) { 
+          .form-grid { 
+            grid-template-columns: repeat(2, minmax(0, 1fr)); 
+          } 
+          
+          .data-table {
+            font-size: 13px;
+          }
+          
+          .data-table th,
+          .data-table td {
+            padding: 10px 8px;
+          }
+        }
+        
+        @media (max-width: 768px) {
+          .data-table {
+            display: block;
+            overflow-x: auto;
+            white-space: nowrap;
+            -webkit-overflow-scrolling: touch;
+          }
+          
+          .finaldata-container {
+            margin-top: 8rem;
+            padding: 12px;
+          }
+          
+          .header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+          }
+          
+          h1 {
+            font-size: 24px;
+          }
+        }
+        
+        @media (max-width: 640px) { 
+          .form-grid { 
+            grid-template-columns: 1fr; 
+          } 
+          
+          .field.col-2,
+          .field.col-3,
+          .field.col-4 {
+            grid-column: span 1;
+          }
+        }
       `}</style>
     </div>
   );

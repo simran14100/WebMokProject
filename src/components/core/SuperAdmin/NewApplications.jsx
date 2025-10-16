@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FiEye } from 'react-icons/fi';
+import { FiTrash2 } from 'react-icons/fi';
 import { ED_TEAL, ED_TEAL_DARK } from '../../../utils/theme';
 import { listDepartments } from '../../../services/departmentApi';
 import { 
@@ -23,6 +23,95 @@ export default function NewApplications() {
   const [department, setDepartment] = useState('');
   const [page, setPage] = useState(1);
   const [meta, setMeta] = useState({ total: 0, page: 1, limit: PAGE_SIZE });
+  const [deleteModalOpen, setDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState(null);
+
+  const handleDeleteClick = (item) => {
+    setItemToDelete(item);
+    setDeleteModalOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!itemToDelete) return;
+    
+    const token = localStorage.getItem('token');
+    const tId = showLoading('Deleting application...');
+    
+    try {
+      // Delete the item
+      await deleteAdmissionEnquiry(itemToDelete.id, token);
+      
+      // Optimistically update the UI by removing the deleted item
+      setItems(prevItems => prevItems.filter(item => item.id !== itemToDelete.id));
+      
+      // Update the total count
+      setMeta(prevMeta => ({
+        ...prevMeta,
+        total: Math.max(0, prevMeta.total - 1)
+      }));
+      
+      // If we're on the last page with only one item, go to previous page
+      if (items.length === 1 && page > 1) {
+        setPage(prevPage => prevPage - 1);
+      }
+      
+      dismissToast(tId);
+      showSuccess('Application deleted successfully');
+    } catch (error) {
+      console.error('Error deleting application:', error);
+      showError(error.message || 'Failed to delete application');
+      
+      // If there's an error, reload the data
+      try {
+        const listRes = await getAllAdmissionEnquiries({
+          programType: 'PHD',
+          status: status || undefined,
+          page,
+          limit: PAGE_SIZE,
+          search: query || undefined
+        }, token);
+        
+        const enquiryData = listRes?.data?.data || [];
+        const mapped = enquiryData.map((enquiry, index) => ({
+          id: enquiry._id || enquiry.id || `temp-${index}`,
+          name: (enquiry.firstName && enquiry.lastName) 
+            ? `${enquiry.firstName} ${enquiry.lastName}`.trim() 
+            : enquiry.name || 'No Name',
+          email: enquiry.email || 'No Email',
+          phone: enquiry.phone || enquiry.phoneNumber || 'No Phone',
+          programType: enquiry.programType || 'PHD',
+          status: enquiry.status || 'pending',
+          createdAt: enquiry.createdAt || new Date().toISOString(),
+          fatherName: enquiry.fatherName || '',
+          dateOfBirth: enquiry.dateOfBirth 
+            ? new Date(enquiry.dateOfBirth).toLocaleDateString() 
+            : 'N/A',
+          qualification: enquiry.lastClass || enquiry.qualification || '',
+          boardSchoolName: enquiry.boardSchoolName || enquiry.schoolName || '',
+          percentage: enquiry.percentage || '',
+          address: [
+            enquiry.address,
+            enquiry.city,
+            enquiry.state,
+            enquiry.pincode
+          ].filter(Boolean).join(', ') || 'Not provided',
+          _raw: enquiry
+        }));
+        
+        setItems(mapped);
+        setMeta({
+          total: listRes?.data?.total || mapped.length,
+          page: listRes?.data?.page || page,
+          limit: listRes?.data?.limit || PAGE_SIZE
+        });
+      } catch (refreshError) {
+        console.error('Error refreshing data:', refreshError);
+      }
+    } finally {
+      setDeleteModalOpen(false);
+      setItemToDelete(null);
+    }
+  };
 
   const [viewId, setViewId] = useState(null);
   const viewItem = useMemo(() => items.find(i => i.id === viewId) || null, [items, viewId]);
@@ -285,12 +374,22 @@ export default function NewApplications() {
     load();
   }, [query, status, department, page]);
 
-  // Read-only UI: no delete/convert actions
-
   // Export helpers (Copy/CSV/Print)
+  // Delete functionality with confirmation modal
   const copyTable = async () => {
-    const header = 'Date\tName\tEmail\tPhone\tStatus';
-    const rows = items.map(i => `${formatDate(i.createdAt)}\t${i.name}\t${i.email}\t${i.phone}\t${i.status}`).join('\n');
+    const header = 'Date\tName\tEmail\tPhone\tProgram Type\tApplying Course\tPersonal Info\tLast Qualification\tAddress\tStatus';
+    const rows = items.map(i => [
+      formatDate(i.createdAt),
+      i.name,
+      i.email,
+      i.phone,
+      i.programType || 'N/A',
+  
+      `DOB: ${i.dateOfBirth || 'N/A'}`,
+      i.qualification || 'N/A',
+      i.address || 'N/A',
+      i.status
+    ].join('\t')).join('\n');
     const text = `${header}\n${rows}`;
     try {
       if (navigator.clipboard && window.isSecureContext) {
@@ -307,8 +406,19 @@ export default function NewApplications() {
   };
 
   const exportCSV = () => {
-    const header = 'Date,Name,Email,Phone,Status\n';
-    const rows = items.map(i => [formatDate(i.createdAt), i.name, i.email, i.phone, i.status].map(escapeCsv).join(',')).join('\n');
+    const header = 'Date,Name,Email,Phone,Program Type,Applying Course,Personal Info,Last Qualification,Address,Status\n';
+    const rows = items.map(i => [
+      formatDate(i.createdAt),
+      i.name,
+      i.email,
+      i.phone,
+      i.programType || 'N/A',
+    
+      `DOB: ${i.dateOfBirth || 'N/A'}`,
+      i.qualification || 'N/A',
+      i.address || 'N/A',
+      i.status
+    ].map(escapeCsv).join(',')).join('\n');
     const bom = '\uFEFF';
     const blob = new Blob([bom + header + rows], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -318,13 +428,49 @@ export default function NewApplications() {
   const printTable = () => {
     const win = window.open('', 'PRINT', 'height=700,width=1000');
     if (!win) return;
-    const tableRows = items.map(i => `<tr><td>${escapeHtml(formatDate(i.createdAt))}</td><td>${escapeHtml(i.name)}</td><td>${escapeHtml(i.email)}</td><td>${escapeHtml(i.phone)}</td><td>${escapeHtml(i.status)}</td></tr>`).join('');
+    const tableRows = items.map(i => `
+      <tr>
+        <td>${escapeHtml(formatDate(i.createdAt))}</td>
+        <td>${escapeHtml(i.name)}</td>
+        <td>${escapeHtml(i.email)}</td>
+        <td>${escapeHtml(i.phone)}</td>
+        <td>${escapeHtml(i.programType || 'N/A')}</td>
+      
+        <td>DOB: ${escapeHtml(i.dateOfBirth || 'N/A')}</td>
+        <td>${escapeHtml(i.qualification || 'N/A')}</td>
+        <td>${escapeHtml(i.address || 'N/A')}</td>
+        <td>${escapeHtml(i.status)}</td>
+      </tr>
+    `).join('');
     const html = `<!doctype html>
 <html><head><meta charset="utf-8" /><title>New Applications</title>
-<style>body{font-family:Arial,sans-serif;padding:16px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #cbd5e1;padding:8px;text-align:left}thead{background:#f1f5f9}</style>
+<style>
+  body{font-family:Arial,sans-serif;padding:16px}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th,td{border:1px solid #cbd5e1;padding:8px;text-align:left}
+  thead{background:#f1f5f9}
+  th{white-space:nowrap}
+  td{word-break:break-word}
+</style>
 </head><body>
 <h3>New Applications</h3>
-<table><thead><tr><th>Date</th><th>Name</th><th>Email</th><th>Phone</th><th>Status</th></tr></thead><tbody>${tableRows}</tbody></table>
+<table>
+  <thead>
+    <tr>
+      <th>Date</th>
+      <th>Name</th>
+      <th>Email</th>
+      <th>Phone</th>
+      <th>Program Type</th>
+    
+      <th>Personal Info</th>
+      <th>Last Qualification</th>
+      <th>Address</th>
+      <th>Status</th>
+    </tr>
+  </thead>
+  <tbody>${tableRows}</tbody>
+</table>
 </body></html>`;
     win.document.open(); win.document.write(html); win.document.close();
     win.onload = () => { win.focus(); win.print(); win.close(); };
@@ -336,6 +482,63 @@ export default function NewApplications() {
 
   return (
     <div style={{ padding: '1rem', marginTop: '14rem' }}>
+      {/* Delete Confirmation Modal */}
+      {deleteModalOpen && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            backgroundColor: 'white',
+            padding: '24px',
+            borderRadius: '8px',
+            maxWidth: '400px',
+            width: '90%',
+            textAlign: 'center'
+          }}>
+            <h3 style={{ marginBottom: '16px' }}>Confirm Deletion</h3>
+            <p>Are you sure you want to delete this application? This action cannot be undone.</p>
+            <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', marginTop: '24px' }}>
+              <button
+                onClick={() => setDeleteModalOpen(false)}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  border: '1px solid #e2e8f0',
+                  background: 'white',
+                  cursor: 'pointer',
+                  color: TEXT_DARK
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                style={{
+                  padding: '8px 16px',
+                  borderRadius: '4px',
+                  border: 'none',
+                  background: '#ef4444',
+                  color: 'white',
+                  cursor: 'pointer',
+                  fontWeight: 500
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
         <h1 style={{ fontSize: '22px', fontWeight: 600, color: TEXT_DARK, marginLeft: '100px' }}>New Applications</h1>
@@ -412,20 +615,7 @@ export default function NewApplications() {
           <option>Converted</option>
         </select>
   
-        <label style={{ color: TEXT_DARK, fontSize: 14 }}>School:</label>
-        <select
-          value={department}
-          onChange={(e) => { setPage(1); setDepartment(e.target.value); }}
-          style={{
-            border: `1px solid ${BORDER}`,
-            borderRadius: 6,
-            padding: '8px 10px',
-            minWidth: 150,
-          }}
-        >
-          <option value="">All</option>
-          {departments.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
-        </select>
+       
   
         <label style={{ color: TEXT_DARK, fontSize: 14 }}>Search:</label>
         <input
@@ -443,98 +633,78 @@ export default function NewApplications() {
     </div>
   
     {/* Table */}
-    <div
-      style={{
-        backgroundColor: '#fff',
-        borderRadius: '10px',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-        border: `1px solid ${BORDER}`,
-        overflow: 'hidden',
-        width: '90%',
-        marginLeft: '100px',
-      }}
-    >
-      {/* Header */}
-      <div
-        style={{
-          display: 'grid',
-          gridTemplateColumns: '100px 1.5fr 2fr 1.5fr 150px',
-          backgroundColor: ED_TEAL,
-          color: 'white',
-          fontSize: '14px',
-          fontWeight: 600,
-          padding: '12px 16px',
-        }}
-      >
-        <div>Action</div>
-        <div>Date</div>
-        <div>Applicant</div>
-        <div>Email</div>
-        <div>Status</div>
-      </div>
-  
-      {/* Rows */}
-      <div>
-        {items.map((i, idx) => (
-          <div
-            key={i.id}
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '100px 1.5fr 2fr 1.5fr 150px',
-              alignItems: 'center',
-              padding: '12px 16px',
-              backgroundColor: idx % 2 === 0 ? '#fafafa' : 'white',
-              borderBottom: `1px solid ${BORDER}`,
-              fontSize: '14px',
-              color: TEXT_DARK,
-            }}
-          >
-            {/* Action Button */}
-            <div>
-              <button
-                style={{
-                  padding: '6px 8px',
-                  borderRadius: '6px',
-                  border: `1px solid ${ED_TEAL}`,
-                  fontSize: '13px',
-                  color: ED_TEAL,
-                  backgroundColor: 'white',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = ED_TEAL; e.currentTarget.style.color = 'white'; }}
-                onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.color = ED_TEAL; }}
-                onClick={() => setViewId(i.id)}
-              >
-                <FiEye />
-              </button>
-            </div>
-            <div style={{ color: '#555' }}>{i.createdAt ? formatDate(i.createdAt) : 'N/A'}</div>
-            <div>
-              <div style={{ fontWeight: 500 }}>{i.name}</div>
-              <div style={{ fontSize: '12px', color: '#666' }}>{i.phone}</div>
-            </div>
-            <div>{i.email}</div>
-            <div>
-              <span 
-                style={{
-                  display: 'inline-block',
-                  padding: '4px 8px',
-                  borderRadius: '12px',
-                  fontSize: '12px',
-                  fontWeight: 500,
-                  backgroundColor: i.status === 'approved' ? '#DCFCE7' : i.status === 'rejected' ? '#FEE2E2' : '#E0F2FE',
-                  color: i.status === 'approved' ? '#166534' : i.status === 'rejected' ? '#991B1B' : '#075985',
-                }}
-              >
-                {i.status || 'Pending'}
-              </span>
-            </div>
-          </div>
-        ))}
-      </div>
-  
+    <div style={{ overflowX: 'auto', marginLeft: '100px', marginRight: '30px' }}>
+      <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: '12px', minWidth: '1200px' }}>
+        <thead>
+          <tr style={{ backgroundColor: '#f1f5f9' }}>
+            <th style={{ padding: '12px', textAlign: 'left', borderBottom: `1px solid ${BORDER}`, fontWeight: 500, color: TEXT_DARK, whiteSpace: 'nowrap' }}>Date</th>
+            <th style={{ padding: '12px', textAlign: 'left', borderBottom: `1px solid ${BORDER}`, fontWeight: 500, color: TEXT_DARK, whiteSpace: 'nowrap' }}>Name</th>
+            <th style={{ padding: '12px', textAlign: 'left', borderBottom: `1px solid ${BORDER}`, fontWeight: 500, color: TEXT_DARK, whiteSpace: 'nowrap' }}>Email</th>
+            <th style={{ padding: '12px', textAlign: 'left', borderBottom: `1px solid ${BORDER}`, fontWeight: 500, color: TEXT_DARK, whiteSpace: 'nowrap' }}>Phone</th>
+            <th style={{ padding: '12px', textAlign: 'left', borderBottom: `1px solid ${BORDER}`, fontWeight: 500, color: TEXT_DARK, whiteSpace: 'nowrap' }}>Program Type</th>
+           
+            <th style={{ padding: '12px', textAlign: 'left', borderBottom: `1px solid ${BORDER}`, fontWeight: 500, color: TEXT_DARK, whiteSpace: 'nowrap' }}>Last Qualification</th>
+            <th style={{ padding: '12px', textAlign: 'left', borderBottom: `1px solid ${BORDER}`, fontWeight: 500, color: TEXT_DARK, whiteSpace: 'nowrap' }}>Address</th>
+            <th style={{ padding: '12px', textAlign: 'left', borderBottom: `1px solid ${BORDER}`, fontWeight: 500, color: TEXT_DARK, whiteSpace: 'nowrap' }}>Status</th>
+            <th style={{ padding: '12px', textAlign: 'left', borderBottom: `1px solid ${BORDER}`, fontWeight: 500, color: TEXT_DARK, whiteSpace: 'nowrap' }}>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {items.map((item) => (
+            <tr key={item.id} style={{ borderBottom: `1px solid ${BORDER}`, backgroundColor: 'white' }}>
+              <td style={{ padding: '12px', color: '#64748b', whiteSpace: 'nowrap' }}>{formatDate(item.createdAt)}</td>
+              <td style={{ padding: '12px', color: TEXT_DARK, fontWeight: 500, whiteSpace: 'nowrap' }}>{item.name}</td>
+              <td style={{ padding: '12px', color: '#3b82f6', wordBreak: 'break-all' }}>{item.email}</td>
+              <td style={{ padding: '12px', color: TEXT_DARK, whiteSpace: 'nowrap' }}>{item.phone}</td>
+              <td style={{ padding: '12px', color: TEXT_DARK, whiteSpace: 'nowrap' }}>{item.programType || 'N/A'}</td>
+           
+              <td style={{ padding: '12px', color: TEXT_DARK, whiteSpace: 'nowrap' }}>{item.qualification || 'N/A'}</td>
+              <td style={{ padding: '12px', color: TEXT_DARK, maxWidth: '200px', wordBreak: 'break-word' }}>{item.address || 'N/A'}</td>
+              <td style={{ padding: '12px', whiteSpace: 'nowrap' }}>
+                <span 
+                  style={{
+                    display: 'inline-block',
+                    padding: '4px 8px',
+                    borderRadius: '12px',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    backgroundColor: item.status === 'approved' ? '#DCFCE7' : item.status === 'rejected' ? '#FEE2E2' : '#E0F2FE',
+                    color: item.status === 'approved' ? '#166534' : item.status === 'rejected' ? '#991B1B' : '#075985',
+                  }}
+                >
+                  {item.status || 'Pending'}
+                </span>
+              </td>
+              <td style={{ padding: '12px', textAlign: 'center' }}>
+                <button
+                  onClick={() => handleDeleteClick(item)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#ef4444',
+                    cursor: 'pointer',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    transition: 'all 0.2s',
+                  }}
+                  onMouseEnter={e => (e.currentTarget.style.backgroundColor = '#fef2f2')}
+                  onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  title="Delete Application"
+                >
+                  <FiTrash2 size={18} />
+                  Delete
+                </button>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      
       {/* Pagination */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 8, marginTop: 12 , marginRight: '30px' }}>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginTop: '16px' }}>
         <button
           disabled={page <= 1}
           onClick={() => setPage(p => Math.max(1, p - 1))}
@@ -544,11 +714,20 @@ export default function NewApplications() {
             background: page <= 1 ? '#cbd5e1' : ED_TEAL,
             color: 'white',
             fontWeight: 500,
+            border: 'none',
+            cursor: page <= 1 ? 'not-allowed' : 'pointer',
+            opacity: page <= 1 ? 0.7 : 1
           }}
         >
           Previous
         </button>
-        <span style={{ padding: '6px 12px', borderRadius: 6, background: ED_TEAL, color: 'white', fontWeight: 500 }}>
+        <span style={{ 
+          padding: '6px 12px', 
+          borderRadius: 6, 
+          background: ED_TEAL, 
+          color: 'white', 
+          fontWeight: 500 
+        }}>
           {page}
         </span>
         <button
@@ -560,13 +739,16 @@ export default function NewApplications() {
             background: items.length < PAGE_SIZE ? '#cbd5e1' : ED_TEAL,
             color: 'white',
             fontWeight: 500,
+            border: 'none',
+            cursor: items.length < PAGE_SIZE ? 'not-allowed' : 'pointer',
+            opacity: items.length < PAGE_SIZE ? 0.7 : 1
           }}
         >
           Next
         </button>
       </div>
-      </div>
     </div>
+  </div>
   );
 }
 
