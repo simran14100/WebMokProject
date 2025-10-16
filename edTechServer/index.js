@@ -81,84 +81,31 @@ cloudinary.config({
 
 global.cloudinary = cloudinary;
 
-// CORS configuration
-app.use((req, res, next) => {
-  // Allow all origins in development
-  const allowedOrigins = [
-    'http://localhost:3000', 
-    'http://localhost:3001', 
-    'http://localhost:4000', 
-    'http://localhost:4001',
-    'http://127.0.0.1:3000',
-    'http://127.0.0.1:4000'
-  ];
-  const origin = req.headers.origin;
-  
-  if (allowedOrigins.includes(origin)) {
-    res.header('Access-Control-Allow-Origin', origin);
-  } else if (process.env.NODE_ENV !== 'production') {
-    // In development, allow any origin
-    res.header('Access-Control-Allow-Origin', origin || '*');
-  }
-  
-  // Allow all methods
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-  
-  // Allow all headers
-  res.header('Access-Control-Allow-Headers', [
-    'Content-Type',
-    'Authorization',
-    'X-Requested-With',
-    'Accept',
-    'Origin',
-    'withCredentials',
-    'skipauth',
-    'X-Skip-Interceptor',
-    'cache-control',
-    'pragma',
-    'expires',
-    'headers',
-    'total',
-    'x-total-count',
-    'limit',
-    'page',
-    'range',
-    'content-range'
-  ].join(', '));
-  
-  // Expose custom headers to the client
-  res.header('Access-Control-Expose-Headers', [
-    'Content-Range',
-    'X-Total-Count',
-    'total',
-    'x-total-count',
-    'limit',
-    'page',
-    'range',
-    'content-range'
-  ].join(', '));
-  
-  res.header('Access-Control-Allow-Credentials', 'true');
-  res.header('Access-Control-Max-Age', '86400');
-  
-  // Handle preflight requests
-  if (req.method === 'OPTIONS') {
-    return res.status(204).end(); // 204 No Content for preflight
-  }
-  
-  next();
-});
-
-
-
-// Middlewares
-app.use(express.json());
-app.use(cookieParser());
 
 // CORS configuration
-app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000' || "https://web-mok-project-9jgu93c86-simranjhas-projects.vercel.app" ||
-    "https://web-mok-project.vercel.app" ,
+const corsOptions = {
+  origin: function (origin, callback) {
+    // In development, allow all origins
+    if (process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    
+    // In production, only allow specific domains
+    const productionOrigins = [
+      'https://onko.in',
+      'https://www.onko.in'
+    ];
+    
+    // Allow requests with no origin (like mobile apps)
+    if (!origin) return callback(null, true);
+    
+    if (productionOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      console.log('Blocked by CORS in production:', origin);
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
@@ -167,18 +114,19 @@ app.use(cors({
     'X-Requested-With',
     'Accept',
     'Origin',
-    'Access-Control-Allow-Credentials',
-    'withCredentials',
-    'skipauth',
-    'X-Skip-Interceptor',
-    'signal',
-    'X-XSRF-TOKEN',
-    'X-Debug',
-    'headers',
-    'content-type',
-    'x-requested-with'
+    'Access-Control-Allow-Credentials'
   ]
-}));
+};
+
+app.use(cors(corsOptions));
+
+
+// Middlewares
+app.use(express.json());
+app.use(cookieParser());
+
+// CORS configuration
+
 
 // Handle preflight requests
 app.options('*', cors());
