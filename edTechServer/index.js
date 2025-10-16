@@ -319,14 +319,3 @@ database.connect()
     console.error("Server not started due to DB connection failure");
   });
 
-// Start the server after database connection is established
-// database.connect()
-//   .then(() => {
-//     app.listen(PORT, () => {
-//       console.log(`Server is running on port ${PORT}`);
-//     });
-//   })
-//   .catch((error) => {
-//     console.error('Failed to connect to the database:', error);
-//     process.exit(1);
-//   });
