@@ -92,8 +92,8 @@ const corsOptions = {
     
     // In production, only allow specific domains
     const productionOrigins = [
-      'https://onko.in',
-      'https://www.onko.in',
+      'https://www.crmwale.com',
+      'https://crmwale.com', // Add without www as well
        'http://localhost:3000',
     ];
     
