@@ -350,7 +350,7 @@ axiosInstance.interceptors.response.use(
   }
 );
 
-export const apiConnector = async (method, url, bodyData = null, headers = {}, params = null, skipAuth = false) => {
+export const apiConnector = async (method, url, bodyData = null, headers = {}, params = null, skipAuth = false, withCredentials = false) => {
   // For DELETE requests, we don't want to include a body
   const isDelete = method.toUpperCase() === 'DELETE';
   const isFormData = bodyData instanceof FormData;
@@ -402,7 +402,7 @@ export const apiConnector = async (method, url, bodyData = null, headers = {}, p
         ...headers // Let headers from the function call override
       },
       params: params,
-      withCredentials: true,
+      withCredentials: withCredentials,
       // Add timeout and other axios config
       timeout: 60000, // 60 seconds
       maxContentLength: 100 * 1024 * 1024, // 100MB

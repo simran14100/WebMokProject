@@ -9,8 +9,6 @@ const {
   getCourseById,
 } = require("../controllers/UGPGCourse");
 
-// Protect all routes with authentication
-router.use(auth);
 
 router.get("/", listCourses);
 router.get("/:id", getCourseById);

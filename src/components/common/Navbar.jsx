@@ -181,13 +181,12 @@ const Navbar = () => {
   };
 
   // University navigation: check universityregisteredstudent status and route accordingly
-// University navigation: check universityregisteredstudent status and route accordingly
 const handleUniversityNav = async (e) => {
   e.preventDefault();
 
   
   if (!token) {
-    navigate(`/login?redirect=${encodeURIComponent('/university')}`);
+    navigate('/university/schools');
     return;
   }
 

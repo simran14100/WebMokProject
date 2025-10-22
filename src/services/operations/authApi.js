@@ -70,27 +70,29 @@ export function universitySignup(userData) {
       const redirectTo = searchParams.get('redirect') || '';
       
       // Add program to the user data if it exists
-      const signupData = program ? 
-        { ...userData, program, ...(redirectTo && { redirectTo }) } : 
+      const signupData = program ?
+        { ...userData, program, ...(redirectTo && { redirectTo }) } :
         { ...userData, ...(redirectTo && { redirectTo }) };
-      
+
       // Make the signup request with credentials for HTTP-only cookies
       const response = await apiConnector(
-        "POST", 
-        UNIVERSITY_SIGNUP_API, 
+        "POST",
+        UNIVERSITY_SIGNUP_API,
         signupData,
-        { 
+        {},
+        null,
+        {
           withCredentials: true, // Important for cookies
           'X-Skip-Interceptor': 'true' // Skip the interceptor for this request
         }
       );
-      
+
       // If we have a redirect URL in the response, handle it
       if (response.data.redirectTo) {
         // If this is a client-side navigation
         if (userData.navigate) {
-          userData.navigate(response.data.redirectTo, { 
-            state: { 
+          userData.navigate(response.data.redirectTo, {
+            state: {
               message: response.data.message || 'Please login to continue',
               email: userData.email,
               accountType: userData.accountType
@@ -107,57 +109,57 @@ export function universitySignup(userData) {
       // If user is created and logged in successfully, update Redux store
       if (response.data.success && response.data.user) {
         const { user } = response.data;
-        
+
         // Generate avatar if no image is provided
-        const userImage = user?.image 
-          ? user.image 
+        const userImage = user?.image
+          ? user.image
           : `https://api.dicebear.com/5.x/initials/svg?seed=${user.firstName} ${user.lastName}`;
-        
+
         const userWithImage = { ...user, image: userImage };
-        
+
         // Update Redux store with user data
         dispatch(setUser(userWithImage));
         showSuccess(response.data.message || "Registration successful!");
-        
+
         // Default redirect URL after login
         let redirectUrl = '/dashboard';
-        
+
         // If there's a redirect URL in the response, use it
         if (response.data.redirectTo) {
           redirectUrl = response.data.redirectTo;
         }
-        
+
         // Navigate to the appropriate page if navigate function is provided
         if (userData.navigate) {
           userData.navigate(redirectUrl);
         }
-        
+
         // Return success with user data
-        return { 
-          success: true, 
+        return {
+          success: true,
           user: userWithImage,
           data: response.data,
           redirectTo: redirectUrl
         };
       }
-      
+
       // Handle case where user is created but not logged in
       if (response.data.success) {
         showSuccess(response.data.message || "Registration successful! Please login.");
-        
+
         // Build login URL with email parameter
         const loginUrl = new URL('/login', window.location.origin);
         if (userData.email) loginUrl.searchParams.set('email', userData.email);
         if (redirectTo) loginUrl.searchParams.set('redirect', redirectTo);
-        
+
         // Navigate to login with success message if navigate function is provided
         if (userData.navigate) {
-          userData.navigate(loginUrl.pathname + loginUrl.search, { 
-            state: { 
+          userData.navigate(loginUrl.pathname + loginUrl.search, {
+            state: {
               message: 'Registration successful! Please login to continue.',
               email: userData.email,
               program: program || undefined
-            } 
+            }
           });
         } else {
           // Fallback to window.location if navigate function is not available
@@ -167,19 +169,19 @@ export function universitySignup(userData) {
       }
 
       return response.data;
-      
+
     } catch (error) {
       console.error("UNIVERSITY SIGNUP ERROR:", error);
-      
+
       // Log the full error response for debugging
       if (error.response) {
         console.error("Error response data:", error.response.data);
         console.error("Error response status:", error.response.status);
       }
-      
+
       // Handle validation errors
       let errorMessage = "Registration failed. Please check your information and try again.";
-      
+
       if (error.response?.data?.errors) {
         // Handle validation errors from the server
         errorMessage = Object.values(error.response.data.errors)
@@ -192,12 +194,11 @@ export function universitySignup(userData) {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       // Check if user is already registered
-      if (errorMessage.toLowerCase().includes('already registered') || 
-          errorMessage.toLowerCase().includes('user already exists')) {
+      if (errorMessage.toLowerCase().includes('already registered') ||
+        errorMessage.toLowerCase().includes('user already exists')) {
         console.log("User already registered, redirecting to login...");
-        
         // Show error message and redirect
         showError("You are already registered. Please login to continue.");
         shouldRedirectToLogin = true;
@@ -205,24 +206,24 @@ export function universitySignup(userData) {
         // For other errors, show the error message
         showError(errorMessage);
       }
-      
+
       // Handle redirection if needed
       if (shouldRedirectToLogin && userData) {
         // Build login URL with email and program parameters
         const loginUrl = new URL('/university/login', window.location.origin);
         if (userData.email) loginUrl.searchParams.set('email', userData.email);
         if (userData.program) loginUrl.searchParams.set('program', userData.program);
-        
+
         // Add redirect parameter if available
         const searchParams = new URLSearchParams(window.location.search);
         const redirectTo = searchParams.get('redirect');
         if (redirectTo) loginUrl.searchParams.set('redirect', redirectTo);
-        
+
         // Use a small timeout to ensure the error message is shown before redirecting
         setTimeout(() => {
           if (userData.navigate) {
-            userData.navigate(loginUrl.pathname + loginUrl.search, { 
-              state: { 
+            userData.navigate(loginUrl.pathname + loginUrl.search, {
+              state: {
                 email: userData.email,
                 program: userData.program
               }
@@ -234,16 +235,16 @@ export function universitySignup(userData) {
           }
         }, 1000);
       }
-      
+
       // Return error for the component to handle
-      return { 
-        success: false, 
+      return {
+        success: false,
         message: errorMessage,
         error: errorMessage,
         data: error.response?.data,
         shouldLogin: shouldRedirectToLogin
       };
-      
+
     } finally {
       dispatch(setLoading(false));
       dismissToast(toastId);
@@ -265,7 +266,7 @@ export function signUp(
   return async (dispatch) => {
     const toastId = showLoading("Creating your account...");
     dispatch(setLoading(true));
-    
+
     try {
       // Prepare the signup data
       const signupData = {
@@ -281,10 +282,12 @@ export function signUp(
 
       // Make the signup request with credentials for HTTP-only cookies
       const response = await apiConnector(
-        "POST", 
-        SIGNUP_API, 
+        "POST",
+        SIGNUP_API,
         signupData,
-        { 
+        {},
+        null,
+        {
           withCredentials: true, // Important for cookies
           'X-Skip-Interceptor': 'true' // Skip the interceptor for this request
         }
@@ -299,57 +302,57 @@ export function signUp(
       // If user is created and logged in successfully, update Redux store
       if (response.data.user) {
         const { user } = response.data;
-        
+
         // Generate avatar if no image is provided
-        const userImage = user?.image 
-          ? user.image 
+        const userImage = user?.image
+          ? user.image
           : `https://api.dicebear.com/5.x/initials/svg?seed=${user.firstName} ${user.lastName}`;
-        
+
         const userWithImage = { ...user, image: userImage };
-        
+
         // Update Redux store with user data
         dispatch(setUser(userWithImage));
         showSuccess(response.data.message || "Registration successful!");
-        
+
         // Navigate to the appropriate page
         const redirectTo = response.data.redirectTo || "/dashboard/my-profile";
         navigate(redirectTo);
-        
-        return { 
-          success: true, 
+
+        return {
+          success: true,
           user: userWithImage,
           data: response.data,
           redirectTo
         };
       }
-      
+
       // Handle case where user is created but not logged in
       if (response.data.success) {
         showSuccess(response.data.message || "Registration successful! Please login.");
-        
+
         // Navigate to login with success message
-        navigate("/login", { 
-          state: { 
+        navigate("/login", {
+          state: {
             message: 'Registration successful! Please login to continue.',
             email: email
-          } 
+          }
         });
-        
-        return { 
-          success: true, 
+
+        return {
+          success: true,
           message: 'Registration successful! Please login.',
           data: response.data
         };
       }
-      
+
       return response.data;
-      
+
     } catch (error) {
       console.error("SIGNUP ERROR:", error);
-      
+
       // Handle validation errors
       let errorMessage = "Registration failed. Please check your information and try again.";
-      
+
       if (error.response?.data?.errors) {
         // Handle validation errors from the server
         errorMessage = Object.values(error.response.data.errors)
@@ -362,40 +365,40 @@ export function signUp(
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       // Check if user is already registered
-      if (errorMessage.toLowerCase().includes('already registered') || 
-          errorMessage.toLowerCase().includes('user already exists')) {
+      if (errorMessage.toLowerCase().includes('already registered') ||
+        errorMessage.toLowerCase().includes('user already exists')) {
         showError("You are already registered. Please login to continue.");
-        
+
         // Navigate to login with email pre-filled
         setTimeout(() => {
-          navigate("/login", { 
-            state: { 
+          navigate("/login", {
+            state: {
               email: email,
               message: 'You are already registered. Please login to continue.'
-            } 
+            }
           });
         }, 1000);
-        
-        return { 
-          success: false, 
+
+        return {
+          success: false,
           message: 'User already registered',
           shouldLogin: true
         };
       }
-      
+
       // For other errors, show the error message
       showError(errorMessage);
-      
+
       // Return error for the component to handle
-      return { 
-        success: false, 
+      return {
+        success: false,
         message: errorMessage,
         error: errorMessage,
         data: error.response?.data
       };
-      
+
     } finally {
       dispatch(setLoading(false));
       dismissToast(toastId);
@@ -408,7 +411,7 @@ export function signUp(
 //   return async (dispatch) => {
 //     const toastId = showLoading("Signing in...");
 //     dispatch(setLoading(true));
-    
+
 //     try {
 //       // Create a minimal axios instance with no extra configuration
 //       const response = await axios({
@@ -433,37 +436,37 @@ export function signUp(
 //           return JSON.stringify(data);
 //         }]
 //       });
-      
+
 //       // If we get here, login was successful
 //       const { user, token, refreshToken } = response.data;
-      
+
 //       // Store the tokens in both Redux store and localStorage
 //       dispatch(setToken(token));
 //       localStorage.setItem('token', token);
-      
+
 //       // Store refresh token in httpOnly cookie (handled by server) and localStorage as fallback
 //       if (refreshToken) {
 //         localStorage.setItem('refreshToken', refreshToken);
 //       }
-      
+
 //       // Store user data
 //       dispatch(setUser(user));
 //       localStorage.setItem('user', JSON.stringify(user));
-      
+
 //       // Prepare success result with user data
-//       const result = { 
+//       const result = {
 //         type: 'auth/login/fulfilled',
-//         payload: { 
-//           success: true, 
-//           token, 
+//         payload: {
+//           success: true,
+//           token,
 //           user,
-//           message: 'Login successful!' 
-//         } 
+//           message: 'Login successful!'
+//         }
 //       };
-      
+
 //       // Dispatch the success action
 //       dispatch(result);
-      
+
 //       // Handle navigation if navigate function is provided
 //       if (navigate) {
 //         if (user.accountType === 'Student') {
@@ -476,34 +479,34 @@ export function signUp(
 //           navigate('/');
 //         }
 //       }
-      
+
 //       // Return success result
 //       return result;
 //     } catch (error) {
 //       console.error("Login error:", error);
-      
+
 //       // Handle CORS specific errors
-//       if (error.message && error.message.includes('CORS') || 
-//           (error.response && error.response.status === 0)) {
+//       if (error.message && error.message.includes('CORS') ||
+//         (error.response && error.response.status === 0)) {
 //         console.error("CORS error detected. Please check backend CORS configuration.");
 //         showError("CORS error: Please ensure the backend is properly configured to accept requests from this origin.");
 //         return dispatch({ type: 'auth/setError', payload: "CORS configuration error. Please contact support." });
 //       }
-      
+
 //       // Handle network errors
 //       if (error.message === 'Network Error' || !navigator.onLine) {
 //         showError("Network error. Please check your internet connection and try again.");
 //         return dispatch({ type: 'auth/setError', payload: "Network error. Please check your connection and try again." });
 //       }
-      
+
 //       // Handle server errors
 //       if (error.response) {
 //         // The request was made and the server responded with a status code
 //         // that falls out of the range of 2xx
 //         console.error("Server error:", error.response.data);
-//         const errorMessage = error.response.data?.message || 
-//                            error.response.data?.error || 
-//                            `Server error: ${error.response.status}`;
+//         const errorMessage = error.response.data?.message ||
+//           error.response.data?.error ||
+//           `Server error: ${error.response.status}`;
 //         showError(errorMessage);
 //         return dispatch({ type: 'auth/setError', payload: errorMessage });
 //       } else if (error.request) {
@@ -529,56 +532,45 @@ export function login(email, password, navigate = null) {
   return async (dispatch) => {
     const toastId = showLoading("Signing in...");
     dispatch(setLoading(true));
-    
+
     try {
       // Create a minimal axios instance with no extra configuration
-      const response = await axios({
-        method: 'post',
-        url: `${process.env.REACT_APP_BASE_URL || 'http://localhost:4000'}/api/v1/auth/login`,
-        data: { email, password },
-        withCredentials: true,
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-          'X-Requested-With': 'XMLHttpRequest'
-        },
-        // Ensure we don't send any extra headers
-        transformRequest: [(data, headers) => {
-          // Safely remove any problematic headers
-          if (headers && headers.common) {
-            delete headers.common['X-Requested-With'];
-            delete headers.common['Access-Control-Allow-Origin'];
-            delete headers.common['Access-Control-Allow-Methods'];
-            delete headers.common['Access-Control-Allow-Headers'];
-          }
-          return JSON.stringify(data);
-        }]
-      });
-      
+      const response = await apiConnector(
+        "POST",
+        LOGIN_API,
+        { email, password },
+        {},
+        null,
+        {
+          withCredentials: true, // Important for cookies
+          'X-Skip-Interceptor': 'true' // Skip the interceptor for this request
+        }
+      );
+
       // If we get here, login was successful
       const { user, token, refreshToken } = response.data;
-      
-      console.log('🔐 Login Success:', { user, token: !!token, refreshToken: !!refreshToken });
-      
-      // ✅ FIXED: Use proper Redux actions to set token and user
+
+      console.log(' Login Success:', { user, token: !!token, refreshToken: !!refreshToken });
+
+      // Store the tokens in both Redux store and localStorage
       if (token) {
         dispatch(setToken(token));
         localStorage.setItem('token', token);
-        console.log('✅ Token set in Redux and localStorage');
+        console.log('Token set in Redux and localStorage');
       }
-      
-      // ✅ FIXED: Set user data in Redux store
-      if (user) {
-        dispatch(setUser(user));
-        localStorage.setItem('user', JSON.stringify(user));
-        console.log('✅ User data set in Redux and localStorage');
-      }
-      
-      // Store refresh token if provided (handled by server via httpOnly cookie)
+
+      // Store refresh token in httpOnly cookie (handled by server) and localStorage as fallback
       if (refreshToken) {
         localStorage.setItem('refreshToken', refreshToken);
       }
-      
+
+      // Store user data
+      if (user) {
+        dispatch(setUser(user));
+        localStorage.setItem('user', JSON.stringify(user));
+        console.log('User data set in Redux and localStorage');
+      }
+
       // Create success result object
       const result = {
         success: true,
@@ -586,11 +578,8 @@ export function login(email, password, navigate = null) {
         user,
         message: 'Login successful!'
       };
-      
-      // ✅ FIXED: Don't dispatch the result object directly
-      // dispatch(result); // ❌ REMOVE THIS LINE
-      
-      console.log('🔐 Final Auth State Check:', {
+
+      console.log(' Final Auth State Check:', {
         reduxTokenSet: !!token,
         localStorageToken: !!localStorage.getItem('token'),
         reduxUserSet: !!user,
@@ -599,7 +588,7 @@ export function login(email, password, navigate = null) {
 
       // Handle navigation if navigate function is provided
       if (navigate) {
-        console.log('🔄 Navigating to dashboard...');
+        console.log(' Navigating to dashboard...');
         if (user.accountType === 'Student') {
           navigate('/dashboard/my-profile');
         } else if (user.accountType === 'Instructor') {
@@ -610,34 +599,34 @@ export function login(email, password, navigate = null) {
           navigate('/');
         }
       }
-      
+
       // Return success result
       return result;
     } catch (error) {
       console.error("Login error:", error);
-      
+
       // Handle CORS specific errors
-      if (error.message && error.message.includes('CORS') || 
-          (error.response && error.response.status === 0)) {
+      if (error.message && error.message.includes('CORS') ||
+        (error.response && error.response.status === 0)) {
         console.error("CORS error detected. Please check backend CORS configuration.");
         showError("CORS error: Please ensure the backend is properly configured to accept requests from this origin.");
         return { success: false, error: "CORS configuration error. Please contact support." };
       }
-      
+
       // Handle network errors
       if (error.message === 'Network Error' || !navigator.onLine) {
         showError("Network error. Please check your internet connection and try again.");
         return { success: false, error: "Network error. Please check your connection and try again." };
       }
-      
+
       // Handle server errors
       if (error.response) {
         // The request was made and the server responded with a status code
         // that falls out of the range of 2xx
         console.error("Server error:", error.response.data);
-        const errorMessage = error.response.data?.message || 
-                           error.response.data?.error || 
-                           `Server error: ${error.response.status}`;
+        const errorMessage = error.response.data?.message ||
+          error.response.data?.error ||
+          `Server error: ${error.response.status}`;
         showError(errorMessage);
         return { success: false, error: errorMessage };
       } else if (error.request) {
@@ -663,43 +652,44 @@ export function getPasswordResetToken(email, setEmailSent) {
   return async (dispatch) => {
     const toastId = showLoading('Sending password reset email...');
     dispatch(setLoading(true));
-    
+
     try {
       const response = await apiConnector(
-        'POST', 
-        RESETPASSTOKEN_API, 
+        'POST',
+        RESETPASSTOKEN_API,
         { email },
-        { 
-          withCredentials: true,
-          'X-Skip-Interceptor': 'true' // Skip the interceptor for this request
-        }
+        {},
+        null,
+        true,
+        true
       );
-      
+
       console.log('PASSWORD RESET TOKEN RESPONSE:', response);
-      
+
       if (!response.data.success) {
         throw new Error(response.data.message || 'Failed to send password reset email');
       }
-      
+
       showSuccess('Password reset email sent. Please check your inbox.');
-      
+
       // Update UI state if setEmailSent function is provided
       if (typeof setEmailSent === 'function') {
         setEmailSent(true);
       }
-      
+
       return { success: true, data: response.data };
-      
+
     } catch (error) {
       console.error('PASSWORD RESET TOKEN ERROR:', error);
-      
+
       // Handle different types of errors
       let errorMessage = 'Failed to send password reset email';
-      
+
       if (error.response?.data?.errors) {
         // Handle validation errors
         errorMessage = Object.values(error.response.data.errors)
           .map(err => typeof err === 'object' ? err.msg || err.message || JSON.stringify(err) : err)
+          .filter(Boolean) // Remove any falsy values
           .join('\n') || errorMessage;
       } else if (error.response?.data?.message) {
         // Use server-provided error message if available
@@ -707,16 +697,16 @@ export function getPasswordResetToken(email, setEmailSent) {
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       showError(errorMessage);
-      
-      return { 
-        success: false, 
+
+      return {
+        success: false,
         message: errorMessage,
         error: errorMessage,
         data: error.response?.data
       };
-      
+
     } finally {
       dispatch(setLoading(false));
       dismissToast(toastId);
@@ -728,17 +718,18 @@ export function resetPassword(password, confirmPassword, token, navigate = () =>
   return async (dispatch) => {
     const toastId = showLoading('Resetting your password...');
     dispatch(setLoading(true));
-    
+
     try {
       const response = await apiConnector(
         'POST',
         RESETPASSWORD_API,
         { password, confirmPassword, token },
         {
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }
+          'Content-Type': 'application/json',
+        },
+        null,
+        false,
+        false
       );
 
       if (response.data.success) {
@@ -750,34 +741,34 @@ export function resetPassword(password, confirmPassword, token, navigate = () =>
       }
     } catch (error) {
       let errorMessage = 'Failed to reset password. Please try again.';
-      
+
       if (error.response?.data?.message) {
         // Use server-provided error message if available
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       // Handle expired or invalid token
-      if (errorMessage.toLowerCase().includes('invalid') || 
-          errorMessage.toLowerCase().includes('expired') ||
-          errorMessage.toLowerCase().includes('not found')) {
+      if (errorMessage.toLowerCase().includes('invalid') ||
+        errorMessage.toLowerCase().includes('expired') ||
+        errorMessage.toLowerCase().includes('not found')) {
         showError('This password reset link is invalid or has expired. Please request a new one.');
-        
+
         // Redirect to forgot password page
         setTimeout(() => {
           navigate('/forgot-password');
         }, 1500);
-        
-        return { 
-          success: false, 
+
+        return {
+          success: false,
           message: 'Invalid or expired token',
           shouldRequestNewLink: true
         };
       } else {
         showError(errorMessage);
-        return { 
-          success: false, 
+        return {
+          success: false,
           message: errorMessage
         };
       }
@@ -794,27 +785,26 @@ export const universityLogin = (email, password, navigate = null) => {
   return async (dispatch) => {
     const toastId = showLoading("Logging in...");
     dispatch(setLoading(true));
-    
+
     try {
       // Get program from URL params
       const searchParams = new URLSearchParams(window.location.search);
       const program = searchParams.get('program') || '';
-      
+
       // Make login request with program in the body
       // The server will set an HTTP-only cookie with the auth token
       const response = await apiConnector(
-        "POST", 
-        UNIVERSITY_LOGIN_API, 
+        "POST",
+        UNIVERSITY_LOGIN_API,
         {
           email,
           password,
           ...(program && { program }) // Only include program if it exists
         },
-        { 
-          withCredentials: true, // Important for cookies
-          'X-Skip-Interceptor': 'true', // Skip the interceptor for this request
-          timeout: 10000 // 10 second timeout
-        }
+        {},
+        null,
+        true,
+        true
       ).catch(error => {
         if (error.code === 'ECONNABORTED') {
           throw new Error('Request timed out. Please try again.');
@@ -828,79 +818,79 @@ export const universityLogin = (email, password, navigate = null) => {
         }
         throw error; // Re-throw to be caught in the outer catch
       });
-      
+
       if (!response.data.success) {
         // Handle specific error cases
         const errorMessage = response.data.message || 'Login failed';
-        if (errorMessage.toLowerCase().includes('user not found') || 
-            errorMessage.toLowerCase().includes('not registered')) {
+        if (errorMessage.toLowerCase().includes('user not found') ||
+          errorMessage.toLowerCase().includes('not registered')) {
           throw new Error('No university account found with this email. Please sign up first.');
         } else if (errorMessage.toLowerCase().includes('password')) {
           throw new Error('Incorrect password. Please try again.');
         }
         throw new Error(errorMessage);
       }
-      
+
       // Update Redux store with user data (token is in HTTP-only cookie)
       const { user } = response.data;
-      
+
       // Generate avatar if no image is provided
-      const userImage = user?.image 
-        ? user.image 
+      const userImage = user?.image
+        ? user.image
         : `https://api.dicebear.com/5.x/initials/svg?seed=${user.firstName} ${user.lastName}`;
-      
+
       // Update Redux store with user data including the generated image
       dispatch(setUser({ ...user, image: userImage }));
-      
+
       showSuccess("Login successful!");
-      
+
       // Handle redirect if navigate function is provided
       if (navigate) {
         // Use the redirect URL from the response or fall back to dashboard
         const redirectTo = response.data.redirectTo || '/dashboard';
-        
+
         navigate(redirectTo);
       }
-      
-      return { 
-        success: true, 
+
+      return {
+        success: true,
         data: response.data,
         user: { ...user, image: userImage } // Include user with image in the response
       };
-      
+
     } catch (error) {
       console.error("UNIVERSITY LOGIN ERROR:", error);
-      
+
       let errorMessage = "Login failed";
       let shouldRedirectToSignup = false;
-      
+
       if (error.response?.data) {
         errorMessage = error.response.data.message || errorMessage;
         shouldRedirectToSignup = error.response.data.code === 'USER_NOT_FOUND';
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       showError(errorMessage);
-      
+
       // If user not found and we have a navigate function, redirect to signup
       if (shouldRedirectToSignup && navigate) {
         const searchParams = new URLSearchParams(window.location.search);
         const redirectTo = searchParams.get('redirect') || window.location.pathname + window.location.search;
-        
+
         // Build the signup URL with redirect parameter
         const signupUrl = new URL('/signup', window.location.origin);
         if (redirectTo) signupUrl.searchParams.set('redirect', redirectTo);
-        
+
         navigate(signupUrl.pathname + signupUrl.search);
       }
-      
-      return { 
-        success: false, 
+
+      return {
+        success: false,
         message: errorMessage,
-        shouldRedirectToSignup 
+        shouldRedirectToSignup
       };
-      
+
     } finally {
       dispatch(setLoading(false));
       dismissToast(toastId);
@@ -914,43 +904,41 @@ export const getCurrentUser = () => {
     console.log('getCurrentUser called');
     const toastId = showLoading("Loading your profile...");
     dispatch(setLoading(true));
-    
+
     try {
       console.log('Making API call to get current user...');
       // The token is automatically sent via HTTP-only cookie
       const response = await apiConnector(
-        "GET", 
-        GET_CURRENT_USER_API, 
-        null, 
-        { 
-          withCredentials: true, // Important for cookies
-          'X-Skip-Interceptor': 'true', // Skip the interceptor for this request
-          'Cache-Control': 'no-cache',
-          'Pragma': 'no-cache'
-        }
+        "GET",
+        GET_CURRENT_USER_API,
+        null,
+        {},
+        null,
+        true,
+        true
       );
-      
+
       console.log('Current user API response:', response);
-      
+
       if (!response.data.success) {
         const errorMsg = response.data.message || 'Failed to fetch user data';
         console.error('API Error:', errorMsg);
         throw new Error(errorMsg);
       }
-      
+
       const user = response.data.user;
-      
+
       if (!user) {
         const errorMsg = 'No user data received from server';
         console.warn(errorMsg);
         throw new Error(errorMsg);
       }
-      
+
       // Generate avatar if no image is provided
       const userImage = user?.image || `https://api.dicebear.com/5.x/initials/svg?seed=${user.firstName || ''} ${user.lastName || ''}`.trim();
-      
-      const userWithImage = { 
-        ...user, 
+
+      const userWithImage = {
+        ...user,
         image: userImage,
         // Ensure we have all required user properties with defaults
         firstName: user.firstName || '',
@@ -961,48 +949,48 @@ export const getCurrentUser = () => {
         // Add accountType if not present
         accountType: user.accountType || (user.role ? user.role.charAt(0).toUpperCase() + user.role.slice(1).toLowerCase() : 'Student')
       };
-      
+
       console.log('Processed user data:', userWithImage);
-      
+
       // Update Redux store with user data
       dispatch(setUser(userWithImage));
-      
+
       // Also update profile slice if needed
       dispatch(updateUser(userWithImage));
-      
+
       console.log('User data updated in Redux store');
-      
+
       // Show success message if this wasn't a silent check
       const isSilentCheck = getState()?.auth?.isSilentCheck;
       if (!isSilentCheck) {
         showSuccess("Welcome back!");
       }
-      
-      return { 
-        success: true, 
+
+      return {
+        success: true,
         user: userWithImage,
         data: response.data
       };
-      
+
     } catch (error) {
       console.error("GET CURRENT USER ERROR:", error);
-      
+
       // Extract error message
       let errorMessage = "Failed to load user data";
       let shouldLogout = false;
-      
+
       if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
       } else if (error.message) {
         errorMessage = error.message;
       }
-      
+
       // Handle different error cases
-      const isUnauthorized = error.response?.status === 401 || 
-                           error.message?.includes('Unauthorized') ||
-                           error.message?.includes('No token provided') ||
-                           error.message?.includes('jwt expired');
-      
+      const isUnauthorized = error.response?.status === 401 ||
+        error.message?.includes('Unauthorized') ||
+        error.message?.includes('No token provided') ||
+        error.message?.includes('jwt expired');
+
       if (isUnauthorized) {
         // Don't show error toast for unauthorized users (common case)
         if (error.response?.status !== 401) {
@@ -1015,13 +1003,13 @@ export const getCurrentUser = () => {
       } else if (error.response?.status >= 500) {
         errorMessage = "Server error. Please try again later.";
       }
-      
+
       // Show error message if this wasn't a silent check
       const isSilentCheck = getState()?.auth?.isSilentCheck;
       if (!isSilentCheck) {
         showError(errorMessage);
       }
-      
+
       // Logout if needed
       if (shouldLogout) {
         // Use a small timeout to ensure the error is shown before redirecting
@@ -1029,15 +1017,15 @@ export const getCurrentUser = () => {
           dispatch(logout());
         }, 100);
       }
-      
-      return { 
-        success: false, 
+
+      return {
+        success: false,
         message: errorMessage,
         error: errorMessage,
         shouldLogout,
         status: error.response?.status
       };
-      
+
     } finally {
       dismissToast(toastId);
       dispatch(setLoading(false));
@@ -1054,7 +1042,7 @@ export const updateUserProgram = (programType, token = null) => async (dispatch,
   const toastId = showLoading("Updating program...");
   try {
     console.log('Starting program update for:', programType);
-    
+
     // Validate program type
     const validProgramTypes = ['UG', 'PG', 'PhD'];
     if (!validProgramTypes.includes(programType)) {
@@ -1062,11 +1050,11 @@ export const updateUserProgram = (programType, token = null) => async (dispatch,
       error.name = 'ValidationError';
       throw error;
     }
-    
+
     // Get current state and token if not provided
     const state = getState ? getState() : store.getState();
     const authToken = token || state.auth?.token;
-    
+
     if (!authToken) {
       // If we're in a component that can redirect, return an error
       if (typeof window === 'undefined') {
@@ -1077,7 +1065,7 @@ export const updateUserProgram = (programType, token = null) => async (dispatch,
       window.location.href = `/login?redirect=${encodeURIComponent(currentPath)}`;
       return { success: false, message: 'Please log in to continue' };
     }
-    
+
     // Get the current user data
     const currentUser = state.profile?.user || state.auth?.user;
     if (!currentUser) {
@@ -1088,31 +1076,35 @@ export const updateUserProgram = (programType, token = null) => async (dispatch,
     const response = await apiConnector(
       'PUT',
       UPDATE_PROGRAM_API,
-      { 
+      {
         programType,
         accountType: 'Student' // Ensure account type is set to Student
       },
+      {},
+      null,
       {
         'Content-Type': 'application/json',
         'Authorization': `Bearer ${authToken}`,
         'X-Skip-Interceptor': 'true'
-      }
+      },
+      false,
+      false
     );
-    
+
     if (!response || !response.data) {
       throw new Error('No valid response received from server');
     }
-    
+
     console.log('Update program response:', {
       success: response.data.success,
       message: response.data.message,
       user: response.data.user ? 'User data received' : 'No user data in response'
     });
-    
+
     if (!response.data.success) {
       throw new Error(response.data.message || 'Failed to update program');
     }
-    
+
     // Update user data in Redux store
     const updatedUser = {
       ...currentUser, // Preserve existing user data
@@ -1121,20 +1113,20 @@ export const updateUserProgram = (programType, token = null) => async (dispatch,
       accountType: 'Student', // Ensure account type is set to Student
       enrollmentStatus: response.data.user?.enrollmentStatus || currentUser.enrollmentStatus || 'Pending'
     };
-    
+
     // Update both auth and profile slices
     dispatch(setUser(updatedUser));
     dispatch(updateUser(updatedUser));
-    
+
     // Show success message
     showSuccess('Program updated successfully');
-    
+
     return {
       success: true,
       user: updatedUser,
       message: response.data.message || 'Program updated successfully'
     };
-    
+
   } catch (error) {
     console.error("UPDATE PROGRAM API ERROR", {
       name: error.name,
@@ -1142,14 +1134,14 @@ export const updateUserProgram = (programType, token = null) => async (dispatch,
       stack: error.stack,
       response: error.response?.data
     });
-    
+
     let errorMessage = 'Failed to update program';
-    
+
     if (error.response) {
       // The request was made and the server responded with a status code
       // that falls out of the range of 2xx
       errorMessage = error.response.data?.message || errorMessage;
-      
+
       // Handle specific HTTP status codes
       if (error.response.status === 401) {
         errorMessage = 'Session expired. Please log in again.';
@@ -1172,10 +1164,10 @@ export const updateUserProgram = (programType, token = null) => async (dispatch,
       // Something happened in setting up the request that triggered an Error
       errorMessage = error.message || errorMessage;
     }
-    
+
     // Show error message to user
     showError(errorMessage);
-    
+
     return {
       success: false,
       error: errorMessage,
@@ -1193,42 +1185,41 @@ export const logout = (navigate = null) => async (dispatch) => {
     console.log('Logout already in progress');
     return { success: false, message: 'Logout already in progress' };
   }
-  
+
   console.log("Starting logout process...");
   isLoggingOut = true;
-  
+
   const toastId = showLoading("Logging out...");
   let logoutSuccessful = false;
-  
+
   try {
     // Get the current path to redirect back after login if needed
     const currentPath = window.location.pathname + window.location.search;
     const isAuthPage = ['/login', '/signup', '/forgot-password', '/reset-password']
       .some(path => currentPath.includes(path));
-    
+
     // Only call the server logout endpoint if we have a valid session
-    const hasActiveSession = document.cookie.includes('token=') || 
-                           localStorage.getItem('token') || 
-                           sessionStorage.getItem('token');
-    
+    const hasActiveSession = document.cookie.includes('token=') ||
+      localStorage.getItem('token') ||
+      sessionStorage.getItem('token');
+
     if (hasActiveSession) {
       try {
         // Call the server to clear the HTTP-only cookies
         await apiConnector(
-          'POST', 
-          LOGOUT_API, 
+          'POST',
+          LOGOUT_API,
+          null,
           {},
-          { 
-            withCredentials: true, // Important for cookies
-            'X-Skip-Interceptor': 'true', // Skip the interceptor for this request
-            'skipauth': 'true' // Skip auth header for logout
-          }
+          null,
+          true,
+          true
         );
-        
+
         logoutSuccessful = true;
       } catch (error) {
         console.error("LOGOUT ERROR:", error);
-        
+
         // Special handling for network errors or server unavailability
         if (!error.response) {
           showError("Network error during logout. Your local session has been cleared.");
@@ -1236,7 +1227,7 @@ export const logout = (navigate = null) => async (dispatch) => {
           const errorMessage = error.response?.data?.message || 'Error during server logout';
           showError(`${errorMessage}. Local session cleared.`);
         }
-        
+
         // Even if server logout fails, we'll continue with client-side cleanup
         logoutSuccessful = true;
       }
@@ -1244,49 +1235,49 @@ export const logout = (navigate = null) => async (dispatch) => {
       // No active session found, just proceed with client-side cleanup
       logoutSuccessful = true;
     }
-    
+
     // Clear Redux state
     dispatch(setToken(null));
     dispatch(setUser(null));
     dispatch(setLoading(false));
     dispatch(setProfileLoading(false));
-    
+
     // Clear any cached data in localStorage and sessionStorage
     localStorage.clear();
     sessionStorage.clear();
-    
+
     // Clear all auth-related cookies
     const cookies = document.cookie.split(';');
     for (let i = 0; i < cookies.length; i++) {
       const cookie = cookies[i].trim();
       // Match all auth-related cookies
-      if (cookie.startsWith('token=') || 
-          cookie.startsWith('refreshToken=') ||
-          cookie.startsWith('session=') ||
-          cookie.startsWith('auth_')) {
+      if (cookie.startsWith('token=') ||
+        cookie.startsWith('refreshToken=') ||
+        cookie.startsWith('session=') ||
+        cookie.startsWith('auth_')) {
         const eqPos = cookie.indexOf('=');
         const name = eqPos > -1 ? cookie.substring(0, eqPos) : cookie;
         document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; SameSite=Lax`;
         document.cookie = `${name}=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT; Domain=${window.location.hostname}; SameSite=Lax`;
       }
     }
-    
+
     // Show success message if not already showing
     if (!logoutToastShown) {
       showSuccess("You have been logged out successfully");
       logoutToastShown = true;
     }
-    
+
     // Determine where to navigate after logout
     let redirectPath = '/login';
-    
+
     // If we're not already on an auth page, store the current path for post-login redirect
     if (!isAuthPage && currentPath && !currentPath.includes('logout')) {
       const loginUrl = new URL('/login', window.location.origin);
       loginUrl.searchParams.set('redirect', currentPath);
       redirectPath = loginUrl.pathname + loginUrl.search;
     }
-    
+
     // Use the navigate function if provided, otherwise use window.location
     if (typeof navigate === 'function') {
       navigate(redirectPath, { replace: true });
@@ -1294,24 +1285,24 @@ export const logout = (navigate = null) => async (dispatch) => {
       // eslint-disable-next-line no-restricted-globals
       window.location.href = redirectPath;
     }
-    
+
     return { success: logoutSuccessful };
-    
+
   } catch (error) {
     console.error("UNEXPECTED ERROR DURING LOGOUT:", error);
     showError("An unexpected error occurred during logout");
-    return { 
-      success: false, 
+    return {
+      success: false,
       message: 'An unexpected error occurred during logout',
-      error: error.message 
+      error: error.message
     };
-    
+
   } finally {
     // Clear any remaining toasts after a short delay
     setTimeout(() => {
       dismissAllToasts();
       dismissToast(toastId);
-      
+
       // Reset logout state
       isLoggingOut = false;
       logoutToastShown = false;
@@ -1327,31 +1318,31 @@ export function updateDisplayPicture(formData) {
       showError('Invalid image data provided');
       return { success: false, message: 'Invalid image data' };
     }
-    
+
     const toastId = showLoading("Uploading your profile picture...");
     dispatch(setLoading(true));
-    
+
     try {
       // Get current user data for fallback
       const currentUser = getState()?.auth?.user;
-      
+
       // Call the API to update the display picture
       const response = await apiConnector(
         "PUT",
         profile.UPDATE_DISPLAY_PICTURE_API,
         formData,
         {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-          },
-          withCredentials: true, // Important for cookies
-          'X-Skip-Interceptor': 'true' // Skip the interceptor for this request
-        }
+          'Content-Type': 'multipart/form-data',
+        },
+        null,
+        true,
+        true
       );
-      
+
       if (!response.data.success) {
         throw new Error(response.data.message || 'Failed to update profile picture');
       }
+
       
       // Get the updated user data from the response
       const updatedUser = response.data.user || response.data.updatedUserDetails || {};

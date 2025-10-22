@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
+import axios from 'axios';
 import { apiConnector } from "../../services/apiConnector";
 import { listDepartments } from "../../services/departmentApi";
 import { showError, showLoading, dismissToast } from "../../utils/toast";
@@ -30,7 +31,7 @@ export default function Schools() {
       setLoading(true);
       setError("");
       try {
-        const res = await apiConnector("GET", "/api/v1/ugpg/schools");
+        const res = await axios.get(`${process.env.REACT_APP_BASE_URL}/api/v1/ugpg/schools`);
         const list = Array.isArray(res?.data?.data) ? res.data.data : [];
         setSchools(list);
       } catch (e) {

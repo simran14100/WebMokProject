@@ -9,8 +9,6 @@ const {
   deleteSchool,
 } = require("../controllers/UGPGSchool");
 
-// Protect all routes with authentication
-router.use(auth);
 
 router.get("/", listSchools);
 router.post("/", createSchool);

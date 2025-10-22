@@ -1367,7 +1367,7 @@ export async function getEnrolledStudents(token, { page = 1, limit = 10, search 
   } catch (error) {
     console.log("GET ENROLLED STUDENTS ERROR............", error)
     showError(error.response?.data?.message || error.message || "Failed to fetch enrolled students")
-    throw error
+    throw error;
   }
 }
 
@@ -1377,10 +1377,8 @@ export async function getPhdEnrolledStudents(token, { page = 1, limit = 10, sear
     const response = await apiConnector(
       "GET",
       GET_PHD_ENROLLED_STUDENTS_API,
-      {},
-      {
-        Authorization: `Bearer ${token}`,
-      },
+      null,
+      { Authorization: `Bearer ${token}` },
       { params: { page, limit, search } }
     )
 

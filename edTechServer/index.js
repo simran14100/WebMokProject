@@ -93,7 +93,8 @@ const corsOptions = {
     // In production, only allow specific domains
     const productionOrigins = [
       'https://onko.in',
-      'https://www.onko.in'
+      'https://www.onko.in',
+       'http://localhost:3000',
     ];
     
     // Allow requests with no origin (like mobile apps)
@@ -114,11 +115,13 @@ const corsOptions = {
     'X-Requested-With',
     'Accept',
     'Origin',
-    'Access-Control-Allow-Credentials'
+    'headers',
+    'Cache-Control',
+    'Pragma'
   ]
 };
 
-app.use(cors(corsOptions));
+
 
 
 // Middlewares
@@ -127,7 +130,7 @@ app.use(cookieParser());
 
 // CORS configuration
 
-
+app.use(cors(corsOptions));
 // Handle preflight requests
 app.options('*', cors());
 

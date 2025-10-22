@@ -336,7 +336,7 @@ const TeacherForm = () => {
               </Button>
               
               <Button 
-                onClick={() => navigate('/dashboard/teachers')}
+                onClick={() => navigate('/ugpg-admin/teachers')}
                 disabled={submitting}
               >
                 Cancel

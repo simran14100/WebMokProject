@@ -1,8 +1,9 @@
-import { apiConnector } from "./apiConnector";
+import axios from 'axios';
+import { apiConnector } from './apiConnector';
 
 const BASE = "/api/v1/departments";
 
-export const listDepartments = () => apiConnector("GET", `${BASE}`);
+export const listDepartments = () => axios.get(`${process.env.REACT_APP_BASE_URL}${BASE}`);
 
 export const createDepartment = (payload) => apiConnector("POST", `${BASE}`, payload);
 

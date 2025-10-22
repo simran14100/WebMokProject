@@ -8,9 +8,6 @@ const {
 
 const router = express.Router();
 
-// All routes are protected and require admin/superadmin access
-router.use(protect);
-router.use(authorize('admin', 'superadmin'));
 
 // Routes
 router.get('/schools', getSchools);

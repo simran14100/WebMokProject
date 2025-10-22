@@ -4,11 +4,11 @@ const router = express.Router();
 const { createDepartment, getDepartments, getUgpgDepartments, getDepartmentById, updateDepartment, deleteDepartment } = require("../controllers/Department");
 const { auth, isAdminLevel } = require("../middlewares/auth");
 
-// List all departments (Admin-level)
-router.get("/", auth, isAdminLevel, getDepartments);
+// List all departments (Public)
+router.get("/", getDepartments);
 
-// List UG/PG departments only
-router.get("/ugpg", auth, isAdminLevel, getUgpgDepartments);
+// List UG/PG departments only (Public)
+router.get("/ugpg", getUgpgDepartments);
 
 // Get one department by id (Admin-level)
 router.get("/:id", auth, isAdminLevel, getDepartmentById);

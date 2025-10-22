@@ -493,8 +493,19 @@ function AppRoutes() {
         {/* Cart routes - Accessible to Students, Admins, and SuperAdmins */}
         {[ACCOUNT_TYPE.STUDENT, ACCOUNT_TYPE.ADMIN, ACCOUNT_TYPE.SUPER_ADMIN].includes(user?.accountType) && (
           <>
-            <Route path="cart" element={<Cart />} />
-            <Route path="cart/checkout" element={<Checkout />} />
+          <Route path="cart">
+  <Route index element={<Cart />} />
+  <Route 
+    path="checkout" 
+    element={
+      <DashboardLayout>
+        <Checkout />
+      </DashboardLayout>
+    } 
+  />
+</Route>
+            {/* <Route path="cart" element={<Cart />} />
+            <Route path="cart/checkout" element={<Checkout />} /> */}
           </>
         )}
 

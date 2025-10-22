@@ -72,31 +72,46 @@ export default function NewApplications() {
         }, token);
         
         const enquiryData = listRes?.data?.data || [];
-        const mapped = enquiryData.map((enquiry, index) => ({
-          id: enquiry._id || enquiry.id || `temp-${index}`,
-          name: (enquiry.firstName && enquiry.lastName) 
-            ? `${enquiry.firstName} ${enquiry.lastName}`.trim() 
-            : enquiry.name || 'No Name',
-          email: enquiry.email || 'No Email',
-          phone: enquiry.phone || enquiry.phoneNumber || 'No Phone',
-          programType: enquiry.programType || 'PHD',
-          status: enquiry.status || 'pending',
-          createdAt: enquiry.createdAt || new Date().toISOString(),
-          fatherName: enquiry.fatherName || '',
-          dateOfBirth: enquiry.dateOfBirth 
-            ? new Date(enquiry.dateOfBirth).toLocaleDateString() 
-            : 'N/A',
-          qualification: enquiry.lastClass || enquiry.qualification || '',
-          boardSchoolName: enquiry.boardSchoolName || enquiry.schoolName || '',
-          percentage: enquiry.percentage || '',
-          address: [
-            enquiry.address,
-            enquiry.city,
-            enquiry.state,
-            enquiry.pincode
-          ].filter(Boolean).join(', ') || 'Not provided',
-          _raw: enquiry
-        }));
+        const mapped = enquiryData.map((enquiry, index) => {
+          // Debug log to see the raw enquiry data
+          console.log('Processing enquiry:', JSON.stringify(enquiry, null, 2));
+          
+          // Handle name extraction
+          let name = 'No Name';
+          if (enquiry.name) {
+            name = enquiry.name;
+          } else if (enquiry.firstName || enquiry.lastName) {
+            name = [enquiry.firstName, enquiry.lastName].filter(Boolean).join(' ').trim();
+          } else if (enquiry.fullName) {
+            name = enquiry.fullName;
+          }
+          
+          return {
+            id: enquiry._id || enquiry.id || `temp-${index}`,
+            name: name,
+            email: enquiry.email || 'No Email',
+            phone: enquiry.phone || enquiry.phoneNumber || 'No Phone',
+            programType: enquiry.programType || 'PHD',
+            status: enquiry.status || 'pending',
+            createdAt: enquiry.createdAt || new Date().toISOString(),
+            firstName: enquiry.firstName || '',
+            lastName: enquiry.lastName || '',
+            fatherName: enquiry.fatherName || '',
+            dateOfBirth: enquiry.dateOfBirth 
+              ? new Date(enquiry.dateOfBirth).toLocaleDateString() 
+              : 'N/A',
+            qualification: enquiry.lastClass || enquiry.qualification || '',
+            boardSchoolName: enquiry.boardSchoolName || enquiry.schoolName || '',
+            percentage: enquiry.percentage || '',
+            address: [
+              enquiry.address,
+              enquiry.city,
+              enquiry.state,
+              enquiry.pincode
+            ].filter(Boolean).join(', ') || 'Not provided',
+            _raw: enquiry
+          };
+        });
         
         setItems(mapped);
         setMeta({
@@ -425,56 +440,286 @@ export default function NewApplications() {
     const a = document.createElement('a'); a.href = url; a.download = 'new-applications.csv'; a.click(); URL.revokeObjectURL(url);
   };
 
-  const printTable = () => {
-    const win = window.open('', 'PRINT', 'height=700,width=1000');
-    if (!win) return;
-    const tableRows = items.map(i => `
-      <tr>
-        <td>${escapeHtml(formatDate(i.createdAt))}</td>
-        <td>${escapeHtml(i.name)}</td>
-        <td>${escapeHtml(i.email)}</td>
-        <td>${escapeHtml(i.phone)}</td>
-        <td>${escapeHtml(i.programType || 'N/A')}</td>
+
+
+const printTable = () => {
+  // Debug: Log the items being printed
+  console.log('Printing items:', JSON.stringify(items, null, 2));
+  
+  const win = window.open('', '_blank', 'width=900,height=600');
+  if (!win) {
+    console.error('Could not open print window');
+    return;
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return 'Invalid Date';
       
-        <td>DOB: ${escapeHtml(i.dateOfBirth || 'N/A')}</td>
-        <td>${escapeHtml(i.qualification || 'N/A')}</td>
-        <td>${escapeHtml(i.address || 'N/A')}</td>
-        <td>${escapeHtml(i.status)}</td>
-      </tr>
-    `).join('');
-    const html = `<!doctype html>
-<html><head><meta charset="utf-8" /><title>New Applications</title>
-<style>
-  body{font-family:Arial,sans-serif;padding:16px}
-  table{width:100%;border-collapse:collapse;font-size:12px}
-  th,td{border:1px solid #cbd5e1;padding:8px;text-align:left}
-  thead{background:#f1f5f9}
-  th{white-space:nowrap}
-  td{word-break:break-word}
-</style>
-</head><body>
-<h3>New Applications</h3>
-<table>
-  <thead>
-    <tr>
-      <th>Date</th>
-      <th>Name</th>
-      <th>Email</th>
-      <th>Phone</th>
-      <th>Program Type</th>
-    
-      <th>Personal Info</th>
-      <th>Last Qualification</th>
-      <th>Address</th>
-      <th>Status</th>
-    </tr>
-  </thead>
-  <tbody>${tableRows}</tbody>
-</table>
-</body></html>`;
-    win.document.open(); win.document.write(html); win.document.close();
-    win.onload = () => { win.focus(); win.print(); win.close(); };
+      const options = { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZone: 'Asia/Kolkata'
+      };
+      return date.toLocaleDateString('en-IN', options);
+    } catch (error) {
+      console.error('Error formatting date:', dateString, error);
+      return 'Date Error';
+    }
   };
+
+  // Helper function to safely access nested properties
+  const getNestedValue = (obj, path, defaultValue = 'N/A') => {
+    return path.split('.').reduce((o, p) => (o && o[p] !== undefined ? o[p] : defaultValue), obj);
+  };
+
+  const formatItem = (item) => {
+    if (!item) return '';
+    
+    // Log the complete item for debugging
+    console.log('Processing item for print:', JSON.stringify(item, null, 2));
+    
+    // Get data from _raw if available, otherwise use item directly
+    const data = item._raw || item;
+    const admissionDetails = data.admissionDetails || {};
+    
+    // Get full name from either name or firstName+lastName
+    let fullName = 'N/A';
+    if (data.name) {
+      fullName = data.name;
+    } else if (data.firstName || data.lastName) {
+      fullName = [data.firstName, data.lastName].filter(Boolean).join(' ').trim();
+    } else if (data.fullName) {
+      fullName = data.fullName;
+    }
+    
+    // Log for debugging
+    console.log('Name debug:', {
+      dataName: data.name,
+      firstName: data.firstName,
+      lastName: data.lastName,
+      fullName: data.fullName,
+      finalName: fullName
+    });
+    
+    // Get address components
+    const address = [
+      data.address,
+      data.city,
+      data.state,
+      data.pincode
+    ].filter(Boolean).join(', ') || 'Not provided';
+
+    return `
+      <div style="page-break-inside: avoid; margin-bottom: 20px; padding: 20px; border: 1px solid #e2e8f0; border-radius: 8px; background: white; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px; padding-bottom: 10px; border-bottom: 2px solid #0f766e;">
+          <h2 style="margin: 0; color: #0f766e;">Application #${data._id || data.id || 'N/A'}</h2>
+          <div style="font-size: 14px; color: #64748b;">
+            Applied on: ${formatDate(data.createdAt || data.appliedDate)}
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 20px;">
+          <!-- Personal Information -->
+          <div>
+            <h3 style="color: #334155; margin: 0 0 10px 0; font-size: 16px; font-weight: 600; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">Personal Information</h3>
+            <div style="font-size: 14px; line-height: 1.8;">
+              <div><strong>Name:</strong> ${fullName}</div>
+              <div><strong>Date of Birth:</strong> ${formatDate(data.dateOfBirth)}</div>
+              <div><strong>Gender:</strong> ${data.gender || 'N/A'}</div>
+              <div><strong>Father's Name:</strong> ${data.fatherName || data.parentName || 'N/A'}</div>
+             
+              <div><strong>Nationality:</strong> ${data.nationality || 'Indian'}</div>
+            </div>
+          </div>
+
+          <!-- Contact Information -->
+          <div>
+            <h3 style="color: #334155; margin: 0 0 10px 0; font-size: 16px; font-weight: 600; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">Contact Information</h3>
+            <div style="font-size: 14px; line-height: 1.8;">
+              <div><strong>Email:</strong> ${data.email || 'N/A'}</div>
+              <div><strong>Phone:</strong> ${data.phone || data.phoneNumber || 'N/A'}</div>
+              <div><strong>Alternate Phone:</strong> ${data.alternateNumber || 'N/A'}</div>
+              <div><strong>Address:</strong> ${address}</div>
+            </div>
+          </div>
+
+          <!-- Academic Information -->
+          <div>
+            <h3 style="color: #334155; margin: 0 0 10px 0; font-size: 16px; font-weight: 600; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">Academic Information</h3>
+            <div style="font-size: 14px; line-height: 1.8;">
+              <div><strong>Last Qualification:</strong> ${data.lastClass || data.qualification || 'N/A'}</div>
+              <div><strong>Board/University:</strong> ${data.boardSchoolName || data.schoolName || 'N/A'}</div>
+              <div><strong>Percentage/CGPA:</strong> ${data.percentage || 'N/A'}</div>
+              <div><strong>Graduation Course:</strong> ${data.graduationCourse || 'N/A'}</div>
+              <div><strong>Year of Passing:</strong> ${data.yearOfPassing || 'N/A'}</div>
+            </div>
+          </div>
+
+          <!-- Admission Details -->
+          <div>
+            <h3 style="color: #334155; margin: 0 0 10px 0; font-size: 16px; font-weight: 600; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">Admission Details</h3>
+            <div style="font-size: 14px; line-height: 1.8;">
+              <div><strong>Status:</strong> ${data.status || 'N/A'}</div>
+              <div><strong>Program Type:</strong> ${data.programType || 'N/A'}</div>
+              <div><strong>Source:</strong> ${admissionDetails.source || 'N/A'}</div>
+              <div><strong>Scholarship:</strong> ${admissionDetails.isScholarship ? 'Yes' : 'No'}</div>
+              <div><strong>Follow-up Date:</strong> ${formatDate(admissionDetails.followUpDate)}</div>
+              <div><strong>Processed At:</strong> ${formatDate(admissionDetails.processedAt)}</div>
+              <div><strong>Last Updated:</strong> ${formatDate(data.updatedAt)}</div>
+            </div>
+          </div>
+
+          <!-- Notes Section -->
+          ${data.notes?.length > 0 ? `
+          <div style="grid-column: 1 / -1;">
+            <h3 style="color: #334155; margin: 0 0 10px 0; font-size: 16px; font-weight: 600; border-bottom: 1px solid #e2e8f0; padding-bottom: 5px;">Notes</h3>
+            <div style="background: #f8fafc; padding: 15px; border-radius: 6px; border: 1px solid #e2e8f0;">
+              ${data.notes.map((note, index) => `
+                <div style="margin-bottom: ${index < data.notes.length - 1 ? '15px' : '0'}; padding-bottom: ${index < data.notes.length - 1 ? '15px' : '0'}; border-bottom: ${index < data.notes.length - 1 ? '1px dashed #e2e8f0' : 'none'};">
+                  <div style="margin-bottom: 5px;">${note.content || ''}</div>
+                  <div style="font-size: 12px; color: #64748b; font-style: italic;">
+                    Added on: ${formatDate(note.createdAt)}${note.addedBy ? ` by ${note.addedBy}` : ''}
+                  </div>
+                </div>`
+              ).join('')}
+            </div>
+          </div>` : ''}
+        </div>
+      </div>
+    `;
+  };
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Application Details - ${new Date().toLocaleDateString()}</title>
+  <meta charset="UTF-8">
+  <style>
+    @page {
+      size: A4;
+      margin: 1cm;
+    }
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #1e293b;
+      padding: 20px;
+      background-color: #f8fafc;
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 20px;
+      padding: 20px;
+      background: #0f766e;
+      color: white;
+      border-radius: 8px;
+    }
+    .header h1 {
+      margin: 0 0 5px 0;
+      color: white;
+    }
+    .header p {
+      margin: 0;
+      opacity: 0.9;
+    }
+    .print-meta {
+      text-align: right;
+      margin-bottom: 20px;
+      font-size: 14px;
+      color: #64748b;
+      padding: 10px;
+      background: white;
+      border-radius: 6px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    @media print {
+      body {
+        padding: 0;
+        background: white;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .header {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>Application Details</h1>
+    <p>Generated on: ${new Date().toLocaleString()}</p>
+  </div>
+  
+  <div class="print-meta">
+    Total Applications: ${items.length} | Page <span class="page-number"></span>
+  </div>
+
+  ${items.map(item => formatItem(item)).join('<div style="page-break-after: always;"></div>')}
+
+  <div class="no-print" style="text-align: center; margin-top: 30px; padding: 20px; border-top: 1px solid #e2e8f0;">
+    <button onclick="window.print()" style="
+      background: #0f766e;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    ">
+      Print This Page
+    </button>
+    <button onclick="window.close()" style="
+      background: #ef4444;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      margin: 5px;
+    ">
+      Close Window
+    </button>
+  </div>
+
+  <script>
+    // Update page numbers
+    document.addEventListener('DOMContentLoaded', function() {
+      const pages = document.querySelectorAll('.page-number');
+      pages.forEach((page, index) => {
+        page.textContent = index + 1;
+      });
+    });
+  </script>
+</body>
+</html>`;
+
+  win.document.open();
+  win.document.write(html);
+  win.document.close();
+  
+  // Add a small delay to ensure the content is fully loaded before printing
+  win.onload = () => {
+    setTimeout(() => {
+      win.focus();
+      // Auto-print after a short delay
+      setTimeout(() => {
+        win.print();
+      }, 500);
+    }, 500);
+  };
+};
 
   // Check if there are any items to show
   const hasItems = items.length > 0;
