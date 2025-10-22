@@ -69,7 +69,8 @@
     "build": "react-app-rewired build",
     "test": "react-app-rewired test",
     "eject": "react-scripts eject",
-    "server": "cd edTechServer && npm run dev",
+    "server": "cd edTechServer && npm install && npm run dev",
+    "server:prod": "cd edTechServer && npm ci --only=production && node index.js",
     "dev": "concurrently -n \"client,server\" -c \"bgBlue,bgYellow\" \"npm start\" \"npm run server\""
   },
   "eslintConfig": {

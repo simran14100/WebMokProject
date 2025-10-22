@@ -338,7 +338,9 @@ function AppRoutes() {
           
             <NewRegistration />
         } /> */}
-        <Route path="settings" element={<UGPGSettings />} />
+
+          <Route path="assignments" element={<Assignments />} />
+        
        
         <Route path="settings/school" element={<UGPGSettingsSchool />} />
         <Route path="settings/languages" element={<UGPGSettingsLanguages />} />
